@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-02-26
+> 최종 수정일: 2026-03-01
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md)
 
 ---
@@ -12,8 +12,8 @@
 | Spring Boot | 4.0.3 |
 | Java | 21 |
 | 빌드 도구 | Gradle |
-| 현재 의존성 | JPA, Web MVC, Lombok, MySQL Connector |
-| 구현 상태 | Application 클래스만 존재 (빈 프로젝트) |
+| 현재 의존성 | JPA, Web MVC, Validation, Lombok, MySQL Connector |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 준비 상태 |
 
 ---
 
@@ -55,11 +55,11 @@ Phase 9: 인프라 및 배포
 
 | 의존성 | 용도 |
 |--------|------|
-| `spring-boot-starter-security` | Spring Security (인증/인가 필터 체인) |
-| `spring-boot-starter-validation` | Bean Validation (`@Valid`, `@NotBlank` 등) |
-| `firebase-admin` | Firebase Admin SDK (ID Token 검증, FCM 발송) |
+| `spring-boot-starter-validation` | Bean Validation (`@Valid`, `@NotBlank` 등) - 적용 완료 |
+| `spring-boot-starter-security` | Spring Security (인증/인가 필터 체인) - Phase 1에서 추가 |
+| `firebase-admin` | Firebase Admin SDK (ID Token 검증, FCM 발송) - Phase 1에서 추가 |
 
-#### 0-2. 패키지 구조 생성
+#### 0-2. 패키지 구조 생성 (Phase 0 범위)
 
 ```
 com.skuri.skuri_backend
@@ -75,31 +75,10 @@ com.skuri.skuri_backend
 │   │   └── GlobalExceptionHandler.java
 │   └── config/
 │       └── JpaAuditingConfig.java
-│
-├── domain/
-│   ├── member/
-│   ├── taxiparty/
-│   ├── chat/
-│   ├── board/
-│   ├── notice/
-│   ├── academic/
-│   └── support/
-│
-├── infra/
-│   ├── auth/
-│   ├── notification/
-│   ├── storage/
-│   └── scheduler/
-│
-└── api/
-    ├── member/
-    ├── taxiparty/
-    ├── chat/
-    ├── board/
-    ├── notice/
-    ├── academic/
-    └── support/
+└── SkuriBackendApplication.java
 ```
+
+> `domain/`, `infra/`, `api/` 패키지는 각 Phase 구현 시점에 순차적으로 생성한다.
 
 #### 0-3. 구현 항목
 
@@ -116,9 +95,9 @@ com.skuri.skuri_backend
 
 #### 0-4. 완료 기준
 
-- [ ] 빌드 성공 (`./gradlew build`)
-- [ ] 애플리케이션 정상 기동
-- [ ] 존재하지 않는 API 호출 시 `ApiResponse` 형태의 에러 응답 반환
+- [x] 빌드 성공 (`./gradlew build`)
+- [x] 애플리케이션 정상 기동
+- [x] 존재하지 않는 API 호출 시 `ApiResponse` 형태의 에러 응답 반환
 
 ---
 

@@ -89,6 +89,24 @@
 3. 도메인 책임/경계 변경: `docs/domain-analysis.md`, `docs/role-definition.md`
 4. 구현 계획/운영 정책 변경: 관련 계획 문서(예: `docs/implementation-roadmap.md`)
 
+## 로컬 실행/테스트 환경 규칙
+1. 에이전트가 로컬에서 서버/테스트를 실행할 때 기본 프로필은 `local`로 간주한다.
+2. `src/main/resources/application-local.yaml`을 사용한다면 아래 명령으로 실행한다.
+   - 서버 실행: `SPRING_PROFILES_ACTIVE=local ./gradlew bootRun`
+   - 테스트 실행: `SPRING_PROFILES_ACTIVE=local ./gradlew test`
+3. `application-local.yaml` 없이 실행해야 하는 경우, 아래 환경변수를 먼저 설정한다.
+   - `DB_URL`
+   - `DB_USERNAME`
+   - `DB_PASSWORD`
+4. 로컬 실행 전제 조건:
+   - 로컬 MySQL 서버가 기동 중일 것
+   - 대상 DB(예: `skuri`)가 생성되어 있을 것
+5. CI와 로컬 환경은 분리한다.
+   - CI는 `CI_DB_*` GitHub Secrets 사용
+   - 로컬 DB 계정/비밀번호를 CI 값으로 재사용하지 않음
+6. 민감 정보는 코드/문서/커밋에 직접 작성하지 않는다.
+   - `application-local.yaml`은 로컬 전용으로 유지하고 커밋하지 않는다.
+
 ## 검증 기준 (머지 전 최소)
 1. `./gradlew build` 성공
 2. 변경된 기능과 직접 관련된 테스트/검증 수행
