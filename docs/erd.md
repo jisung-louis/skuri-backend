@@ -1,6 +1,6 @@
 # Spring 백엔드 ERD (Entity Relationship Diagram)
 
-> 최종 수정일: 2026-02-03
+> 최종 수정일: 2026-03-02
 > 관련 문서: [도메인 분석](./domain-analysis.md)
 
 ---
@@ -24,10 +24,10 @@ erDiagram
     members {
         varchar(36) id PK "UUID or Firebase UID"
         varchar(255) email UK "NOT NULL"
-        varchar(50) display_name
+        varchar(50) nickname
         varchar(20) student_id
         varchar(50) department
-        varchar(500) photo_url
+        varchar(500) photo_url "nullable, 가입 시 null"
         varchar(50) realname
         boolean is_admin "DEFAULT false"
         varchar(20) bank_name
@@ -50,12 +50,13 @@ erDiagram
     linked_accounts {
         bigint id PK "AUTO_INCREMENT"
         varchar(36) member_id FK
-        varchar(20) provider "google"
+        varchar(20) provider "GOOGLE (Phase 1)"
         varchar(255) provider_id
         varchar(255) email
-        varchar(50) display_name
+        varchar(50) provider_display_name
         varchar(500) photo_url
         datetime created_at
+        datetime updated_at
     }
 
     members ||--o{ linked_accounts : "has"
@@ -462,10 +463,10 @@ erDiagram
 |------|------|---------|------|
 | id | VARCHAR(36) | PK | Firebase UID 또는 UUID |
 | email | VARCHAR(255) | UK, NOT NULL | 이메일 (로그인 식별자) |
-| display_name | VARCHAR(50) | | 닉네임 |
+| nickname | VARCHAR(50) | | 앱 내 닉네임 |
 | student_id | VARCHAR(20) | | 학번 |
 | department | VARCHAR(50) | | 학과 |
-| photo_url | VARCHAR(500) | | 프로필 이미지 URL |
+| photo_url | VARCHAR(500) | | 프로필 이미지 URL (가입 시 기본 null) |
 | realname | VARCHAR(50) | | 실명 (계좌 예금주) |
 | is_admin | BOOLEAN | DEFAULT false | 관리자 여부 |
 | bank_name | VARCHAR(20) | | 은행명 |
@@ -481,6 +482,20 @@ erDiagram
 | notice_notifications_detail | JSON | | 공지 카테고리별 설정 |
 | joined_at | DATETIME | | 가입일 |
 | last_login | DATETIME | | 마지막 로그인 |
+| created_at | DATETIME | NOT NULL | 생성일 |
+| updated_at | DATETIME | NOT NULL | 수정일 |
+
+**linked_accounts 테이블 상세:**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| id | BIGINT | PK, AUTO_INCREMENT | 연결 계정 식별자 |
+| member_id | VARCHAR(36) | FK, NOT NULL | 회원 ID (`members.id`) |
+| provider | VARCHAR(20) | NOT NULL | 소셜 제공자 (`GOOGLE`, Phase 1 기준) |
+| provider_id | VARCHAR(255) | | provider 계정 고유 ID (예: `firebase.identities.google.com[0]`) |
+| email | VARCHAR(255) | | provider 이메일 |
+| provider_display_name | VARCHAR(50) | | provider 프로필 이름 |
+| photo_url | VARCHAR(500) | | provider 프로필 이미지 URL (`picture`) |
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |
 
@@ -690,6 +705,7 @@ CREATE INDEX idx_members_student_id ON members(student_id);
 CREATE INDEX idx_members_department ON members(department);
 
 -- linked_accounts
+CREATE UNIQUE INDEX uk_linked_account_member_provider ON linked_accounts(member_id, provider);
 CREATE INDEX idx_linked_accounts_member ON linked_accounts(member_id);
 CREATE INDEX idx_linked_accounts_provider ON linked_accounts(provider, provider_id);
 ```

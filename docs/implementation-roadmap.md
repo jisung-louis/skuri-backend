@@ -39,6 +39,8 @@ Phase 7: Support 도메인 (문의/신고/운영)
 Phase 8: Notification 인프라 (이벤트 기반 알림)
     ↓
 Phase 9: 인프라 및 배포
+    ↓
+Phase 10: Member 탈퇴/계정 라이프사이클 (정책 확정 후)
 ```
 
 ---
@@ -78,7 +80,7 @@ com.skuri.skuri_backend
 └── SkuriBackendApplication.java
 ```
 
-> `domain/`, `infra/`, `api/` 패키지는 각 Phase 구현 시점에 순차적으로 생성한다.
+> `domain/`, `infra/` 패키지는 각 Phase 구현 시점에 순차적으로 생성한다.
 
 #### 0-3. 구현 항목
 
@@ -127,9 +129,9 @@ com.skuri.skuri_backend
 |--------|------|------|
 | `POST` | `/v1/members` | 회원 가입 (ID Token에서 정보 추출, 멱등) |
 | `GET` | `/v1/members/me` | 내 프로필 조회 (lastLogin 갱신) |
-| `PUT` | `/v1/members/me` | 프로필 수정 (학번, 학과, 실명 등) |
+| `PATCH` | `/v1/members/me` | 프로필 부분 수정 (닉네임, 학번, 학과 등) |
 | `PUT` | `/v1/members/me/bank-account` | 계좌 정보 수정 |
-| `PUT` | `/v1/members/me/notification-settings` | 알림 설정 수정 |
+| `PATCH` | `/v1/members/me/notification-settings` | 알림 설정 부분 수정 |
 | `GET` | `/v1/members/{id}` | 특정 회원 공개 프로필 조회 |
 
 #### 1-4. 완료 기준
@@ -172,16 +174,17 @@ com.skuri.skuri_backend
 | `POST` | `/v1/parties` | 파티 생성 |
 | `GET` | `/v1/parties` | 파티 목록 조회 (status, 출발지/도착지 필터) |
 | `GET` | `/v1/parties/{id}` | 파티 상세 조회 |
-| `PATCH` | `/v1/parties/{id}/close` | 모집 마감 (리더) |
-| `PATCH` | `/v1/parties/{id}/reopen` | 모집 재개 (리더) |
-| `PATCH` | `/v1/parties/{id}/arrive` | 도착 처리 + 정산 시작 (리더) |
-| `PATCH` | `/v1/parties/{id}/end` | 파티 강제 종료 (리더) |
+| `POST` | `/v1/parties/{id}/close` | 모집 마감 (리더) |
+| `POST` | `/v1/parties/{id}/reopen` | 모집 재개 (리더) |
+| `POST` | `/v1/parties/{id}/arrive` | 도착 처리 + 정산 시작 (리더) |
+| `POST` | `/v1/parties/{id}/end` | 파티 강제 종료 (리더) |
+| `POST` | `/v1/parties/{id}/cancel` | 파티 취소 (리더, soft delete) |
 | `DELETE` | `/v1/parties/{id}/members/{memberId}` | 멤버 강퇴 (리더) |
 | `DELETE` | `/v1/parties/{id}/members/me` | 파티 탈퇴 (본인) |
 | `POST` | `/v1/parties/{partyId}/join-requests` | 동승 요청 |
-| `PATCH` | `/v1/join-requests/{id}/accept` | 요청 수락 (리더) |
-| `PATCH` | `/v1/join-requests/{id}/decline` | 요청 거절 (리더) |
-| `PATCH` | `/v1/join-requests/{id}/cancel` | 요청 취소 (요청자) |
+| `POST` | `/v1/join-requests/{id}/accept` | 요청 수락 (리더) |
+| `POST` | `/v1/join-requests/{id}/decline` | 요청 거절 (리더) |
+| `POST` | `/v1/join-requests/{id}/cancel` | 요청 취소 (요청자) |
 | `GET` | `/v1/parties/{partyId}/join-requests` | 파티 요청 목록 (리더) |
 | `GET` | `/v1/members/me/join-requests` | 내 요청 목록 |
 | `PATCH` | `/v1/parties/{id}/settlement/members/{memberId}/confirm` | 개별 정산 확인 (리더) |
@@ -224,8 +227,8 @@ com.skuri.skuri_backend
 | `GET` | `/v1/chat-rooms` | 채팅방 목록 (타입 필터) |
 | `GET` | `/v1/chat-rooms/{id}` | 채팅방 상세 |
 | `GET` | `/v1/chat-rooms/{id}/messages` | 메시지 목록 (커서 기반 페이지네이션) |
-| `PATCH` | `/v1/chat-rooms/{id}/read` | 읽음 처리 |
-| `PATCH` | `/v1/chat-rooms/{id}/mute` | 음소거 토글 |
+| `PATCH` | `/v1/chat-rooms/{id}/read` | 읽음 처리 (`lastReadAt` 단조 증가) |
+| `PATCH` | `/v1/chat-rooms/{id}/settings` | 채팅방 설정(음소거 등) |
 | WebSocket | `SUBSCRIBE /topic/chat/{chatRoomId}` | 실시간 메시지 수신 |
 | WebSocket | `SEND /app/chat/{chatRoomId}` | 메시지 전송 |
 
@@ -266,13 +269,13 @@ com.skuri.skuri_backend
 | `POST` | `/v1/posts` | 게시글 작성 |
 | `GET` | `/v1/posts` | 게시글 목록 (카테고리 필터, 페이지네이션) |
 | `GET` | `/v1/posts/{id}` | 게시글 상세 (조회수 증가) |
-| `PUT` | `/v1/posts/{id}` | 게시글 수정 (작성자) |
+| `PATCH` | `/v1/posts/{id}` | 게시글 부분 수정 (작성자) |
 | `DELETE` | `/v1/posts/{id}` | 게시글 삭제 (작성자) |
 | `POST` | `/v1/posts/{id}/like` | 좋아요 토글 |
 | `POST` | `/v1/posts/{id}/bookmark` | 북마크 토글 |
 | `GET` | `/v1/posts/{postId}/comments` | 댓글 목록 |
 | `POST` | `/v1/posts/{postId}/comments` | 댓글 작성 |
-| `PUT` | `/v1/comments/{id}` | 댓글 수정 |
+| `PATCH` | `/v1/comments/{id}` | 댓글 부분 수정 |
 | `DELETE` | `/v1/comments/{id}` | 댓글 삭제 |
 | `GET` | `/v1/members/me/posts` | 내 게시글 |
 | `GET` | `/v1/members/me/bookmarks` | 내 북마크 |
@@ -462,6 +465,28 @@ com.skuri.skuri_backend
 
 ---
 
+### Phase 10: Member 탈퇴/계정 라이프사이클 (정책 확정 후)
+
+> 회원 탈퇴 정책(하드/소프트 삭제, 데이터 보존/익명화, 연관 도메인 정합성) 확정 이후 최종 구현.
+
+#### 10-1. 구현 항목
+
+| # | 항목 | 설명 |
+|---|------|------|
+| 1 | 탈퇴 정책 문서화 | 하드/소프트 삭제, 유예 기간, 재가입 정책 정의 |
+| 2 | 도메인 영향 분석 | TaxiParty/Chat/Board/Notice/Support 연관 데이터 처리 규칙 확정 |
+| 3 | `DELETE /v1/members/me` API | 정책에 따른 탈퇴 처리 (인증 사용자 본인) |
+| 4 | 개인정보 처리 | 익명화/마스킹/삭제 범위 및 감사 로그 처리 |
+| 5 | 회귀 검증 | 탈퇴 후 인증/조회/참여 제한 및 기존 데이터 정합성 검증 |
+
+#### 10-2. 완료 기준
+
+- [ ] 탈퇴 정책이 문서로 확정됨
+- [ ] `DELETE /v1/members/me` 동작 및 예외 케이스 검증 완료
+- [ ] 연관 도메인 데이터 정합성/개인정보 처리 규칙 검증 완료
+
+---
+
 ## 4. Phase 간 의존 관계
 
 ```
@@ -474,6 +499,7 @@ Phase 1 ─── 필수 선행 ──→ Phase 6 (Academic)
 Phase 1 ─── 필수 선행 ──→ Phase 7 (Support)
 Phase 2~7 ── 연동 ──→ Phase 8 (Notification)
 전체 ───────────────→ Phase 9 (인프라/배포)
+Phase 1~9 + 정책 확정 ─→ Phase 10 (Member 탈퇴)
 ```
 
 **참고:** Phase 4~7 (Board, Notice, Academic, Support)은 서로 독립적이므로 **병렬 구현 가능**합니다.
