@@ -15,3 +15,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+firebase:
+  auth:
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+    project-id: ${FIREBASE_PROJECT_ID:}
+
+security:
+  allowed-email-domain: ${ALLOWED_EMAIL_DOMAIN:sungkyul.ac.kr}

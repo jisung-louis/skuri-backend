@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-02-03
+> 최종 수정일: 2026-03-02
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md)
 
 ---
@@ -45,17 +45,19 @@ Authorization: Bearer <firebase_id_token>
 
 | API | 이유 |
 |-----|------|
-| `GET /app-versions/{platform}` | 앱 실행 초기(로그인 전) 강제 업데이트 여부 확인 |
-| `GET /app-notices` | 로그인 전 점검 공지 / 긴급 공지 표시 필요 |
+| `GET /v1/app-versions/{platform}` | 앱 실행 초기(로그인 전) 강제 업데이트 여부 확인 |
+| `GET /v1/app-notices` | 로그인 전 점검 공지 / 긴급 공지 표시 필요 |
 
 ### 1.3 공통 Response 형식
+
+> 공통 응답은 `ApiResponse`의 `@JsonInclude(Include.NON_NULL)` 정책을 사용합니다.  
+> 즉, `null` 값 필드는 직렬화 시 생략될 수 있습니다.
 
 **성공 응답:**
 ```json
 {
   "success": true,
-  "data": { ... },
-  "message": null
+  "data": { ... }
 }
 ```
 
@@ -79,7 +81,6 @@ Authorization: Bearer <firebase_id_token>
 ```json
 {
   "success": false,
-  "data": null,
   "message": "에러 메시지",
   "errorCode": "ERROR_CODE",
   "timestamp": "2026-02-03T12:00:00Z"
@@ -110,6 +111,10 @@ Authorization: Bearer <firebase_id_token>
 
 ## 2. Member API
 
+> 구현 상태 (2026-03-02):
+> - 구현 완료: `POST /v1/members`, `GET /v1/members/me`, `PATCH /v1/members/me`, `PUT /v1/members/me/bank-account`, `PATCH /v1/members/me/notification-settings`, `GET /v1/members/{id}`
+> - 구현 예정: `DELETE /v1/members/me` (Phase 10), `POST/DELETE /v1/members/me/fcm-tokens` (Phase 8)
+
 ### 2.1 인증 및 로그인 플로우
 
 본 프로젝트는 **Firebase Authentication을 인증 주체로 유지**합니다.
@@ -119,7 +124,7 @@ Authorization: Bearer <firebase_id_token>
 - 따라서 Spring 백엔드에는 `/auth/*` 형태의 “로그인/토큰 재발급” API가 존재하지 않습니다.
 
 > 참고: 로그아웃은 클라이언트에서 Firebase Auth 로그아웃을 수행합니다.
-> 서버는 푸시 알림을 위한 FCM 토큰 등록/해제 API만 제공합니다. (2.3 참고)
+> 서버는 푸시 알림을 위한 FCM 토큰 등록/해제 API만 제공합니다. (2.4 참고)
 
 ---
 
@@ -136,25 +141,25 @@ Authorization: Bearer <firebase_id_token>
     │      └─ 실패 시 → 로그인 중단, 안내 메시지 표시
     │
     ├─ isNewUser == true (신규 회원)
-    │      ├─ POST /members          ← 회원 레코드 생성
-    │      └─ CompleteProfile 화면   ← 학번/실명/학과 입력
+    │      ├─ POST /v1/members          ← 회원 레코드 생성
+    │      └─ CompleteProfile 화면   ← 닉네임/학번/학과 입력
     │
     └─ isNewUser == false (기존 회원)
-           ├─ GET /members/me        ← last_login 갱신 + 프로필 조회
+           ├─ GET /v1/members/me        ← last_login 갱신 + 프로필 조회
            └─ 홈 화면
 ```
 
 > **주의:** Firebase의 `isNewUser`가 간헐적으로 부정확할 수 있습니다.
-> 서버는 `POST /members` 중복 호출(이미 존재하는 uid)에 대해 **200 OK + 기존 프로필**을 반환하여 안전하게 처리합니다.
+> 서버는 `POST /v1/members` 중복 호출(이미 존재하는 uid)에 대해 **200 OK + 기존 프로필**을 반환하여 안전하게 처리합니다.
 
 **이메일 도메인 제한:**
 모든 인증 API에서 Firebase ID Token의 `email`이 `@sungkyul.ac.kr`로 끝나지 않으면 `403`을 반환합니다.
 
 ```json
 {
-  “success”: false,
-  “errorCode”: “EMAIL_DOMAIN_RESTRICTED”,
-  “message”: “성결대학교 이메일(@sungkyul.ac.kr)만 사용 가능합니다.”
+  "success": false,
+  "errorCode": "EMAIL_DOMAIN_RESTRICTED",
+  "message": "성결대학교 이메일(@sungkyul.ac.kr)만 사용 가능합니다."
 }
 ```
 
@@ -162,34 +167,43 @@ Authorization: Bearer <firebase_id_token>
 
 ### 2.2 회원 가입
 
-#### POST /members
+#### POST /v1/members
 신규 회원 레코드 생성 (첫 로그인 시 1회 호출)
 
 **인증:** Firebase ID Token 필수
 
 Spring 서버 처리:
-1. Firebase Admin SDK로 ID Token 검증 → `uid`, `email`, `displayName`, `photoURL` 추출
+1. Firebase Admin SDK로 ID Token 검증 → `uid`, `email`, provider 계정 정보(`name`, `picture`, provider id) 추출
+   - Google provider id: `firebase.identities.google.com[0]`
 2. `members` 테이블에서 `uid` 조회
    - **없음 (신규)** → INSERT + `linked_accounts` INSERT → 201 Created
    - **있음 (중복)** → 별도 처리 없이 기존 프로필 200 OK 반환 (idempotent)
+
+> 정책: 회원 생성 시 `members.photoUrl`은 `null`로 저장한다.  
+> 소셜 계정 프로필 이미지(`picture`)는 `linked_accounts.photo_url`에만 저장한다.
+> 회원 생성 시 `members.realname`은 provider 프로필 이름(`linked_accounts.provider_display_name`)으로 초기화한다.
+>
+> 용어 구분:
+> - API 요청/응답의 `nickname` = `members.nickname` (앱 내 닉네임)
+> - 소셜 계정 이름 = `linked_accounts.provider_display_name`
 
 **Request:** (body 없음, ID Token만 사용)
 
 **Response (신규 생성 — 201 Created):**
 ```json
 {
-  “success”: true,
-  “data”: {
-    “id”: “firebase_uid”,
-    “email”: “user@sungkyul.ac.kr”,
-    “displayName”: “스쿠리 유저”,
-    “studentId”: null,
-    “department”: null,
-    “realname”: null,
-    “photoUrl”: “https://...”,
-    “isAdmin”: false,
-    “bankAccount”: null,
-    “joinedAt”: “2026-02-03T12:00:00Z”
+  "success": true,
+  "data": {
+    "id": "firebase_uid",
+    "email": "user@sungkyul.ac.kr",
+    "nickname": "스쿠리 유저",
+    "studentId": null,
+    "department": null,
+    "realname": "홍길동",
+    "photoUrl": null,
+    "isAdmin": false,
+    "bankAccount": null,
+    "joinedAt": "2026-02-03T12:00:00Z"
   }
 }
 ```
@@ -197,18 +211,18 @@ Spring 서버 처리:
 **Response (중복 호출 — 200 OK):**
 ```json
 {
-  “success”: true,
-  “data”: {
-    “id”: “firebase_uid”,
-    “email”: “user@sungkyul.ac.kr”,
-    “displayName”: “홍길동”,
-    “studentId”: “20201234”,
-    “department”: “컴퓨터공학과”,
-    “realname”: “홍길동”,
-    “photoUrl”: “https://...”,
-    “isAdmin”: false,
-    “bankAccount”: { ... },
-    “joinedAt”: “2024-03-01T00:00:00Z”
+  "success": true,
+  "data": {
+    "id": "firebase_uid",
+    "email": "user@sungkyul.ac.kr",
+    "nickname": "홍길동",
+    "studentId": "20201234",
+    "department": "컴퓨터공학과",
+    "realname": "홍길동",
+    "photoUrl": null,
+    "isAdmin": false,
+    "bankAccount": { ... },
+    "joinedAt": "2024-03-01T00:00:00Z"
   }
 }
 ```
@@ -217,7 +231,7 @@ Spring 서버 처리:
 
 ### 2.3 회원 정보
 
-#### GET /members/me
+#### GET /v1/members/me
 내 정보 조회
 
 **Response:**
@@ -227,7 +241,7 @@ Spring 서버 처리:
   "data": {
     "id": "uuid",
     "email": "user@example.com",
-    "displayName": "홍길동",
+    "nickname": "홍길동",
     "studentId": "20201234",
     "department": "컴퓨터공학과",
     "photoUrl": "https://...",
@@ -252,25 +266,32 @@ Spring 서버 처리:
         "scholarship": false
       }
     },
-    "joinedAt": "2024-03-01T00:00:00Z"
+    "joinedAt": "2024-03-01T00:00:00Z",
+    "lastLogin": "2026-03-02T09:10:11Z"
   }
 }
 ```
 
-#### PATCH /members/me
+#### PATCH /v1/members/me
 내 정보 수정
+
+- 부분 업데이트 API입니다.
+- 요청 본문에 포함되지 않은 필드는 기존 값을 유지합니다.
+- `nickname`은 `members.nickname`을 수정합니다.
+- `realname`은 회원 생성 시 provider 이름으로 초기화되며, 이 API로 수정할 수 없습니다.
+- `photoUrl`은 현재 앱에서 미사용이며, 추후 프로필 이미지 기능에서 사용 예정입니다.
 
 **Request:**
 ```json
 {
-  "displayName": "새닉네임",
+  "nickname": "새닉네임",
   "studentId": "20201234",
   "department": "컴퓨터공학과",
   "photoUrl": "https://..."
 }
 ```
 
-#### PATCH /members/me/bank-account
+#### PUT /v1/members/me/bank-account
 계좌 정보 수정
 
 **Request:**
@@ -283,8 +304,11 @@ Spring 서버 처리:
 }
 ```
 
-#### PATCH /members/me/notification-settings
+#### PATCH /v1/members/me/notification-settings
 알림 설정 수정
+
+- 부분 업데이트 API입니다.
+- 요청 본문에 포함되지 않은 알림 필드는 기존 값을 유지합니다.
 
 **Request:**
 ```json
@@ -298,8 +322,26 @@ Spring 서버 처리:
 }
 ```
 
-#### DELETE /members/me
+#### GET /v1/members/{id}
+특정 회원 공개 프로필 조회
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "firebase_uid",
+    "nickname": "홍길동",
+    "department": "컴퓨터공학과",
+    "photoUrl": "https://..."
+  }
+}
+```
+
+#### DELETE /v1/members/me
 회원 탈퇴
+
+> 구현 예정: Phase 10 (정책 확정 후)
 
 **Response:**
 ```json
@@ -313,7 +355,9 @@ Spring 서버 처리:
 
 ### 2.4 FCM 토큰
 
-#### POST /members/me/fcm-tokens
+> 구현 예정: Phase 8 (Notification 인프라)
+
+#### POST /v1/members/me/fcm-tokens
 FCM 토큰 등록
 
 **Request:**
@@ -324,8 +368,15 @@ FCM 토큰 등록
 }
 ```
 
-#### DELETE /members/me/fcm-tokens/{token}
+#### DELETE /v1/members/me/fcm-tokens
 FCM 토큰 삭제
+
+**Request:**
+```json
+{
+  "token": "fcm_device_token"
+}
+```
 
 ### 2.5 에러 코드
 
@@ -341,7 +392,7 @@ FCM 토큰 삭제
 
 ### 3.1 파티 조회
 
-#### GET /parties
+#### GET /v1/parties
 파티 목록 조회
 
 **Query Parameters:**
@@ -390,7 +441,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### GET /parties/{partyId}
+#### GET /v1/parties/{partyId}
 파티 상세 조회
 
 **Response:**
@@ -417,14 +468,14 @@ FCM 토큰 삭제
     "members": [
       {
         "id": "member_uuid",
-        "displayName": "홍길동",
+        "nickname": "홍길동",
         "photoUrl": "https://...",
         "isLeader": true,
         "joinedAt": "2026-02-03T12:00:00Z"
       },
       {
         "id": "member_uuid_2",
-        "displayName": "김철수",
+        "nickname": "김철수",
         "photoUrl": "https://...",
         "isLeader": false,
         "joinedAt": "2026-02-03T12:30:00Z"
@@ -439,7 +490,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### GET /parties/my
+#### GET /v1/members/me/parties
 내가 참여중인 파티 조회
 
 **Response:**
@@ -476,7 +527,7 @@ FCM 토큰 삭제
 
 ### 3.2 파티 생성/관리
 
-#### POST /parties
+#### POST /v1/parties
 파티 생성
 
 **Request:**
@@ -510,7 +561,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### PATCH /parties/{partyId}
+#### PATCH /v1/parties/{partyId}
 파티 정보 수정 (리더만)
 
 **Request:**
@@ -522,7 +573,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /parties/{partyId}/close
+#### POST /v1/parties/{partyId}/close
 파티 모집 마감 (리더만)
 
 **Response:**
@@ -536,7 +587,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /parties/{partyId}/reopen
+#### POST /v1/parties/{partyId}/reopen
 파티 모집 재개 (리더만)
 
 **Response (200 OK):**
@@ -550,7 +601,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /parties/{partyId}/arrive
+#### POST /v1/parties/{partyId}/arrive
 도착 및 정산 시작 (리더만)
 
 - OPEN 또는 CLOSED 상태에서만 호출 가능
@@ -586,17 +637,20 @@ FCM 토큰 삭제
 | `PARTY_NOT_ARRIVABLE` | 409 | OPEN/CLOSED 상태가 아닌 파티 |
 | `NO_MEMBERS_TO_SETTLE` | 409 | 리더 외 멤버가 없어 정산 불가 |
 
-#### POST /parties/{partyId}/settle
-정산 완료 표시 (본인)
+#### PATCH /v1/parties/{partyId}/settlement/members/{memberId}/confirm
+멤버 정산 완료 표시 (리더만)
 
-- 리더(정산자)는 호출 불가 (리더는 수금자이므로 정산 대상 아님)
-- 모든 멤버의 정산이 완료되면 서버가 자동으로 `ENDED(ARRIVED)` 전이
+- 파티 리더가 특정 멤버의 정산 상태를 `settled=true`로 확정합니다.
+- 앱 내 결제/송금 기능은 제공하지 않으며, 향후에도 제공하지 않습니다.
+- 일반 멤버는 자신의 정산 상태를 직접 변경할 수 없고, 리더가 실제 입금 확인 후 호출합니다.
+- 모든 멤버의 정산이 완료되면 서버가 자동으로 `ENDED(ARRIVED)` 전이합니다.
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
+    "memberId": "member_uuid",
     "settled": true,
     "settledAt": "2026-02-03T14:30:00Z",
     "allSettled": true
@@ -607,7 +661,7 @@ FCM 토큰 삭제
 > **`allSettled: true`** 시 파티 상태는 `ENDED`, `endReason: ARRIVED`로 자동 전이됩니다.
 > 클라이언트는 이 필드를 감지해 종료 처리 UI를 표시합니다.
 
-#### POST /parties/{partyId}/end
+#### POST /v1/parties/{partyId}/end
 파티 강제 종료 (리더만, 정산 미완료 상태에서도 가능)
 
 - ARRIVED 상태에서만 호출 가능
@@ -626,7 +680,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### DELETE /parties/{partyId}
+#### POST /v1/parties/{partyId}/cancel
 파티 취소 (리더만)
 
 - OPEN 또는 CLOSED 상태에서만 가능 (ARRIVED 상태 불가)
@@ -640,7 +694,7 @@ FCM 토큰 삭제
 
 ### 3.3 멤버 관리
 
-#### POST /parties/{partyId}/leave
+#### DELETE /v1/parties/{partyId}/members/me
 파티 나가기 (멤버)
 
 - 리더는 나가기 불가 (취소 또는 위임 불가 정책)
@@ -661,7 +715,7 @@ FCM 토큰 삭제
 | `LEADER_CANNOT_LEAVE` | 409 | 리더는 나가기 불가 |
 | `CANNOT_LEAVE_ARRIVED_PARTY` | 409 | ARRIVED 상태에서 나가기 불가 |
 
-#### DELETE /parties/{partyId}/members/{memberId}
+#### DELETE /v1/parties/{partyId}/members/{memberId}
 멤버 강퇴 (리더만)
 
 - OPEN 또는 CLOSED 상태에서만 가능 (ARRIVED 상태 불가)
@@ -683,7 +737,7 @@ FCM 토큰 삭제
 
 ### 3.4 동승 요청
 
-#### GET /parties/{partyId}/join-requests
+#### GET /v1/parties/{partyId}/join-requests
 파티의 동승 요청 목록 (리더만)
 
 **Response:**
@@ -703,7 +757,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /parties/{partyId}/join-requests
+#### POST /v1/parties/{partyId}/join-requests
 동승 요청 생성
 
 **Response:**
@@ -717,7 +771,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### GET /join-requests/my
+#### GET /v1/members/me/join-requests
 내가 보낸 동승 요청 목록
 
 **Query Parameters:**
@@ -725,10 +779,10 @@ FCM 토큰 삭제
 |---------|------|------|
 | `status` | string | 요청 상태 (PENDING, ACCEPTED, DECLINED, CANCELED) |
 
-#### GET /join-requests/{requestId}
+#### GET /v1/join-requests/{requestId}
 동승 요청 상세
 
-#### POST /join-requests/{requestId}/accept
+#### POST /v1/join-requests/{requestId}/accept
 동승 요청 수락 (리더만)
 
 **Response:**
@@ -743,10 +797,10 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /join-requests/{requestId}/decline
+#### POST /v1/join-requests/{requestId}/decline
 동승 요청 거절 (리더만)
 
-#### POST /join-requests/{requestId}/cancel
+#### POST /v1/join-requests/{requestId}/cancel
 동승 요청 취소 (요청자)
 
 ### 3.5 에러 코드
@@ -764,7 +818,6 @@ FCM 토큰 삭제
 | `REQUEST_NOT_FOUND` | 동승 요청을 찾을 수 없음 |
 | `REQUEST_ALREADY_PROCESSED` | 이미 처리된 요청 |
 | `SETTLEMENT_NOT_COMPLETED` | 정산이 완료되지 않음 |
-| `LEADER_CANNOT_SETTLE` | 리더는 정산 대상이 아님 |
 | `ALREADY_SETTLED` | 이미 정산 완료 처리됨 |
 | `PARTY_NOT_ARRIVABLE` | OPEN/CLOSED 상태가 아닌 파티 (arrive 호출 불가) |
 | `NO_MEMBERS_TO_SETTLE` | 정산 대상 멤버 없음 (리더만 남은 파티) |
@@ -780,7 +833,7 @@ FCM 토큰 삭제
 
 ### 4.1 채팅방 조회
 
-#### GET /chat-rooms
+#### GET /v1/chat-rooms
 공개 채팅방 목록
 
 **Query Parameters:**
@@ -811,7 +864,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### GET /chat-rooms/{chatRoomId}
+#### GET /v1/chat-rooms/{chatRoomId}
 채팅방 상세
 
 **Response:**
@@ -832,7 +885,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### GET /chat-rooms/{chatRoomId}/messages
+#### GET /v1/chat-rooms/{chatRoomId}/messages
 채팅 메시지 조회
 
 **Query Parameters:**
@@ -872,13 +925,13 @@ FCM 토큰 삭제
 
 ### 4.2 채팅방 참여
 
-#### POST /chat-rooms/{chatRoomId}/join
+#### POST /v1/chat-rooms/{chatRoomId}/join
 채팅방 참여
 
-#### POST /chat-rooms/{chatRoomId}/leave
+#### POST /v1/chat-rooms/{chatRoomId}/leave
 채팅방 나가기
 
-#### PATCH /chat-rooms/{chatRoomId}/settings
+#### PATCH /v1/chat-rooms/{chatRoomId}/settings
 채팅방 설정 (음소거 등)
 
 **Request:**
@@ -888,8 +941,11 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /chat-rooms/{chatRoomId}/read
+#### PATCH /v1/chat-rooms/{chatRoomId}/read
 읽음 처리
+
+- 클라이언트는 채팅방 포커스 획득/이탈, 앱 백그라운드 전환 시점마다 `lastReadAt`을 갱신합니다.
+- 서버는 저장된 `lastReadAt`보다 과거 시각 요청을 무시해 단조 증가를 보장합니다.
 
 **Request:**
 ```json
@@ -900,7 +956,7 @@ FCM 토큰 삭제
 
 ### 4.3 메시지 조회
 
-#### GET /chat-rooms/{chatRoomId}/messages
+#### GET /v1/chat-rooms/{chatRoomId}/messages
 채팅 메시지 이력 조회 (과거 메시지 로딩)
 
 > **메시지 전송은 WebSocket(STOMP)으로만 수행합니다. (§4.5 참고)**
@@ -916,7 +972,7 @@ FCM 토큰 삭제
 파티 채팅 메시지 **전송**은 WebSocket(STOMP)으로만 수행합니다. (§4.5 참고)
 파티 채팅 비즈니스 규칙(멤버 검증, 계좌 정보 조회 등)은 서버 내부 STOMP 핸들러에서 처리합니다.
 
-#### GET /parties/{partyId}/chat/messages
+#### GET /v1/parties/{partyId}/chat/messages
 파티 채팅 메시지 이력 조회 (과거 메시지 로딩)
 
 **Query Parameters:**
@@ -1000,8 +1056,8 @@ Authorization:Bearer <firebase_id_token>
 | 작업 | 트랜잭션 범위 |
 |------|------------|
 | 메시지 전송 (STOMP 핸들러) | 메시지 DB 저장 + ChatRoom.messageCount 증가 → 커밋 후 구독자 브로드캐스트 |
-| 채팅방 참여 (`POST /chat-rooms/{chatRoomId}/join`) | ChatRoomMember 추가 + ChatRoom.memberCount 증가 |
-| 채팅방 나가기 (`POST /chat-rooms/{chatRoomId}/leave`) | ChatRoomMember 삭제 + ChatRoom.memberCount 감소 |
+| 채팅방 참여 (`POST /v1/chat-rooms/{chatRoomId}/join`) | ChatRoomMember 추가 + ChatRoom.memberCount 증가 |
+| 채팅방 나가기 (`POST /v1/chat-rooms/{chatRoomId}/leave`) | ChatRoomMember 삭제 + ChatRoom.memberCount 감소 |
 | ACCOUNT 메시지 | 계좌 정보 DB 조회 + 메시지 DB 저장 → 커밋 후 브로드캐스트 |
 
 > 브로드캐스트(WebSocket push)는 트랜잭션 커밋 성공 후 수행합니다. (Spring의 `@TransactionalEventListener` 활용)
@@ -1023,7 +1079,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 5.1 게시글 조회
 
-#### GET /posts
+#### GET /v1/posts
 게시글 목록
 
 **Query Parameters:**
@@ -1064,7 +1120,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### GET /posts/{postId}
+#### GET /v1/posts/{postId}
 게시글 상세
 
 **Response:**
@@ -1101,12 +1157,12 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### GET /posts/bookmarked
+#### GET /v1/posts/bookmarked
 북마크한 게시글 목록
 
 ### 5.2 게시글 작성/수정
 
-#### POST /posts
+#### POST /v1/posts
 게시글 작성
 
 **Request:**
@@ -1127,7 +1183,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### PATCH /posts/{postId}
+#### PATCH /v1/posts/{postId}
 게시글 수정
 
 **Request:**
@@ -1138,12 +1194,12 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### DELETE /posts/{postId}
+#### DELETE /v1/posts/{postId}
 게시글 삭제
 
 ### 5.3 게시글 상호작용
 
-#### POST /posts/{postId}/like
+#### POST /v1/posts/{postId}/like
 좋아요
 
 **Response:**
@@ -1157,18 +1213,18 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### DELETE /posts/{postId}/like
+#### DELETE /v1/posts/{postId}/like
 좋아요 취소
 
-#### POST /posts/{postId}/bookmark
+#### POST /v1/posts/{postId}/bookmark
 북마크
 
-#### DELETE /posts/{postId}/bookmark
+#### DELETE /v1/posts/{postId}/bookmark
 북마크 취소
 
 ### 5.4 댓글
 
-#### GET /posts/{postId}/comments
+#### GET /v1/posts/{postId}/comments
 댓글 목록
 
 **Response:**
@@ -1203,7 +1259,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### POST /posts/{postId}/comments
+#### POST /v1/posts/{postId}/comments
 댓글 작성
 
 **Request:**
@@ -1224,10 +1280,10 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### PATCH /comments/{commentId}
+#### PATCH /v1/comments/{commentId}
 댓글 수정
 
-#### DELETE /comments/{commentId}
+#### DELETE /v1/comments/{commentId}
 댓글 삭제
 
 ### 5.5 에러 코드
@@ -1245,7 +1301,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 6.1 학교 공지
 
-#### GET /notices
+#### GET /v1/notices
 공지사항 목록
 
 **Query Parameters:**
@@ -1279,7 +1335,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### GET /notices/{noticeId}
+#### GET /v1/notices/{noticeId}
 공지사항 상세
 
 **Response:**
@@ -1310,15 +1366,15 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### POST /notices/{noticeId}/read
+#### POST /v1/notices/{noticeId}/read
 읽음 표시
 
 ### 6.2 공지 댓글
 
-#### GET /notices/{noticeId}/comments
+#### GET /v1/notices/{noticeId}/comments
 공지 댓글 목록
 
-#### POST /notices/{noticeId}/comments
+#### POST /v1/notices/{noticeId}/comments
 공지 댓글 작성
 
 **Request:**
@@ -1330,12 +1386,12 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### DELETE /notice-comments/{commentId}
+#### DELETE /v1/notice-comments/{commentId}
 공지 댓글 삭제
 
 ### 6.3 앱 공지
 
-#### GET /app-notices
+#### GET /v1/app-notices
 앱 공지 목록 **(Public API — 인증 불필요)**
 
 **Response:**
@@ -1357,7 +1413,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### GET /app-notices/{appNoticeId}
+#### GET /v1/app-notices/{appNoticeId}
 앱 공지 상세
 
 ### 6.4 에러 코드
@@ -1375,7 +1431,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 7.1 강의
 
-#### GET /courses
+#### GET /v1/courses
 강의 목록
 
 **Query Parameters:**
@@ -1428,7 +1484,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 7.2 시간표
 
-#### GET /timetables/my
+#### GET /v1/timetables/my
 내 시간표 조회
 
 **Query Parameters:**
@@ -1459,7 +1515,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### POST /timetables/my/courses
+#### POST /v1/timetables/my/courses
 시간표에 강의 추가
 
 **Request:**
@@ -1470,7 +1526,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### DELETE /timetables/my/courses/{courseId}
+#### DELETE /v1/timetables/my/courses/{courseId}
 시간표에서 강의 삭제
 
 **Query Parameters:**
@@ -1480,7 +1536,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 7.3 학사 일정
 
-#### GET /academic-schedules
+#### GET /v1/academic-schedules
 학사 일정 목록
 
 **Query Parameters:**
@@ -1530,7 +1586,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 8.1 문의
 
-#### POST /inquiries
+#### POST /v1/inquiries
 문의 등록
 
 **Request:**
@@ -1554,12 +1610,12 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### GET /inquiries/my
+#### GET /v1/inquiries/my
 내 문의 목록
 
 ### 8.2 신고
 
-#### POST /reports
+#### POST /v1/reports
 신고 등록
 
 **Request:**
@@ -1574,7 +1630,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 8.3 앱 버전
 
-#### GET /app-versions/{platform}
+#### GET /v1/app-versions/{platform}
 앱 버전 정보 (Public API)
 
 **Response:**
@@ -1596,7 +1652,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 8.4 학식 메뉴
 
-#### GET /cafeteria-menus
+#### GET /v1/cafeteria-menus
 학식 메뉴
 
 **Query Parameters:**
@@ -1637,7 +1693,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 9.1 알림 조회
 
-#### GET /notifications
+#### GET /v1/notifications
 알림 목록
 
 **Query Parameters:**
@@ -1670,7 +1726,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-#### GET /notifications/unread-count
+#### GET /v1/notifications/unread-count
 읽지 않은 알림 수
 
 **Response:**
@@ -1685,13 +1741,13 @@ Authorization:Bearer <firebase_id_token>
 
 ### 9.2 알림 관리
 
-#### POST /notifications/{notificationId}/read
+#### POST /v1/notifications/{notificationId}/read
 알림 읽음 처리
 
-#### POST /notifications/read-all
+#### POST /v1/notifications/read-all
 모든 알림 읽음 처리
 
-#### DELETE /notifications/{notificationId}
+#### DELETE /v1/notifications/{notificationId}
 알림 삭제
 
 ### 9.3 에러 코드
@@ -1739,7 +1795,7 @@ retry: 3000
 
 ### 10.3 파티 실시간 구독
 
-#### GET /sse/parties
+#### GET /v1/sse/parties
 파티 목록 및 상태 변경을 실시간으로 구독합니다.
 
 **인증:** Firebase ID Token 필수
@@ -1820,7 +1876,7 @@ data: {"timestamp": "2026-02-03T12:00:30Z"}
 
 ### 10.4 알림 실시간 구독
 
-#### GET /sse/notifications
+#### GET /v1/sse/notifications
 사용자 알림을 실시간으로 구독합니다.
 
 **인증:** Firebase ID Token 필수 (본인 알림만 수신)
@@ -1885,7 +1941,7 @@ data: {
 
 ### 10.5 게시물 실시간 구독
 
-#### GET /sse/posts
+#### GET /v1/sse/posts
 게시물 목록 변경 및 조회수를 실시간으로 구독합니다.
 
 **인증:** Firebase ID Token 필수
@@ -1963,19 +2019,19 @@ Accept: text/event-stream
 **스냅샷 이벤트 형식 (재연결 직후 서버 전송):**
 
 ```
-// 파티 목록 SSE (/sse/parties) 재연결 시
+// 파티 목록 SSE (/v1/sse/parties) 재연결 시
 event: SNAPSHOT
 data: {
   "parties": [ /* 현재 파티 목록 전체 */ ]
 }
 
-// 알림 SSE (/sse/notifications) 재연결 시
+// 알림 SSE (/v1/sse/notifications) 재연결 시
 event: SNAPSHOT
 data: {
   "unreadCount": 3
 }
 
-// 게시물 SSE (/sse/posts) 재연결 시
+// 게시물 SSE (/v1/sse/posts) 재연결 시
 event: SNAPSHOT
 data: {
   "posts": [ /* 현재 게시글 목록 전체 */ ]
@@ -2020,7 +2076,7 @@ data: {
 
 ### 11.1 이미지 업로드
 
-#### POST /images
+#### POST /v1/images
 이미지 파일을 서버를 통해 Storage에 업로드합니다.
 
 **인증:** Firebase ID Token 필수
@@ -2073,11 +2129,11 @@ data: {
 ```
 클라이언트
     │
-    ├─ 1. POST /images (multipart, context=POST_IMAGE)
+    ├─ 1. POST /v1/images (multipart, context=POST_IMAGE)
     │      └─ Response: { url, thumbUrl, width, height }   ← 이 값을 보관
     │         (이미지가 여러 장이면 반복 호출)
     │
-    └─ 2. POST /posts
+    └─ 2. POST /v1/posts
            {
              "title": "...",
              "content": "...",
@@ -2090,10 +2146,10 @@ data: {
 ```
 클라이언트
     │
-    ├─ 1. POST /images (multipart, context=PROFILE_IMAGE)
+    ├─ 1. POST /v1/images (multipart, context=PROFILE_IMAGE)
     │      └─ Response: { url, ... }
     │
-    └─ 2. PATCH /members/me
+    └─ 2. PATCH /v1/members/me
            { "photoUrl": "https://..." }
 ```
 
@@ -2137,7 +2193,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ### 12.1 앱 공지 관리
 
-#### POST /admin/app-notices
+#### POST /v1/admin/app-notices
 앱 공지 생성
 
 **Request:**
@@ -2168,7 +2224,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-#### PUT /admin/app-notices/{appNoticeId}
+#### PUT /v1/admin/app-notices/{appNoticeId}
 앱 공지 수정
 
 **Request:**
@@ -2180,14 +2236,14 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-#### DELETE /admin/app-notices/{appNoticeId}
+#### DELETE /v1/admin/app-notices/{appNoticeId}
 앱 공지 삭제
 
 ---
 
 ### 12.2 앱 버전 관리
 
-#### PUT /admin/app-versions/{platform}
+#### PUT /v1/admin/app-versions/{platform}
 앱 버전 정보 업데이트
 
 **platform:** `ios` | `android`
@@ -2225,7 +2281,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 공개 채팅방(UNIVERSITY, DEPARTMENT 등)은 사용자가 직접 생성할 수 없으며, 관리자만 생성/삭제합니다.
 파티 채팅방은 파티 생성 시 서버 내부에서 자동으로 생성됩니다.
 
-#### POST /admin/chat-rooms
+#### POST /v1/admin/chat-rooms
 공개 채팅방 생성
 
 **Request:**
@@ -2252,7 +2308,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-#### DELETE /admin/chat-rooms/{chatRoomId}
+#### DELETE /v1/admin/chat-rooms/{chatRoomId}
 공개 채팅방 삭제
 
 ---
@@ -2262,7 +2318,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 기존 `scripts/upload-notices.js`의 역할을 대체합니다.
 학교 공지 크롤링 후 DB에 동기화합니다.
 
-#### POST /admin/notices/sync
+#### POST /v1/admin/notices/sync
 학교 공지 동기화 실행
 
 **Response (200 OK):**
@@ -2282,7 +2338,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ### 12.5 학식 메뉴 관리
 
-#### POST /admin/cafeteria-menus
+#### POST /v1/admin/cafeteria-menus
 학식 메뉴 등록
 
 **Request:**
@@ -2301,17 +2357,17 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-#### PUT /admin/cafeteria-menus/{weekId}
+#### PUT /v1/admin/cafeteria-menus/{weekId}
 학식 메뉴 수정
 
-#### DELETE /admin/cafeteria-menus/{weekId}
+#### DELETE /v1/admin/cafeteria-menus/{weekId}
 학식 메뉴 삭제
 
 ---
 
 ### 12.6 학사 일정 관리
 
-#### POST /admin/academic-schedules
+#### POST /v1/admin/academic-schedules
 학사 일정 추가
 
 **Request:**
@@ -2341,17 +2397,17 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-#### PUT /admin/academic-schedules/{scheduleId}
+#### PUT /v1/admin/academic-schedules/{scheduleId}
 학사 일정 수정
 
-#### DELETE /admin/academic-schedules/{scheduleId}
+#### DELETE /v1/admin/academic-schedules/{scheduleId}
 학사 일정 삭제
 
 ---
 
 ### 12.7 강의 관리
 
-#### POST /admin/courses/bulk
+#### POST /v1/admin/courses/bulk
 학기 강의 일괄 등록 (매 학기 강의 데이터 업로드)
 
 **Request:**
@@ -2387,7 +2443,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-#### DELETE /admin/courses
+#### DELETE /v1/admin/courses
 학기 강의 전체 삭제
 
 **Query Parameters:**

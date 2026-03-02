@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-02-03
+> 최종 수정일: 2026-03-02
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -55,7 +55,7 @@
 
 | # | 도메인 | 유형 | 핵심 책임 | 주요 엔티티 |
 |---|--------|------|----------|------------|
-| 1 | **Member** | Core | 회원 프로필, 계정 정보, 알림 설정 | User, NotificationSetting, LinkedAccount, BankAccount |
+| 1 | **Member** | Core | 회원 프로필, 계정 정보, 알림 설정 | Member, NotificationSetting, LinkedAccount, BankAccount |
 | 2 | **TaxiParty** | Core | 택시 동승 모집, 요청 처리, 정산, 파티 채팅 규칙 | Party, JoinRequest, Settlement, PartyMessage |
 | 3 | **Chat** | Supporting | 공개 채팅방 관리, 메시지 교환 (채팅 엔진) | ChatRoom, ChatMessage, ChatRoomMember |
 | 4 | **Board** | Supporting | 게시글 CRUD, 댓글, 좋아요/북마크 | Post, Comment, PostInteraction |
@@ -91,8 +91,8 @@ Hooks:
   - useNotificationSettings
 
 엔티티:
-  - User
-    - uid, email, displayName, studentId, department
+  - Member
+    - uid, email, nickname, studentId, department
     - photoURL, realname, isAdmin, joinedAt, lastLogin
   - NotificationSetting
     - allNotifications, partyNotifications, noticeNotifications
@@ -100,13 +100,18 @@ Hooks:
     - systemNotifications
     - noticeNotificationsDetail (카테고리별 상세 설정)
   - LinkedAccount
-    - provider, providerId, email, displayName, photoURL
+    - provider, providerId, email, providerDisplayName, photoURL
   - BankAccount
     - bankName, accountNumber, accountHolder, hideName
 
 특이사항:
   - 모든 도메인에서 참조하는 핵심 엔티티
   - FCM 토큰 관리는 인프라(Notification)로 이동
+  - 인증 필터에서 `email` 도메인(`@sungkyul.ac.kr`)을 강제 검증
+  - 회원 생성 시 `nickname`은 기본값 `스쿠리 유저`로 저장
+  - 회원 생성 시 `realname`은 provider 프로필 이름(`linked_accounts.provider_display_name`)으로 초기화
+  - 회원 생성 시 `members.photo_url`은 `null`, 소셜 프로필 이미지(`picture`)는 `linked_accounts.photo_url`에만 저장
+  - `linked_accounts.providerId`는 Firebase UID가 아니라 provider 계정 식별자(예: `firebase.identities.google.com[0]`)를 저장
 ```
 
 ### 3.2 TaxiParty (택시 파티)
@@ -151,6 +156,11 @@ Hooks:
     - memberSettlements (Map<memberId, MemberSettlement>)
   - MemberSettlement (Embedded)
     - settled, settledAt
+
+정산 정책:
+  - 앱 내 결제/송금 기능은 제공하지 않으며, 향후에도 제공하지 않음
+  - 정산 상태(`memberSettlements`) 변경은 파티 리더만 가능
+  - 일반 멤버는 자신의 정산 상태를 직접 변경할 수 없음
 
 상태 머신:
   Party:
@@ -473,7 +483,7 @@ Hooks:
 
 | 인프라 | 현재 기술 | Spring 마이그레이션 |
 |--------|----------|-------------------|
-| **Auth** | Firebase Auth (Google Sign-In) | Spring Security + Firebase Admin SDK (ID Token 검증) |
+| **Auth** | Firebase Auth (Google Sign-In) | Spring Security + Firebase Admin SDK (ID Token 검증, SecurityContext 설정) |
 | **Push** | FCM + Cloud Functions | FCM (Firebase Admin SDK) |
 | **Notification** | userNotifications 컬렉션 | UserNotification 테이블 + 이벤트 리스너 |
 | **Storage** | Firebase Storage | AWS S3 또는 GCS |
@@ -507,152 +517,64 @@ UserNotification 엔티티:
 
 ## 6. 패키지 구조
 
+> 현재 코드베이스(Phase 1 구현 완료 시점) 기준 구조입니다.
+
 ```
-com.skuri.taxi
-├── domain
-│   ├── member
-│   │   ├── entity
-│   │   │   ├── Member.java
-│   │   │   ├── NotificationSetting.java
-│   │   │   ├── LinkedAccount.java
-│   │   │   └── BankAccount.java
-│   │   ├── repository
-│   │   ├── service
-│   │   └── dto
-│   │
-│   ├── taxiparty
-│   │   ├── entity
-│   │   │   ├── Party.java
-│   │   │   ├── JoinRequest.java
-│   │   │   ├── Settlement.java          # @Embeddable
-│   │   │   └── MemberSettlement.java    # @Embeddable
-│   │   ├── repository
-│   │   ├── service
-│   │   │   ├── PartyService.java
-│   │   │   ├── JoinRequestService.java
-│   │   │   ├── SettlementService.java
-│   │   │   └── PartyMessageService.java # Chat 엔진 사용
-│   │   ├── event
-│   │   │   ├── PartyCreatedEvent.java
-│   │   │   ├── JoinRequestEvent.java
-│   │   │   ├── PartyStatusChangedEvent.java
-│   │   │   └── SettlementCompletedEvent.java
-│   │   └── dto
-│   │
-│   ├── chat
-│   │   ├── entity
-│   │   │   ├── ChatRoom.java
-│   │   │   ├── ChatMessage.java
-│   │   │   └── ChatRoomMember.java
-│   │   ├── repository
-│   │   ├── service
-│   │   │   └── ChatService.java         # 공통 채팅 엔진
-│   │   ├── event
-│   │   │   └── ChatMessageCreatedEvent.java
-│   │   └── dto
-│   │
-│   ├── board
-│   │   ├── entity
-│   │   │   ├── Post.java
-│   │   │   ├── Comment.java
-│   │   │   └── PostInteraction.java
-│   │   ├── repository
-│   │   ├── service
-│   │   ├── event
-│   │   │   ├── PostLikedEvent.java
-│   │   │   └── CommentCreatedEvent.java
-│   │   └── dto
-│   │
-│   ├── notice
-│   │   ├── entity
-│   │   │   ├── Notice.java
-│   │   │   ├── NoticeComment.java
-│   │   │   ├── NoticeReadStatus.java
-│   │   │   └── AppNotice.java
-│   │   ├── repository
-│   │   ├── service
-│   │   ├── crawler
-│   │   │   └── NoticeCrawlerService.java
-│   │   ├── event
-│   │   │   └── NoticeCreatedEvent.java
-│   │   └── dto
-│   │
-│   ├── academic
-│   │   ├── entity
-│   │   │   ├── Course.java
-│   │   │   ├── CourseSchedule.java       # @Embeddable
-│   │   │   ├── UserTimetable.java
-│   │   │   └── AcademicSchedule.java
-│   │   ├── repository
-│   │   ├── service
-│   │   └── dto
-│   │
-│   └── support
-│       ├── entity
-│       │   ├── Inquiry.java
-│       │   ├── Report.java
-│       │   ├── AppVersion.java
-│       │   └── CafeteriaMenu.java
-│       ├── repository
-│       ├── service
-│       └── dto
-│
-├── infra
-│   ├── auth
-│   │   ├── config
-│   │   │   └── SecurityConfig.java
-│   │   └── firebase
-│   │       ├── FirebaseTokenVerifier.java
-│   │       └── FirebaseAuthenticationFilter.java
-│   │
-│   ├── notification
-│   │   ├── entity
-│   │   │   └── UserNotification.java
-│   │   ├── repository
-│   │   │   └── UserNotificationRepository.java
-│   │   ├── service
-│   │   │   ├── NotificationService.java
-│   │   │   └── PushNotificationService.java
-│   │   └── listener
-│   │       └── DomainEventNotificationListener.java
-│   │
-│   ├── storage
-│   │   └── FileStorageService.java
-│   │
-│   ├── websocket
-│   │   ├── config
-│   │   │   └── WebSocketConfig.java
-│   │   └── handler
-│   │       └── ChatWebSocketHandler.java
-│   │
-│   └── scheduler
-│       ├── NoticeScheduler.java
-│       └── PartyCleanupScheduler.java
-│
+com.skuri.skuri_backend
 ├── common
+│   ├── config
+│   ├── dto
 │   ├── entity
-│   │   └── BaseTimeEntity.java
-│   ├── exception
-│   ├── response
-│   └── util
+│   └── exception
 │
-└── api
-    ├── member
-    │   └── MemberController.java
-    ├── taxiparty
-    │   ├── PartyController.java
-    │   └── JoinRequestController.java
-    ├── chat
-    │   └── ChatController.java
-    ├── board
-    │   └── BoardController.java
-    ├── notice
-    │   └── NoticeController.java
-    ├── academic
-    │   └── AcademicController.java
-    └── support
-        └── SupportController.java
+├── domain
+│   ├── app
+│   │   └── controller
+│   │       ├── AppNoticeController.java
+│   │       └── AppVersionController.java
+│   │
+│   └── member
+│       ├── controller
+│       │   └── MemberController.java
+│       ├── dto
+│       │   ├── request
+│       │   └── response
+│       ├── entity
+│       │   ├── Member.java
+│       │   ├── LinkedAccount.java
+│       │   ├── LinkedAccountProvider.java
+│       │   ├── BankAccount.java
+│       │   └── NotificationSetting.java
+│       ├── exception
+│       ├── repository
+│       │   ├── MemberRepository.java
+│       │   ├── MemberRepositoryCustom.java
+│       │   ├── MemberRepositoryImpl.java
+│       │   └── LinkedAccountRepository.java
+│       └── service
+│
+└── infra
+    └── auth
+        ├── config
+        │   ├── ApiAccessDeniedHandler.java
+        │   ├── ApiAuthenticationEntryPoint.java
+        │   ├── FirebaseAuthProperties.java
+        │   ├── SecurityConfig.java
+        │   ├── FirebaseConfig.java
+        │   └── FirebaseCredentialsCondition.java
+        └── firebase
+            ├── AuthenticatedMember.java
+            ├── DisabledFirebaseTokenVerifier.java
+            ├── EmailDomainRestrictedException.java
+            ├── FirebaseAdminTokenVerifier.java
+            ├── FirebaseAuthenticationFilter.java
+            ├── FirebaseTokenClaims.java
+            ├── FirebaseTokenVerifier.java
+            └── InvalidFirebaseTokenException.java
 ```
+
+> `taxiparty`, `chat`, `board`, `notice`, `academic`, `support`, `notification` 패키지는
+> 로드맵 Phase 2 이후 순차 구현 시 같은 `domain/*`, `infra/*` 규칙으로 확장한다.
 
 ---
 
@@ -670,7 +592,8 @@ public class Member extends BaseTimeEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    private String displayName;
+    @Column(name = "nickname")
+    private String nickname;
     private String studentId;
     private String department;
     private String photoUrl;
@@ -680,11 +603,14 @@ public class Member extends BaseTimeEntity {
     @Embedded
     private BankAccount bankAccount;
 
-    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LinkedAccount> linkedAccounts = new ArrayList<>();
-
     @Embedded
     private NotificationSetting notificationSetting;
+
+    @Column(name = "joined_at")
+    private LocalDateTime joinedAt;
+
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
 }
 
 @Embeddable
@@ -704,13 +630,18 @@ public class NotificationSetting {
     private boolean boardCommentNotifications = true;
     private boolean systemNotifications = true;
 
-    @Convert(converter = JsonMapConverter.class)
+    @Convert(converter = BooleanMapJsonConverter.class)
     @Column(columnDefinition = "JSON")
     private Map<String, Boolean> noticeNotificationsDetail;
 }
 
 @Entity
-@Table(name = "linked_accounts")
+@Table(
+    name = "linked_accounts",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_linked_account_member_provider", columnNames = {"member_id", "provider"})
+    }
+)
 public class LinkedAccount {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -719,10 +650,18 @@ public class LinkedAccount {
     @JoinColumn(name = "member_id")
     private Member member;
 
-    private String provider;  // google
+    @Enumerated(EnumType.STRING)
+    private LinkedAccountProvider provider;  // GOOGLE
+
+    @Column(name = "provider_id")
     private String providerId;
+
     private String email;
-    private String displayName;
+
+    @Column(name = "provider_display_name")
+    private String providerDisplayName;
+
+    // 소셜 계정 프로필 이미지 (Google picture)
     private String photoUrl;
 }
 ```
@@ -1167,6 +1106,8 @@ public class PartyMessageService {
   - [ ] Spring Security + Firebase Admin SDK (ID Token 검증) 설정
   - [ ] Member 도메인 구현
     - [ ] Firebase ID Token 검증 필터/인증 컨텍스트 구성 (서버 토큰 발급 없음)
+    - [ ] 공개 API(`GET /v1/app-versions/**`, `GET /v1/app-notices`) permitAll
+    - [ ] 보호 API 미인증 요청 401, 이메일 도메인 불일치 403
 
 - [ ] **Phase 2: 핵심 비즈니스**
   - [ ] TaxiParty 도메인 구현
