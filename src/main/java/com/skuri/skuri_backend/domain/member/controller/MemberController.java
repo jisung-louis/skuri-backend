@@ -11,6 +11,15 @@ import com.skuri.skuri_backend.domain.member.dto.response.MemberMeResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberPublicProfileResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberUpsertResult;
 import com.skuri.skuri_backend.domain.member.service.MemberService;
+import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +38,31 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/members")
+@Tag(name = "Member API", description = "회원 생성/프로필/계좌/알림 설정 API")
+@SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
 public class MemberController {
 
     private final MemberService memberService;
 
     @PostMapping
+    @Operation(summary = "회원 생성", description = "인증된 Firebase 사용자를 회원으로 생성합니다. 이미 존재하면 기존 회원을 반환합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "신규 회원 생성",
+                    content = @Content(
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(
+                                    value = "{\"success\":true,\"data\":{\"id\":\"dw9rPtuticbjnaYPkeiF3RGPpqk1\",\"email\":\"test@sungkyul.ac.kr\",\"nickname\":\"스쿠리 유저\",\"isAdmin\":false,\"joinedAt\":\"2026-03-02T18:37:21\"}}"
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "기존 회원 반환(멱등 처리)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "이메일 도메인 제한")
+    })
     public ResponseEntity<ApiResponse<MemberCreateResponse>> createMember(
+            @Parameter(hidden = true)
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember
     ) {
         MemberUpsertResult result = memberService.createMember(requireAuthenticatedMember(authenticatedMember));
@@ -45,7 +73,15 @@ public class MemberController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "내 프로필 조회", description = "내 프로필을 조회하고 lastLogin을 현재 시각으로 갱신합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "이메일 도메인 제한"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원 없음")
+    })
     public ResponseEntity<ApiResponse<MemberMeResponse>> getMyProfile(
+            @Parameter(hidden = true)
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember
     ) {
         MemberMeResponse response = memberService.getMyProfile(requireAuthenticatedMember(authenticatedMember).uid());
@@ -53,7 +89,26 @@ public class MemberController {
     }
 
     @PatchMapping("/me")
+    @Operation(summary = "내 프로필 수정", description = "nickname/studentId/department/photoUrl 필드를 부분 수정합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "이메일 도메인 제한"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "유효성 검증 실패")
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            description = "내 프로필 수정 요청",
+            content = @Content(
+                    schema = @Schema(implementation = UpdateMemberProfileRequest.class),
+                    examples = @ExampleObject(
+                            value = "{\"nickname\":\"스쿠리유저\",\"studentId\":\"2023112233\",\"department\":\"컴퓨터공학과\",\"photoUrl\":\"https://cdn.skuri.app/profiles/user-1.png\"}"
+                    )
+            )
+    )
     public ResponseEntity<ApiResponse<MemberMeResponse>> updateMyProfile(
+            @Parameter(hidden = true)
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody UpdateMemberProfileRequest request
     ) {
@@ -62,7 +117,26 @@ public class MemberController {
     }
 
     @PutMapping("/me/bank-account")
+    @Operation(summary = "내 계좌 정보 수정", description = "정산 계좌 정보를 수정합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "이메일 도메인 제한"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "유효성 검증 실패")
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            description = "내 계좌 정보 수정 요청",
+            content = @Content(
+                    schema = @Schema(implementation = UpdateMemberBankAccountRequest.class),
+                    examples = @ExampleObject(
+                            value = "{\"bankName\":\"신한은행\",\"accountNumber\":\"110-123-456789\",\"accountHolder\":\"홍길동\",\"hideName\":false}"
+                    )
+            )
+    )
     public ResponseEntity<ApiResponse<MemberMeResponse>> updateMyBankAccount(
+            @Parameter(hidden = true)
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody UpdateMemberBankAccountRequest request
     ) {
@@ -71,7 +145,25 @@ public class MemberController {
     }
 
     @PatchMapping("/me/notification-settings")
+    @Operation(summary = "내 알림 설정 수정", description = "알림 설정 필드를 부분 수정합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "이메일 도메인 제한"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원 없음")
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            description = "내 알림 설정 수정 요청",
+            content = @Content(
+                    schema = @Schema(implementation = UpdateMemberNotificationSettingsRequest.class),
+                    examples = @ExampleObject(
+                            value = "{\"allNotifications\":true,\"partyNotifications\":true,\"noticeNotificationsDetail\":{\"academic\":true,\"event\":false}}"
+                    )
+            )
+    )
     public ResponseEntity<ApiResponse<MemberMeResponse>> updateMyNotificationSettings(
+            @Parameter(hidden = true)
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody UpdateMemberNotificationSettingsRequest request
     ) {
@@ -80,7 +172,15 @@ public class MemberController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "회원 공개 프로필 조회", description = "회원 ID로 공개 프로필만 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "이메일 도메인 제한"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원 없음")
+    })
     public ResponseEntity<ApiResponse<MemberPublicProfileResponse>> getMember(
+            @Parameter(description = "조회할 회원 ID(Firebase UID)", example = "dw9rPtuticbjnaYPkeiF3RGPpqk1")
             @PathVariable("id") String memberId
     ) {
         MemberPublicProfileResponse response = memberService.getMemberById(memberId);

@@ -30,6 +30,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-json'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-scalar:3.0.1'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 	implementation 'com.google.firebase:firebase-admin:9.4.2'
