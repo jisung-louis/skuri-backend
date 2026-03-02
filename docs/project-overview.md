@@ -214,7 +214,7 @@ LoginScreen
   → "성결대 이메일로 로그인하기" 버튼 (Google OAuth)
   → Google 계정 선택 → Firebase Auth 검증
   → 이메일 도메인 @sungkyul.ac.kr 확인 (학교 계정만 허용)
-  → 신규 가입 시 CompleteProfileScreen (학번, 학과, 이름 입력)
+  → 신규 가입 시 CompleteProfileScreen (닉네임, 학번, 학과 입력)
      └── 약관 보기 링크 → TermsOfUseForAuthScreen (선택적 열람)
   → PermissionOnboardingScreen (알림/ATT/위치 권한 온보딩)
   → MainNavigator 진입
@@ -227,7 +227,7 @@ LoginScreen
 
 **사용자 프로필 구성:**
 
-- 기본 정보: 이름, 학번, 학과, 프로필 이미지
+- 기본 정보: 닉네임, 학번, 학과, 프로필 이미지
 - 계좌 정보 (택시비 정산용): 은행명, 계좌번호, 예금주
 - 마인크래프트 계정 연동 (선택)
 - 알림 설정 (카테고리별 on/off)

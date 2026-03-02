@@ -1100,14 +1100,14 @@ public class PartyMessageService {
 
 ### 8.2 마이그레이션 체크리스트
 
-- [ ] **Phase 1: 기반 구축**
-  - [ ] Spring Boot 프로젝트 셋업
-  - [ ] MySQL 스키마 설계
-  - [ ] Spring Security + Firebase Admin SDK (ID Token 검증) 설정
-  - [ ] Member 도메인 구현
-    - [ ] Firebase ID Token 검증 필터/인증 컨텍스트 구성 (서버 토큰 발급 없음)
-    - [ ] 공개 API(`GET /v1/app-versions/**`, `GET /v1/app-notices`) permitAll
-    - [ ] 보호 API 미인증 요청 401, 이메일 도메인 불일치 403
+- [x] **Phase 1: 기반 구축**
+  - [x] Spring Boot 프로젝트 셋업
+  - [x] MySQL 스키마 설계
+  - [x] Spring Security + Firebase Admin SDK (ID Token 검증) 설정
+  - [x] Member 도메인 구현
+    - [x] Firebase ID Token 검증 필터/인증 컨텍스트 구성 (서버 토큰 발급 없음)
+    - [x] 공개 API(`GET /v1/app-versions/**`, `GET /v1/app-notices`, `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /scalar/**`) permitAll
+    - [x] 보호 API 미인증 요청 401, 이메일 도메인 불일치 403
 
 - [ ] **Phase 2: 핵심 비즈니스**
   - [ ] TaxiParty 도메인 구현

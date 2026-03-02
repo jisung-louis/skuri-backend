@@ -41,12 +41,16 @@ Authorization: Bearer <firebase_id_token>
 
 **Public API (인증 불필요):**
 
-다음 2개의 API만 인증 없이 호출 가능합니다. 나머지 모든 API는 Firebase ID Token 인증이 필수입니다.
+비즈니스 API 기준으로는 아래 2개 API만 인증 없이 호출 가능합니다.  
+추가로 API 문서 UI/스펙 조회 엔드포인트도 인증 없이 접근 가능합니다.
 
 | API | 이유 |
 |-----|------|
 | `GET /v1/app-versions/{platform}` | 앱 실행 초기(로그인 전) 강제 업데이트 여부 확인 |
 | `GET /v1/app-notices` | 로그인 전 점검 공지 / 긴급 공지 표시 필요 |
+| `GET /v3/api-docs/**` | OpenAPI 스펙(JSON) 조회 |
+| `GET /swagger-ui/**`, `GET /swagger-ui.html` | Swagger UI 조회 |
+| `GET /scalar/**` | Scalar UI 조회 |
 
 ### 1.3 공통 Response 형식
 

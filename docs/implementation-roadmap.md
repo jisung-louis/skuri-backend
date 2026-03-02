@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-01
+> 최종 수정일: 2026-03-02
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md)
 
 ---
@@ -12,8 +12,8 @@
 | Spring Boot | 4.0.3 |
 | Java | 21 |
 | 빌드 도구 | Gradle |
-| 현재 의존성 | JPA, Web MVC, Validation, Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 준비 상태 |
+| 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 준비 상태 |
 
 ---
 
@@ -60,6 +60,8 @@ Phase 10: Member 탈퇴/계정 라이프사이클 (정책 확정 후)
 | `spring-boot-starter-validation` | Bean Validation (`@Valid`, `@NotBlank` 등) - 적용 완료 |
 | `spring-boot-starter-security` | Spring Security (인증/인가 필터 체인) - Phase 1에서 추가 |
 | `firebase-admin` | Firebase Admin SDK (ID Token 검증, FCM 발송) - Phase 1에서 추가 |
+| `springdoc-openapi-starter-webmvc-ui` | OpenAPI 스펙 + Swagger UI 자동 노출 |
+| `springdoc-openapi-starter-webmvc-scalar` | Scalar API 문서 UI 자동 노출 |
 
 #### 0-2. 패키지 구조 생성 (Phase 0 범위)
 
@@ -122,6 +124,7 @@ com.skuri.skuri_backend
 | 2 | Token 검증 | `infra/auth/firebase/FirebaseTokenVerifier.java` | `FirebaseAuth.verifyIdToken()` 래핑 |
 | 3 | 인증 필터 | `infra/auth/firebase/FirebaseAuthenticationFilter.java` | `OncePerRequestFilter` — ID Token 추출, 검증, SecurityContext 설정 |
 | 4 | Security 설정 | `infra/auth/config/SecurityConfig.java` | 필터 체인 (`/v1/app-versions/**`, `/v1/app-notices` permitAll, 나머지 인증 필수) |
+| 5 | OpenAPI 설정 | `infra/openapi/OpenApiConfig.java` | 전역 API 메타데이터, Bearer 보안 스키마, GroupedOpenApi 설정 |
 
 #### 1-3. API
 
@@ -129,17 +132,18 @@ com.skuri.skuri_backend
 |--------|------|------|
 | `POST` | `/v1/members` | 회원 가입 (ID Token에서 정보 추출, 멱등) |
 | `GET` | `/v1/members/me` | 내 프로필 조회 (lastLogin 갱신) |
-| `PATCH` | `/v1/members/me` | 프로필 부분 수정 (닉네임, 학번, 학과 등) |
+| `PATCH` | `/v1/members/me` | 프로필 부분 수정 (닉네임, 학번, 학과, photoUrl) |
 | `PUT` | `/v1/members/me/bank-account` | 계좌 정보 수정 |
 | `PATCH` | `/v1/members/me/notification-settings` | 알림 설정 부분 수정 |
 | `GET` | `/v1/members/{id}` | 특정 회원 공개 프로필 조회 |
 
 #### 1-4. 완료 기준
 
-- [ ] Firebase ID Token으로 인증 성공/실패 동작
-- [ ] `@sungkyul.ac.kr` 이메일 도메인 제한 동작
-- [ ] 회원 가입 → 프로필 조회 → 프로필 수정 플로우 동작
-- [ ] 인증 없이 보호된 API 호출 시 401 반환
+- [x] Firebase ID Token으로 인증 성공/실패 동작
+- [x] `@sungkyul.ac.kr` 이메일 도메인 제한 동작
+- [x] 회원 가입 → 프로필 조회 → 프로필 수정 플로우 동작
+- [x] 인증 없이 보호된 API 호출 시 401 반환
+- [x] OpenAPI JSON(`/v3/api-docs`) + Swagger UI + Scalar 노출
 
 ---
 
@@ -455,7 +459,7 @@ com.skuri.skuri_backend
 | 3 | Redis 캐시 | 파티 목록, 공지 목록, FCM 토큰 캐시 |
 | 4 | AWS 배포 | EC2 + RDS (MySQL) + ElastiCache (Redis) |
 | 5 | GitHub Actions | main 브랜치 push → EC2 자동 배포 |
-| 6 | Swagger/OpenAPI | API 문서 자동화 |
+| 6 | OpenAPI 배포 자동화 | API 문서(UI/JSON) 접근 경로 및 배포 환경 가이드 자동화 |
 
 #### 9-2. 완료 기준
 
@@ -518,6 +522,7 @@ Phase 1~9 + 정책 확정 ─→ Phase 10 (Member 탈퇴)
 4. DTO (Request/Response) (API 계약)
 5. Controller             (API 엔드포인트)
 6. Event (필요 시)         (도메인 이벤트 발행)
+7. OpenAPI 문서화          (`@Tag`, `@Operation`, `@ApiResponses`, DTO `@Schema`, GroupedOpenApi 반영)
 ```
 
 ---

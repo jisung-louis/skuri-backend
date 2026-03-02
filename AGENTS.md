@@ -31,6 +31,15 @@
 4. Controller는 요청 검증/응답 변환 중심으로 유지한다.
 5. 도메인 규칙(상태 전이, 권한)은 클라이언트가 아닌 서버에서 최종 판단한다.
 
+## OpenAPI 문서화 규칙
+1. 신규/수정 API를 구현할 때 Springdoc OpenAPI 어노테이션을 함께 반영한다.
+2. Controller 단위에 `@Tag`, 엔드포인트 단위에 `@Operation`을 작성한다.
+3. 상태코드별 응답은 `@ApiResponses`/`@ApiResponse`로 명시한다.
+4. 요청/응답 DTO에는 `@Schema`(description/example/nullable)를 작성해 스키마를 명확히 한다.
+5. 인증 요구사항은 `@SecurityRequirement`로 명시한다. (공개 API는 보안 요구를 비운다)
+6. 새 도메인 API가 추가되면 `GroupedOpenApi` 그룹 설정도 함께 갱신한다.
+7. 머지 전 `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar` 노출 여부를 확인한다.
+
 ## 브랜치 규칙
 1. `main`은 항상 안정 상태로 유지하고 직접 작업/커밋하지 않는다.
 2. 기능 1개 또는 버그 1개당 브랜치 1개로 작업한다.
