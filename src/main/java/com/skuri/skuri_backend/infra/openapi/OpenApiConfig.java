@@ -50,5 +50,19 @@ public class OpenApiConfig {
                 .pathsToMatch("/v1/app-versions/**", "/v1/app-notices/**")
                 .build();
     }
-}
 
+    @Bean
+    public GroupedOpenApi taxiPartyApi() {
+        return GroupedOpenApi.builder()
+                .group("taxiparty")
+                .pathsToMatch(
+                        "/v1/parties/**",
+                        "/v1/join-requests/**",
+                        "/v1/members/me/parties",
+                        "/v1/members/me/join-requests",
+                        "/v1/sse/parties/**",
+                        "/v1/sse/members/me/join-requests"
+                )
+                .build();
+    }
+}

@@ -1,0 +1,252 @@
+package com.skuri.skuri_backend.domain.taxiparty.controller;
+
+import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyLocationResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyMemberResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
+import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
+import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
+import com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyService;
+import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
+import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
+import com.skuri.skuri_backend.infra.auth.config.SecurityConfig;
+import com.skuri.skuri_backend.infra.auth.firebase.FirebaseAuthenticationFilter;
+import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenClaims;
+import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenVerifier;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(controllers = PartyController.class)
+@Import({
+        SecurityConfig.class,
+        FirebaseAuthenticationFilter.class,
+        ApiAuthenticationEntryPoint.class,
+        ApiAccessDeniedHandler.class
+})
+class PartyControllerContractTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private TaxiPartyService taxiPartyService;
+
+    @MockitoBean
+    private FirebaseTokenVerifier firebaseTokenVerifier;
+
+    @Test
+    void closeParty_endReasonNull이면_필드미노출() throws Exception {
+        mockValidToken();
+        when(taxiPartyService.closeParty("firebase-uid", "party-1"))
+                .thenReturn(new PartyStatusResponse("party-1", PartyStatus.CLOSED, null));
+
+        mockMvc.perform(
+                        patch("/v1/parties/party-1/close")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("party-1"))
+                .andExpect(jsonPath("$.data.status").value("CLOSED"))
+                .andExpect(jsonPath("$.data.endReason").doesNotExist());
+    }
+
+    @Test
+    void createJoinRequest_response에_partyId미노출() throws Exception {
+        mockValidToken();
+        when(taxiPartyService.createJoinRequest("firebase-uid", "party-1"))
+                .thenReturn(new JoinRequestResponse("request-1", JoinRequestStatus.PENDING));
+
+        mockMvc.perform(
+                        post("/v1/parties/party-1/join-requests")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.id").value("request-1"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.partyId").doesNotExist());
+    }
+
+    @Test
+    void updateParty_정상요청_200() throws Exception {
+        mockValidToken();
+        LocalDateTime departureTime = LocalDateTime.now().plusHours(2);
+        when(taxiPartyService.updateParty(eq("firebase-uid"), eq("party-1"), any()))
+                .thenReturn(new PartyDetailResponse(
+                        "party-1",
+                        "firebase-uid",
+                        "리더",
+                        null,
+                        new PartyLocationResponse("성결대학교", 37.38, 126.93),
+                        new PartyLocationResponse("안양역", 37.40, 126.92),
+                        departureTime,
+                        4,
+                        List.of(new PartyMemberResponse("firebase-uid", "리더", null, true, LocalDateTime.now())),
+                        List.of("빠른출발"),
+                        "변경 상세",
+                        PartyStatus.OPEN,
+                        null,
+                        LocalDateTime.now().minusHours(1)
+                ));
+
+        mockMvc.perform(
+                        patch("/v1/parties/party-1")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("{\"departureTime\":\"" + departureTime + "\",\"detail\":\"변경 상세\"}")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("party-1"))
+                .andExpect(jsonPath("$.data.departureTime").exists())
+                .andExpect(jsonPath("$.data.detail").value("변경 상세"));
+    }
+
+    @Test
+    void updateParty_수정필드없음_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        patch("/v1/parties/party-1")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("{}")
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(taxiPartyService);
+    }
+
+    @Test
+    void updateParty_maxMembers포함_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        patch("/v1/parties/party-1")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("{\"maxMembers\":4}")
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(taxiPartyService);
+    }
+
+    @Test
+    void updateParty_과거출발시간_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        patch("/v1/parties/party-1")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("{\"departureTime\":\"2020-01-01T10:00:00\"}")
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(taxiPartyService);
+    }
+
+    @Test
+    void createParty_필수필드누락_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        post("/v1/parties")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("{\"maxMembers\":4}")
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(taxiPartyService);
+    }
+
+    @Test
+    void arriveParty_taxiFare검증실패_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        patch("/v1/parties/party-1/arrive")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("{\"taxiFare\":0}")
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(taxiPartyService);
+    }
+
+    @Test
+    void confirmSettlement_권한위반_403() throws Exception {
+        mockValidToken();
+        when(taxiPartyService.confirmSettlement(eq("firebase-uid"), eq("party-1"), eq("member-1")))
+                .thenThrow(new BusinessException(ErrorCode.NOT_PARTY_LEADER));
+
+        mockMvc.perform(
+                        patch("/v1/parties/party-1/settlement/members/member-1/confirm")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("NOT_PARTY_LEADER"));
+    }
+
+    @Test
+    void 보호API_토큰없음_401() throws Exception {
+        mockMvc.perform(patch("/v1/parties/party-1/close"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void confirmSettlement_정상요청_200() throws Exception {
+        mockValidToken();
+        when(taxiPartyService.confirmSettlement(eq("firebase-uid"), eq("party-1"), eq("member-1")))
+                .thenReturn(new SettlementConfirmResponse("member-1", true, LocalDateTime.now(), true));
+
+        mockMvc.perform(
+                        patch("/v1/parties/party-1/settlement/members/member-1/confirm")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.memberId").value("member-1"))
+                .andExpect(jsonPath("$.data.allSettled").value(true));
+    }
+
+    private void mockValidToken() {
+        when(firebaseTokenVerifier.verify("valid-token"))
+                .thenReturn(new FirebaseTokenClaims(
+                        "firebase-uid",
+                        "user@sungkyul.ac.kr",
+                        "google.com",
+                        "google-provider-id",
+                        "홍길동",
+                        "https://example.com/profile.jpg"
+                ));
+    }
+}

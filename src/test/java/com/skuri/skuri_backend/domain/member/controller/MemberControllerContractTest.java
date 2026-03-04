@@ -278,6 +278,7 @@ class MemberControllerContractTest {
                 .thenReturn(new FirebaseTokenClaims(
                         "firebase-uid",
                         "user@sungkyul.ac.kr",
+                        "google.com",
                         "google-provider-id",
                         "홍길동",
                         "https://example.com/profile.jpg"

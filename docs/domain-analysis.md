@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-02
+> 최종 수정일: 2026-03-04
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -111,7 +111,9 @@ Hooks:
   - 회원 생성 시 `nickname`은 기본값 `스쿠리 유저`로 저장
   - 회원 생성 시 `realname`은 provider 프로필 이름(`linked_accounts.provider_display_name`)으로 초기화
   - 회원 생성 시 `members.photo_url`은 `null`, 소셜 프로필 이미지(`picture`)는 `linked_accounts.photo_url`에만 저장
-  - `linked_accounts.providerId`는 Firebase UID가 아니라 provider 계정 식별자(예: `firebase.identities.google.com[0]`)를 저장
+  - `linked_accounts.provider`는 `GOOGLE`, `PASSWORD`, `UNKNOWN`을 사용
+  - 소셜 로그인(`GOOGLE`)이 아닌 경우 `linked_accounts`는 `provider`를 제외한 provider 부가 컬럼을 `null`로 저장
+  - `linked_accounts.providerId`는 provider 계정 식별자(예: `firebase.identities[<sign_in_provider>][0]`)를 저장하며, 비소셜 로그인에서는 `null`
 ```
 
 ### 3.2 TaxiParty (택시 파티)
@@ -140,6 +142,12 @@ Hooks:
   - useJoinRequest, useJoinRequestStatus, usePendingJoinRequest
   - usePartyActions
 
+실시간 채널 책임 분리:
+  - Party SSE (`/v1/sse/parties`): 파티 카드 목록/상태 전이/멤버 변동 브로드캐스트
+  - JoinRequest SSE (`/v1/sse/parties/{partyId}/join-requests`): 파티 리더용 동승 요청 리스트 실시간 갱신
+  - JoinRequest SSE (`/v1/sse/members/me/join-requests`): 요청자 본인 요청 상태 실시간 갱신
+  - Chat WebSocket: 채팅 메시지/채팅방 요약 실시간 갱신
+
 엔티티:
   - Party
     - id, leaderId, departure, destination, departureTime
@@ -161,19 +169,38 @@ Hooks:
   - 앱 내 결제/송금 기능은 제공하지 않으며, 향후에도 제공하지 않음
   - 정산 상태(`memberSettlements`) 변경은 파티 리더만 가능
   - 일반 멤버는 자신의 정산 상태를 직접 변경할 수 없음
+  - `perPersonAmount`는 `taxiFare / 정산대상인원` 정수 나눗셈(버림)으로 계산
+  - 정수 나눗셈으로 생기는 잔여 1원 단위 금액은 서버에서 분배하지 않음(리더 현장 정산 정책)
 
 상태 머신:
   Party:
     OPEN → CLOSED       (리더: 모집 마감)
     CLOSED → OPEN       (리더: 모집 재개)
+    OPEN|CLOSED 내 정보 수정 (리더: departureTime/detail만)
     OPEN|CLOSED → ARRIVED  (리더: 도착 처리 → 정산 시작)
-    ARRIVED → ENDED     (모든 멤버 정산 완료 시 자동 → endReason=ARRIVED)
-    ARRIVED → ENDED     (리더 강제 종료 → endReason=FORCE_ENDED, 미정산 멤버 있어도 가능)
-    OPEN|CLOSED|ARRIVED → ENDED (자동 종료 또는 취소)
+    ARRIVED 상태에서 멤버 정산 완료 처리 (모든 멤버 완료 시 settlementStatus=COMPLETED)
+    ARRIVED → ENDED     (리더 종료 요청(`/end`) → endReason=FORCE_ENDED, 미정산 멤버 있어도 가능)
+    OPEN|CLOSED → ENDED     (리더 취소)
+    OPEN|CLOSED|ARRIVED → ENDED (스케줄러 timeout 자동 종료)
 
   JoinRequest: PENDING → ACCEPTED | DECLINED | CANCELED
     - CANCELED: 요청자 본인만 취소 가능 (PENDING 상태에서만)
     - 리더는 DECLINE으로 거절 (CANCEL 아님)
+    - ACCEPTED 처리로 멤버가 정원(`maxMembers`)에 도달하면 Party 상태를 자동으로 CLOSED 전이
+
+동시성 제어:
+  - Party 엔티티의 `@Version` 기반 Optimistic Lock으로 동시 동승 요청/수락 충돌을 방어
+  - 충돌 시 `PARTY_CONCURRENT_MODIFICATION` 에러로 재시도 유도
+
+저장소 설계:
+  - `PartyMember`, `PartyTag`, `MemberSettlement`는 `Party` aggregate 내부 컬렉션으로 관리
+  - 영속화는 `PartyRepository` 단일 저장으로 처리(cascade + orphanRemoval)
+  - 하위 엔티티 전용 Repository는 현재 운영 코드에서 사용하지 않음
+
+파티 수정 정책:
+  - `PATCH /v1/parties/{id}`는 `departureTime`, `detail`만 허용 (화이트리스트)
+  - `OPEN`, `CLOSED` 상태에서만 수정 가능
+  - `CLOSED` 상태에서 수정해도 상태 자동 변경 없음 (`reopen`으로만 모집 재개)
 
 파티 자동 종료 정책 (@Scheduled):
   - 실행 주기: 4시간마다
@@ -183,8 +210,8 @@ Hooks:
   - 구현: Firebase Cloud Functions onSchedule → Spring @Scheduled 대체
 
 endReason 종류:
-  - ARRIVED: 모든 멤버 정산 완료로 정상 종료
-  - FORCE_ENDED: 리더 강제 종료 (미정산 멤버 있을 수 있음)
+  - ARRIVED: (레거시) 과거 자동 종료 정책에서 사용된 종료 사유
+  - FORCE_ENDED: 리더 종료 요청(`/end`)으로 종료 (미정산 멤버 있을 수 있음)
   - CANCELLED: 리더 취소
   - TIMEOUT: 자동 종료 (12시간 초과)
   - WITHDRAWED: 리더 탈퇴로 인한 종료
@@ -241,6 +268,9 @@ Hooks:
 역할:
   - 파티 채팅: TaxiParty 도메인이 규칙 관리, Chat은 엔진만 제공
   - 공개 채팅: Chat 도메인이 전체 관리
+  - 채팅방 목록 실시간: `/user/queue/chat-rooms` 사용자 전용 요약 채널 1개 구독
+  - 채팅방 상세 실시간: `/topic/chat-rooms/{chatRoomId}` 방 단위 구독
+  - 방별 다중 구독(모든 방 topic 동시 구독)은 연결 수/브로드캐스트 비용 증가로 사용하지 않음
 ```
 
 ### 3.4 Board (게시판)
@@ -487,9 +517,17 @@ Hooks:
 | **Push** | FCM + Cloud Functions | FCM (Firebase Admin SDK) |
 | **Notification** | userNotifications 컬렉션 | UserNotification 테이블 + 이벤트 리스너 |
 | **Storage** | Firebase Storage | AWS S3 또는 GCS |
-| **Realtime** | Firestore onSnapshot | WebSocket (STOMP + SockJS) |
+| **Realtime** | Firestore onSnapshot | SSE + WebSocket (STOMP + SockJS) |
 | **Scheduler** | Cloud Functions onSchedule | Spring Scheduler / Quartz |
 | **Audit** | adminAuditLogs 컬렉션 | Spring AOP + AuditLog 테이블 |
+
+실시간 채널 분리 정책:
+- SSE:
+  - `/v1/sse/parties` (파티 목록/상태)
+  - `/v1/sse/parties/{partyId}/join-requests` (파티 리더용 동승요청 목록/상태)
+  - `/v1/sse/members/me/join-requests` (요청자 본인 동승요청 상태)
+  - 알림, 게시물 목록/조회수
+- WebSocket: 채팅(목록 요약 `/user/queue/chat-rooms`, 상세 메시지 `/topic/chat-rooms/{chatRoomId}`)
 
 ### 5.2 Notification 인프라 상세
 
@@ -517,7 +555,7 @@ UserNotification 엔티티:
 
 ## 6. 패키지 구조
 
-> 현재 코드베이스(Phase 1 구현 완료 시점) 기준 구조입니다.
+> 현재 코드베이스(Phase 2 TaxiParty 구현 반영 시점) 기준 구조입니다.
 
 ```
 com.skuri.skuri_backend
@@ -533,37 +571,65 @@ com.skuri.skuri_backend
 │   │       ├── AppNoticeController.java
 │   │       └── AppVersionController.java
 │   │
-│   └── member
+│   ├── member
+│   │   ├── controller
+│   │   │   └── MemberController.java
+│   │   ├── dto
+│   │   │   ├── request
+│   │   │   └── response
+│   │   ├── entity
+│   │   │   ├── Member.java
+│   │   │   ├── LinkedAccount.java
+│   │   │   ├── LinkedAccountProvider.java
+│   │   │   ├── BankAccount.java
+│   │   │   └── NotificationSetting.java
+│   │   ├── exception
+│   │   ├── repository
+│   │   │   ├── MemberRepository.java
+│   │   │   ├── MemberRepositoryCustom.java
+│   │   │   ├── MemberRepositoryImpl.java
+│   │   │   └── LinkedAccountRepository.java
+│   │   └── service
+│   │
+│   └── taxiparty
 │       ├── controller
-│       │   └── MemberController.java
+│       │   ├── PartyController.java
+│       │   ├── JoinRequestController.java
+│       │   └── PartySseController.java
 │       ├── dto
 │       │   ├── request
 │       │   └── response
 │       ├── entity
-│       │   ├── Member.java
-│       │   ├── LinkedAccount.java
-│       │   ├── LinkedAccountProvider.java
-│       │   ├── BankAccount.java
-│       │   └── NotificationSetting.java
+│       │   ├── Party.java
+│       │   ├── PartyMember.java
+│       │   ├── PartyTag.java
+│       │   ├── MemberSettlement.java
+│       │   └── JoinRequest.java
 │       ├── exception
 │       ├── repository
-│       │   ├── MemberRepository.java
-│       │   ├── MemberRepositoryCustom.java
-│       │   ├── MemberRepositoryImpl.java
-│       │   └── LinkedAccountRepository.java
+│       ├── scheduler
+│       │   ├── PartySseHeartbeatScheduler.java
+│       │   └── PartyTimeoutScheduler.java
 │       └── service
+│           ├── TaxiPartyService.java
+│           ├── PartySseService.java
+│           ├── JoinRequestSseService.java
+│           ├── PartyTimeoutBatchService.java
+│           └── PartyTimeoutCommandService.java
 │
 └── infra
-    └── auth
-        ├── config
-        │   ├── ApiAccessDeniedHandler.java
-        │   ├── ApiAuthenticationEntryPoint.java
-        │   ├── FirebaseAuthProperties.java
-        │   ├── SecurityConfig.java
-        │   ├── FirebaseConfig.java
-        │   └── FirebaseCredentialsCondition.java
+	    └── auth
+	        ├── config
+	        │   ├── ApiAccessDeniedHandler.java
+	        │   ├── ApiAuthenticationEntryPoint.java
+	        │   ├── FirebaseAuthProperties.java
+	        │   ├── SecurityConfig.java
+	        │   ├── FirebaseConfig.java
+	        │   ├── FirebaseCredentialsCondition.java
+	        │   └── FirebaseAuthEnvironmentGuard.java
         └── firebase
             ├── AuthenticatedMember.java
+            ├── AuthenticatedMemberSupport.java
             ├── DisabledFirebaseTokenVerifier.java
             ├── EmailDomainRestrictedException.java
             ├── FirebaseAdminTokenVerifier.java
@@ -573,7 +639,7 @@ com.skuri.skuri_backend
             └── InvalidFirebaseTokenException.java
 ```
 
-> `taxiparty`, `chat`, `board`, `notice`, `academic`, `support`, `notification` 패키지는
+> `chat`, `board`, `notice`, `academic`, `support`, `notification` 패키지는
 > 로드맵 Phase 2 이후 순차 구현 시 같은 `domain/*`, `infra/*` 규칙으로 확장한다.
 
 ---
@@ -651,7 +717,7 @@ public class LinkedAccount {
     private Member member;
 
     @Enumerated(EnumType.STRING)
-    private LinkedAccountProvider provider;  // GOOGLE
+    private LinkedAccountProvider provider;  // GOOGLE, PASSWORD, UNKNOWN
 
     @Column(name = "provider_id")
     private String providerId;
@@ -661,7 +727,7 @@ public class LinkedAccount {
     @Column(name = "provider_display_name")
     private String providerDisplayName;
 
-    // 소셜 계정 프로필 이미지 (Google picture)
+    // 소셜 계정 프로필 이미지 (비소셜 로그인은 null)
     private String photoUrl;
 }
 ```
@@ -1110,7 +1176,7 @@ public class PartyMessageService {
     - [x] 보호 API 미인증 요청 401, 이메일 도메인 불일치 403
 
 - [ ] **Phase 2: 핵심 비즈니스**
-  - [ ] TaxiParty 도메인 구현
+  - [x] TaxiParty 도메인 구현
   - [ ] Chat 도메인 구현 (WebSocket)
   - [ ] 도메인 이벤트 + Notification 인프라
   - [ ] FCM 푸시 연동

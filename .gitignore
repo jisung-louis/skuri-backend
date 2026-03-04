@@ -52,8 +52,15 @@ firebase-debug.log
 
 ### Spring local config ###
 src/main/resources/application-local.yaml
+src/main/resources/application-local-emulator.yaml
 serviceAccountKey.json
 
 ### Postman ###
 postman
 .postman
+
+## docs/references
+list_of_api_calls_old.txt
+
+## Run/Debug Configurations
+.run

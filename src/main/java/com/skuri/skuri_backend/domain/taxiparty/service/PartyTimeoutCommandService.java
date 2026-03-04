@@ -1,0 +1,41 @@
+package com.skuri.skuri_backend.domain.taxiparty.service;
+
+import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
+import jakarta.persistence.OptimisticLockException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class PartyTimeoutCommandService {
+
+    private final PartyRepository partyRepository;
+    private final PartySseService partySseService;
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean endExpiredParty(String partyId) {
+        Party party = partyRepository.findById(partyId)
+                .orElse(null);
+
+        if (party == null || party.getStatus() == PartyStatus.ENDED) {
+            return false;
+        }
+
+        party.timeoutEnd();
+
+        try {
+            partyRepository.saveAndFlush(party);
+            partySseService.publishPartyStatusChanged(party);
+            return true;
+        } catch (ObjectOptimisticLockingFailureException | OptimisticLockException e) {
+            throw new BusinessException(ErrorCode.PARTY_CONCURRENT_MODIFICATION);
+        }
+    }
+}

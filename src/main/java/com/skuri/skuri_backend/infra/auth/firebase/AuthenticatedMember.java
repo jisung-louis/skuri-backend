@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.infra.auth.firebase;
 public record AuthenticatedMember(
         String uid,
         String email,
+        String signInProvider,
         String providerId,
         String providerDisplayName,
         String photoUrl
@@ -12,6 +13,7 @@ public record AuthenticatedMember(
         return new AuthenticatedMember(
                 claims.uid(),
                 claims.email(),
+                claims.signInProvider(),
                 claims.providerId(),
                 claims.providerDisplayName(),
                 claims.photoUrl()

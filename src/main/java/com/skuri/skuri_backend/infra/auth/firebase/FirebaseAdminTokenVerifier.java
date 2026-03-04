@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -16,8 +17,8 @@ import java.util.Map;
 public class FirebaseAdminTokenVerifier implements FirebaseTokenVerifier {
 
     private static final String FIREBASE_KEY = "firebase";
+    private static final String SIGN_IN_PROVIDER_KEY = "sign_in_provider";
     private static final String IDENTITIES_KEY = "identities";
-    private static final String GOOGLE_PROVIDER_KEY = "google.com";
 
     private final FirebaseAuth firebaseAuth;
 
@@ -25,10 +26,12 @@ public class FirebaseAdminTokenVerifier implements FirebaseTokenVerifier {
     public FirebaseTokenClaims verify(String idToken) {
         try {
             FirebaseToken token = firebaseAuth.verifyIdToken(idToken);
+            String signInProvider = resolveSignInProvider(token);
             return new FirebaseTokenClaims(
                     token.getUid(),
                     token.getEmail(),
-                    resolveGoogleProviderId(token),
+                    signInProvider,
+                    resolveProviderId(token, signInProvider),
                     token.getName(),
                     token.getPicture()
             );
@@ -37,20 +40,40 @@ public class FirebaseAdminTokenVerifier implements FirebaseTokenVerifier {
         }
     }
 
-    private String resolveGoogleProviderId(FirebaseToken token) {
+    private String resolveSignInProvider(FirebaseToken token) {
         Object firebaseClaim = token.getClaims().get(FIREBASE_KEY);
         if (!(firebaseClaim instanceof Map<?, ?> firebaseMap)) {
-            throw new InvalidFirebaseTokenException("provider 식별자(google.com identities)를 찾을 수 없습니다.");
+            return null;
+        }
+
+        Object signInProviderClaim = firebaseMap.get(SIGN_IN_PROVIDER_KEY);
+        if (signInProviderClaim instanceof String signInProvider && StringUtils.hasText(signInProvider)) {
+            return signInProvider;
+        }
+        return null;
+    }
+
+    private String resolveProviderId(FirebaseToken token, String signInProvider) {
+        if (!StringUtils.hasText(signInProvider)) {
+            return null;
+        }
+
+        Object firebaseClaim = token.getClaims().get(FIREBASE_KEY);
+        if (!(firebaseClaim instanceof Map<?, ?> firebaseMap)) {
+            return null;
         }
 
         Object identitiesClaim = firebaseMap.get(IDENTITIES_KEY);
         if (!(identitiesClaim instanceof Map<?, ?> identitiesMap)) {
-            throw new InvalidFirebaseTokenException("provider 식별자(google.com identities)를 찾을 수 없습니다.");
+            return null;
         }
 
-        Object googleIdentity = identitiesMap.get(GOOGLE_PROVIDER_KEY);
-        if (!(googleIdentity instanceof List<?> list) || list.isEmpty() || !(list.getFirst() instanceof String providerId)) {
-            throw new InvalidFirebaseTokenException("provider 식별자(google.com identities)를 찾을 수 없습니다.");
+        Object providerIdentity = identitiesMap.get(signInProvider);
+        if (!(providerIdentity instanceof List<?> list)
+                || list.isEmpty()
+                || !(list.getFirst() instanceof String providerId)
+                || !StringUtils.hasText(providerId)) {
+            return null;
         }
 
         return providerId;
