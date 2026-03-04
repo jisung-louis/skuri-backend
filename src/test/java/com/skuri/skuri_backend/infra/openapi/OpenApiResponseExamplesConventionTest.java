@@ -1,0 +1,91 @@
+package com.skuri.skuri_backend.infra.openapi;
+
+import com.skuri.skuri_backend.domain.app.controller.AppNoticeController;
+import com.skuri.skuri_backend.domain.app.controller.AppVersionController;
+import com.skuri.skuri_backend.domain.member.controller.MemberController;
+import com.skuri.skuri_backend.domain.taxiparty.controller.JoinRequestController;
+import com.skuri.skuri_backend.domain.taxiparty.controller.PartyController;
+import com.skuri.skuri_backend.domain.taxiparty.controller.PartySseController;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class OpenApiResponseExamplesConventionTest {
+
+    private static final List<Class<?>> TARGET_CONTROLLERS = List.of(
+            AppVersionController.class,
+            AppNoticeController.class,
+            MemberController.class,
+            PartyController.class,
+            JoinRequestController.class,
+            PartySseController.class
+    );
+
+    @Test
+    void 모든_ApiResponse는_content와_examples를_가져야한다() {
+        List<String> violations = new ArrayList<>();
+
+        for (Class<?> controllerClass : TARGET_CONTROLLERS) {
+            for (Method method : controllerClass.getDeclaredMethods()) {
+                for (ApiResponse apiResponse : resolveApiResponses(method)) {
+                    validateApiResponse(controllerClass, method, apiResponse, violations);
+                }
+            }
+        }
+
+        assertTrue(
+                violations.isEmpty(),
+                () -> "OpenAPI response example 규약 위반:\n" + String.join("\n", violations)
+        );
+    }
+
+    private static List<ApiResponse> resolveApiResponses(Method method) {
+        List<ApiResponse> responses = new ArrayList<>();
+
+        ApiResponses apiResponses = method.getAnnotation(ApiResponses.class);
+        if (apiResponses != null) {
+            responses.addAll(Arrays.asList(apiResponses.value()));
+        }
+
+        ApiResponse singleResponse = method.getAnnotation(ApiResponse.class);
+        if (singleResponse != null) {
+            responses.add(singleResponse);
+        }
+
+        return responses;
+    }
+
+    private static void validateApiResponse(
+            Class<?> controllerClass,
+            Method method,
+            ApiResponse apiResponse,
+            List<String> violations
+    ) {
+        String responseCode = apiResponse.responseCode();
+        if ("204".equals(responseCode)) {
+            return;
+        }
+
+        Content[] contents = apiResponse.content();
+        String methodKey = controllerClass.getSimpleName() + "#" + method.getName() + " [" + responseCode + "]";
+
+        if (contents.length == 0) {
+            violations.add(methodKey + " - content 누락");
+            return;
+        }
+
+        for (Content content : contents) {
+            if (content.examples().length == 0) {
+                violations.add(methodKey + " - examples 누락 (mediaType=" + content.mediaType() + ")");
+            }
+        }
+    }
+}

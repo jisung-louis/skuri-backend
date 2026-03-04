@@ -1926,6 +1926,12 @@ data: {"id":"uuid","leaderId":"uuid","leaderName":"홍길동","leaderPhotoUrl":n
 retry: 3000
 ```
 
+**OpenAPI/Scalar 예시 표기 전략**
+
+- SSE `200` 응답은 `stream_full`(연속 이벤트 흐름) 1개와 이벤트별 단건 예시를 함께 제공한다.
+- 이벤트별 단건 예시는 `event` 이름 단위로 분리한다. (`SNAPSHOT`, `HEARTBEAT`, 도메인 이벤트)
+- 각 예시의 `data` 구조는 런타임 발행 payload와 동일해야 한다.
+
 ### 10.3 파티 실시간 구독
 
 #### GET /v1/sse/parties

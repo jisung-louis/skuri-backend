@@ -39,6 +39,19 @@
 5. 인증 요구사항은 `@SecurityRequirement`로 명시한다. (공개 API는 보안 요구를 비운다)
 6. 새 도메인 API가 추가되면 `GroupedOpenApi` 그룹 설정도 함께 갱신한다.
 7. 머지 전 `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar` 노출 여부를 확인한다.
+8. REST API는 **선언한 모든 responseCode**에 대해 `content` + `examples`를 작성한다.
+9. `@ApiResponse`에 description만 두고 예시를 생략하지 않는다. (Scalar/Swagger 예시 혼동 방지)
+10. 공통 에러(401/403/404/409/422/500) 예시는 상수/공통 정의를 재사용해 일관성을 유지한다.
+11. 예외: `204 No Content`, `text/event-stream`(SSE)은 API 특성에 맞는 예시를 별도로 명시한다.
+11-1. SSE `200` 예시는 단일 예시 1개만 두지 말고, 최소 `stream_full` + 이벤트별(`SNAPSHOT`, `HEARTBEAT`, 도메인 이벤트) `@ExampleObject`를 함께 선언한다.
+11-2. SSE 이벤트별 예시는 실제 `event name`/`data payload` 스키마와 1:1로 맞춘다. (`SseEmitter.event().name(...).data(...)` 기준)
+12. 하나의 상태코드에서 여러 비즈니스 에러코드가 발생 가능하면 `@ExampleObject`를 복수로 선언해 **에러코드별 예시를 분리**한다.
+13. `CONFLICT/NOT_FOUND/FORBIDDEN` 같은 포괄 예시는 최소화하고, 가능한 경우 도메인별 실제 `errorCode/message` 예시를 우선한다.
+14. OpenAPI 예시 상수는 단일 대형 파일로 두지 않고 도메인별로 분리한다.
+   - 예: `OpenApiCommonExamples`, `OpenApiMemberExamples`, `OpenApiTaxiPartyExamples`
+15. `BusinessException`에서 커스텀 메시지를 사용하는 경우, OpenAPI 예시 메시지도 런타임 메시지와 동일하게 맞춘다.
+16. Service/Entity 예외 규칙 또는 `ErrorCode`가 변경되면 OpenAPI 예시 상수와 Controller `@ApiResponses`를 같은 PR에서 동기화한다.
+17. 머지 전 Scalar에서 최소 1개 API를 선택해 200/4xx 탭 예시가 서로 다르게 노출되는지 확인한다.
 
 ## 브랜치 규칙
 1. `main`은 항상 안정 상태로 유지하고 직접 작업/커밋하지 않는다.
@@ -121,6 +134,7 @@
 2. 변경된 기능과 직접 관련된 테스트/검증 수행
 3. API 동작 변경 시 정상/예외 케이스를 최소 1개 이상 확인
 4. 공통 에러 포맷(`ApiResponse`)이 깨지지 않는지 확인
+5. OpenAPI 상태코드별 example이 실제 응답(`errorCode/message`)과 불일치하지 않는지 확인
 
 ## 테스트 작성 규칙 (필수)
 1. 신규/수정 API마다 Contract 테스트를 작성한다.

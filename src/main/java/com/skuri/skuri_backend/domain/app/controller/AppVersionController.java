@@ -1,6 +1,8 @@
 package com.skuri.skuri_backend.domain.app.controller;
 
 import com.skuri.skuri_backend.common.dto.ApiResponse;
+import com.skuri.skuri_backend.infra.openapi.OpenApiAppExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -34,12 +36,18 @@ public class AppVersionController {
                     description = "조회 성공",
                     content = @Content(
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(
-                                    value = "{\"success\":true,\"data\":{\"latestVersion\":\"1.0.0\",\"minVersion\":\"1.0.0\",\"forceUpdate\":false,\"platform\":\"ios\"}}"
-                            )
+                            examples = @ExampleObject(name = "default", value = OpenApiAppExamples.SUCCESS_APP_VERSION)
                     )
             ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 platform")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 platform",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_INVALID_REQUEST)
+                    )
+            )
     })
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAppVersion(
             @Parameter(description = "플랫폼", example = "ios")
