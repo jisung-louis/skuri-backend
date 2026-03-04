@@ -103,6 +103,27 @@ com.skuri.skuri_backend
 - [x] 애플리케이션 정상 기동
 - [x] 존재하지 않는 API 호출 시 `ApiResponse` 형태의 에러 응답 반환
 
+#### 0-5. OpenAPI 문서화 고정 규칙
+
+- 모든 REST 엔드포인트는 선언한 responseCode마다 `@ApiResponse`의 `content + examples`를 제공한다.
+- `@ApiResponse`의 description-only 선언을 금지한다. (Scalar/Swagger 상태코드별 예시 혼선 방지)
+- 공통 에러 코드(`401/403/404/409/422/500`) 예시는 공통 상수/컴포넌트로 재사용한다.
+- 하나의 상태코드에 여러 비즈니스 에러코드가 매핑되면 `@ExampleObject`를 복수로 선언해 에러코드별 예시를 분리한다.
+- `CONFLICT/NOT_FOUND/FORBIDDEN` 같은 포괄 예시는 최소화하고, 가능한 경우 도메인별 실제 `errorCode/message` 예시를 우선한다.
+- SSE(`text/event-stream`)는 이벤트 스트림 예시를 별도로 제공하고, 에러 응답은 `application/json` 예시를 제공한다.
+- SSE `200` 문서화는 `stream_full`(연속 스트림 흐름)과 이벤트별 단건 예시(`SNAPSHOT`, `HEARTBEAT`, 도메인 이벤트)를 함께 제공한다.
+- SSE 이벤트별 예시는 런타임 발행 이벤트(`SseEmitter.event().name(...)`)와 payload 구조를 그대로 반영한다.
+- 머지 전 `/v3/api-docs` 기준으로 responseCode별 example 누락이 없는지 자동 검증한다.
+- 머지 전 Scalar에서 대표 API를 열어 200/4xx 탭의 예시가 동일하게 보이지 않는지 수동 확인한다.
+
+#### 0-6. OpenAPI 예시 상수 구조 규칙
+
+- OpenAPI 예시 상수는 단일 파일 집중을 피하고 도메인별 파일로 분리 유지한다.
+  - 예: `infra/openapi/OpenApiCommonExamples.java`, `OpenApiMemberExamples.java`, `OpenApiTaxiPartyExamples.java`
+- 신규 도메인 API를 추가할 때 해당 도메인 예시 상수 파일을 함께 추가/갱신한다.
+- Service/Entity 예외 규칙(`BusinessException`, `ErrorCode`) 변경 시 예시 상수와 Controller `@ApiResponses`를 동일 PR에서 동기화한다.
+- 커스텀 예외 메시지를 사용하는 경우, 예시 메시지도 실제 런타임 메시지와 동일하게 유지한다.
+
 ---
 
 ### Phase 1: Member 도메인
@@ -244,6 +265,7 @@ SSE 운영 제약:
 - 상태 전이/권한/정산/동시성 로직 변경 시 Service 테스트를 추가한다.
   - 최소: 성공 1, 실패 1
 - 응답 스키마 변경 시 필드 존재/미노출 조건을 Contract 테스트로 검증한다.
+- OpenAPI 응답 예시를 수정한 경우, 상태코드별 `errorCode/message` 정합성(명세/실응답/문서)을 함께 검증한다.
 - 머지 전 검증 명령은 `SPRING_PROFILES_ACTIVE=local ./gradlew build`를 기준으로 한다.
 
 #### 2-7. 후속 확장 구현 완료 내역 (동승 요청 SSE)

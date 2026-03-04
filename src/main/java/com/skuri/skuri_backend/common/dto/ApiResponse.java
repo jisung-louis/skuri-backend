@@ -13,15 +13,15 @@ import java.time.LocalDateTime;
 @Schema(description = "공통 API 응답 포맷")
 public class ApiResponse<T> {
 
-    @Schema(description = "요청 성공 여부", example = "true")
+    @Schema(description = "요청 성공 여부")
     private final boolean success;
     @Schema(description = "성공 시 응답 데이터", nullable = true)
     private final T data;
-    @Schema(description = "에러 메시지", example = "인증이 필요합니다.", nullable = true)
+    @Schema(description = "에러 메시지", nullable = true)
     private final String message;
-    @Schema(description = "에러 코드", example = "UNAUTHORIZED", nullable = true)
+    @Schema(description = "에러 코드", nullable = true)
     private final String errorCode;
-    @Schema(description = "에러 발생 시각", example = "2026-03-02T21:00:00", nullable = true)
+    @Schema(description = "에러 발생 시각", nullable = true)
     private final LocalDateTime timestamp;
 
     public static <T> ApiResponse<T> success(T data) {
