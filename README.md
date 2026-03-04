@@ -54,17 +54,6 @@ src/main/java/com/skuri/skuri_backend
 └── infra/auth
 ```
 
-### 3-1. Phase별 구현 완료 API 요약 (Phase 0~2)
-
-> 상세 계약/예시는 [docs/api-specification.md](docs/api-specification.md)를 기준으로 확인합니다.
-
-| Phase | 도메인 | 구현 상태 | 구현 완료 API 요약 |
-|------|------|------|------|
-| Phase 0 | Public/Common | 완료 | `GET /v1/app-versions/**`, `GET /v1/app-notices`, OpenAPI 노출(`GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /scalar/**`) |
-| Phase 1 | Member/Auth | 완료 | `POST /v1/members`, `GET /v1/members/me`, `PATCH /v1/members/me`, `POST /v1/members/me/fcm-tokens`, `DELETE /v1/members/me/fcm-tokens` |
-| Phase 2 | TaxiParty | 완료 | 파티 생성/조회/수정/마감/재개/도착/종료/취소, 멤버 강퇴/탈퇴, 동승 요청 생성/수락/거절/취소/조회, 정산 확인, 내 파티/요청 조회 |
-| Phase 2 | TaxiParty Realtime(SSE) | 완료 | `GET /v1/sse/parties`, `GET /v1/sse/parties/{partyId}/join-requests`, `GET /v1/sse/members/me/join-requests` |
-
 ## 4. 기술 스택
 
 - Java 21
