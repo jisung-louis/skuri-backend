@@ -121,19 +121,22 @@ public class MemberService {
     }
 
     private void createLinkedAccount(Member member, AuthenticatedMember authenticatedMember) {
+        LinkedAccountProvider provider = LinkedAccountProvider.fromSignInProvider(authenticatedMember.signInProvider());
+        boolean socialProvider = provider.isSocialProvider();
+
         try {
             linkedAccountRepository.saveAndFlush(
                 LinkedAccount.of(
                         member,
-                        LinkedAccountProvider.GOOGLE,
-                        authenticatedMember.providerId(),
-                        authenticatedMember.email(),
-                        authenticatedMember.providerDisplayName(),
-                        authenticatedMember.photoUrl()
+                        provider,
+                        socialProvider ? authenticatedMember.providerId() : null,
+                        socialProvider ? authenticatedMember.email() : null,
+                        socialProvider ? authenticatedMember.providerDisplayName() : null,
+                        socialProvider ? authenticatedMember.photoUrl() : null
                 )
             );
         } catch (DataIntegrityViolationException e) {
-            boolean alreadyLinked = linkedAccountRepository.existsByMemberIdAndProvider(member.getId(), LinkedAccountProvider.GOOGLE);
+            boolean alreadyLinked = linkedAccountRepository.existsByMemberIdAndProvider(member.getId(), provider);
             if (!alreadyLinked) {
                 throw new BusinessException(ErrorCode.CONFLICT, "연결 계정 생성 처리 중 충돌이 발생했습니다.");
             }

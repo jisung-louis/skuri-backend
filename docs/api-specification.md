@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-02
+> 최종 수정일: 2026-03-04
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md)
 
 ---
@@ -100,6 +100,7 @@ Authorization: Bearer <firebase_id_token>
 | 403 | `FORBIDDEN` | 권한 없음 |
 | 404 | `NOT_FOUND` | 리소스 없음 |
 | 409 | `CONFLICT` | 충돌 (중복 등) |
+| 409 | `RESOURCE_CONCURRENT_MODIFICATION` | 낙관적 락 기반 동시 수정 충돌 |
 | 422 | `VALIDATION_ERROR` | 유효성 검사 실패 |
 | 500 | `INTERNAL_ERROR` | 서버 오류 |
 
@@ -167,6 +168,20 @@ Authorization: Bearer <firebase_id_token>
 }
 ```
 
+**로컬 Auth Emulator 정책:**
+- `local-emulator` 프로필에서만 Auth Emulator 사용을 허용합니다.
+- 필수 환경변수: `FIREBASE_AUTH_EMULATOR_HOST`, `FIREBASE_PROJECT_ID`
+- `firebase.auth.use-emulator=false` 상태에서 emulator host가 설정되면 서버는 기동 실패합니다. (운영 오염 방지)
+- IntelliJ `실행 전` 작업은 `/Users/jisung/skuri-backend/bin/start-firebase-auth-emulator.sh` 사용을 권장합니다.
+  - 이 스크립트는 PID를 `/tmp/firebase-auth-emulator.pid`에 기록하고,
+    서버 종료 시(`local-emulator` 프로필) 해당 PID의 Emulator를 자동 종료합니다.
+
+```bash
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+FIREBASE_PROJECT_ID=sktaxi-acb4c \
+SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
+```
+
 ---
 
 ### 2.2 회원 가입
@@ -177,8 +192,10 @@ Authorization: Bearer <firebase_id_token>
 **인증:** Firebase ID Token 필수
 
 Spring 서버 처리:
-1. Firebase Admin SDK로 ID Token 검증 → `uid`, `email`, provider 계정 정보(`name`, `picture`, provider id) 추출
-   - Google provider id: `firebase.identities.google.com[0]`
+1. Firebase Admin SDK로 ID Token 검증 → `uid`, `email`, `sign_in_provider`, provider 계정 정보(`name`, `picture`, provider id) 추출
+   - `google.com` provider를 강제하지 않는다.
+   - `linked_accounts.provider`는 `GOOGLE`, `PASSWORD`, `UNKNOWN` 중 하나로 저장한다.
+   - 소셜 로그인(`GOOGLE`)이 아닌 경우 `linked_accounts`는 `provider`를 제외한 provider 부가 컬럼(`provider_id`, `email`, `provider_display_name`, `photo_url`)을 `null`로 저장한다.
 2. `members` 테이블에서 `uid` 조회
    - **없음 (신규)** → INSERT + `linked_accounts` INSERT → 201 Created
    - **있음 (중복)** → 별도 처리 없이 기존 프로필 200 OK 반환 (idempotent)
@@ -400,6 +417,7 @@ FCM 토큰 삭제
 파티 목록 조회
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `status` | string | 파티 상태 (OPEN, CLOSED) |
@@ -566,18 +584,47 @@ FCM 토큰 삭제
 ```
 
 #### PATCH /v1/parties/{partyId}
-파티 정보 수정 (리더만)
+파티 수정 (리더만)
+
+- 수정 가능 상태: `OPEN`, `CLOSED`
+- 수정 가능 필드(화이트리스트): `departureTime`, `detail`
+- `maxMembers` 포함 또는 허용되지 않은 필드 포함 시 `422 VALIDATION_ERROR`
+- `departureTime`, `detail` 모두 누락 시 `422 VALIDATION_ERROR`
+- `departureTime`은 현재 이후 시각이어야 함 (`@Future`)
+- `CLOSED` 상태에서 시간/상세 수정 시에도 상태는 `CLOSED` 유지 (`reopen`으로만 모집 재개)
+- 동승 요청(`PENDING`)과 기존 참여 멤버는 자동 취소/재동의 처리 없이 유지
+- 응답은 최신 파티 상세(`PartyDetailResponse`) 반환
 
 **Request:**
 ```json
 {
-  "departureTime": "2026-02-03T14:30:00Z",
-  "maxMembers": 3,
-  "detail": "수정된 상세"
+  "departureTime": "2026-02-03T14:30:00",
+  "detail": "10분 후 출발합니다."
 }
 ```
 
-#### POST /v1/parties/{partyId}/close
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "party_uuid",
+    "status": "OPEN",
+    "departureTime": "2026-02-03T14:30:00",
+    "detail": "10분 후 출발합니다."
+  }
+}
+```
+
+**에러 코드 (update 전용):**
+
+| 에러 코드 | HTTP | 설명 |
+|----------|------|------|
+| `NOT_PARTY_LEADER` | 403 | 리더가 아닌 사용자가 수정 시도 |
+| `INVALID_PARTY_STATE_TRANSITION` | 409 | OPEN/CLOSED 상태가 아닌 파티 수정 시도 |
+| `VALIDATION_ERROR` | 422 | 허용되지 않은 필드 포함 또는 수정 필드 누락/형식 오류 |
+
+#### PATCH /v1/parties/{partyId}/close
 파티 모집 마감 (리더만)
 
 **Response:**
@@ -591,7 +638,7 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /v1/parties/{partyId}/reopen
+#### PATCH /v1/parties/{partyId}/reopen
 파티 모집 재개 (리더만)
 
 **Response (200 OK):**
@@ -605,11 +652,13 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /v1/parties/{partyId}/arrive
+#### PATCH /v1/parties/{partyId}/arrive
 도착 및 정산 시작 (리더만)
 
 - OPEN 또는 CLOSED 상태에서만 호출 가능
 - 리더를 제외한 멤버가 1명 이상 있어야 함 (정산 대상이 없으면 호출 불가)
+- `perPersonAmount = taxiFare / 정산대상인원` 정수 나눗셈(버림)으로 계산
+- 정수 나눗셈으로 생기는 잔여 1원 단위 금액은 서버에서 자동 분배하지 않음
 
 **Request:**
 ```json
@@ -647,7 +696,8 @@ FCM 토큰 삭제
 - 파티 리더가 특정 멤버의 정산 상태를 `settled=true`로 확정합니다.
 - 앱 내 결제/송금 기능은 제공하지 않으며, 향후에도 제공하지 않습니다.
 - 일반 멤버는 자신의 정산 상태를 직접 변경할 수 없고, 리더가 실제 입금 확인 후 호출합니다.
-- 모든 멤버의 정산이 완료되면 서버가 자동으로 `ENDED(ARRIVED)` 전이합니다.
+- 모든 멤버의 정산이 완료되면 `allSettled=true`를 반환하고 정산 상태만 `COMPLETED`로 변경됩니다.
+- 파티 상태를 `ENDED`로 바꾸려면 리더가 별도로 `PATCH /v1/parties/{partyId}/end`를 호출해야 합니다.
 
 **Response:**
 ```json
@@ -662,10 +712,10 @@ FCM 토큰 삭제
 }
 ```
 
-> **`allSettled: true`** 시 파티 상태는 `ENDED`, `endReason: ARRIVED`로 자동 전이됩니다.
-> 클라이언트는 이 필드를 감지해 종료 처리 UI를 표시합니다.
+> **`allSettled: true`** 는 "모든 정산 확인 완료"를 의미합니다.
+> 이 시점에도 파티 상태는 `ARRIVED`를 유지하며, 종료는 리더의 `/end` 호출에서만 발생합니다.
 
-#### POST /v1/parties/{partyId}/end
+#### PATCH /v1/parties/{partyId}/end
 파티 강제 종료 (리더만, 정산 미완료 상태에서도 가능)
 
 - ARRIVED 상태에서만 호출 가능
@@ -690,6 +740,18 @@ FCM 토큰 삭제
 - OPEN 또는 CLOSED 상태에서만 가능 (ARRIVED 상태 불가)
 - 파티 상태 → `ENDED`, `endReason: CANCELLED`
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "status": "ENDED",
+    "endReason": "CANCELLED"
+  }
+}
+```
+
 **에러 코드:**
 
 | 에러 코드 | HTTP | 설명 |
@@ -702,7 +764,7 @@ FCM 토큰 삭제
 파티 나가기 (멤버)
 
 - 리더는 나가기 불가 (취소 또는 위임 불가 정책)
-- ARRIVED 상태에서는 나가기 불가 (정산 완료 후 자동 종료 대기)
+- ARRIVED 상태에서는 나가기 불가 (정산 진행/완료 여부와 무관)
 - 리더가 탈퇴(회원탈퇴)하면 파티 강제 종료 (`endReason: WITHDRAWED`)
 
 **Response:**
@@ -751,6 +813,7 @@ FCM 토큰 삭제
   "data": [
     {
       "id": "request_uuid",
+      "partyId": "party_uuid",
       "requesterId": "user_uuid",
       "requesterName": "김철수",
       "requesterPhotoUrl": "https://...",
@@ -779,15 +842,15 @@ FCM 토큰 삭제
 내가 보낸 동승 요청 목록
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `status` | string | 요청 상태 (PENDING, ACCEPTED, DECLINED, CANCELED) |
 
-#### GET /v1/join-requests/{requestId}
-동승 요청 상세
-
-#### POST /v1/join-requests/{requestId}/accept
+#### PATCH /v1/join-requests/{requestId}/accept
 동승 요청 수락 (리더만)
+
+- 요청 수락으로 파티 인원이 정원(`maxMembers`)에 도달하면 파티 상태는 자동으로 `CLOSED` 전이됩니다.
 
 **Response:**
 ```json
@@ -801,11 +864,33 @@ FCM 토큰 삭제
 }
 ```
 
-#### POST /v1/join-requests/{requestId}/decline
+#### PATCH /v1/join-requests/{requestId}/decline
 동승 요청 거절 (리더만)
 
-#### POST /v1/join-requests/{requestId}/cancel
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "request_uuid",
+    "status": "DECLINED"
+  }
+}
+```
+
+#### PATCH /v1/join-requests/{requestId}/cancel
 동승 요청 취소 (요청자)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "request_uuid",
+    "status": "CANCELED"
+  }
+}
+```
 
 ### 3.5 에러 코드
 
@@ -824,12 +909,14 @@ FCM 토큰 삭제
 | `SETTLEMENT_NOT_COMPLETED` | 정산이 완료되지 않음 |
 | `ALREADY_SETTLED` | 이미 정산 완료 처리됨 |
 | `PARTY_NOT_ARRIVABLE` | OPEN/CLOSED 상태가 아닌 파티 (arrive 호출 불가) |
-| `NO_MEMBERS_TO_SETTLE` | 정산 대상 멤버 없음 (리더만 남은 파티) |
 | `PARTY_NOT_CANCELABLE` | ARRIVED 상태에서 취소 불가 |
+| `NO_MEMBERS_TO_SETTLE` | 정산 대상 멤버 없음 (리더만 남은 파티) |
 | `LEADER_CANNOT_LEAVE` | 리더는 파티 나가기 불가 |
 | `CANNOT_LEAVE_ARRIVED_PARTY` | ARRIVED 상태에서 나가기 불가 |
 | `CANNOT_KICK_IN_ARRIVED` | ARRIVED 상태에서 강퇴 불가 |
 | `CANNOT_KICK_LEADER` | 리더 본인 강퇴 불가 |
+| `INVALID_PARTY_STATE_TRANSITION` | 허용되지 않는 파티 상태 전이 |
+| `PARTY_CONCURRENT_MODIFICATION` | 동시 요청 충돌 발생 |
 
 ---
 
@@ -841,6 +928,7 @@ FCM 토큰 삭제
 공개 채팅방 목록
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `type` | string | 채팅방 타입 (UNIVERSITY, DEPARTMENT, GAME, CUSTOM) |
@@ -893,6 +981,7 @@ FCM 토큰 삭제
 채팅 메시지 조회
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `before` | datetime | 이 시간 이전 메시지 |
@@ -966,6 +1055,7 @@ FCM 토큰 삭제
 > **메시지 전송은 WebSocket(STOMP)으로만 수행합니다. (§4.5 참고)**
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `before` | datetime | 이 시간 이전 메시지 조회 (무한 스크롤) |
@@ -980,6 +1070,7 @@ FCM 토큰 삭제
 파티 채팅 메시지 이력 조회 (과거 메시지 로딩)
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `before` | datetime | 이 시간 이전 메시지 조회 |
@@ -988,6 +1079,7 @@ FCM 토큰 삭제
 ### 4.5 WebSocket (STOMP)
 
 모든 채팅 메시지 **전송 및 실시간 수신**은 WebSocket(STOMP)을 통해 수행합니다.
+채팅방 목록 화면은 방별 다중 구독이 아닌 **사용자 전용 요약 채널 1개**를 구독합니다.
 
 #### STOMP Endpoint
 ```
@@ -1008,12 +1100,20 @@ Authorization:Bearer <firebase_id_token>
 > Spring의 `@MessageMapping` 핸들러에서 `Principal` 객체로 `uid`를 추출합니다.
 > 연결 인증 성공 후에는 추가 토큰 검증 없이 세션을 유지합니다.
 
+#### 구독 토폴로지 (중요)
+
+- 채팅방 목록 화면: `SUBSCRIBE /user/queue/chat-rooms` 1개만 구독
+- 채팅방 상세 화면: 진입한 방에 한해 `SUBSCRIBE /topic/chat-rooms/{chatRoomId}` 구독
+- 상세 화면 이탈 시 해당 room topic 구독을 즉시 해제
+- 모든 채팅방 topic을 동시에 구독하는 방식은 사용하지 않음
+
 ---
 
 #### 일반 채팅
 
 | 방향 | 경로 | 설명 |
 |------|------|------|
+| 수신 (Subscribe) | `/user/queue/chat-rooms` | 내 채팅방 목록 카드 요약(이름/인원/마지막 메시지/미읽음) 수신 |
 | 전송 (Publish) | `/app/chat-rooms/{chatRoomId}/messages` | 메시지 전송 |
 | 수신 (Subscribe) | `/topic/chat-rooms/{chatRoomId}` | 실시간 메시지 수신 |
 
@@ -1022,6 +1122,25 @@ Authorization:Bearer <firebase_id_token>
 { "type": "TEXT", "text": "안녕하세요!" }
 { "type": "IMAGE", "imageUrl": "https://..." }
 ```
+
+**채팅방 목록 요약 이벤트 포맷 (서버 → 클라이언트):**
+```json
+{
+  "eventType": "CHAT_ROOM_UPSERT",
+  "chatRoomId": "room_uuid",
+  "name": "컴공 24학번",
+  "memberCount": 42,
+  "unreadCount": 3,
+  "lastMessage": {
+    "type": "TEXT",
+    "text": "오늘 과제 어디까지 했어?",
+    "createdAt": "2026-02-03T12:00:00Z"
+  },
+  "updatedAt": "2026-02-03T12:00:00Z"
+}
+```
+
+> `eventType`은 `CHAT_ROOM_SNAPSHOT`, `CHAT_ROOM_UPSERT`, `CHAT_ROOM_REMOVED`를 사용합니다.
 
 ---
 
@@ -1060,6 +1179,7 @@ Authorization:Bearer <firebase_id_token>
 | 작업 | 트랜잭션 범위 |
 |------|------------|
 | 메시지 전송 (STOMP 핸들러) | 메시지 DB 저장 + ChatRoom.messageCount 증가 → 커밋 후 구독자 브로드캐스트 |
+| 채팅방 목록 요약 이벤트 | 메시지 저장/멤버수 변경 커밋 후 `/user/queue/chat-rooms`로 요약 이벤트 전송 |
 | 채팅방 참여 (`POST /v1/chat-rooms/{chatRoomId}/join`) | ChatRoomMember 추가 + ChatRoom.memberCount 증가 |
 | 채팅방 나가기 (`POST /v1/chat-rooms/{chatRoomId}/leave`) | ChatRoomMember 삭제 + ChatRoom.memberCount 감소 |
 | ACCOUNT 메시지 | 계좌 정보 DB 조회 + 메시지 DB 저장 → 커밋 후 브로드캐스트 |
@@ -1087,6 +1207,7 @@ Authorization:Bearer <firebase_id_token>
 게시글 목록
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `category` | string | 카테고리 (GENERAL, QUESTION, REVIEW, ANNOUNCEMENT) |
@@ -1309,6 +1430,7 @@ Authorization:Bearer <firebase_id_token>
 공지사항 목록
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `category` | string | 카테고리 (새소식, 학사, 학생 등) |
@@ -1439,6 +1561,7 @@ Authorization:Bearer <firebase_id_token>
 강의 목록
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `semester` | string | 학기 (2026-1) |
@@ -1492,6 +1615,7 @@ Authorization:Bearer <firebase_id_token>
 내 시간표 조회
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `semester` | string | 학기 (기본: 현재 학기) |
@@ -1534,6 +1658,7 @@ Authorization:Bearer <firebase_id_token>
 시간표에서 강의 삭제
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `semester` | string | 학기 |
@@ -1544,6 +1669,7 @@ Authorization:Bearer <firebase_id_token>
 학사 일정 목록
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `startDate` | date | 시작일 이후 |
@@ -1660,6 +1786,7 @@ Authorization:Bearer <firebase_id_token>
 학식 메뉴
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `date` | date | 조회 날짜 (기본: 오늘) |
@@ -1701,6 +1828,7 @@ Authorization:Bearer <firebase_id_token>
 알림 목록
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `unreadOnly` | boolean | 읽지 않은 알림만 |
@@ -1767,6 +1895,7 @@ Authorization:Bearer <firebase_id_token>
 
 > `role-definition.md` §8.2 기준:
 > 파티 목록/상태, 알림, 게시물 목록/조회수는 SSE를 통해 실시간 업데이트를 제공한다.
+> 채팅 실시간 통신은 SSE 대상이 아니며, §4.5 WebSocket(STOMP) 경로를 사용한다.
 
 ### 10.1 개요
 
@@ -1793,7 +1922,7 @@ retry: 3000
 ```
 id: 1706922000000
 event: PARTY_CREATED
-data: {"id":"uuid","leaderId":"uuid","departureName":"성결대학교","destinationName":"안양역","departureTime":"2026-02-03T14:00:00Z","status":"OPEN"}
+data: {"id":"uuid","leaderId":"uuid","leaderName":"홍길동","leaderPhotoUrl":null,"departure":{"name":"성결대학교","lat":37.382742,"lng":126.928031},"destination":{"name":"안양역","lat":37.401234,"lng":126.922345},"departureTime":"2026-02-03T14:00:00","maxMembers":4,"currentMembers":1,"tags":["빠른출발"],"detail":"정문 앞에서 출발","status":"OPEN","createdAt":"2026-02-03T12:00:00"}
 retry: 3000
 ```
 
@@ -1815,6 +1944,7 @@ Cache-Control: no-cache
 
 | 이벤트 타입 | 발생 시점 | 수신 대상 |
 |-----------|---------|---------|
+| `SNAPSHOT` | 연결 직후/재연결 직후 현재 상태 스냅샷 전송 | 연결 사용자 |
 | `PARTY_CREATED` | 새 파티 생성됨 | 전체 연결 사용자 |
 | `PARTY_UPDATED` | 파티 정보 수정됨 | 전체 연결 사용자 |
 | `PARTY_STATUS_CHANGED` | 파티 상태 변경됨 | 전체 연결 사용자 |
@@ -1823,22 +1953,146 @@ Cache-Control: no-cache
 | `PARTY_MEMBER_LEFT` | 멤버 나감/강퇴 | 해당 파티 멤버 |
 | `HEARTBEAT` | 30초 주기 연결 유지 | 전체 연결 사용자 |
 
+**RN 파싱 기준 DTO (strict)**
+
+```ts
+type PartyLocationPayload = {
+  name: string;
+  lat: number;
+  lng: number;
+};
+
+type PartySummaryPayload = {
+  id: string;
+  leaderId: string;
+  leaderName: string | null;
+  leaderPhotoUrl: string | null;
+  departure: PartyLocationPayload;
+  destination: PartyLocationPayload;
+  departureTime: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss" (KST 기준)
+  maxMembers: number;
+  currentMembers: number;
+  tags: string[] | null;
+  detail: string | null;
+  status: "OPEN" | "CLOSED" | "ARRIVED" | "ENDED";
+  createdAt: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss"
+};
+
+type PartyStatusChangedPayload = {
+  id: string;
+  status: "OPEN" | "CLOSED" | "ARRIVED" | "ENDED";
+  currentMembers: number;
+  endReason?: "ARRIVED" | "FORCE_ENDED" | "CANCELLED" | "TIMEOUT" | "WITHDRAWED";
+};
+
+type PartyMemberJoinedPayload = {
+  partyId: string;
+  memberId: string;
+  memberName: string | null;
+  currentMembers: number;
+};
+
+type PartyMemberLeftPayload = {
+  partyId: string;
+  memberId: string;
+  reason: "LEFT" | "KICKED";
+  currentMembers: number;
+};
+
+type SnapshotPayload = {
+  parties: PartySummaryPayload[];
+};
+
+type HeartbeatPayload = {
+  timestamp: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss"
+};
+```
+
+> `PARTY_CREATED`, `PARTY_UPDATED`, `SNAPSHOT.parties[*]`는 동일한 `PartySummaryPayload` 스키마를 사용합니다.
+
 **이벤트 데이터 형식:**
 
 ```
+// SNAPSHOT
+event: SNAPSHOT
+data: {
+  "parties": [
+    {
+      "id": "party_uuid",
+      "leaderId": "user_uuid",
+      "leaderName": "홍길동",
+      "leaderPhotoUrl": null,
+      "departure": {
+        "name": "성결대학교",
+        "lat": 37.382742,
+        "lng": 126.928031
+      },
+      "destination": {
+        "name": "안양역",
+        "lat": 37.401234,
+        "lng": 126.922345
+      },
+      "departureTime": "2026-02-03T14:00:00",
+      "maxMembers": 4,
+      "currentMembers": 1,
+      "tags": ["빠른출발"],
+      "detail": null,
+      "status": "OPEN",
+      "createdAt": "2026-02-03T12:00:00"
+    }
+  ]
+}
+
 // PARTY_CREATED
 event: PARTY_CREATED
 data: {
   "id": "party_uuid",
   "leaderId": "user_uuid",
   "leaderName": "홍길동",
-  "departureName": "성결대학교",
-  "destinationName": "안양역",
-  "departureTime": "2026-02-03T14:00:00Z",
+  "leaderPhotoUrl": "https://example.com/profile.jpg",
+  "departure": {
+    "name": "성결대학교",
+    "lat": 37.382742,
+    "lng": 126.928031
+  },
+  "destination": {
+    "name": "안양역",
+    "lat": 37.401234,
+    "lng": 126.922345
+  },
+  "departureTime": "2026-02-03T14:00:00",
   "maxMembers": 4,
   "currentMembers": 1,
   "tags": ["빠른출발"],
-  "status": "OPEN"
+  "detail": "정문 앞에서 출발",
+  "status": "OPEN",
+  "createdAt": "2026-02-03T12:00:00"
+}
+
+// PARTY_UPDATED
+event: PARTY_UPDATED
+data: {
+  "id": "party_uuid",
+  "leaderId": "user_uuid",
+  "leaderName": "홍길동",
+  "leaderPhotoUrl": "https://example.com/profile.jpg",
+  "departure": {
+    "name": "성결대학교",
+    "lat": 37.382742,
+    "lng": 126.928031
+  },
+  "destination": {
+    "name": "안양역",
+    "lat": 37.401234,
+    "lng": 126.922345
+  },
+  "departureTime": "2026-02-03T14:30:00",
+  "maxMembers": 4,
+  "currentMembers": 2,
+  "tags": ["빠른출발"],
+  "detail": "10분 후 출발",
+  "status": "OPEN",
+  "createdAt": "2026-02-03T12:00:00"
 }
 
 // PARTY_STATUS_CHANGED
@@ -1847,6 +2101,15 @@ data: {
   "id": "party_uuid",
   "status": "CLOSED",
   "currentMembers": 3
+}
+
+// PARTY_STATUS_CHANGED (종료 시)
+event: PARTY_STATUS_CHANGED
+data: {
+  "id": "party_uuid",
+  "status": "ENDED",
+  "currentMembers": 3,
+  "endReason": "TIMEOUT"
 }
 
 // PARTY_DELETED
@@ -1869,13 +2132,189 @@ event: PARTY_MEMBER_LEFT
 data: {
   "partyId": "party_uuid",
   "memberId": "user_uuid",
-  "reason": "LEFT",
+  "reason": "KICKED",
   "currentMembers": 1
 }
 
 // HEARTBEAT
 event: HEARTBEAT
-data: {"timestamp": "2026-02-03T12:00:30Z"}
+data: {"timestamp": "2026-02-03T12:00:30"}
+```
+
+#### GET /v1/sse/parties/{partyId}/join-requests
+특정 파티의 동승 요청 목록/상태를 실시간으로 구독합니다.
+
+> 도입 목적: 파티 리더 화면에서 동승 요청 목록 UI를 자동 갱신
+
+**인증:** Firebase ID Token 필수 (파티 리더만 구독 가능)
+
+**Headers:**
+```http
+Authorization: Bearer <firebase_id_token>
+Accept: text/event-stream
+Cache-Control: no-cache
+```
+
+**구독 이벤트 목록:**
+
+| 이벤트 타입 | 발생 시점 | 수신 대상 |
+|-----------|---------|---------|
+| `SNAPSHOT` | 연결 직후/재연결 직후 현재 요청 목록 스냅샷 전송 | 연결 사용자(리더) |
+| `JOIN_REQUEST_CREATED` | 해당 파티에 신규 동승 요청 생성 | 해당 파티 리더 |
+| `JOIN_REQUEST_UPDATED` | 동승 요청 상태 변경 (ACCEPTED/DECLINED/CANCELED) | 해당 파티 리더 |
+| `HEARTBEAT` | 30초 주기 연결 유지 | 연결 사용자(리더) |
+
+**권한/예외:**
+
+| errorCode | HTTP | 설명 |
+|----------|------|------|
+| `NOT_PARTY_LEADER` | 403 | 파티 리더가 아닌 사용자의 구독 요청 |
+| `PARTY_NOT_FOUND` | 404 | 존재하지 않는 파티 |
+
+**RN 파싱 기준 DTO (strict)**
+
+```ts
+type JoinRequestSsePayload = {
+  id: string;
+  partyId: string;
+  requesterId: string;
+  requesterName: string | null;
+  requesterPhotoUrl: string | null;
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELED";
+  createdAt: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss"
+};
+
+type PartyJoinRequestSnapshotPayload = {
+  partyId: string;
+  requests: JoinRequestSsePayload[];
+};
+```
+
+**이벤트 데이터 형식:**
+
+```
+// SNAPSHOT
+event: SNAPSHOT
+data: {
+  "partyId": "party_uuid",
+  "requests": [
+    {
+      "id": "request_uuid",
+      "partyId": "party_uuid",
+      "requesterId": "user_uuid",
+      "requesterName": "김철수",
+      "requesterPhotoUrl": null,
+      "status": "PENDING",
+      "createdAt": "2026-02-03T12:00:00"
+    }
+  ]
+}
+
+// JOIN_REQUEST_CREATED
+event: JOIN_REQUEST_CREATED
+data: {
+  "id": "request_uuid",
+  "partyId": "party_uuid",
+  "requesterId": "user_uuid",
+  "requesterName": "김철수",
+  "requesterPhotoUrl": null,
+  "status": "PENDING",
+  "createdAt": "2026-02-03T12:00:00"
+}
+
+// JOIN_REQUEST_UPDATED
+event: JOIN_REQUEST_UPDATED
+data: {
+  "id": "request_uuid",
+  "partyId": "party_uuid",
+  "requesterId": "user_uuid",
+  "requesterName": "김철수",
+  "requesterPhotoUrl": null,
+  "status": "ACCEPTED",
+  "createdAt": "2026-02-03T12:00:00"
+}
+```
+
+#### GET /v1/sse/members/me/join-requests
+내 동승 요청 목록/상태를 실시간으로 구독합니다.
+
+> 도입 목적: 요청자 화면에서 수락/거절/취소 상태를 자동 갱신
+
+**인증:** Firebase ID Token 필수 (본인 요청만 수신)
+
+**Headers:**
+```http
+Authorization: Bearer <firebase_id_token>
+Accept: text/event-stream
+Cache-Control: no-cache
+```
+
+**Query Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `status` | string | 필터 (`PENDING`, `ACCEPTED`, `DECLINED`, `CANCELED`) |
+
+> `status` 필터는 `SNAPSHOT`에 즉시 적용됩니다.  
+> `MY_JOIN_REQUEST_UPDATED`는 상태 전이 전/후 중 하나라도 필터와 일치하면 전송됩니다(목록 제거/추가 동기화 목적).
+
+**구독 이벤트 목록:**
+
+| 이벤트 타입 | 발생 시점 |
+|-----------|---------|
+| `SNAPSHOT` | 연결 직후/재연결 직후 현재 요청 목록 스냅샷 전송 |
+| `MY_JOIN_REQUEST_CREATED` | 내 신규 동승 요청 생성 |
+| `MY_JOIN_REQUEST_UPDATED` | 내 동승 요청 상태 변경 |
+| `HEARTBEAT` | 30초 주기 연결 유지 |
+
+**RN 파싱 기준 DTO (strict)**
+
+```ts
+type MyJoinRequestSsePayload = {
+  id: string;
+  partyId: string;
+  requesterId: string;
+  requesterName: string | null;
+  requesterPhotoUrl: string | null;
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELED";
+  createdAt: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss"
+};
+
+type MyJoinRequestSnapshotPayload = {
+  requests: MyJoinRequestSsePayload[];
+};
+```
+
+**이벤트 데이터 형식:**
+
+```
+// SNAPSHOT
+event: SNAPSHOT
+data: {
+  "requests": [
+    {
+      "id": "request_uuid",
+      "partyId": "party_uuid",
+      "requesterId": "user_uuid",
+      "requesterName": "김철수",
+      "requesterPhotoUrl": null,
+      "status": "PENDING",
+      "createdAt": "2026-02-03T12:00:00"
+    }
+  ]
+}
+
+// MY_JOIN_REQUEST_UPDATED
+event: MY_JOIN_REQUEST_UPDATED
+data: {
+  "id": "request_uuid",
+  "partyId": "party_uuid",
+  "requesterId": "user_uuid",
+  "requesterName": "김철수",
+  "requesterPhotoUrl": null,
+  "status": "DECLINED",
+  "createdAt": "2026-02-03T12:00:00"
+}
 ```
 
 ### 10.4 알림 실시간 구독
@@ -1896,13 +2335,70 @@ Cache-Control: no-cache
 
 | 이벤트 타입 | 발생 시점 |
 |-----------|---------|
+| `SNAPSHOT` | 연결 직후/재연결 직후 현재 상태 스냅샷 전송 |
 | `NOTIFICATION` | 새 알림 도착 (모든 알림 타입 공통) |
 | `UNREAD_COUNT_CHANGED` | 읽지 않은 알림 수 변경 |
 | `HEARTBEAT` | 30초 주기 연결 유지 |
 
+**RN 파싱 기준 DTO (strict)**
+
+```ts
+type NotificationDataPayload = {
+  partyId?: string;
+  requestId?: string;
+  chatRoomId?: string;
+  postId?: string;
+  commentId?: string;
+  noticeId?: string;
+  appNoticeId?: string;
+};
+
+type NotificationPayload = {
+  id: string;
+  type:
+    | "PARTY_CREATED"
+    | "PARTY_JOIN_REQUEST"
+    | "PARTY_JOIN_ACCEPTED"
+    | "PARTY_JOIN_DECLINED"
+    | "PARTY_CLOSED"
+    | "PARTY_ARRIVED"
+    | "PARTY_ENDED"
+    | "MEMBER_KICKED"
+    | "SETTLEMENT_COMPLETED"
+    | "CHAT_MESSAGE"
+    | "POST_LIKED"
+    | "COMMENT_CREATED"
+    | "NOTICE"
+    | "APP_NOTICE";
+  title: string;
+  message: string;
+  data: NotificationDataPayload;
+  isRead: boolean;
+  createdAt: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss"
+};
+
+type UnreadCountChangedPayload = {
+  count: number;
+};
+
+type NotificationSnapshotPayload = {
+  unreadCount: number;
+};
+
+type NotificationHeartbeatPayload = {
+  timestamp: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss"
+};
+```
+
 **이벤트 데이터 형식:**
 
 ```
+// SNAPSHOT
+event: SNAPSHOT
+data: {
+  "unreadCount": 3
+}
+
 // NOTIFICATION
 event: NOTIFICATION
 data: {
@@ -1914,13 +2410,19 @@ data: {
     "partyId": "party_uuid"
   },
   "isRead": false,
-  "createdAt": "2026-02-03T12:00:00Z"
+  "createdAt": "2026-02-03T12:00:00"
 }
 
 // UNREAD_COUNT_CHANGED
 event: UNREAD_COUNT_CHANGED
 data: {
   "count": 3
+}
+
+// HEARTBEAT
+event: HEARTBEAT
+data: {
+  "timestamp": "2026-02-03T12:00:30"
 }
 ```
 
@@ -1958,6 +2460,7 @@ Cache-Control: no-cache
 ```
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `category` | string | 특정 카테고리만 구독 (생략 시 전체) |
@@ -1967,15 +2470,61 @@ Cache-Control: no-cache
 
 | 이벤트 타입 | 발생 시점 |
 |-----------|---------|
+| `SNAPSHOT` | 연결 직후/재연결 직후 현재 상태 스냅샷 전송 |
 | `POST_CREATED` | 새 게시글 작성됨 |
 | `POST_UPDATED` | 게시글 수정됨 |
 | `POST_DELETED` | 게시글 삭제됨 |
 | `POST_VIEW_COUNT_UPDATED` | 조회수 변경됨 (5 단위 배치 업데이트) |
 | `HEARTBEAT` | 30초 주기 연결 유지 |
 
+**RN 파싱 기준 DTO (strict)**
+
+```ts
+type PostSummaryPayload = {
+  id: string;
+  title: string;
+  authorName: string | null;
+  isAnonymous: boolean;
+  category: "GENERAL" | "QUESTION" | "REVIEW" | "ANNOUNCEMENT";
+  createdAt: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss"
+};
+
+type PostDeletedPayload = {
+  id: string;
+};
+
+type PostViewCountUpdatedPayload = {
+  id: string;
+  viewCount: number;
+};
+
+type PostSnapshotPayload = {
+  posts: PostSummaryPayload[];
+};
+
+type PostHeartbeatPayload = {
+  timestamp: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss"
+};
+```
+
 **이벤트 데이터 형식:**
 
 ```
+// SNAPSHOT
+event: SNAPSHOT
+data: {
+  "posts": [
+    {
+      "id": "post_uuid",
+      "title": "게시글 제목",
+      "authorName": "홍길동",
+      "isAnonymous": false,
+      "category": "GENERAL",
+      "createdAt": "2026-02-03T12:00:00"
+    }
+  ]
+}
+
 // POST_CREATED
 event: POST_CREATED
 data: {
@@ -1984,7 +2533,18 @@ data: {
   "authorName": "홍길동",
   "isAnonymous": false,
   "category": "GENERAL",
-  "createdAt": "2026-02-03T12:00:00Z"
+  "createdAt": "2026-02-03T12:00:00"
+}
+
+// POST_UPDATED
+event: POST_UPDATED
+data: {
+  "id": "post_uuid",
+  "title": "수정된 게시글 제목",
+  "authorName": "홍길동",
+  "isAnonymous": false,
+  "category": "GENERAL",
+  "createdAt": "2026-02-03T12:00:00"
 }
 
 // POST_DELETED
@@ -1998,6 +2558,12 @@ event: POST_VIEW_COUNT_UPDATED
 data: {
   "id": "post_uuid",
   "viewCount": 105
+}
+
+// HEARTBEAT
+event: HEARTBEAT
+data: {
+  "timestamp": "2026-02-03T12:00:30"
 }
 ```
 
@@ -2038,7 +2604,16 @@ data: {
 // 게시물 SSE (/v1/sse/posts) 재연결 시
 event: SNAPSHOT
 data: {
-  "posts": [ /* 현재 게시글 목록 전체 */ ]
+  "posts": [
+    {
+      "id": "post_uuid",
+      "title": "게시글 제목",
+      "authorName": "홍길동",
+      "isAnonymous": false,
+      "category": "GENERAL",
+      "createdAt": "2026-02-03T12:00:00"
+    }
+  ]
 }
 ```
 
@@ -2451,6 +3026,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 학기 강의 전체 삭제
 
 **Query Parameters:**
+
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `semester` | string | 삭제할 학기 (예: `2026-1`) |

@@ -1,8 +1,6 @@
 package com.skuri.skuri_backend.domain.member.controller;
 
 import com.skuri.skuri_backend.common.dto.ApiResponse;
-import com.skuri.skuri_backend.common.exception.BusinessException;
-import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberBankAccountRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberNotificationSettingsRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberProfileRequest;
@@ -34,6 +32,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import static com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMemberSupport.requireAuthenticatedMember;
 
 @RestController
 @RequiredArgsConstructor
@@ -185,12 +185,5 @@ public class MemberController {
     ) {
         MemberPublicProfileResponse response = memberService.getMemberById(memberId);
         return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    private AuthenticatedMember requireAuthenticatedMember(AuthenticatedMember authenticatedMember) {
-        if (authenticatedMember == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-        return authenticatedMember;
     }
 }

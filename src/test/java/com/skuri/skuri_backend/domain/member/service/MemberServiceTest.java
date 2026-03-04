@@ -116,6 +116,7 @@ class MemberServiceTest {
         AuthenticatedMember authenticatedMember = new AuthenticatedMember(
                 "firebase-uid",
                 "user@sungkyul.ac.kr",
+                "google.com",
                 "google-provider-id",
                 "구글표시이름",
                 "https://example.com/profile.jpg"
@@ -130,6 +131,32 @@ class MemberServiceTest {
         assertNull(result.member().photoUrl());
         verify(linkedAccountRepository).saveAndFlush(
                 argThat(linkedAccount -> "https://example.com/profile.jpg".equals(linkedAccount.getPhotoUrl()))
+        );
+    }
+
+    @Test
+    void createMember_비소셜로그인_password인경우_linkedAccount부가필드null로저장() {
+        AuthenticatedMember authenticatedMember = new AuthenticatedMember(
+                "firebase-uid",
+                "admin@sungkyul.ac.kr",
+                "password",
+                "password-provider-id",
+                "관리자",
+                "https://example.com/admin.jpg"
+        );
+        when(linkedAccountRepository.saveAndFlush(any(LinkedAccount.class))).thenReturn(null);
+
+        MemberUpsertResult result = memberService.createMember(authenticatedMember);
+
+        assertTrue(result.created());
+        verify(linkedAccountRepository).saveAndFlush(
+                argThat(linkedAccount ->
+                        linkedAccount.getProvider() == LinkedAccountProvider.PASSWORD
+                                && linkedAccount.getProviderId() == null
+                                && linkedAccount.getEmail() == null
+                                && linkedAccount.getProviderDisplayName() == null
+                                && linkedAccount.getPhotoUrl() == null
+                )
         );
     }
 
@@ -275,6 +302,7 @@ class MemberServiceTest {
         return new AuthenticatedMember(
                 "firebase-uid",
                 "user@sungkyul.ac.kr",
+                "google.com",
                 "google-provider-id",
                 "홍길동",
                 "https://example.com/profile.jpg"

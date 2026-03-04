@@ -3,13 +3,17 @@ package com.skuri.skuri_backend.common.exception;
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import jakarta.persistence.OptimisticLockException;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -36,6 +40,30 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ErrorCode.VALIDATION_ERROR.getCode(), message));
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        String message = e.getMostSpecificCause() != null
+                ? e.getMostSpecificCause().getMessage()
+                : ErrorCode.VALIDATION_ERROR.getMessage();
+        log.warn("HttpMessageNotReadableException: {}", message);
+        return ResponseEntity
+                .status(ErrorCode.VALIDATION_ERROR.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.VALIDATION_ERROR.getCode(), message));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        String message = String.format(
+                "요청 파라미터 '%s' 값 '%s'이(가) 올바르지 않습니다.",
+                e.getName(),
+                e.getValue()
+        );
+        log.warn("MethodArgumentTypeMismatchException: {}", message);
+        return ResponseEntity
+                .status(ErrorCode.INVALID_REQUEST.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.INVALID_REQUEST.getCode(), message));
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoResourceFoundException(NoResourceFoundException e) {
         return ResponseEntity
@@ -55,6 +83,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.FORBIDDEN.getHttpStatus())
                 .body(ApiResponse.error(ErrorCode.FORBIDDEN.getCode(), ErrorCode.FORBIDDEN.getMessage()));
+    }
+
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLockException(Exception e) {
+        log.warn("OptimisticLockException: {}", e.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.RESOURCE_CONCURRENT_MODIFICATION.getHttpStatus())
+                .body(ApiResponse.error(
+                        ErrorCode.RESOURCE_CONCURRENT_MODIFICATION.getCode(),
+                        ErrorCode.RESOURCE_CONCURRENT_MODIFICATION.getMessage()
+                ));
     }
 
     @ExceptionHandler(Exception.class)

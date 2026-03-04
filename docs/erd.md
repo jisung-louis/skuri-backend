@@ -1,6 +1,6 @@
 # Spring 백엔드 ERD (Entity Relationship Diagram)
 
-> 최종 수정일: 2026-03-02
+> 최종 수정일: 2026-03-04
 > 관련 문서: [도메인 분석](./domain-analysis.md)
 
 ---
@@ -50,7 +50,7 @@ erDiagram
     linked_accounts {
         bigint id PK "AUTO_INCREMENT"
         varchar(36) member_id FK
-        varchar(20) provider "GOOGLE (Phase 1)"
+        varchar(20) provider "GOOGLE/PASSWORD/UNKNOWN"
         varchar(255) provider_id
         varchar(255) email
         varchar(50) provider_display_name
@@ -80,6 +80,7 @@ erDiagram
         datetime ended_at
         enum settlement_status "PENDING,COMPLETED"
         int per_person_amount
+        bigint version "Optimistic Lock"
         datetime created_at
         datetime updated_at
     }
@@ -491,11 +492,11 @@ erDiagram
 |------|------|---------|------|
 | id | BIGINT | PK, AUTO_INCREMENT | 연결 계정 식별자 |
 | member_id | VARCHAR(36) | FK, NOT NULL | 회원 ID (`members.id`) |
-| provider | VARCHAR(20) | NOT NULL | 소셜 제공자 (`GOOGLE`, Phase 1 기준) |
-| provider_id | VARCHAR(255) | | provider 계정 고유 ID (예: `firebase.identities.google.com[0]`) |
-| email | VARCHAR(255) | | provider 이메일 |
-| provider_display_name | VARCHAR(50) | | provider 프로필 이름 |
-| photo_url | VARCHAR(500) | | provider 프로필 이미지 URL (`picture`) |
+| provider | VARCHAR(20) | NOT NULL | 로그인 제공자 (`GOOGLE`, `PASSWORD`, `UNKNOWN`) |
+| provider_id | VARCHAR(255) | | provider 계정 고유 ID (예: `firebase.identities[sign_in_provider][0]`, 비소셜 로그인은 `NULL`) |
+| email | VARCHAR(255) | | provider 이메일 (비소셜 로그인은 `NULL`) |
+| provider_display_name | VARCHAR(50) | | provider 프로필 이름 (비소셜 로그인은 `NULL`) |
+| photo_url | VARCHAR(500) | | provider 프로필 이미지 URL (`picture`, 비소셜 로그인은 `NULL`) |
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |
 
@@ -529,6 +530,7 @@ erDiagram
 | ended_at | DATETIME | | 종료 시간 |
 | settlement_status | ENUM | | PENDING, COMPLETED |
 | per_person_amount | INT | | 1인당 요금 |
+| version | BIGINT | NOT NULL | Optimistic Lock 버전 |
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |
 

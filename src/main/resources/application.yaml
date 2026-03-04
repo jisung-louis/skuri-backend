@@ -1,3 +1,7 @@
+# 공통 기본 설정 파일입니다.
+# - 모든 프로필(local, local-emulator, 추후 dev/prod)에 공통으로 적용됩니다.
+# - 환경변수(DB_URL, FIREBASE_PROJECT_ID 등)가 있으면 그 값을 우선 사용합니다.
+# - 이 파일만으로 실행할 때는 profile-specific 파일의 값이 없으므로, 필수 값은 환경변수로 주입해야 합니다.
 spring:
   application:
     name: skuri-backend
@@ -20,6 +24,10 @@ firebase:
   auth:
     credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
     project-id: ${FIREBASE_PROJECT_ID:}
+    use-emulator: ${FIREBASE_AUTH_USE_EMULATOR:false}
+    emulator-host: ${FIREBASE_AUTH_EMULATOR_HOST:}
+    auto-stop-on-shutdown: ${FIREBASE_AUTH_AUTO_STOP_ON_SHUTDOWN:false}
+    emulator-pid-file: ${FIREBASE_AUTH_EMULATOR_PID_FILE:/tmp/firebase-auth-emulator.pid}
 
 security:
   allowed-email-domain: ${ALLOWED_EMAIL_DOMAIN:sungkyul.ac.kr}

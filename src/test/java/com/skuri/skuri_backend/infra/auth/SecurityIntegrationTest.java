@@ -73,6 +73,7 @@ class SecurityIntegrationTest {
                 .thenReturn(new FirebaseTokenClaims(
                         "firebase-uid",
                         "user@gmail.com",
+                        "google.com",
                         "google-provider-id",
                         "홍길동",
                         "https://example.com/profile.jpg"
@@ -93,6 +94,7 @@ class SecurityIntegrationTest {
                 .thenReturn(new FirebaseTokenClaims(
                         "firebase-uid",
                         "user@sungkyul.ac.kr",
+                        "google.com",
                         "google-provider-id",
                         "홍길동",
                         "https://example.com/profile.jpg"

@@ -9,6 +9,13 @@ public class FirebaseCredentialsCondition implements Condition {
 
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+        boolean useEmulator = Boolean.parseBoolean(
+                context.getEnvironment().getProperty("firebase.auth.use-emulator", "false")
+        );
+        if (useEmulator) {
+            return true;
+        }
+
         String credentialsPath = context.getEnvironment().getProperty("firebase.auth.credentials-path");
         String adcPath = context.getEnvironment().getProperty("GOOGLE_APPLICATION_CREDENTIALS");
         return StringUtils.hasText(credentialsPath) || StringUtils.hasText(adcPath);

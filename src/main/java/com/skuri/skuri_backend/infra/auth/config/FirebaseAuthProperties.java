@@ -11,4 +11,8 @@ public class FirebaseAuthProperties {
 
     private String credentialsPath;
     private String projectId;
+    private boolean useEmulator;
+    private String emulatorHost;
+    private boolean autoStopOnShutdown;
+    private String emulatorPidFile;
 }

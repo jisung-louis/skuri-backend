@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-02
+> 최종 수정일: 2026-03-04
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md)
 
 ---
@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 준비 상태 |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영) |
 
 ---
 
@@ -114,7 +114,7 @@ com.skuri.skuri_backend
 | 엔티티 | 테이블 | 설명 |
 |--------|--------|------|
 | `Member` | `members` | 회원 기본 정보 + `BankAccount`(Embedded) + `NotificationSetting`(Embedded) |
-| `LinkedAccount` | `linked_accounts` | 소셜 계정 연결 (Google) |
+| `LinkedAccount` | `linked_accounts` | 로그인 계정 연결 (`GOOGLE`/`PASSWORD`/`UNKNOWN`, 비소셜 provider 부가정보는 null 저장) |
 
 #### 1-2. 인프라 (Auth)
 
@@ -125,6 +125,7 @@ com.skuri.skuri_backend
 | 3 | 인증 필터 | `infra/auth/firebase/FirebaseAuthenticationFilter.java` | `OncePerRequestFilter` — ID Token 추출, 검증, SecurityContext 설정 |
 | 4 | Security 설정 | `infra/auth/config/SecurityConfig.java` | 필터 체인 (`/v1/app-versions/**`, `/v1/app-notices` permitAll, 나머지 인증 필수) |
 | 5 | OpenAPI 설정 | `infra/openapi/OpenApiConfig.java` | 전역 API 메타데이터, Bearer 보안 스키마, GroupedOpenApi 설정 |
+| 6 | Emulator 가드 | `infra/auth/config/FirebaseAuthEnvironmentGuard.java` | `local-emulator` 전용 허용 + emulator host 오염 차단 |
 
 #### 1-3. API
 
@@ -144,6 +145,7 @@ com.skuri.skuri_backend
 - [x] 회원 가입 → 프로필 조회 → 프로필 수정 플로우 동작
 - [x] 인증 없이 보호된 API 호출 시 401 반환
 - [x] OpenAPI JSON(`/v3/api-docs`) + Swagger UI + Scalar 노출
+- [x] `local-emulator` 프로필에서만 Auth Emulator 사용 가능하고, 다른 프로필에서 emulator host 사용 시 기동 차단
 
 ---
 
@@ -166,10 +168,14 @@ com.skuri.skuri_backend
 | 로직 | 설명 |
 |------|------|
 | 파티 상태 머신 | `OPEN → CLOSED → ARRIVED → ENDED` 전이 규칙 |
+| 파티 수정 정책 | `PATCH /v1/parties/{id}`는 `departureTime`, `detail`만 허용 (리더, OPEN/CLOSED) |
+| 정원 자동 마감 | 동승 요청 수락 후 `currentMembers == maxMembers` 시 자동 `CLOSED` 전이 |
 | 동시성 제어 | Optimistic Lock (`@Version`) — 동시 동승 신청 방어 |
-| 정산 | 도착 시 택시비 입력 → 인원수 자동 나눔 → 멤버별 정산 확인 → 전체 완료 시 자동 종료 |
+| Aggregate 저장 정책 | `PartyMember/PartyTag/MemberSettlement`는 `Party` aggregate(cascade/orphanRemoval)로 일괄 저장 |
+| 정산 | 도착 시 택시비 입력 → 인원수 자동 나눔(정수 나눗셈/버림) → 멤버별 정산 확인 → 전체 완료 시 정산 상태 `COMPLETED` (파티 종료는 `/end`에서만) |
 | 자동 종료 | `@Scheduled` 4시간마다 — 12시간 초과 파티 자동 `ENDED` (endReason=TIMEOUT) |
-| 권한 분리 | 파티 리더만: 마감/도착/정산/강퇴/종료, 요청자만: 요청 취소 |
+| 권한 분리 | 파티 리더만: 마감/재개/도착/정산/강퇴/종료/취소, 요청자만: 요청 취소 |
+| SSE 이벤트 정책 | 강퇴(`KICKED`) 이벤트는 강퇴 당사자를 포함한 기존 파티 멤버에게 전송 |
 
 #### 2-3. API
 
@@ -178,28 +184,74 @@ com.skuri.skuri_backend
 | `POST` | `/v1/parties` | 파티 생성 |
 | `GET` | `/v1/parties` | 파티 목록 조회 (status, 출발지/도착지 필터) |
 | `GET` | `/v1/parties/{id}` | 파티 상세 조회 |
-| `POST` | `/v1/parties/{id}/close` | 모집 마감 (리더) |
-| `POST` | `/v1/parties/{id}/reopen` | 모집 재개 (리더) |
-| `POST` | `/v1/parties/{id}/arrive` | 도착 처리 + 정산 시작 (리더) |
-| `POST` | `/v1/parties/{id}/end` | 파티 강제 종료 (리더) |
-| `POST` | `/v1/parties/{id}/cancel` | 파티 취소 (리더, soft delete) |
+| `PATCH` | `/v1/parties/{id}` | 파티 수정 (출발시각/상세, 리더) |
+| `PATCH` | `/v1/parties/{id}/close` | 모집 마감 (리더) |
+| `PATCH` | `/v1/parties/{id}/reopen` | 모집 재개 (리더) |
+| `PATCH` | `/v1/parties/{id}/arrive` | 도착 처리 + 정산 시작 (리더) |
+| `PATCH` | `/v1/parties/{id}/end` | 파티 강제 종료 (리더) |
+| `POST` | `/v1/parties/{id}/cancel` | 파티 취소 (리더) |
 | `DELETE` | `/v1/parties/{id}/members/{memberId}` | 멤버 강퇴 (리더) |
 | `DELETE` | `/v1/parties/{id}/members/me` | 파티 탈퇴 (본인) |
 | `POST` | `/v1/parties/{partyId}/join-requests` | 동승 요청 |
-| `POST` | `/v1/join-requests/{id}/accept` | 요청 수락 (리더) |
-| `POST` | `/v1/join-requests/{id}/decline` | 요청 거절 (리더) |
-| `POST` | `/v1/join-requests/{id}/cancel` | 요청 취소 (요청자) |
+| `PATCH` | `/v1/join-requests/{id}/accept` | 요청 수락 (리더) |
+| `PATCH` | `/v1/join-requests/{id}/decline` | 요청 거절 (리더) |
+| `PATCH` | `/v1/join-requests/{id}/cancel` | 요청 취소 (요청자) |
 | `GET` | `/v1/parties/{partyId}/join-requests` | 파티 요청 목록 (리더) |
 | `GET` | `/v1/members/me/join-requests` | 내 요청 목록 |
 | `PATCH` | `/v1/parties/{id}/settlement/members/{memberId}/confirm` | 개별 정산 확인 (리더) |
 | `GET` | `/v1/members/me/parties` | 내 파티 목록 |
+| `GET` | `/v1/sse/parties` | 파티 목록/상태 실시간 구독 (SSE) |
+| `GET` | `/v1/sse/parties/{partyId}/join-requests` | 특정 파티 동승 요청 실시간 구독 (SSE, 리더 전용) |
+| `GET` | `/v1/sse/members/me/join-requests` | 내 동승 요청 상태 실시간 구독 (SSE) |
 
 #### 2-4. 완료 기준
 
-- [ ] 파티 생성 → 동승 요청 → 수락 → 마감 → 도착 → 정산 → 종료 전체 플로우 동작
-- [ ] 상태 머신 규칙 위반 시 적절한 에러 반환
-- [ ] Optimistic Lock으로 동시 요청 방어
-- [ ] 파티 자동 종료 스케줄러 동작
+- [x] 파티 생성 → 동승 요청 → 수락 → 마감 → 도착 → 정산 → 종료 전체 플로우 동작
+- [x] 상태 머신 규칙 위반 시 적절한 에러 반환
+- [x] Optimistic Lock으로 동시 요청 방어
+- [x] 파티 자동 종료 스케줄러 동작
+- [x] `/v1/sse/parties` 연결 + heartbeat + SNAPSHOT/변경 이벤트 전송 동작
+- [x] 동승 요청 SSE 2종(`/v1/sse/parties/{partyId}/join-requests`, `/v1/sse/members/me/join-requests`) 연결 + snapshot/변경 이벤트 전송 동작
+
+#### 2-5. 운영 모니터링 기준 (확정)
+
+| 항목 | 수집 지표 | Warning | Critical |
+|------|-----------|---------|----------|
+| API 동시성 충돌 | `PARTY_CONCURRENT_MODIFICATION` 응답 건수(10분) + TaxiParty 변경 API 대비 비율 | 10분 5건 초과 또는 2% 초과 | 10분 20건 초과 또는 10% 초과 |
+| 스케줄러 충돌률 | `conflicted/target` (배치 1회 기준) | `target >= 10` 이고 20% 이상 | 40% 이상 |
+| 스케줄러 처리 실패 | `target > 0`인데 `ended = 0` 연속 횟수 | 2회 연속 | 3회 연속 |
+| 스케줄러 미실행 | 최근 배치 실행 로그 기준 | - | 5시간 이상 실행 로그 없음 |
+| SSE SNAPSHOT 지연 | `/v1/sse/parties`, `/v1/sse/parties/{partyId}/join-requests`, `/v1/sse/members/me/join-requests` SNAPSHOT 생성 시간(p95) | 500ms 초과 | 1s 초과 |
+| SSE 활성 연결 수 | 인스턴스별 party/join-request SSE 동시 연결 수 합계 | 500 초과 | 1,000 초과 |
+| JoinRequest SSE 전송 실패율 | 5분 윈도우 `failed/total` (eventType별 집계 로그) | 5% 초과 | 10% 초과 |
+
+운영 목표(SLO):
+- TaxiParty 변경 API 대비 동시성 충돌 비율 월 평균 1% 미만 유지
+- timeout 배치 처리 성공률(`ended/target`) 월 평균 95% 이상 유지
+
+운영/감사 로그 정책:
+- Phase 2에서는 파티 수정 감사 로그를 별도 저장하지 않음
+- 사용자 활동 로그 도메인 도입 시 수정 이력 로깅을 확장 예정
+
+SSE 운영 제약:
+- 현재 구현은 인스턴스 메모리(`ConcurrentHashMap`) 기반 구독 관리(단일 인스턴스 전제)
+- 수평 확장 시 Redis Pub/Sub 또는 메시지 브로커 기반 fan-out 구조로 전환 필요
+
+#### 2-6. 테스트 구현 기준 (고정 규칙)
+
+- API 추가/수정 시 Contract 테스트를 엔드포인트 단위로 추가한다.
+  - 최소: 정상 1, 인증/권한 1, 검증/비즈니스 예외 1
+- 상태 전이/권한/정산/동시성 로직 변경 시 Service 테스트를 추가한다.
+  - 최소: 성공 1, 실패 1
+- 응답 스키마 변경 시 필드 존재/미노출 조건을 Contract 테스트로 검증한다.
+- 머지 전 검증 명령은 `SPRING_PROFILES_ACTIVE=local ./gradlew build`를 기준으로 한다.
+
+#### 2-7. 후속 확장 구현 완료 내역 (동승 요청 SSE)
+
+- [x] `/v1/sse/parties/{partyId}/join-requests` 구현 (리더 화면: 요청 목록 실시간 갱신)
+- [x] `/v1/sse/members/me/join-requests` 구현 (요청자 화면: 수락/거절/취소 상태 실시간 갱신)
+- [x] 이벤트 계약 확정: `JOIN_REQUEST_CREATED`, `JOIN_REQUEST_UPDATED`, `MY_JOIN_REQUEST_CREATED`, `MY_JOIN_REQUEST_UPDATED`, `SNAPSHOT`, `HEARTBEAT`
+- [x] 권한 규칙 확정: 파티별 구독은 리더만 허용(`NOT_PARTY_LEADER`), 내 요청 구독은 본인만 허용
 
 ---
 
@@ -222,6 +274,7 @@ com.skuri.skuri_backend
 | WebSocket 설정 | STOMP + SockJS, Firebase ID Token 인증 |
 | ChatService | 공통 채팅 엔진 (메시지 저장, 전송, 읽음 처리) |
 | PartyMessageService | 파티 채팅 규칙 (계좌 공유, 도착 메시지, 종료 메시지) — Chat 엔진 사용 |
+| 채팅방 목록 요약 스트림 | 목록 화면은 `/user/queue/chat-rooms` 단일 구독으로 카드 요약(이름/인원/마지막 메시지/미읽음) 수신 |
 | 읽음 처리 | `ChatRoomMember.lastReadAt` 기반 미읽음 수 계산 |
 
 #### 3-3. API (REST + WebSocket)
@@ -233,12 +286,15 @@ com.skuri.skuri_backend
 | `GET` | `/v1/chat-rooms/{id}/messages` | 메시지 목록 (커서 기반 페이지네이션) |
 | `PATCH` | `/v1/chat-rooms/{id}/read` | 읽음 처리 (`lastReadAt` 단조 증가) |
 | `PATCH` | `/v1/chat-rooms/{id}/settings` | 채팅방 설정(음소거 등) |
-| WebSocket | `SUBSCRIBE /topic/chat/{chatRoomId}` | 실시간 메시지 수신 |
-| WebSocket | `SEND /app/chat/{chatRoomId}` | 메시지 전송 |
+| WebSocket | `SUBSCRIBE /user/queue/chat-rooms` | 내 채팅방 목록 요약 실시간 수신 |
+| WebSocket | `SUBSCRIBE /topic/chat-rooms/{chatRoomId}` | 채팅방 상세 메시지 실시간 수신 |
+| WebSocket | `SEND /app/chat-rooms/{chatRoomId}/messages` | 채팅방 메시지 전송 |
 
 #### 3-4. 완료 기준
 
 - [ ] WebSocket 연결 및 실시간 메시지 송수신 동작
+- [ ] 채팅방 목록 화면이 `/user/queue/chat-rooms` 단일 구독으로 카드 요약을 실시간 반영
+- [ ] 채팅방 상세 화면 진입 시 해당 room topic만 구독하고, 이탈 시 구독 해제
 - [ ] 파티 채팅방 자동 생성 (파티 생성 시) 동작
 - [ ] 읽음/미읽음 처리 동작
 - [ ] 파티 채팅 특수 메시지 (계좌, 도착, 종료) 동작
@@ -283,6 +339,7 @@ com.skuri.skuri_backend
 | `DELETE` | `/v1/comments/{id}` | 댓글 삭제 |
 | `GET` | `/v1/members/me/posts` | 내 게시글 |
 | `GET` | `/v1/members/me/bookmarks` | 내 북마크 |
+| `GET` | `/v1/sse/posts` | 게시물 목록/조회수 실시간 구독 (SSE) |
 
 #### 4-4. 완료 기준
 
@@ -436,6 +493,7 @@ com.skuri.skuri_backend
 | `GET` | `/v1/notifications/unread-count` | 미읽음 수 |
 | `POST` | `/v1/members/me/fcm-tokens` | FCM 토큰 등록 |
 | `DELETE` | `/v1/members/me/fcm-tokens` | FCM 토큰 해제 |
+| `GET` | `/v1/sse/notifications` | 알림 실시간 구독 (SSE) |
 
 #### 8-4. 완료 기준
 
@@ -443,6 +501,7 @@ com.skuri.skuri_backend
 - [ ] FCM 푸시 발송 동작
 - [ ] 알림 인박스 CRUD 동작
 - [ ] 알림 설정 반영 (mute, 카테고리별 on/off)
+- [ ] `/v1/sse/notifications`로 인앱 실시간 알림/미읽음 수 반영 동작
 
 ---
 

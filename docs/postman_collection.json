@@ -1,0 +1,2320 @@
+{
+  "info": {
+    "_postman_id": "e13e4470-32ef-4f85-9887-e1e5cc6a0a02",
+    "name": "SKURI Backend API",
+    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00. Public & Common",
+      "description": "## 목적\n- 공개 API와 공통 계약을 빠르게 점검합니다.\n\n## 실행 전\n- `baseUrl` 설정\n- 인증 불필요\n\n## 통과 기준\n- 공개 API 응답 200\n- `NOT_FOUND` 응답이 공통 에러 포맷을 유지\n- OpenAPI/Swagger/Scalar 엔드포인트 접근 가능",
+      "item": [
+        {
+          "name": "앱 버전 조회",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/v1/app-versions/ios",
+            "description": "## 기능\n- 앱 버전 조회\n\n## 테스트 모드\n- Smoke\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (공개 API)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/app-versions/ios`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/app/controller/AppVersionController.java (getAppVersion)\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (requestMatchers permitAll)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('success true', function () { pm.expect(j.success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "앱 공지 목록 조회",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/v1/app-notices",
+            "description": "## 기능\n- 앱 공지 목록 조회\n\n## 테스트 모드\n- Smoke\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (공개 API)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/app-notices`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/app/controller/AppNoticeController.java (getAppNotices)\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (requestMatchers permitAll)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI 스펙 조회",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/v3/api-docs",
+            "description": "## 기능\n- OpenAPI 스펙 조회\n\n## 테스트 모드\n- Smoke\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (공개 API)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v3/api-docs`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 응답 본문에 `openapi` 필드 존재\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- OpenAPI 구성: src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiConfig.java\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (requestMatchers permitAll)"
+          }
+        },
+        {
+          "name": "Swagger UI 조회",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/swagger-ui/index.html",
+            "description": "## 기능\n- Swagger UI 조회\n\n## 테스트 모드\n- Smoke\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (공개 API)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/swagger-ui/index.html`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- OpenAPI 구성: src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiConfig.java\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (requestMatchers permitAll)"
+          }
+        },
+        {
+          "name": "Scalar UI 조회",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/scalar",
+            "description": "## 기능\n- Scalar UI 조회\n\n## 테스트 모드\n- Smoke\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (공개 API)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/scalar`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- OpenAPI 구성: src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiConfig.java\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (requestMatchers permitAll)"
+          }
+        },
+        {
+          "name": "존재하지 않는 API 에러 응답 확인",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{leaderToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/v1/not-found-path",
+            "description": "## 기능\n- 존재하지 않는 API 에러 응답 확인\n\n## 테스트 모드\n- Smoke\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/not-found-path`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `404`\n- Collection 공통 Tests 통과\n- 에러 코드: `NOT_FOUND`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 NOT_FOUND', function () { pm.response.to.have.status(404); });",
+                  "const j = pm.response.json();",
+                  "pm.test('errorCode exists', function () { pm.expect(j.errorCode).to.eql('NOT_FOUND'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Auth Emulator Token Setup",
+          "description": "## 목적\n- 사용자 토큰은 `signInWithIdp(google.com)`으로 발급하고, 관리자 토큰은 `email/password`로 발급합니다.\n\n## 실행 전\n- Spring 서버를 `local-emulator` 프로필로 실행\n- Firebase Auth Emulator 실행 (`127.0.0.1:9099`)\n\n## 실행 순서\n1. 사용자용 `에뮬레이터 Google 로그인(...)` 요청 4개 실행\n2. 관리자용 `에뮬레이터 관리자 계정 생성(email/password)` 실행\n3. 관리자용 `에뮬레이터 관리자 로그인(토큰 저장)` 실행\n\n## 통과 기준\n- 사용자 토큰 4개(`leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`) 저장\n- 관리자 토큰(`adminToken`) 저장",
+          "item": [
+            {
+              "name": "에뮬레이터 Google 로그인(리더 토큰 저장)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=local-emulator",
+                "description": "## 기능\n- Firebase Auth Emulator `signInWithIdp`를 통해 리더 테스트 토큰을 발급/저장합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- Firebase Auth Emulator가 실행 중이어야 합니다. (`127.0.0.1:9099`)\n- `{{leaderEmail}}` 값이 설정되어 있어야 합니다.\n\n## 요청\n- Method: `POST`\n- URL: `{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=local-emulator`\n- Body: `{{idpPostBodyLeader}}` (Pre-request Script 생성)\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 응답 `idToken`이 존재하고 `leaderToken` 변수에 저장됨\n\n## 출력 변수\n- `leaderToken`\n\n## 실패 시 확인\n- Emulator 미기동/주소 오류 여부\n- `id_token` payload JSON 인코딩 처리 여부\n\n## 관련 백엔드 코드\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 토큰 검증: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAdminTokenVerifier.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"requestUri\": \"http://localhost\",\n  \"postBody\": \"{{idpPostBodyLeader}}\",\n  \"returnSecureToken\": true,\n  \"returnIdpCredential\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const email = pm.collectionVariables.get('leaderEmail');",
+                      "pm.test('필수 변수(leaderEmail) 존재', function () {",
+                      "  pm.expect(email).to.be.a('string').and.not.empty;",
+                      "});",
+                      "const fakeGoogleIdToken = JSON.stringify({",
+                      "  sub: 'google-leader-uid',",
+                      "  email,",
+                      "  email_verified: true,",
+                      "  name: 'Leader User'",
+                      "});",
+                      "const encodedToken = encodeURIComponent(fakeGoogleIdToken);",
+                      "pm.collectionVariables.set('idpPostBodyLeader', 'providerId=google.com&id_token=' + encodedToken);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('idToken 존재', function () {",
+                      "  pm.expect(body).to.have.property('idToken');",
+                      "  pm.expect(body.idToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "pm.collectionVariables.set('leaderToken', body.idToken);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "에뮬레이터 Google 로그인(멤버1 토큰 저장)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=local-emulator",
+                "description": "## 기능\n- Firebase Auth Emulator `signInWithIdp`로 member1 테스트 토큰을 발급/저장합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- Firebase Auth Emulator 실행 중\n- `{{member1Email}}` 값 설정\n\n## 요청\n- Method: `POST`\n- URL: `{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=local-emulator`\n- Body: `{{idpPostBodyMember1}}`\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- `member1Token` 변수 저장\n\n## 출력 변수\n- `member1Token`\n\n## 실패 시 확인\n- Emulator 주소/포트\n- Pre-request Script가 `idpPostBodyMember1`을 생성했는지 확인\n\n## 관련 백엔드 코드\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 토큰 검증: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAdminTokenVerifier.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"requestUri\": \"http://localhost\",\n  \"postBody\": \"{{idpPostBodyMember1}}\",\n  \"returnSecureToken\": true,\n  \"returnIdpCredential\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const email = pm.collectionVariables.get('member1Email');",
+                      "pm.test('필수 변수(member1Email) 존재', function () {",
+                      "  pm.expect(email).to.be.a('string').and.not.empty;",
+                      "});",
+                      "const fakeGoogleIdToken = JSON.stringify({",
+                      "  sub: 'google-member1-uid',",
+                      "  email,",
+                      "  email_verified: true,",
+                      "  name: 'Member One'",
+                      "});",
+                      "const encodedToken = encodeURIComponent(fakeGoogleIdToken);",
+                      "pm.collectionVariables.set('idpPostBodyMember1', 'providerId=google.com&id_token=' + encodedToken);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('idToken 존재', function () {",
+                      "  pm.expect(body).to.have.property('idToken');",
+                      "  pm.expect(body.idToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "pm.collectionVariables.set('member1Token', body.idToken);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "에뮬레이터 Google 로그인(멤버2 토큰 저장)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=local-emulator",
+                "description": "## 기능\n- Firebase Auth Emulator `signInWithIdp`로 member2 테스트 토큰을 발급/저장합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- Firebase Auth Emulator 실행 중\n- `{{member2Email}}` 값 설정\n\n## 요청\n- Method: `POST`\n- URL: `{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=local-emulator`\n- Body: `{{idpPostBodyMember2}}`\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- `member2Token` 변수 저장\n\n## 출력 변수\n- `member2Token`\n\n## 실패 시 확인\n- Emulator 주소/포트\n- Pre-request Script가 `idpPostBodyMember2`를 생성했는지 확인\n\n## 관련 백엔드 코드\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 토큰 검증: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAdminTokenVerifier.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"requestUri\": \"http://localhost\",\n  \"postBody\": \"{{idpPostBodyMember2}}\",\n  \"returnSecureToken\": true,\n  \"returnIdpCredential\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const email = pm.collectionVariables.get('member2Email');",
+                      "pm.test('필수 변수(member2Email) 존재', function () {",
+                      "  pm.expect(email).to.be.a('string').and.not.empty;",
+                      "});",
+                      "const fakeGoogleIdToken = JSON.stringify({",
+                      "  sub: 'google-member2-uid',",
+                      "  email,",
+                      "  email_verified: true,",
+                      "  name: 'Member Two'",
+                      "});",
+                      "const encodedToken = encodeURIComponent(fakeGoogleIdToken);",
+                      "pm.collectionVariables.set('idpPostBodyMember2', 'providerId=google.com&id_token=' + encodedToken);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('idToken 존재', function () {",
+                      "  pm.expect(body).to.have.property('idToken');",
+                      "  pm.expect(body.idToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "pm.collectionVariables.set('member2Token', body.idToken);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "에뮬레이터 Google 로그인(도메인불일치 토큰 저장)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=local-emulator",
+                "description": "## 기능\n- 도메인 불일치(`@sungkyul.ac.kr` 아님) 토큰을 발급하여 403 케이스를 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- Firebase Auth Emulator 실행 중\n- `{{invalidDomainEmail}}` 값 설정\n\n## 요청\n- Method: `POST`\n- URL: `{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=local-emulator`\n- Body: `{{idpPostBodyOutsider}}`\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- `invalidDomainToken` 변수 저장\n\n## 출력 변수\n- `invalidDomainToken`\n\n## 실패 시 확인\n- 이후 보호 API 호출에서 `EMAIL_DOMAIN_RESTRICTED`(403) 발생 여부 확인\n\n## 관련 백엔드 코드\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 도메인 검증/토큰 처리: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAdminTokenVerifier.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java (EMAIL_DOMAIN_RESTRICTED)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"requestUri\": \"http://localhost\",\n  \"postBody\": \"{{idpPostBodyOutsider}}\",\n  \"returnSecureToken\": true,\n  \"returnIdpCredential\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const email = pm.collectionVariables.get('invalidDomainEmail');",
+                      "pm.test('필수 변수(invalidDomainEmail) 존재', function () {",
+                      "  pm.expect(email).to.be.a('string').and.not.empty;",
+                      "});",
+                      "const fakeGoogleIdToken = JSON.stringify({",
+                      "  sub: 'google-outsider-uid',",
+                      "  email,",
+                      "  email_verified: true,",
+                      "  name: 'Outsider'",
+                      "});",
+                      "const encodedToken = encodeURIComponent(fakeGoogleIdToken);",
+                      "pm.collectionVariables.set('idpPostBodyOutsider', 'providerId=google.com&id_token=' + encodedToken);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('idToken 존재', function () {",
+                      "  pm.expect(body).to.have.property('idToken');",
+                      "  pm.expect(body.idToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "pm.collectionVariables.set('invalidDomainToken', body.idToken);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "에뮬레이터 관리자 계정 생성(email/password)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=local-emulator",
+                "description": "## 기능\n- Firebase Auth Emulator에 관리자(email/password) 계정을 생성합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- Firebase Auth Emulator 실행 중\n- `{{adminEmail}}`, `{{adminPassword}}` 값 설정\n\n## 요청\n- Method: `POST`\n- URL: `{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=local-emulator`\n- Body: email/password JSON\n\n## 기대 결과\n- HTTP 상태코드: `200`(신규) 또는 `400`(이미 존재)\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- `EMAIL_EXISTS`는 재실행 시 허용 가능한 응답입니다.\n- Emulator 미기동 여부 확인\n\n## 관련 백엔드 코드\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 토큰 검증: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAdminTokenVerifier.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"returnSecureToken\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const code = pm.response.code;",
+                      "pm.test('200 또는 400 허용', function () { pm.expect([200, 400]).to.include(code); });",
+                      "const body = pm.response.json();",
+                      "if (code === 400) {",
+                      "  pm.test('EMAIL_EXISTS 허용', function () {",
+                      "    pm.expect(body).to.have.nested.property('error.message');",
+                      "    pm.expect(body.error.message).to.eql('EMAIL_EXISTS');",
+                      "  });",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "에뮬레이터 관리자 로그인(토큰 저장)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=local-emulator",
+                "description": "## 기능\n- Firebase Auth Emulator 관리자 계정으로 로그인하여 `adminToken`을 저장합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `에뮬레이터 관리자 계정 생성(email/password)` 요청 완료\n\n## 요청\n- Method: `POST`\n- URL: `{{firebaseAuthEmulatorBaseUrl}}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=local-emulator`\n- Body: email/password JSON\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 응답 `idToken`이 `adminToken`으로 저장\n\n## 출력 변수\n- `adminToken`\n\n## 실패 시 확인\n- 계정 미생성 시 `EMAIL_NOT_FOUND`/`INVALID_PASSWORD` 여부 확인\n\n## 관련 백엔드 코드\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 토큰 검증: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAdminTokenVerifier.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"returnSecureToken\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('idToken 존재', function () {",
+                      "  pm.expect(body).to.have.property('idToken');",
+                      "  pm.expect(body.idToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "pm.collectionVariables.set('adminToken', body.idToken);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01. Member",
+      "description": "## 목적\n- Member 도메인 테스트를 Core/Contract Guard로 분리 관리합니다.\n\n## 실행 전\n- `leaderToken`, `member1Token`, `member2Token` 준비\n\n## 하위 폴더\n- `00. Core`: 정상 성공 시나리오\n- `20. Contract Guard`: 인증/유효성/정책 위반 시나리오",
+      "item": [
+        {
+          "name": "00. Core",
+          "description": "## 목적\n- 회원 생성/조회/수정/설정 변경 정상 플로우를 검증합니다.\n\n## 통과 기준\n- member 식별자(`leaderId/member1Id/member2Id`) 확보\n- 프로필/계좌/알림 설정 업데이트 반영",
+          "item": [
+            {
+              "name": "회원 생성(리더)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/members",
+                "description": "## 기능\n- 회원 생성(리더)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/members`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200 또는 201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `leaderId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (createMember)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (createMember)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 or 201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('leaderId', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "회원 생성(member1)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/members",
+                "description": "## 기능\n- 회원 생성(member1)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/members`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200 또는 201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `member1Id` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (createMember)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (createMember)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 or 201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('member1Id', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "회원 생성(member2)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/members",
+                "description": "## 기능\n- 회원 생성(member2)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/members`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200 또는 201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `member2Id` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (createMember)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (createMember)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 or 201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('member2Id', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 프로필 조회(리더)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/members/me",
+                "description": "## 기능\n- 내 프로필 조회(리더)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/members/me`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (getMyProfile)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (getMyProfile)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "내 프로필 수정",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nickname\": \"새닉네임\",\n  \"studentId\": \"2023112233\",\n  \"department\": \"컴퓨터공학과\",\n  \"photoUrl\": \"https://cdn.skuri.app/profiles/user-1.png\"\n}"
+                },
+                "url": "{{baseUrl}}/v1/members/me",
+                "description": "## 기능\n- 내 프로필 수정\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/members/me`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (updateMyProfile)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (updateMyProfile)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "내 계좌 정보 수정",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bankName\": \"카카오뱅크\",\n  \"accountNumber\": \"3333-01-1234567\",\n  \"accountHolder\": \"홍길동\",\n  \"hideName\": false\n}"
+                },
+                "url": "{{baseUrl}}/v1/members/me/bank-account",
+                "description": "## 기능\n- 내 계좌 정보 수정\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PUT`\n- URL: `{{baseUrl}}/v1/members/me/bank-account`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (updateMyBankAccount)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (updateMyBankAccount)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "내 알림 설정 수정",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"partyNotifications\": true,\n  \"noticeNotifications\": false,\n  \"noticeNotificationsDetail\": {\n    \"news\": true,\n    \"academy\": false\n  }\n}"
+                },
+                "url": "{{baseUrl}}/v1/members/me/notification-settings",
+                "description": "## 기능\n- 내 알림 설정 수정\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/members/me/notification-settings`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (updateMyNotificationSettings)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (updateMyNotificationSettings)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "특정 회원 공개 프로필 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/members/{{member1Id}}",
+                "description": "## 기능\n- 특정 회원 공개 프로필 조회\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{member1Id}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/members/{{member1Id}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (getMember)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (getMemberById)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            }
+          ]
+        },
+        {
+          "name": "20. Contract Guard",
+          "description": "## 목적\n- Member API 계약 위반 케이스를 검증합니다.\n\n## 통과 기준\n- 기대 HTTP 코드와 `errorCode`가 정확히 일치",
+          "item": [
+            {
+              "name": "인증 없이 내 프로필 조회(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/members/me",
+                "description": "## 기능\n- 인증 없이 내 프로필 조회(401 확인)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (공개 API)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/members/me`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: `UNAUTHORIZED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (getMyProfile)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (getMyProfile)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('401', function () { pm.response.to.have.status(401); });",
+                      "const j = pm.response.json();",
+                      "pm.test('UNAUTHORIZED', function () { pm.expect(j.errorCode).to.eql('UNAUTHORIZED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "이메일 도메인 제한 확인(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{invalidDomainToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/members/me",
+                "description": "## 기능\n- 이메일 도메인 제한 확인(403)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{invalidDomainToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/members/me`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `EMAIL_DOMAIN_RESTRICTED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (getMyProfile)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (getMyProfile)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "내 프로필 수정 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nickname\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n}"
+                },
+                "url": "{{baseUrl}}/v1/members/me",
+                "description": "## 기능\n- 내 프로필 수정 검증 실패 확인(422)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/members/me`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (updateMyProfile)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (updateMyProfile)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "계좌 수정 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bankName\": \" \",\n  \"accountNumber\": \"3333-01-1234567\",\n  \"accountHolder\": \"홍길동\",\n  \"hideName\": false\n}"
+                },
+                "url": "{{baseUrl}}/v1/members/me/bank-account",
+                "description": "## 기능\n- 계좌 수정 검증 실패 확인(422)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PUT`\n- URL: `{{baseUrl}}/v1/members/me/bank-account`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberController.java (updateMyBankAccount)\n- Service: src/main/java/com/skuri/skuri_backend/domain/member/service/MemberService.java (updateMyBankAccount)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02. TaxiParty",
+      "description": "## 목적\n- TaxiParty 도메인을 Core/Scenario/Guard/Realtime로 분리해 검증합니다.\n\n## 실행 전\n- Member Core 실행 후 사용자 변수 확보\n- 토큰 변수(`leaderToken/member1Token/member2Token`) 준비\n\n## 하위 폴더\n- `00. Core`\n- `10. Scenario Regression`\n- `20. Contract Guard`\n- `30. Realtime`",
+      "item": [
+        {
+          "name": "00. Core",
+          "description": "## 목적\n- 대표 성공 플로우(생성 -> 요청 -> 수락 -> 도착 -> 정산)를 검증합니다.\n\n## 상태 전이 체크\n- `OPEN` -> `CLOSED`/`ARRIVED` -> `ENDED`\n\n## 통과 기준\n- `partyId`, `joinRequestId` 등 핵심 변수 저장 성공\n- 정산 확인 후 응답 규약 유지",
+          "item": [
+            {
+              "name": "파티 생성(메인 시나리오)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"departure\": {\n    \"name\": \"성결대학교\",\n    \"lat\": 37.382742,\n    \"lng\": 126.928031\n  },\n  \"destination\": {\n    \"name\": \"안양역\",\n    \"lat\": 37.401234,\n    \"lng\": 126.922345\n  },\n  \"departureTime\": \"2099-12-31T14:00:00\",\n  \"maxMembers\": 4,\n  \"tags\": [\"빠른출발\", \"조용한분\"],\n  \"detail\": \"정문 앞에서 출발\"\n}"
+                },
+                "url": "{{baseUrl}}/v1/parties",
+                "description": "## 기능\n- 파티 생성(메인 시나리오)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `partyId` 저장\n- `openPartyId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) {",
+                      "  pm.collectionVariables.set('partyId', j.data.id);",
+                      "  pm.collectionVariables.set('openPartyId', j.data.id);",
+                      "}",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "파티 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/parties?status=OPEN&page=0&size=20",
+                "description": "## 기능\n- 파티 목록 조회\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/parties?status=OPEN&page=0&size=20`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (getParties)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (getParties)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/taxiparty/repository/PartyRepository.java (search)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "파티 상세 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/parties/{{partyId}}",
+                "description": "## 기능\n- 파티 상세 조회\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{partyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/parties/{{partyId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (getParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (getPartyDetail)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "파티 수정",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"departureTime\": \"2099-12-31T14:30:00\",\n  \"detail\": \"10분 후 출발합니다.\"\n}"
+                },
+                "url": "{{baseUrl}}/v1/parties/{{partyId}}",
+                "description": "## 기능\n- 파티 수정\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{partyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{partyId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (updateParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (updateParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (updateDepartureTime/updateDetail)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "모집 마감",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/parties/{{partyId}}/close",
+                "description": "## 기능\n- 모집 마감\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{partyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{partyId}}/close`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (closeParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (closeParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (close)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "모집 재개",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/parties/{{partyId}}/reopen",
+                "description": "## 기능\n- 모집 재개\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{partyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{partyId}}/reopen`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (reopenParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (reopenParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (reopen)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "동승 요청 생성(member1)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/parties/{{partyId}}/join-requests",
+                "description": "## 기능\n- 동승 요청 생성(member1)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{partyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties/{{partyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `joinRequestId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createJoinRequest)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('joinRequestId', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "파티 동승 요청 목록 조회(리더)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/parties/{{partyId}}/join-requests",
+                "description": "## 기능\n- 파티 동승 요청 목록 조회(리더)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{partyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/parties/{{partyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (getPartyJoinRequests)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (getPartyJoinRequests)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "동승 요청 수락",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/join-requests/{{joinRequestId}}/accept",
+                "description": "## 기능\n- 동승 요청 수락\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{joinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{joinRequestId}}/accept`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (accept)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (acceptJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (accept)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "내 동승 요청 목록 조회(member1)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/members/me/join-requests",
+                "description": "## 기능\n- 내 동승 요청 목록 조회(member1)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/members/me/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (getMyJoinRequests)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (getMyJoinRequests)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "도착 처리",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"taxiFare\": 14000\n}"
+                },
+                "url": "{{baseUrl}}/v1/parties/{{partyId}}/arrive",
+                "description": "## 기능\n- 도착 처리\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{partyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{partyId}}/arrive`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (arriveParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (arriveParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (arrive)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "멤버 정산 확인",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/parties/{{partyId}}/settlement/members/{{member1Id}}/confirm",
+                "description": "## 기능\n- 멤버 정산 확인\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{partyId}}` 값이 준비되어 있어야 합니다.\n- 변수 `{{member1Id}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{partyId}}/settlement/members/{{member1Id}}/confirm`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (confirmSettlement)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (confirmSettlement)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (confirmSettlement)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+              }
+            },
+            {
+              "name": "내 파티 목록 조회(member1)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/members/me/parties",
+                "description": "## 기능\n- 내 파티 목록 조회(member1)\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/members/me/parties`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (getMyParties)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (getMyParties)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Scenario Regression",
+          "description": "## 목적\n- 핵심 외 분기 시나리오 회귀를 검증합니다.\n\n## 실행 방식\n- 하위 폴더를 위에서 아래 순서로 실행\n- 각 시나리오는 독립 파티를 생성해 상호 영향 최소화",
+          "item": [
+            {
+              "name": "01. TaxiParty 강제 종료 시나리오",
+              "description": "## Given / When / Then\n- Given: 파티 생성 및 멤버 수락\n- When: 도착 처리 후 강제 종료\n- Then: `status=ENDED`, `endReason=FORCE_ENDED`",
+              "item": [
+                {
+                  "name": "파티 생성(강제 종료 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"departure\": {\n    \"name\": \"성결대학교\",\n    \"lat\": 37.382742,\n    \"lng\": 126.928031\n  },\n  \"destination\": {\n    \"name\": \"범계역\",\n    \"lat\": 37.389111,\n    \"lng\": 126.950001\n  },\n  \"departureTime\": \"2099-12-31T15:00:00\",\n  \"maxMembers\": 4,\n  \"detail\": \"강제종료 시나리오\"\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties",
+                    "description": "## 기능\n- 파티 생성(강제 종료 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `endPartyId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('endPartyId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 생성(member2, 강제 종료 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/parties/{{endPartyId}}/join-requests",
+                    "description": "## 기능\n- 동승 요청 생성(member2, 강제 종료 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{endPartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties/{{endPartyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `endJoinRequestId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createJoinRequest)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('endJoinRequestId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 수락(강제 종료 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/join-requests/{{endJoinRequestId}}/accept",
+                    "description": "## 기능\n- 동승 요청 수락(강제 종료 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{endJoinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{endJoinRequestId}}/accept`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (accept)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (acceptJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (accept)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "도착 처리(강제 종료 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"taxiFare\": 12000\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties/{{endPartyId}}/arrive",
+                    "description": "## 기능\n- 도착 처리(강제 종료 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{endPartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{endPartyId}}/arrive`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (arriveParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (arriveParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (arrive)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "파티 강제 종료",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/parties/{{endPartyId}}/end",
+                    "description": "## 기능\n- 파티 강제 종료\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{endPartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{endPartyId}}/end`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (endParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (endParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (forceEnd)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "02. TaxiParty 취소 시나리오",
+              "description": "## Given / When / Then\n- Given: OPEN/CLOSED 상태 파티\n- When: 취소 API 호출\n- Then: `status=ENDED`, `endReason=CANCELLED`",
+              "item": [
+                {
+                  "name": "파티 생성(취소 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"departure\": {\n    \"name\": \"성결대학교\",\n    \"lat\": 37.382742,\n    \"lng\": 126.928031\n  },\n  \"destination\": {\n    \"name\": \"평촌역\",\n    \"lat\": 37.394111,\n    \"lng\": 126.963001\n  },\n  \"departureTime\": \"2099-12-31T16:00:00\",\n  \"maxMembers\": 4,\n  \"detail\": \"취소 시나리오\"\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties",
+                    "description": "## 기능\n- 파티 생성(취소 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `cancelPartyId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('cancelPartyId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "파티 취소",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/parties/{{cancelPartyId}}/cancel",
+                    "description": "## 기능\n- 파티 취소\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{cancelPartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties/{{cancelPartyId}}/cancel`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (cancelParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (cancelParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (cancel)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "03. TaxiParty 강퇴 시나리오",
+              "description": "## Given / When / Then\n- Given: 리더 + 멤버가 있는 파티\n- When: 리더가 멤버 강퇴\n- Then: 강퇴 성공, 멤버 목록에서 제외",
+              "item": [
+                {
+                  "name": "파티 생성(강퇴 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"departure\": {\n    \"name\": \"성결대학교\",\n    \"lat\": 37.382742,\n    \"lng\": 126.928031\n  },\n  \"destination\": {\n    \"name\": \"인덕원역\",\n    \"lat\": 37.401301,\n    \"lng\": 126.976302\n  },\n  \"departureTime\": \"2099-12-31T17:00:00\",\n  \"maxMembers\": 4,\n  \"detail\": \"강퇴 시나리오\"\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties",
+                    "description": "## 기능\n- 파티 생성(강퇴 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `kickPartyId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('kickPartyId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 생성(member2, 강퇴 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/parties/{{kickPartyId}}/join-requests",
+                    "description": "## 기능\n- 동승 요청 생성(member2, 강퇴 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{kickPartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties/{{kickPartyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `kickJoinRequestId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createJoinRequest)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('kickJoinRequestId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 수락(강퇴 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/join-requests/{{kickJoinRequestId}}/accept",
+                    "description": "## 기능\n- 동승 요청 수락(강퇴 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{kickJoinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{kickJoinRequestId}}/accept`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (accept)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (acceptJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (accept)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "멤버 강퇴",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/v1/parties/{{kickPartyId}}/members/{{member2Id}}",
+                    "description": "## 기능\n- 멤버 강퇴\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{kickPartyId}}` 값이 준비되어 있어야 합니다.\n- 변수 `{{member2Id}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/parties/{{kickPartyId}}/members/{{member2Id}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (kickMember)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (kickMember)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (removeMember)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "04. TaxiParty 탈퇴 시나리오",
+              "description": "## Given / When / Then\n- Given: 비리더 멤버가 합류한 파티\n- When: 멤버 본인 탈퇴\n- Then: 탈퇴 성공, 인원수 감소",
+              "item": [
+                {
+                  "name": "파티 생성(탈퇴 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"departure\": {\n    \"name\": \"성결대학교\",\n    \"lat\": 37.382742,\n    \"lng\": 126.928031\n  },\n  \"destination\": {\n    \"name\": \"명학역\",\n    \"lat\": 37.385522,\n    \"lng\": 126.935642\n  },\n  \"departureTime\": \"2099-12-31T18:00:00\",\n  \"maxMembers\": 4,\n  \"detail\": \"탈퇴 시나리오\"\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties",
+                    "description": "## 기능\n- 파티 생성(탈퇴 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `leavePartyId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('leavePartyId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 생성(member1, 탈퇴 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/parties/{{leavePartyId}}/join-requests",
+                    "description": "## 기능\n- 동승 요청 생성(member1, 탈퇴 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{leavePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties/{{leavePartyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `leaveJoinRequestId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createJoinRequest)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('leaveJoinRequestId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 수락(탈퇴 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/join-requests/{{leaveJoinRequestId}}/accept",
+                    "description": "## 기능\n- 동승 요청 수락(탈퇴 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{leaveJoinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{leaveJoinRequestId}}/accept`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (accept)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (acceptJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (accept)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "파티 탈퇴(member1)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/v1/parties/{{leavePartyId}}/members/me",
+                    "description": "## 기능\n- 파티 탈퇴(member1)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{leavePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/parties/{{leavePartyId}}/members/me`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (leaveParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (leaveParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (removeMember)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "05. TaxiParty 동승요청 상태전이 시나리오",
+              "description": "## Given / When / Then\n- Given: PENDING 동승 요청\n- When: 리더 거절 또는 요청자 취소\n- Then: 요청 상태가 `DECLINED`/`CANCELED`로 전이",
+              "item": [
+                {
+                  "name": "파티 생성(요청 상태 전이 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"departure\": {\n    \"name\": \"성결대학교\",\n    \"lat\": 37.382742,\n    \"lng\": 126.928031\n  },\n  \"destination\": {\n    \"name\": \"안양역\",\n    \"lat\": 37.401234,\n    \"lng\": 126.922345\n  },\n  \"departureTime\": \"2099-12-31T19:00:00\",\n  \"maxMembers\": 4,\n  \"detail\": \"요청 상태 전이 시나리오\"\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties",
+                    "description": "## 기능\n- 파티 생성(요청 상태 전이 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `reqStatePartyId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('reqStatePartyId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 생성(member1, 거절 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/parties/{{reqStatePartyId}}/join-requests",
+                    "description": "## 기능\n- 동승 요청 생성(member1, 거절 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{reqStatePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties/{{reqStatePartyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `pendingJoinRequestId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createJoinRequest)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('pendingJoinRequestId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 거절",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/join-requests/{{pendingJoinRequestId}}/decline",
+                    "description": "## 기능\n- 동승 요청 거절\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{pendingJoinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{pendingJoinRequestId}}/decline`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `processedJoinRequestId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (decline)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (declineJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (decline)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('processedJoinRequestId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 생성(member2, 취소 시나리오)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/parties/{{reqStatePartyId}}/join-requests",
+                    "description": "## 기능\n- 동승 요청 생성(member2, 취소 시나리오)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{reqStatePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties/{{reqStatePartyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `myPendingJoinRequestId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createJoinRequest)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('myPendingJoinRequestId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "동승 요청 취소(요청자)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/join-requests/{{myPendingJoinRequestId}}/cancel",
+                    "description": "## 기능\n- 동승 요청 취소(요청자)\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{myPendingJoinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{myPendingJoinRequestId}}/cancel`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (cancel)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (cancelJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (cancel)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "20. Contract Guard",
+          "description": "## 목적\n- 입력 검증/권한/상태머신 위반 케이스를 체계적으로 검증합니다.\n\n## 실행 순서\n1. `00. Setup`\n2. `01. Validation`\n3. `02. Authorization`\n4. `03. State Machine`\n5. `04. Concurrency`\n\n## 통과 기준\n- 각 요청의 기대 status + `errorCode` 일치",
+          "item": [
+            {
+              "name": "00. Setup",
+              "description": "## 목적\n- 네거티브 검증용 기준 파티를 생성합니다.\n\n## 출력 변수\n- `negativeBasePartyId`",
+              "item": [
+                {
+                  "name": "네거티브 기준 파티 생성",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"departure\": {\n    \"name\": \"성결대학교\",\n    \"lat\": 37.382742,\n    \"lng\": 126.928031\n  },\n  \"destination\": {\n    \"name\": \"네거티브테스트목적지\",\n    \"lat\": 37.410001,\n    \"lng\": 126.930001\n  },\n  \"departureTime\": \"2099-12-31T20:00:00\",\n  \"maxMembers\": 4,\n  \"detail\": \"네거티브 기준 파티\"\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties",
+                    "description": "## 기능\n- 네거티브 기준 파티 생성\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/parties`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `negativeBasePartyId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (createParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (create)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"201 Created\", function () { pm.response.to.have.status(201); });",
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set(\"negativeBasePartyId\", j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "01. Validation",
+              "description": "## 목적\n- 허용되지 않은 필드/본문 검증 실패를 확인합니다.\n\n## 기대\n- `422 VALIDATION_ERROR`",
+              "item": [
+                {
+                  "name": "파티 수정 금지 필드 검증(422)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"maxMembers\": 6\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties/{{negativeBasePartyId}}",
+                    "description": "## 기능\n- 파티 수정 금지 필드 검증(422)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{negativeBasePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{negativeBasePartyId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (updateParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (updateParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (updateDepartureTime/updateDetail)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "파티 수정 빈 본문 검증(422)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties/{{negativeBasePartyId}}",
+                    "description": "## 기능\n- 파티 수정 빈 본문 검증(422)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{negativeBasePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{negativeBasePartyId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (updateParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (updateParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (updateDepartureTime/updateDetail)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "내 동승요청 SSE status 파라미터 오류 검증(400)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "text/event-stream"
+                      },
+                      {
+                        "key": "Cache-Control",
+                        "value": "no-cache"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/v1/sse/members/me/join-requests?status=INVALID_VALUE",
+                    "description": "## 기능\n- 내 동승요청 SSE 구독에서 enum 바인딩 오류를 400으로 반환하는지 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- `{{member1Token}}`이 준비되어 있어야 합니다.\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/sse/members/me/join-requests?status=INVALID_VALUE`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `400`\n- Collection 공통 Tests 통과\n- 에러 코드: `INVALID_REQUEST`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 예외 핸들러 누락 시 `500 INTERNAL_ERROR`로 떨어지는지 점검\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartySseController.java (subscribeMyJoinRequests)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java (handleMethodArgumentTypeMismatchException)\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java (INVALID_REQUEST)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "02. Authorization",
+              "description": "## 목적\n- 권한 위반/요청 주체 불일치를 확인합니다.\n\n## 기대\n- `403` + 도메인 권한 `errorCode`",
+              "item": [
+                {
+                  "name": "비리더 파티 수정 권한 검증(403)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"detail\": \"비리더 수정 시도\"\n}"
+                    },
+                    "url": "{{baseUrl}}/v1/parties/{{negativeBasePartyId}}",
+                    "description": "## 기능\n- 비리더 파티 수정 권한 검증(403)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{negativeBasePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{negativeBasePartyId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `NOT_PARTY_LEADER`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (updateParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (updateParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (updateDepartureTime/updateDetail)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "비리더 동승 요청 수락 권한 검증(403)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/join-requests/{{joinRequestId}}/accept",
+                    "description": "## 기능\n- 비리더 동승 요청 수락 권한 검증(403)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{joinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{joinRequestId}}/accept`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `NOT_PARTY_LEADER`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (accept)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (acceptJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (accept)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "타인 동승 요청 취소 권한 검증(403)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/join-requests/{{myPendingJoinRequestId}}/cancel",
+                    "description": "## 기능\n- 타인 동승 요청 취소 권한 검증(403)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{myPendingJoinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{myPendingJoinRequestId}}/cancel`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `FORBIDDEN`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (cancel)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (cancelJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (cancel)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "비리더 파티 동승요청 SSE 구독 권한 검증(403)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "text/event-stream"
+                      },
+                      {
+                        "key": "Cache-Control",
+                        "value": "no-cache"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/v1/sse/parties/{{partyId}}/join-requests",
+                    "description": "## 기능\n- 비리더 사용자의 파티 동승요청 SSE 구독 요청이 차단되는지 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- `{{partyId}}`가 유효한 파티 ID여야 합니다.\n- `{{member1Token}}`은 해당 파티 리더가 아닌 토큰이어야 합니다.\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/sse/parties/{{partyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `NOT_PARTY_LEADER`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- `partyId` 누락/오류 시 `404 PARTY_NOT_FOUND` 가능\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartySseController.java (subscribePartyJoinRequests)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/JoinRequestSseService.java (subscribePartyJoinRequests)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "03. State Machine",
+              "description": "## 목적\n- 허용되지 않는 상태 전이/도메인 가드 위반을 확인합니다.\n\n## 기대\n- `409` 또는 `400` + 정확한 `errorCode`",
+              "item": [
+                {
+                  "name": "OPEN 상태 재개 요청 상태 전이 검증(409)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/parties/{{negativeBasePartyId}}/reopen",
+                    "description": "## 기능\n- OPEN 상태 재개 요청 상태 전이 검증(409)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{negativeBasePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/parties/{{negativeBasePartyId}}/reopen`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `409`\n- Collection 공통 Tests 통과\n- 에러 코드: `INVALID_PARTY_STATE_TRANSITION`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (reopenParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (reopenParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (reopen)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "리더 강퇴 시도 검증(400)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/v1/parties/{{negativeBasePartyId}}/members/{{leaderId}}",
+                    "description": "## 기능\n- 리더 강퇴 시도 검증(400)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{negativeBasePartyId}}` 값이 준비되어 있어야 합니다.\n- 변수 `{{leaderId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/parties/{{negativeBasePartyId}}/members/{{leaderId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `400`\n- Collection 공통 Tests 통과\n- 에러 코드: `CANNOT_KICK_LEADER`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (kickMember)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (kickMember)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (removeMember)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "리더 탈퇴 시도 검증(409)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/v1/parties/{{negativeBasePartyId}}/members/me",
+                    "description": "## 기능\n- 리더 탈퇴 시도 검증(409)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{negativeBasePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/parties/{{negativeBasePartyId}}/members/me`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `409`\n- Collection 공통 Tests 통과\n- 에러 코드: `LEADER_CANNOT_LEAVE`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyController.java (leaveParty)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (leaveParty)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java (removeMember)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                },
+                {
+                  "name": "처리 완료 요청 재처리 검증(409)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/v1/join-requests/{{processedJoinRequestId}}/decline",
+                    "description": "## 기능\n- 처리 완료 요청 재처리 검증(409)\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{processedJoinRequestId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/join-requests/{{processedJoinRequestId}}/decline`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `409`\n- Collection 공통 Tests 통과\n- 에러 코드: `REQUEST_ALREADY_PROCESSED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/JoinRequestController.java (decline)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (declineJoinRequest)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/JoinRequest.java (decline)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 동시성 처리: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (savePartyWithLockHandling)\n- 상태/규칙: src/main/java/com/skuri/skuri_backend/domain/taxiparty/entity/Party.java"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "04. Concurrency",
+              "description": "## 목적\n- 동시 요청 충돌(Optimistic Lock) 확인 가이드입니다.\n\n## 권장 방식\n- Runner 병렬 실행 또는 별도 부하 도구(k6/JMeter)로 재현\n- 기대: `409 PARTY_CONCURRENT_MODIFICATION` 또는 `RESOURCE_CONCURRENT_MODIFICATION`",
+              "item": []
+            }
+          ]
+        },
+        {
+          "name": "30. Realtime",
+          "description": "## 목적\n- Phase 2 Realtime SSE(파티/동승요청) 구독 동작을 검증합니다.\n\n## 체크 포인트\n- `Content-Type: text/event-stream`\n- 연결 직후 `SNAPSHOT` 이벤트 수신\n- 주기적 `HEARTBEAT` 이벤트 수신\n- 동승요청 생성/상태변경 시 생성/업데이트 이벤트 수신",
+          "item": [
+            {
+              "name": "파티 SSE 구독",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "text/event-stream"
+                  },
+                  {
+                    "key": "Cache-Control",
+                    "value": "no-cache"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/sse/parties",
+                "description": "## 기능\n- 파티 SSE 구독\n\n## 테스트 모드\n- Realtime\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/sse/parties`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 응답 헤더: `Content-Type: text/event-stream`\n- `SNAPSHOT`, `HEARTBEAT` 이벤트 수신 확인\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartySseController.java (subscribeParties)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/PartySseService.java (subscribeParties)\n- Scheduler: src/main/java/com/skuri/skuri_backend/domain/taxiparty/scheduler/PartySseHeartbeatScheduler.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "파티 동승요청 SSE 구독(리더)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "text/event-stream"
+                  },
+                  {
+                    "key": "Cache-Control",
+                    "value": "no-cache"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/sse/parties/{{partyId}}/join-requests",
+                "description": "## 기능\n- 파티 리더가 특정 파티의 동승요청 SSE 스트림을 구독합니다.\n\n## 테스트 모드\n- Realtime\n\n## 선행조건\n- `{{partyId}}`가 유효한 파티 ID여야 합니다.\n- 파티 리더 토큰(`{{leaderToken}}`)이 준비되어 있어야 합니다.\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/sse/parties/{{partyId}}/join-requests`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 응답 헤더: `Content-Type: text/event-stream`\n- `SNAPSHOT`, `JOIN_REQUEST_CREATED`, `JOIN_REQUEST_UPDATED`, `HEARTBEAT` 이벤트 수신\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 리더 권한이 아니면 `403 NOT_PARTY_LEADER`\n- 파티가 없으면 `404 PARTY_NOT_FOUND`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartySseController.java (subscribePartyJoinRequests)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/JoinRequestSseService.java (subscribePartyJoinRequests)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyService.java (createJoinRequest/acceptJoinRequest/declineJoinRequest/cancelJoinRequest)\n- Scheduler: src/main/java/com/skuri/skuri_backend/domain/taxiparty/scheduler/PartySseHeartbeatScheduler.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "내 동승요청 SSE 구독(status=PENDING)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "text/event-stream"
+                  },
+                  {
+                    "key": "Cache-Control",
+                    "value": "no-cache"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/sse/members/me/join-requests?status=PENDING",
+                "description": "## 기능\n- 요청자 본인의 동승요청 상태를 SSE로 구독합니다. (`status=PENDING` 필터)\n\n## 테스트 모드\n- Realtime\n\n## 선행조건\n- `{{member1Token}}`이 준비되어 있어야 합니다.\n- 선택적으로 member1의 동승요청 데이터가 존재하면 이벤트 확인이 쉽습니다.\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/sse/members/me/join-requests?status=PENDING`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 응답 헤더: `Content-Type: text/event-stream`\n- `SNAPSHOT`, `MY_JOIN_REQUEST_CREATED`, `MY_JOIN_REQUEST_UPDATED`, `HEARTBEAT` 이벤트 수신\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- `status` 값 오류 시 `400 INVALID_REQUEST`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartySseController.java (subscribeMyJoinRequests)\n- Service: src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/JoinRequestSseService.java (subscribeMyJoinRequests)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/taxiparty/repository/JoinRequestRepository.java (findByRequesterIdAndStatusOrderByCreatedAtDesc)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "leaderToken",
+      "value": ""
+    },
+    {
+      "key": "member1Token",
+      "value": ""
+    },
+    {
+      "key": "member2Token",
+      "value": ""
+    },
+    {
+      "key": "invalidDomainToken",
+      "value": ""
+    },
+    {
+      "key": "leaderId",
+      "value": ""
+    },
+    {
+      "key": "member1Id",
+      "value": ""
+    },
+    {
+      "key": "member2Id",
+      "value": ""
+    },
+    {
+      "key": "partyId",
+      "value": ""
+    },
+    {
+      "key": "openPartyId",
+      "value": ""
+    },
+    {
+      "key": "joinRequestId",
+      "value": ""
+    },
+    {
+      "key": "endPartyId",
+      "value": ""
+    },
+    {
+      "key": "endJoinRequestId",
+      "value": ""
+    },
+    {
+      "key": "cancelPartyId",
+      "value": ""
+    },
+    {
+      "key": "kickPartyId",
+      "value": ""
+    },
+    {
+      "key": "kickJoinRequestId",
+      "value": ""
+    },
+    {
+      "key": "leavePartyId",
+      "value": ""
+    },
+    {
+      "key": "leaveJoinRequestId",
+      "value": ""
+    },
+    {
+      "key": "reqStatePartyId",
+      "value": ""
+    },
+    {
+      "key": "pendingJoinRequestId",
+      "value": ""
+    },
+    {
+      "key": "myPendingJoinRequestId",
+      "value": ""
+    },
+    {
+      "key": "processedJoinRequestId",
+      "value": ""
+    },
+    {
+      "key": "negativeBasePartyId",
+      "value": ""
+    },
+    {
+      "key": "firebaseAuthEmulatorBaseUrl",
+      "value": "http://127.0.0.1:9099"
+    },
+    {
+      "key": "emulatorPassword",
+      "value": "Passw0rd!"
+    },
+    {
+      "key": "leaderEmail",
+      "value": "leader@sungkyul.ac.kr"
+    },
+    {
+      "key": "member1Email",
+      "value": "member1@sungkyul.ac.kr"
+    },
+    {
+      "key": "member2Email",
+      "value": "member2@sungkyul.ac.kr"
+    },
+    {
+      "key": "invalidDomainEmail",
+      "value": "outsider@example.com"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@sungkyul.ac.kr"
+    },
+    {
+      "key": "adminPassword",
+      "value": "AdminPassw0rd!"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const name = pm.info.requestName;",
+          "const code = pm.response.code;",
+          "const contentType = (pm.response.headers.get('Content-Type') || '').toLowerCase();",
+          "const m = name.match(/\\((\\d{3})\\)/);",
+          "let expectedStatuses = [];",
+          "if (m) {",
+          "  expectedStatuses = [Number(m[1])];",
+          "} else if (name.startsWith('회원 생성(')) {",
+          "  expectedStatuses = [200, 201];",
+          "} else if (name.startsWith('파티 생성(') || name.startsWith('동승 요청 생성(')) {",
+          "  expectedStatuses = [201];",
+          "} else if (name.startsWith('에뮬레이터 Google 로그인(')) {",
+          "  expectedStatuses = [200];",
+          "} else if (name === '에뮬레이터 관리자 계정 생성(email/password)') {",
+          "  expectedStatuses = [200, 400];",
+          "} else if (name === '에뮬레이터 관리자 로그인(토큰 저장)') {",
+          "  expectedStatuses = [200];",
+          "} else {",
+          "  expectedStatuses = [200];",
+          "}",
+          "pm.test(`상태코드 검증 (${expectedStatuses.join('/')})`, function () {",
+          "  pm.expect(expectedStatuses).to.include(code);",
+          "});",
+          "",
+          "const expectedErrorCodes = {",
+          "  '존재하지 않는 API 에러 응답 확인': 'NOT_FOUND',",
+          "  '인증 없이 내 프로필 조회(401 확인)': 'UNAUTHORIZED',",
+          "  '이메일 도메인 제한 확인(403)': 'EMAIL_DOMAIN_RESTRICTED',",
+          "  '내 프로필 수정 검증 실패 확인(422)': 'VALIDATION_ERROR',",
+          "  '계좌 수정 검증 실패 확인(422)': 'VALIDATION_ERROR',",
+          "  '파티 수정 금지 필드 검증(422)': 'VALIDATION_ERROR',",
+          "  '파티 수정 빈 본문 검증(422)': 'VALIDATION_ERROR',",
+          "  '비리더 파티 수정 권한 검증(403)': 'NOT_PARTY_LEADER',",
+          "  'OPEN 상태 재개 요청 상태 전이 검증(409)': 'INVALID_PARTY_STATE_TRANSITION',",
+          "  '리더 강퇴 시도 검증(400)': 'CANNOT_KICK_LEADER',",
+          "  '리더 탈퇴 시도 검증(409)': 'LEADER_CANNOT_LEAVE',",
+          "  '비리더 동승 요청 수락 권한 검증(403)': 'NOT_PARTY_LEADER',",
+          "  '타인 동승 요청 취소 권한 검증(403)': 'FORBIDDEN',",
+          "  '처리 완료 요청 재처리 검증(409)': 'REQUEST_ALREADY_PROCESSED',",
+          "  '비리더 파티 동승요청 SSE 구독 권한 검증(403)': 'NOT_PARTY_LEADER',",
+          "  '내 동승요청 SSE status 파라미터 오류 검증(400)': 'INVALID_REQUEST'",
+          "};",
+          "",
+          "const isFirebaseEmulatorAuthRequest = name.startsWith('에뮬레이터 Google 로그인(') || name === '에뮬레이터 관리자 계정 생성(email/password)' || name === '에뮬레이터 관리자 로그인(토큰 저장)';",
+          "",
+          "if (contentType.includes('application/json') && !isFirebaseEmulatorAuthRequest) {",
+          "  const body = pm.response.json();",
+          "  const isError = code >= 400;",
+          "  pm.test('ApiResponse.success 규약 검증', function () {",
+          "    pm.expect(body).to.have.property('success');",
+          "    pm.expect(body.success).to.eql(!isError);",
+          "  });",
+          "",
+          "  const expectedErrorCode = expectedErrorCodes[name];",
+          "  if (expectedErrorCode) {",
+          "    pm.test(`errorCode=${expectedErrorCode} 검증`, function () {",
+          "      pm.expect(body).to.have.property('errorCode');",
+          "      pm.expect(body.errorCode).to.eql(expectedErrorCode);",
+          "    });",
+          "  }",
+          "",
+          "  if (name === 'OpenAPI 스펙 조회') {",
+          "    pm.test('OpenAPI 필드 검증', function () {",
+          "      pm.expect(body).to.have.property('openapi');",
+          "    });",
+          "  }",
+          "} else if (['파티 SSE 구독', '파티 동승요청 SSE 구독(리더)', '내 동승요청 SSE 구독(status=PENDING)'].includes(name)) {",
+          "  pm.test('SSE Content-Type 검증', function () {",
+          "    pm.expect(contentType).to.include('text/event-stream');",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ]
+}
