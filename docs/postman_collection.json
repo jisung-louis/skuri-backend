@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "e13e4470-32ef-4f85-9887-e1e5cc6a0a02",
     "name": "SKURI Backend API",
-    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`",
+    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`, `03. Chat > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n- **Chat Regression**: `03. Chat > 00. Core`, `03. Chat > 10. Scenario Regression`, `03. Chat > 20. Contract Guard`, `03. Chat > 30. Realtime`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`\n7. `03. Chat > 00. Core`\n8. `03. Chat > 10. Scenario Regression`\n9. `03. Chat > 20. Contract Guard`\n10. `03. Chat > 30. Realtime`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -2104,6 +2104,648 @@
           ]
         }
       ]
+    },
+    {
+      "name": "03. Chat",
+      "description": "## 목적\n- Chat 도메인을 Core/Scenario/Guard/Realtime로 분리해 검증합니다.\n\n## 실행 전\n- `leaderToken`, `member1Token` 준비\n- 권장: `02. TaxiParty > 00. Core` 실행 후 `partyId` 확보\n- Contract Guard 403 검증은 `02. TaxiParty > 20. Contract Guard > 00. Setup` 실행 후 `negativeBasePartyId` 필요\n\n## 하위 폴더\n- `00. Core`\n- `10. Scenario Regression`\n- `20. Contract Guard`\n- `30. Realtime`",
+      "item": [
+        {
+          "name": "00. Core",
+          "description": "## 목적\n- 채팅방 목록/상세/메시지/읽음/설정의 정상 호출을 검증합니다.\n\n## 출력 변수\n- `chatRoomId`, `chatCursorCreatedAt`, `chatCursorId`, `chatLastReadAt`",
+          "item": [
+            {
+              "name": "채팅방 목록 조회(기준 roomId 저장)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/chat-rooms",
+                "description": "## 기능\n- 채팅방 목록을 조회하고 후속 요청용 `chatRoomId`를 저장합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- Auth 토큰: `{{leaderToken}}`\n- 권장: `{{partyId}}` 존재 시 `party:{{partyId}}`를 fallback roomId로 사용\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/chat-rooms`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `chatRoomId` 저장 (joined=true 방 우선, 없으면 `party:{{partyId}}` fallback)\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 계정/권한 정책 위반 시 `403` 계열 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (getChatRooms)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (getChatRooms)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/chat/repository/ChatRoomRepository.java (findAll/findByType)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const j = pm.response.json();",
+                      "const partyId = pm.collectionVariables.get(\"partyId\");",
+                      "if (j && Array.isArray(j.data)) {",
+                      "  const joinedRoom = j.data.find(room => room && room.isJoined === true && room.id);",
+                      "  if (joinedRoom && joinedRoom.id) {",
+                      "    pm.collectionVariables.set(\"chatRoomId\", joinedRoom.id);",
+                      "  } else if (partyId) {",
+                      "    pm.collectionVariables.set(\"chatRoomId\", `party:${partyId}`);",
+                      "  }",
+                      "} else if (partyId) {",
+                      "  pm.collectionVariables.set(\"chatRoomId\", `party:${partyId}`);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "채팅방 상세 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}",
+                "description": "## 기능\n- 채팅방 상세 정보를 조회합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{chatRoomId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 비공개 방 비멤버 접근 시 `403 NOT_CHAT_ROOM_MEMBER`\n- 방 ID 오류 시 `404 CHAT_ROOM_NOT_FOUND`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (getChatRoom)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (getChatRoomDetail)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/chat/repository/ChatRoomMemberRepository.java (findById_ChatRoomIdAndId_MemberId)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "채팅 메시지 목록 조회(첫 페이지)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/messages?size=20",
+                "description": "## 기능\n- 채팅 메시지 첫 페이지를 조회하고 다음 페이지 커서를 저장합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{chatRoomId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/messages?size=20`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `chatCursorCreatedAt`, `chatCursorId` 저장(nextCursor가 있을 때)\n\n## 실패 시 확인\n- 비멤버 조회 시 `403 NOT_CHAT_ROOM_MEMBER`\n- 방 ID 오류 시 `404 CHAT_ROOM_NOT_FOUND`\n- size 범위 초과 시 `422 VALIDATION_ERROR`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (getMessages)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (getMessages)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/chat/repository/ChatMessageRepository.java (findByCursor)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const j = pm.response.json();",
+                      "const nextCursor = j && j.data ? j.data.nextCursor : null;",
+                      "if (nextCursor && nextCursor.createdAt && nextCursor.id) {",
+                      "  pm.collectionVariables.set(\"chatCursorCreatedAt\", nextCursor.createdAt);",
+                      "  pm.collectionVariables.set(\"chatCursorId\", nextCursor.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "채팅방 읽음 처리",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lastReadAt\": \"2099-12-31T23:59:59\"\n}"
+                },
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/read",
+                "description": "## 기능\n- 채팅방 마지막 읽은 시각을 갱신합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{chatRoomId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/read`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `chatLastReadAt` 저장\n\n## 실패 시 확인\n- 비멤버 처리 시 `403 NOT_CHAT_ROOM_MEMBER`\n- lastReadAt 누락 시 `422 VALIDATION_ERROR`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (markAsRead)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (markAsRead)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/chat/entity/ChatRoomMember.java (advanceLastReadAt)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.lastReadAt) {",
+                      "  pm.collectionVariables.set(\"chatLastReadAt\", j.data.lastReadAt);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "채팅방 설정 수정(음소거 켜기)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"muted\": true\n}"
+                },
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/settings",
+                "description": "## 기능\n- 채팅방 음소거를 활성화합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- 변수 `{{chatRoomId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/settings`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 비멤버 처리 시 `403 NOT_CHAT_ROOM_MEMBER`\n- muted 누락 시 `422 VALIDATION_ERROR`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (updateSettings)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (updateSettings)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/chat/entity/ChatRoomMember.java (updateMuted)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const j = pm.response.json();",
+                      "pm.test('muted=true 확인', function () { pm.expect(j.data.muted).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "공개 채팅방 생성(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman 운영 공개방\",\n  \"type\": \"CUSTOM\",\n  \"description\": \"Postman Admin Chat API 검증용\",\n  \"isPublic\": true\n}"
+                },
+                "url": "{{baseUrl}}/v1/admin/chat-rooms",
+                "description": "## 기능\n- 관리자 권한으로 공개 채팅방을 생성합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}` (관리자 계정)\n- 요청 본문은 `isPublic=true`여야 합니다.\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/chat-rooms`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `adminChatRoomId` 저장 (생성된 공개 채팅방 ID)\n\n## 실패 시 확인\n- 관리자 토큰이 아니면 `403 ADMIN_REQUIRED`\n- `type=PARTY` 또는 `isPublic=false`면 `400 INVALID_REQUEST`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatAdminRoomController.java (createPublicChatRoom)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatAdminService.java (createPublicChatRoom)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (`@EnableMethodSecurity`)\n- 인증/권한: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java (ROLE_ADMIN 부여)\n- 예외 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java (ADMIN_REQUIRED)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+                      "const j = pm.response.json();",
+                      "pm.test('생성 ID 저장', function () {",
+                      "  pm.expect(j).to.have.property('data');",
+                      "  pm.expect(j.data).to.have.property('id');",
+                      "  pm.expect(j.data.id).to.be.a('string').and.not.empty;",
+                      "});",
+                      "pm.collectionVariables.set('adminChatRoomId', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "공개 채팅방 삭제(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/chat-rooms/{{adminChatRoomId}}",
+                "description": "## 기능\n- 관리자 권한으로 공개 채팅방을 삭제합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}` (관리자 계정)\n- 변수 `{{adminChatRoomId}}` 값이 준비되어 있어야 합니다. (직전 생성 요청 결과)\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/admin/chat-rooms/{{adminChatRoomId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- `adminChatRoomId` 초기화\n\n## 실패 시 확인\n- 관리자 토큰이 아니면 `403 ADMIN_REQUIRED`\n- 잘못된 ID면 `404 CHAT_ROOM_NOT_FOUND`\n- PARTY/비공개 채팅방 대상이면 `400 INVALID_REQUEST`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatAdminRoomController.java (deletePublicChatRoom)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatAdminService.java (deletePublicChatRoom)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/chat/repository/ChatMessageRepository.java (deleteByChatRoomId)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/chat/repository/ChatRoomMemberRepository.java (deleteById_ChatRoomId)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "pm.collectionVariables.set('adminChatRoomId', '');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "10. Scenario Regression",
+          "description": "## 목적\n- 커서 페이지네이션/읽음 단조 증가/설정 토글 시나리오를 검증합니다.",
+          "item": [
+            {
+              "name": "채팅 메시지 목록 조회(다음 페이지)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/messages?cursorCreatedAt={{chatCursorCreatedAt}}&cursorId={{chatCursorId}}&size=20",
+                "description": "## 기능\n- 저장된 커서로 다음 페이지 메시지를 조회합니다.\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{chatRoomId}}`, `{{chatCursorCreatedAt}}`, `{{chatCursorId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/messages?cursorCreatedAt={{chatCursorCreatedAt}}&cursorId={{chatCursorId}}&size=20`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 커서 누락/오염 시 `422 VALIDATION_ERROR`\n- 비멤버 조회 시 `403 NOT_CHAT_ROOM_MEMBER`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (getMessages)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (validateCursor/getMessages)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/chat/repository/ChatMessageRepository.java (findByCursor)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "채팅방 읽음 처리 단조 증가 검증(과거 시각 재요청)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lastReadAt\": \"2000-01-01T00:00:00\"\n}"
+                },
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/read",
+                "description": "## 기능\n- 과거 시각으로 읽음 처리 재요청 시 단조 증가 정책으로 롤백되지 않는지 검증합니다.\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{chatRoomId}}` 값이 준비되어 있어야 합니다.\n- 권장: Core의 `채팅방 읽음 처리`를 먼저 실행해 최신 시각이 저장된 상태여야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/read`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 멤버가 아니면 `403 NOT_CHAT_ROOM_MEMBER`\n- lastReadAt 누락 시 `422 VALIDATION_ERROR`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (markAsRead)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (markAsRead)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/chat/entity/ChatRoomMember.java (advanceLastReadAt)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const j = pm.response.json();",
+                      "pm.test('단조 증가로 updated=false', function () { pm.expect(j.data.updated).to.eql(false); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "채팅방 설정 수정(음소거 끄기)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"muted\": false\n}"
+                },
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/settings",
+                "description": "## 기능\n- 채팅방 음소거를 비활성화합니다.\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{chatRoomId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/settings`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 비멤버 처리 시 `403 NOT_CHAT_ROOM_MEMBER`\n- muted 누락 시 `422 VALIDATION_ERROR`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (updateSettings)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (updateSettings)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/chat/entity/ChatRoomMember.java (updateMuted)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                      "const j = pm.response.json();",
+                      "pm.test('muted=false 확인', function () { pm.expect(j.data.muted).to.eql(false); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "20. Contract Guard",
+          "description": "## 목적\n- 인증/권한/검증/리소스 부재 계약을 보호합니다.\n\n## 참고\n- 403 비멤버 케이스는 `negativeBasePartyId`(TaxiParty Contract Guard Setup 출력 변수)를 사용합니다.",
+          "item": [
+            {
+              "name": "인증 없이 채팅방 목록 조회(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/chat-rooms",
+                "description": "## 기능\n- 인증 없이 보호 API 접근 시 401을 반환하는지 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (보호 API 접근 시도)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/chat-rooms`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `401`\n- Collection 공통 Tests 통과\n- 에러 코드: `UNAUTHORIZED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 보안 설정 누락 시 200/403 등 비정상 코드가 나올 수 있습니다.\n\n## 관련 백엔드 코드\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 인증 진입점: src/main/java/com/skuri/skuri_backend/infra/auth/config/ApiAuthenticationEntryPoint.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('401 Unauthorized', function () { pm.response.to.have.status(401); });",
+                      "const j = pm.response.json();",
+                      "pm.test('UNAUTHORIZED 검증', function () { pm.expect(j.errorCode).to.eql('UNAUTHORIZED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "채팅 메시지 커서 쌍 불일치 검증(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/messages?cursorId=message-only",
+                "description": "## 기능\n- `cursorCreatedAt` 없이 `cursorId`만 전달했을 때 검증 실패를 반환하는지 확인합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{chatRoomId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/messages?cursorId=message-only`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 커서 검증 누락 시 200으로 통과될 수 있습니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (getMessages)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (validateCursor)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "비멤버 채팅방 상세 조회 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/chat-rooms/party:{{negativeBasePartyId}}",
+                "description": "## 기능\n- 비멤버가 비공개 PARTY 채팅방 상세를 조회할 때 403을 반환하는지 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{negativeBasePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}` (해당 파티 비멤버)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/chat-rooms/party:{{negativeBasePartyId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `NOT_CHAT_ROOM_MEMBER`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- negativeBasePartyId가 비어 있으면 잘못된 경로로 요청될 수 있습니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (getChatRoom)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (getChatRoomDetail)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/chat/repository/ChatRoomMemberRepository.java (findById_ChatRoomIdAndId_MemberId)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "비멤버 채팅방 설정 수정 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"muted\": true\n}"
+                },
+                "url": "{{baseUrl}}/v1/chat-rooms/party:{{negativeBasePartyId}}/settings",
+                "description": "## 기능\n- 비멤버가 비공개 PARTY 채팅방 설정을 수정할 때 403을 반환하는지 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{negativeBasePartyId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}` (해당 파티 비멤버)\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/chat-rooms/party:{{negativeBasePartyId}}/settings`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `NOT_CHAT_ROOM_MEMBER`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- negativeBasePartyId가 비어 있으면 요청 경로가 깨집니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (updateSettings)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (updateSettings)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/chat/repository/ChatRoomMemberRepository.java (findById_ChatRoomIdAndId_MemberId)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "존재하지 않는 채팅방 상세 조회(404)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/chat-rooms/room-not-found",
+                "description": "## 기능\n- 존재하지 않는 채팅방 조회 시 404를 반환하는지 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/chat-rooms/room-not-found`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `404`\n- Collection 공통 Tests 통과\n- 에러 코드: `CHAT_ROOM_NOT_FOUND`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 예외 매핑 누락 시 500으로 변질되는지 확인합니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (getChatRoom)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java (findRoomOrThrow)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "채팅방 설정 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": "{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/settings",
+                "description": "## 기능\n- `muted` 누락 시 검증 실패를 반환하는지 확인합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- 변수 `{{chatRoomId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/chat-rooms/{{chatRoomId}}/settings`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- Bean Validation 미동작 시 200/500이 나올 수 있습니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatRoomController.java (updateSettings)\n- DTO: src/main/java/com/skuri/skuri_backend/domain/chat/dto/request/UpdateChatRoomSettingsRequest.java (@NotNull muted)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              }
+            },
+            {
+              "name": "비관리자 공개 채팅방 생성 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"권한 검증용 공개방\",\n  \"type\": \"CUSTOM\",\n  \"description\": \"비관리자 접근 차단 검증\",\n  \"isPublic\": true\n}"
+                },
+                "url": "{{baseUrl}}/v1/admin/chat-rooms",
+                "description": "## 기능\n- 비관리자 사용자가 Admin 공개 채팅방 생성 API 호출 시 차단되는지 확인합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{leaderToken}}` (비관리자)\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/chat-rooms`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `ADMIN_REQUIRED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 권한 정책 누락 시 201/400 등 비정상 상태로 통과할 수 있습니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatAdminRoomController.java (`@PreAuthorize`)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (`@EnableMethodSecurity`)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java (ROLE_ADMIN 부여)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java (ADMIN_REQUIRED)"
+              }
+            },
+            {
+              "name": "비관리자 공개 채팅방 삭제 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/chat-rooms/room-non-admin-delete",
+                "description": "## 기능\n- 비관리자 사용자가 Admin 공개 채팅방 삭제 API 호출 시 차단되는지 확인합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{leaderToken}}` (비관리자)\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/admin/chat-rooms/room-non-admin-delete`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `ADMIN_REQUIRED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 권한 검증이 서비스 단계로 밀리면 404 등 다른 코드가 먼저 반환될 수 있습니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatAdminRoomController.java (`@PreAuthorize`)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (`@EnableMethodSecurity`)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java (ADMIN_REQUIRED)\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java (ADMIN_REQUIRED)"
+              }
+            },
+            {
+              "name": "PARTY 타입 공개 채팅방 생성 검증(400)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"파티타입 생성 시도\",\n  \"type\": \"PARTY\",\n  \"description\": \"금지 타입 검증\",\n  \"isPublic\": true\n}"
+                },
+                "url": "{{baseUrl}}/v1/admin/chat-rooms",
+                "description": "## 기능\n- Admin API에서 `type=PARTY` 요청을 거부하는지 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}` (관리자)\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/chat-rooms`\n- Body: JSON (`raw`) 본문 사용 (`type=PARTY`)\n\n## 기대 결과\n- HTTP 상태코드: `400`\n- Collection 공통 Tests 통과\n- 에러 코드: `INVALID_REQUEST`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 검증 누락 시 PARTY 타입 공개방이 생성될 수 있습니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatAdminRoomController.java (createPublicChatRoom)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatAdminService.java (validateCreateRequest)\n- 예외 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java (INVALID_REQUEST)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              }
+            },
+            {
+              "name": "isPublic=false 공개 채팅방 생성 검증(400)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"비공개 생성 시도\",\n  \"type\": \"CUSTOM\",\n  \"description\": \"isPublic 검증\",\n  \"isPublic\": false\n}"
+                },
+                "url": "{{baseUrl}}/v1/admin/chat-rooms",
+                "description": "## 기능\n- Admin 공개 채팅방 생성 API가 `isPublic=false` 요청을 거부하는지 검증합니다.\n\n## 테스트 모드\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}` (관리자)\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/chat-rooms`\n- Body: JSON (`raw`) 본문 사용 (`isPublic=false`)\n\n## 기대 결과\n- HTTP 상태코드: `400`\n- Collection 공통 Tests 통과\n- 에러 코드: `INVALID_REQUEST`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 검증 누락 시 비공개 채팅방이 Admin API로 생성될 수 있습니다.\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatAdminRoomController.java (createPublicChatRoom)\n- Service: src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatAdminService.java (validateCreateRequest)\n- 예외 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java (INVALID_REQUEST)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              }
+            }
+          ]
+        },
+        {
+          "name": "30. Realtime",
+          "description": "## 목적\n- Chat WebSocket 엔드포인트 접근성 및 수동 검증 기준을 확인합니다.\n\n## 참고\n- STOMP 프레임 송수신은 Postman WebSocket 탭에서 수동 수행합니다.",
+          "item": [
+            {
+              "name": "채팅 WebSocket 엔드포인트 정보 조회(SockJS)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/ws/info",
+                "description": "## 기능\n- SockJS `/ws` 엔드포인트 정보 응답을 확인합니다. (연결 가능성 점검)\n\n## 테스트 모드\n- Realtime\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (`/ws/**`는 HTTP 보안에서 permitAll)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/ws/info`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 프록시/CORS/보안 설정에 따라 접근이 차단될 수 있습니다.\n- 실제 STOMP 인증/인가는 CONNECT + SEND/SUBSCRIBE 단계에서 별도로 검증됩니다.\n\n## 관련 백엔드 코드\n- WebSocket 설정: src/main/java/com/skuri/skuri_backend/domain/chat/websocket/ChatWebSocketConfig.java (registerStompEndpoints)\n- STOMP 인증/인가: src/main/java/com/skuri/skuri_backend/domain/chat/websocket/FirebaseStompAuthChannelInterceptor.java (preSend)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (\"/ws/**\" permitAll)\n- STOMP 핸들러: src/main/java/com/skuri/skuri_backend/domain/chat/controller/ChatStompController.java (sendMessage)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -2234,6 +2876,26 @@
     {
       "key": "adminToken",
       "value": ""
+    },
+    {
+      "key": "adminChatRoomId",
+      "value": ""
+    },
+    {
+      "key": "chatRoomId",
+      "value": ""
+    },
+    {
+      "key": "chatCursorCreatedAt",
+      "value": ""
+    },
+    {
+      "key": "chatCursorId",
+      "value": ""
+    },
+    {
+      "key": "chatLastReadAt",
+      "value": ""
     }
   ],
   "event": [
@@ -2282,7 +2944,17 @@
           "  '타인 동승 요청 취소 권한 검증(403)': 'FORBIDDEN',",
           "  '처리 완료 요청 재처리 검증(409)': 'REQUEST_ALREADY_PROCESSED',",
           "  '비리더 파티 동승요청 SSE 구독 권한 검증(403)': 'NOT_PARTY_LEADER',",
-          "  '내 동승요청 SSE status 파라미터 오류 검증(400)': 'INVALID_REQUEST'",
+          "  '내 동승요청 SSE status 파라미터 오류 검증(400)': 'INVALID_REQUEST',",
+          "  '채팅방 설정 검증 실패 확인(422)': 'VALIDATION_ERROR',",
+          "  '존재하지 않는 채팅방 상세 조회(404)': 'CHAT_ROOM_NOT_FOUND',",
+          "  '비멤버 채팅방 설정 수정 권한 검증(403)': 'NOT_CHAT_ROOM_MEMBER',",
+          "  '비멤버 채팅방 상세 조회 권한 검증(403)': 'NOT_CHAT_ROOM_MEMBER',",
+          "  '채팅 메시지 커서 쌍 불일치 검증(422)': 'VALIDATION_ERROR',",
+          "  '인증 없이 채팅방 목록 조회(401 확인)': 'UNAUTHORIZED',",
+          "  '비관리자 공개 채팅방 생성 권한 검증(403)': 'ADMIN_REQUIRED',",
+          "  '비관리자 공개 채팅방 삭제 권한 검증(403)': 'ADMIN_REQUIRED',",
+          "  'PARTY 타입 공개 채팅방 생성 검증(400)': 'INVALID_REQUEST',",
+          "  'isPublic=false 공개 채팅방 생성 검증(400)': 'INVALID_REQUEST',",
           "};",
           "",
           "const isFirebaseEmulatorAuthRequest = name.startsWith('에뮬레이터 Google 로그인(') || name === '에뮬레이터 관리자 계정 생성(email/password)' || name === '에뮬레이터 관리자 로그인(토큰 저장)';",

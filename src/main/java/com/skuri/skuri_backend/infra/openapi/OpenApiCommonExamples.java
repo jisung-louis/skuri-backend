@@ -48,6 +48,9 @@ public final class OpenApiCommonExamples {
     public static final String ERROR_FORBIDDEN =
             "{\"success\":false,\"message\":\"접근 권한이 없습니다.\",\"errorCode\":\"FORBIDDEN\",\"timestamp\":\"2026-03-04T12:00:00\"}";
 
+    public static final String ERROR_ADMIN_REQUIRED =
+            "{\"success\":false,\"message\":\"관리자 권한이 필요합니다.\",\"errorCode\":\"ADMIN_REQUIRED\",\"timestamp\":\"2026-03-04T12:00:00\"}";
+
     public static final String ERROR_EMAIL_DOMAIN_RESTRICTED =
             "{\"success\":false,\"message\":\"성결대학교 이메일(@sungkyul.ac.kr)만 사용 가능합니다.\",\"errorCode\":\"EMAIL_DOMAIN_RESTRICTED\",\"timestamp\":\"2026-03-04T12:00:00\"}";
 

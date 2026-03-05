@@ -2,9 +2,15 @@ package com.skuri.skuri_backend.infra.auth;
 
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeController;
 import com.skuri.skuri_backend.domain.app.controller.AppVersionController;
+import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
+import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
+import com.skuri.skuri_backend.domain.chat.service.ChatAdminService;
+import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.controller.MemberController;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberMeResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberNotificationSettingResponse;
+import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.member.service.MemberService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
@@ -18,21 +24,25 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {
         MemberController.class,
         AppVersionController.class,
-        AppNoticeController.class
+        AppNoticeController.class,
+        ChatAdminRoomController.class
 })
 @Import({
         SecurityConfig.class,
@@ -49,7 +59,13 @@ class SecurityIntegrationTest {
     private MemberService memberService;
 
     @MockitoBean
+    private ChatAdminService chatAdminService;
+
+    @MockitoBean
     private FirebaseTokenVerifier firebaseTokenVerifier;
+
+    @MockitoBean
+    private MemberRepository memberRepository;
 
     @Test
     void 보호Api_토큰없음_401() throws Exception {
@@ -144,5 +160,61 @@ class SecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.platform").value("ios"));
+    }
+
+    @Test
+    void 관리자Api_비관리자토큰_403_ADMIN_REQUIRED() throws Exception {
+        mockToken("user-token", "firebase-uid", false);
+
+        mockMvc.perform(
+                        post("/v1/admin/chat-rooms")
+                                .header(AUTHORIZATION, "Bearer user-token")
+                                .contentType("application/json")
+                                .content("{\"name\":\"운영 채팅방\",\"type\":\"CUSTOM\",\"isPublic\":true}")
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("ADMIN_REQUIRED"));
+    }
+
+    @Test
+    void 관리자Api_관리자토큰_접근가능() throws Exception {
+        mockToken("admin-token", "admin-uid", true);
+        when(chatAdminService.createPublicChatRoom(org.mockito.ArgumentMatchers.eq("admin-uid"), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new AdminCreateChatRoomResponse("room:1", "운영 채팅방", ChatRoomType.CUSTOM));
+
+        mockMvc.perform(
+                        post("/v1/admin/chat-rooms")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType("application/json")
+                                .content("{\"name\":\"운영 채팅방\",\"type\":\"CUSTOM\",\"isPublic\":true}")
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value("room:1"));
+    }
+
+    private void mockToken(String token, String uid, boolean isAdmin) {
+        when(firebaseTokenVerifier.verify(token))
+                .thenReturn(new FirebaseTokenClaims(
+                        uid,
+                        uid + "@sungkyul.ac.kr",
+                        "google.com",
+                        "google-provider-id",
+                        "테스터",
+                        "https://example.com/profile.jpg"
+                ));
+        if (!isAdmin) {
+            when(memberRepository.findById(uid)).thenReturn(Optional.empty());
+            return;
+        }
+        Member admin = Member.create(
+                uid,
+                uid + "@sungkyul.ac.kr",
+                "관리자",
+                LocalDateTime.now().minusDays(1)
+        );
+        ReflectionTestUtils.setField(admin, "isAdmin", true);
+        when(memberRepository.findById(uid)).thenReturn(Optional.of(admin));
     }
 }

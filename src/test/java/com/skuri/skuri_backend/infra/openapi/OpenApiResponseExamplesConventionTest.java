@@ -2,6 +2,8 @@ package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeController;
 import com.skuri.skuri_backend.domain.app.controller.AppVersionController;
+import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
+import com.skuri.skuri_backend.domain.chat.controller.ChatRoomController;
 import com.skuri.skuri_backend.domain.member.controller.MemberController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.JoinRequestController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.PartyController;
@@ -23,6 +25,8 @@ class OpenApiResponseExamplesConventionTest {
     private static final List<Class<?>> TARGET_CONTROLLERS = List.of(
             AppVersionController.class,
             AppNoticeController.class,
+            ChatRoomController.class,
+            ChatAdminRoomController.class,
             MemberController.class,
             PartyController.class,
             JoinRequestController.class,

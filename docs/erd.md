@@ -136,6 +136,7 @@ erDiagram
         varchar(500) last_message_text
         varchar(36) last_message_sender_id
         varchar(50) last_message_sender_name
+        enum last_message_type "TEXT,IMAGE,SYSTEM,ACCOUNT,ARRIVED,END"
         datetime last_message_timestamp
         datetime created_at
         datetime updated_at

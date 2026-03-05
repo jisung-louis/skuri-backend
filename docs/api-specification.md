@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-04
+> 최종 수정일: 2026-03-05
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md)
 
 ---
@@ -30,6 +30,11 @@
 Production: (도메인 미정)
 Development: http://localhost:8080/v1
 ```
+
+### 1.1-1 계약 소스 정책
+
+- 런타임 API 계약의 최종 기준은 `/v3/api-docs`입니다.
+- 본 문서(`docs/api-specification.md`)는 사람이 읽는 설명 문서이며, 코드 변경 PR에서 `/v3/api-docs`와 함께 동기화합니다.
 
 ### 1.2 인증
 
@@ -98,6 +103,7 @@ Authorization: Bearer <firebase_id_token>
 | 400 | `INVALID_REQUEST` | 잘못된 요청 |
 | 401 | `UNAUTHORIZED` | 인증 필요 |
 | 403 | `FORBIDDEN` | 권한 없음 |
+| 403 | `ADMIN_REQUIRED` | 관리자 권한 필요 |
 | 404 | `NOT_FOUND` | 리소스 없음 |
 | 409 | `CONFLICT` | 충돌 (중복 등) |
 | 409 | `RESOURCE_CONCURRENT_MODIFICATION` | 낙관적 락 기반 동시 수정 충돌 |
@@ -925,13 +931,15 @@ FCM 토큰 삭제
 ### 4.1 채팅방 조회
 
 #### GET /v1/chat-rooms
-공개 채팅방 목록
+접근 가능한 채팅방 목록
+
+- 기본 정책: `공개 채팅방 + 내가 참여 중인 비공개 채팅방(PARTY 포함)`만 반환합니다.
 
 **Query Parameters:**
 
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
-| `type` | string | 채팅방 타입 (UNIVERSITY, DEPARTMENT, GAME, CUSTOM) |
+| `type` | string | 채팅방 타입 (UNIVERSITY, DEPARTMENT, GAME, CUSTOM, PARTY) |
 | `joined` | boolean | 참여 중인 채팅방만 |
 
 **Response:**
@@ -945,9 +953,10 @@ FCM 토큰 삭제
       "type": "UNIVERSITY",
       "memberCount": 150,
       "lastMessage": {
+        "type": "TEXT",
         "text": "안녕하세요!",
         "senderName": "홍길동",
-        "timestamp": "2026-02-03T12:00:00Z"
+        "createdAt": "2026-02-03T12:00:00Z"
       },
       "unreadCount": 5,
       "isJoined": true
@@ -958,6 +967,8 @@ FCM 토큰 삭제
 
 #### GET /v1/chat-rooms/{chatRoomId}
 채팅방 상세
+
+- 비공개 채팅방은 멤버만 조회 가능합니다.
 
 **Response:**
 ```json
@@ -972,7 +983,8 @@ FCM 토큰 삭제
     "isPublic": true,
     "isJoined": true,
     "isMuted": false,
-    "lastReadAt": "2026-02-03T11:00:00Z"
+    "lastReadAt": "2026-02-03T11:00:00Z",
+    "unreadCount": 5
   }
 }
 ```
@@ -984,8 +996,16 @@ FCM 토큰 삭제
 
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
-| `before` | datetime | 이 시간 이전 메시지 |
-| `limit` | int | 메시지 수 (기본 50) |
+| `cursorCreatedAt` | datetime | 다음 페이지 시작 기준 createdAt (nullable, `cursorId`와 쌍) |
+| `cursorId` | string | 다음 페이지 시작 기준 messageId (nullable, `cursorCreatedAt`와 쌍) |
+| `size` | int | 페이지 크기 (기본 50, 최대 100) |
+
+**정렬/커서 규칙:**
+- 정렬은 `createdAt DESC, id DESC` 고정입니다.
+- 다음 페이지 조회 조건은 아래와 같습니다.
+  - `createdAt < cursorCreatedAt`
+  - 또는 `createdAt == cursorCreatedAt AND id < cursorId`
+- `nextCursor`는 현재 페이지의 마지막 메시지 `(createdAt, id)`로 생성됩니다.
 
 **Response:**
 ```json
@@ -995,6 +1015,7 @@ FCM 토큰 삭제
     "messages": [
       {
         "id": "message_uuid",
+        "chatRoomId": "room_id",
         "senderId": "user_uuid",
         "senderName": "홍길동",
         "text": "안녕하세요!",
@@ -1003,6 +1024,7 @@ FCM 토큰 삭제
       },
       {
         "id": "message_uuid_2",
+        "chatRoomId": "room_id",
         "senderId": "user_uuid_2",
         "senderName": "시스템",
         "text": "홍길동님이 입장했습니다.",
@@ -1010,19 +1032,16 @@ FCM 토큰 삭제
         "createdAt": "2026-02-03T11:59:00Z"
       }
     ],
-    "hasMore": true,
-    "oldestTimestamp": "2026-02-03T11:00:00Z"
+    "hasNext": true,
+    "nextCursor": {
+      "createdAt": "2026-02-03T11:59:00Z",
+      "id": "message_uuid_2"
+    }
   }
 }
 ```
 
-### 4.2 채팅방 참여
-
-#### POST /v1/chat-rooms/{chatRoomId}/join
-채팅방 참여
-
-#### POST /v1/chat-rooms/{chatRoomId}/leave
-채팅방 나가기
+### 4.2 채팅방 사용자 상태
 
 #### PATCH /v1/chat-rooms/{chatRoomId}/settings
 채팅방 설정 (음소거 등)
@@ -1039,6 +1058,7 @@ FCM 토큰 삭제
 
 - 클라이언트는 채팅방 포커스 획득/이탈, 앱 백그라운드 전환 시점마다 `lastReadAt`을 갱신합니다.
 - 서버는 저장된 `lastReadAt`보다 과거 시각 요청을 무시해 단조 증가를 보장합니다.
+- 미읽음 계산 기준은 `message.createdAt > lastReadAt` 입니다. (`==` 는 읽음으로 간주)
 
 **Request:**
 ```json
@@ -1047,34 +1067,16 @@ FCM 토큰 삭제
 }
 ```
 
-### 4.3 메시지 조회
+### 4.3 메시지 전송 정책
 
-#### GET /v1/chat-rooms/{chatRoomId}/messages
-채팅 메시지 이력 조회 (과거 메시지 로딩)
-
-> **메시지 전송은 WebSocket(STOMP)으로만 수행합니다. (§4.5 참고)**
-
-**Query Parameters:**
-
-| 파라미터 | 타입 | 설명 |
-|---------|------|------|
-| `before` | datetime | 이 시간 이전 메시지 조회 (무한 스크롤) |
-| `limit` | int | 메시지 수 (기본 50) |
+> 채팅 메시지 **전송**은 WebSocket(STOMP)으로만 수행합니다. (§4.5 참고)
 
 ### 4.4 파티 채팅 (TaxiParty 도메인에서 관리)
 
 파티 채팅 메시지 **전송**은 WebSocket(STOMP)으로만 수행합니다. (§4.5 참고)
 파티 채팅 비즈니스 규칙(멤버 검증, 계좌 정보 조회 등)은 서버 내부 STOMP 핸들러에서 처리합니다.
-
-#### GET /v1/parties/{partyId}/chat/messages
-파티 채팅 메시지 이력 조회 (과거 메시지 로딩)
-
-**Query Parameters:**
-
-| 파라미터 | 타입 | 설명 |
-|---------|------|------|
-| `before` | datetime | 이 시간 이전 메시지 조회 |
-| `limit` | int | 메시지 수 (기본 50) |
+- 파티 채팅 이력 조회는 `GET /v1/chat-rooms/{chatRoomId}/messages`를 사용합니다.
+  - 예: `chatRoomId = party:{partyId}`
 
 ### 4.5 WebSocket (STOMP)
 
@@ -1100,10 +1102,17 @@ Authorization:Bearer <firebase_id_token>
 > Spring의 `@MessageMapping` 핸들러에서 `Principal` 객체로 `uid`를 추출합니다.
 > 연결 인증 성공 후에는 추가 토큰 검증 없이 세션을 유지합니다.
 
+#### 연결 후 인가(Authorization)
+
+- `SEND /app/chat/{chatRoomId}`: 해당 채팅방 멤버만 전송 가능
+- `SUBSCRIBE /topic/chat/{chatRoomId}`: 해당 채팅방 멤버만 구독 가능
+- 비멤버 요청은 `NOT_CHAT_ROOM_MEMBER` 에러로 거부됩니다.
+
 #### 구독 토폴로지 (중요)
 
 - 채팅방 목록 화면: `SUBSCRIBE /user/queue/chat-rooms` 1개만 구독
-- 채팅방 상세 화면: 진입한 방에 한해 `SUBSCRIBE /topic/chat-rooms/{chatRoomId}` 구독
+- 채팅방 상세 화면: 진입한 방에 한해 `SUBSCRIBE /topic/chat/{chatRoomId}` 구독
+- STOMP 에러 수신: `SUBSCRIBE /user/queue/errors`
 - 상세 화면 이탈 시 해당 room topic 구독을 즉시 해제
 - 모든 채팅방 topic을 동시에 구독하는 방식은 사용하지 않음
 
@@ -1114,8 +1123,8 @@ Authorization:Bearer <firebase_id_token>
 | 방향 | 경로 | 설명 |
 |------|------|------|
 | 수신 (Subscribe) | `/user/queue/chat-rooms` | 내 채팅방 목록 카드 요약(이름/인원/마지막 메시지/미읽음) 수신 |
-| 전송 (Publish) | `/app/chat-rooms/{chatRoomId}/messages` | 메시지 전송 |
-| 수신 (Subscribe) | `/topic/chat-rooms/{chatRoomId}` | 실시간 메시지 수신 |
+| 전송 (Publish) | `/app/chat/{chatRoomId}` | 메시지 전송 |
+| 수신 (Subscribe) | `/topic/chat/{chatRoomId}` | 실시간 메시지 수신 |
 
 **전송 포맷:**
 ```json
@@ -1134,6 +1143,7 @@ Authorization:Bearer <firebase_id_token>
   "lastMessage": {
     "type": "TEXT",
     "text": "오늘 과제 어디까지 했어?",
+    "senderName": "홍길동",
     "createdAt": "2026-02-03T12:00:00Z"
   },
   "updatedAt": "2026-02-03T12:00:00Z"
@@ -1146,10 +1156,10 @@ Authorization:Bearer <firebase_id_token>
 
 #### 파티 채팅
 
-| 방향 | 경로 | 설명 |
-|------|------|------|
-| 전송 (Publish) | `/app/parties/{partyId}/chat/messages` | 파티 채팅 메시지 전송 |
-| 수신 (Subscribe) | `/topic/parties/{partyId}/chat` | 실시간 메시지 수신 |
+- 파티 채팅도 동일 경로를 사용합니다.
+  - 전송: `/app/chat/party:{partyId}`
+  - 수신: `/topic/chat/party:{partyId}`
+- 특수 메시지 타입: `ACCOUNT`, `ARRIVED`, `END`
 
 **전송 포맷:**
 ```json
@@ -1162,15 +1172,29 @@ Authorization:Bearer <firebase_id_token>
 ```json
 {
   "id": "message_uuid",
+  "chatRoomId": "party:party_uuid",
   "senderId": "user_uuid",
   "senderName": "홍길동",
   "type": "ACCOUNT",
-  "accountInfo": {
+  "accountData": {
     "bankName": "카카오뱅크",
     "accountNumber": "3333-01-1234567",
     "accountHolder": "홍길동"
   },
   "createdAt": "2026-02-03T12:00:00Z"
+}
+```
+
+> STOMP 메시지 응답은 `ChatMessageResponse`의 `@JsonInclude(NON_NULL)` 정책을 따르므로, 타입별로 사용하지 않는 필드는 생략될 수 있습니다.
+
+#### STOMP 에러 포맷 (서버 → 클라이언트)
+
+```json
+{
+  "success": false,
+  "errorCode": "NOT_CHAT_ROOM_MEMBER",
+  "message": "채팅방 멤버가 아닙니다.",
+  "timestamp": "2026-03-05T21:10:00"
 }
 ```
 
@@ -1180,11 +1204,11 @@ Authorization:Bearer <firebase_id_token>
 |------|------------|
 | 메시지 전송 (STOMP 핸들러) | 메시지 DB 저장 + ChatRoom.messageCount 증가 → 커밋 후 구독자 브로드캐스트 |
 | 채팅방 목록 요약 이벤트 | 메시지 저장/멤버수 변경 커밋 후 `/user/queue/chat-rooms`로 요약 이벤트 전송 |
-| 채팅방 참여 (`POST /v1/chat-rooms/{chatRoomId}/join`) | ChatRoomMember 추가 + ChatRoom.memberCount 증가 |
-| 채팅방 나가기 (`POST /v1/chat-rooms/{chatRoomId}/leave`) | ChatRoomMember 삭제 + ChatRoom.memberCount 감소 |
+| 읽음 처리 (`PATCH /v1/chat-rooms/{chatRoomId}/read`) | `lastReadAt` 단조 증가 갱신(과거 값 무시) |
+| 설정 수정 (`PATCH /v1/chat-rooms/{chatRoomId}/settings`) | ChatRoomMember.muted 갱신 |
 | ACCOUNT 메시지 | 계좌 정보 DB 조회 + 메시지 DB 저장 → 커밋 후 브로드캐스트 |
 
-> 브로드캐스트(WebSocket push)는 트랜잭션 커밋 성공 후 수행합니다. (Spring의 `@TransactionalEventListener` 활용)
+> 브로드캐스트(WebSocket push)는 트랜잭션 커밋 성공 후 수행합니다. (트랜잭션 커밋 후 콜백)
 
 ### 4.7 에러 코드
 
@@ -1790,6 +1814,34 @@ Authorization:Bearer <firebase_id_token>
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `date` | date | 조회 날짜 (기본: 오늘) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "weekId": "2026-W06",
+    "weekStart": "2026-02-03",
+    "weekEnd": "2026-02-07",
+    "menus": {
+      "2026-02-03": {
+        "rollNoodles": ["우동", "김밥"],
+        "theBab": ["돈까스", "된장찌개"],
+        "fryRice": ["볶음밥", "짜장면"]
+      }
+    }
+  }
+}
+```
+
+#### GET /v1/cafeteria-menus/{weekId}
+특정 주차 학식 메뉴
+
+**Path Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `weekId` | string | 조회할 주차 ID (예: `2026-W06`) |
 
 **Response:**
 ```json
@@ -2879,7 +2931,11 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-**type:** `UNIVERSITY` | `DEPARTMENT` | `GAME` | `CUSTOM`
+**type:** `UNIVERSITY` | `DEPARTMENT` | `GAME` | `CUSTOM` | `PARTY`
+
+**검증 규칙:**
+- `type=PARTY`는 허용되지 않습니다. (`400 INVALID_REQUEST`)
+- `isPublic=true`만 허용됩니다. (`400 INVALID_REQUEST`)
 
 **Response (201 Created):**
 ```json
@@ -2895,6 +2951,19 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 #### DELETE /v1/admin/chat-rooms/{chatRoomId}
 공개 채팅방 삭제
+
+**검증 규칙:**
+- 존재하지 않는 채팅방: `404 CHAT_ROOM_NOT_FOUND`
+- `PARTY` 타입 삭제 시도: `400 INVALID_REQUEST`
+- 비공개 채팅방 삭제 시도: `400 INVALID_REQUEST`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null
+}
+```
 
 ---
 
@@ -3039,7 +3108,102 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.8 에러 코드
+### 12.8 운영 문의/신고 관리
+
+#### GET /v1/admin/inquiries
+문의 전체 목록 조회 (관리자)
+
+**Query Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `status` | string | 문의 상태 필터 (`PENDING`, `IN_PROGRESS`, `RESOLVED`) |
+| `page` | int | 페이지 번호 |
+| `size` | int | 페이지 크기 |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": "inquiry_uuid",
+        "memberId": "user_uuid",
+        "type": "BUG",
+        "subject": "채팅 화면 오류",
+        "status": "PENDING",
+        "createdAt": "2026-03-05T12:00:00Z"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 53
+  }
+}
+```
+
+#### PATCH /v1/admin/inquiries/{inquiryId}/status
+문의 상태 처리 (관리자)
+
+**Request:**
+```json
+{
+  "status": "RESOLVED",
+  "memo": "재현 후 수정 배포 완료"
+}
+```
+
+#### GET /v1/admin/reports
+신고 전체 목록 조회 (관리자)
+
+**Query Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `status` | string | 신고 상태 필터 (`PENDING`, `REVIEWING`, `ACTIONED`, `REJECTED`) |
+| `targetType` | string | 신고 대상 필터 (`POST`, `COMMENT`, `MEMBER`) |
+| `page` | int | 페이지 번호 |
+| `size` | int | 페이지 크기 |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": "report_uuid",
+        "reporterId": "user_uuid",
+        "targetType": "POST",
+        "targetId": "post_uuid",
+        "category": "SPAM",
+        "status": "PENDING",
+        "createdAt": "2026-03-05T12:10:00Z"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 18
+  }
+}
+```
+
+#### PATCH /v1/admin/reports/{reportId}/status
+신고 상태 처리 (관리자)
+
+**Request:**
+```json
+{
+  "status": "ACTIONED",
+  "action": "DELETE_POST",
+  "memo": "광고성 게시물 삭제 및 사용자 경고"
+}
+```
+
+---
+
+### 12.9 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
@@ -3062,3 +3226,9 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-02-19: Image API 추가 (§11, 방식 A - 서버 경유 업로드)
 > - 2026-02-19: 채팅 메시지 전송 경로 WebSocket으로 통일 (§4.3~4.5), Public API 목록 명확화 (§1.2)
 > - 2026-02-19: Admin API 추가 (§12 — 앱 공지/버전 관리, 학교 공지 동기화, 학식/학사일정/강의 관리)
+> - 2026-03-05: Phase 3 구현 반영 — 채팅 커서 페이지네이션(`cursorCreatedAt`,`cursorId`) 명시, `lastReadAt` 단조 증가/미읽음 경계(`createdAt > lastReadAt`) 확정, STOMP 경로를 `/app/chat/{chatRoomId}`·`/topic/chat/{chatRoomId}`로 동기화
+> - 2026-03-05: Chat 계약 동기화 — `lastMessage.createdAt`/`accountData` 필드로 통일, 비공개 채팅방 접근 정책(REST/WS) 및 STOMP 에러 포맷(`/user/queue/errors`) 명시
+> - 2026-03-05: Chat 명세 보완 — 채팅방 요약 `lastMessage.senderName` 예시 추가, STOMP 메시지 `NON_NULL` 직렬화 정책 명시
+> - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
+> - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
+> - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강

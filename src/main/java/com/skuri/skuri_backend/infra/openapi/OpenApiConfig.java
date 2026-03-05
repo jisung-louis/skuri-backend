@@ -65,4 +65,12 @@ public class OpenApiConfig {
                 )
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi chatApi() {
+        return GroupedOpenApi.builder()
+                .group("chat")
+                .pathsToMatch("/v1/chat-rooms/**", "/v1/admin/chat-rooms/**")
+                .build();
+    }
 }

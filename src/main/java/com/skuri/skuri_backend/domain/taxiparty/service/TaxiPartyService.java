@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.taxiparty.service;
 import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.CreatePartyRequest;
@@ -57,6 +58,7 @@ public class TaxiPartyService {
     private final PartyRepository partyRepository;
     private final JoinRequestRepository joinRequestRepository;
     private final MemberRepository memberRepository;
+    private final ChatService chatService;
     private final PartySseService partySseService;
     private final JoinRequestSseService joinRequestSseService;
 
@@ -77,6 +79,7 @@ public class TaxiPartyService {
                         request.detail()
                 )
         );
+        chatService.createPartyChatRoom(created);
         Member leader = memberRepository.findById(leaderId).orElse(null);
         partySseService.publishPartyCreated(created, leader);
 
