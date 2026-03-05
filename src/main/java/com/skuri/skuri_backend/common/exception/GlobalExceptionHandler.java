@@ -14,11 +14,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.persistence.OptimisticLockException;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final String ADMIN_PATH_PREFIX = "/v1/admin/";
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
@@ -79,10 +82,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException e) {
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(
+            AccessDeniedException e,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = isAdminPath(request) ? ErrorCode.ADMIN_REQUIRED : ErrorCode.FORBIDDEN;
         return ResponseEntity
-                .status(ErrorCode.FORBIDDEN.getHttpStatus())
-                .body(ApiResponse.error(ErrorCode.FORBIDDEN.getCode(), ErrorCode.FORBIDDEN.getMessage()));
+                .status(errorCode.getHttpStatus())
+                .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
     }
 
     @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
@@ -102,5 +109,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.INTERNAL_ERROR.getHttpStatus())
                 .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR.getCode(), ErrorCode.INTERNAL_ERROR.getMessage()));
+    }
+
+    private boolean isAdminPath(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        String uri = request.getRequestURI();
+        return uri != null && uri.startsWith(ADMIN_PATH_PREFIX);
     }
 }

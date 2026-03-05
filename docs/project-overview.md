@@ -1,5 +1,7 @@
 # SKURI Taxi — 프로젝트 종합 문서
 
+> 운영 규칙: 본 문서의 제품/아키텍처 내용이 변경되면 Serena Memory `project_overview`, `codebase_structure`도 함께 갱신한다.
+
 ---
 
 ## 1. 프로젝트 소개

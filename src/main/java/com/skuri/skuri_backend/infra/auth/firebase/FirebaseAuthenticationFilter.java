@@ -1,6 +1,8 @@
 package com.skuri.skuri_backend.infra.auth.firebase;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
 import jakarta.servlet.FilterChain;
@@ -8,11 +10,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -21,7 +26,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 @Component
@@ -29,8 +36,10 @@ import java.util.Locale;
 public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
 
     private final FirebaseTokenVerifier firebaseTokenVerifier;
+    private final ObjectProvider<MemberRepository> memberRepositoryProvider;
     private final ApiAuthenticationEntryPoint authenticationEntryPoint;
     private final ApiAccessDeniedHandler accessDeniedHandler;
 
@@ -63,10 +72,11 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             validateEmailDomain(claims.email());
 
             AuthenticatedMember principal = AuthenticatedMember.from(claims);
+            Collection<? extends GrantedAuthority> authorities = resolveAuthorities(principal.uid());
             UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.authenticated(
                     principal,
                     null,
-                    Collections.emptyList()
+                    authorities
             );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
@@ -99,5 +109,16 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
         if (!email.toLowerCase(Locale.ROOT).endsWith(normalizedAllowedDomain)) {
             throw new EmailDomainRestrictedException();
         }
+    }
+
+    private Collection<? extends GrantedAuthority> resolveAuthorities(String uid) {
+        MemberRepository memberRepository = memberRepositoryProvider.getIfAvailable();
+        if (memberRepository == null) {
+            return Collections.emptyList();
+        }
+        return memberRepository.findById(uid)
+                .filter(Member::isAdmin)
+                .map(value -> List.of(new SimpleGrantedAuthority(ROLE_ADMIN)))
+                .orElse(Collections.emptyList());
     }
 }

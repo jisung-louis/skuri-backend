@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.member.entity.converter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skuri.skuri_backend.common.config.ObjectMapperConfig;
 import jakarta.persistence.AttributeConverter;
@@ -35,7 +36,12 @@ public class BooleanMapJsonConverter implements AttributeConverter<Map<String, B
             return new HashMap<>();
         }
         try {
-            return OBJECT_MAPPER.readValue(dbData, BOOLEAN_MAP_TYPE);
+            JsonNode root = OBJECT_MAPPER.readTree(dbData);
+            // H2/MySQL 드라이버 차이로 JSON 컬럼이 문자열(JSON-in-JSON) 형태로 들어오는 경우를 허용한다.
+            if (root.isTextual()) {
+                return OBJECT_MAPPER.readValue(root.asText(), BOOLEAN_MAP_TYPE);
+            }
+            return OBJECT_MAPPER.convertValue(root, BOOLEAN_MAP_TYPE);
         } catch (IOException e) {
             throw new IllegalArgumentException("알림 상세 설정 역직렬화에 실패했습니다.", e);
         }

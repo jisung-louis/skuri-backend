@@ -23,6 +23,7 @@
 2. 요청 범위를 벗어나는 구조 변경이나 의존성 추가는 사전 합의 없이 반영하지 않는다.
 3. 설계 문서와 구현 의도가 충돌하면, 현재 합의된 요구사항을 우선 적용하고 근거를 남긴다.
 4. 범위 외 개선 아이디어는 "제안 사항"으로 분리해 전달하고, 본 변경과 분리한다.
+5. 범위 외 코드 수정이 불가피하면 별도 PR 분리를 우선하며, 같은 PR에 포함 시 근거/영향 범위를 PR 본문에 명시한다.
 
 ## 코드 아키텍처 규칙
 1. 공통 응답 포맷은 `ApiResponse`를 사용한다.
@@ -52,6 +53,7 @@
 15. `BusinessException`에서 커스텀 메시지를 사용하는 경우, OpenAPI 예시 메시지도 런타임 메시지와 동일하게 맞춘다.
 16. Service/Entity 예외 규칙 또는 `ErrorCode`가 변경되면 OpenAPI 예시 상수와 Controller `@ApiResponses`를 같은 PR에서 동기화한다.
 17. 머지 전 Scalar에서 최소 1개 API를 선택해 200/4xx 탭 예시가 서로 다르게 노출되는지 확인한다.
+18. API 계약의 런타임 기준은 `/v3/api-docs`로 고정하며, `docs/api-specification.md`는 같은 PR에서 반드시 동기화한다.
 
 ## 브랜치 규칙
 1. `main`은 항상 안정 상태로 유지하고 직접 작업/커밋하지 않는다.
@@ -111,6 +113,19 @@
 3. 도메인 책임/경계 변경: `docs/domain-analysis.md`, `docs/role-definition.md`
 4. 구현 계획/운영 정책 변경: 관련 계획 문서(예: `docs/implementation-roadmap.md`)
 
+## Serena Memory 동기화 규칙
+1. Serena 온보딩 메모리(`.serena/memories/*.md`)는 코드/기능/정책 변경과 같은 작업 단위(PR)에서 함께 갱신한다.
+2. 최소 점검 대상 메모리:
+   - `project_overview`, `codebase_structure`, `code_style_and_conventions`, `suggested_commands`, `task_completion_checklist`
+3. 변경 유형별 동기화 기준:
+   - 아키텍처/도메인 구조 변경: `project_overview`, `codebase_structure`
+   - 코딩 규칙/리뷰 기준/운영 정책 변경: `code_style_and_conventions`, `task_completion_checklist`
+   - 실행/빌드/테스트/운영 명령 변경: `suggested_commands`
+4. 동기화 절차:
+   - `serena.read_memory`로 기존 메모리를 확인하고 `serena.edit_memory` 또는 `serena.write_memory`로 갱신한다.
+   - PR 설명에 "Serena Memory 동기화 내역"을 포함한다.
+5. 머지 전 `serena.check_onboarding_performed`와 `serena.list_memories`로 메모리 누락 여부를 확인한다.
+
 ## 로컬 실행/테스트 환경 규칙
 1. 에이전트가 로컬에서 서버/테스트를 실행할 때 기본 프로필은 `local`로 간주한다.
 2. `src/main/resources/application-local.yaml`을 사용한다면 아래 명령으로 실행한다.
@@ -159,4 +174,6 @@
 ## 운영 메모
 - 인증은 Firebase ID Token 검증 기반으로 확장한다.
 - 실시간 통신은 채팅(WebSocket)과 이벤트(SSE)를 분리한다.
+- WebSocket은 CONNECT 인증뿐 아니라 SEND/SUBSCRIBE 목적지별 인가를 서버에서 강제한다.
+- WebSocket CORS는 `*` 허용을 금지하고 프로필/환경별 허용 Origin만 설정한다.
 - 핵심 도메인 우선순위는 `TaxiParty`이며, 상태 전이/동시성/정산 규칙을 가장 엄격히 검증한다.

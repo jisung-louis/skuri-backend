@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-04
+> 최종 수정일: 2026-03-05
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -269,7 +269,11 @@ Hooks:
   - 파티 채팅: TaxiParty 도메인이 규칙 관리, Chat은 엔진만 제공
   - 공개 채팅: Chat 도메인이 전체 관리
   - 채팅방 목록 실시간: `/user/queue/chat-rooms` 사용자 전용 요약 채널 1개 구독
-  - 채팅방 상세 실시간: `/topic/chat-rooms/{chatRoomId}` 방 단위 구독
+  - 채팅방 상세 실시간: `/topic/chat/{chatRoomId}` 방 단위 구독
+  - 채팅방 메시지 전송: `/app/chat/{chatRoomId}`
+  - STOMP 에러 수신: `/user/queue/errors` (`errorCode/message/timestamp`)
+  - WS 인가: CONNECT 인증 후에도 SEND/SUBSCRIBE 시 채팅방 멤버십을 서버에서 추가 검증
+  - 미읽음 계산: `message.createdAt > lastReadAt` 기준 (동일 시각은 읽음)
   - 방별 다중 구독(모든 방 topic 동시 구독)은 연결 수/브로드캐스트 비용 증가로 사용하지 않음
 ```
 
@@ -527,7 +531,7 @@ Hooks:
   - `/v1/sse/parties/{partyId}/join-requests` (파티 리더용 동승요청 목록/상태)
   - `/v1/sse/members/me/join-requests` (요청자 본인 동승요청 상태)
   - 알림, 게시물 목록/조회수
-- WebSocket: 채팅(목록 요약 `/user/queue/chat-rooms`, 상세 메시지 `/topic/chat-rooms/{chatRoomId}`)
+- WebSocket: 채팅(목록 요약 `/user/queue/chat-rooms`, 상세 메시지 `/topic/chat/{chatRoomId}`, 전송 `/app/chat/{chatRoomId}`)
 
 ### 5.2 Notification 인프라 상세
 
@@ -1002,10 +1006,11 @@ public enum ChatRoomType {
 
 @Embeddable
 public class LastMessage {
+    private MessageType type;
     private String text;
     private String senderId;
     private String senderName;
-    private LocalDateTime timestamp;
+    private LocalDateTime createdAt;
 }
 
 @Entity
@@ -1172,8 +1177,9 @@ public class PartyMessageService {
   - [x] Spring Security + Firebase Admin SDK (ID Token 검증) 설정
   - [x] Member 도메인 구현
     - [x] Firebase ID Token 검증 필터/인증 컨텍스트 구성 (서버 토큰 발급 없음)
+    - [x] `members.isAdmin` 기반 `ROLE_ADMIN` authority 부여 + `@PreAuthorize("hasRole('ADMIN')")` 적용
     - [x] 공개 API(`GET /v1/app-versions/**`, `GET /v1/app-notices`, `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /scalar/**`) permitAll
-    - [x] 보호 API 미인증 요청 401, 이메일 도메인 불일치 403
+    - [x] 보호 API 미인증 요청 401, 이메일 도메인 불일치 403, 관리자 API 비권한 요청 `403 ADMIN_REQUIRED`
 
 - [ ] **Phase 2: 핵심 비즈니스**
   - [x] TaxiParty 도메인 구현

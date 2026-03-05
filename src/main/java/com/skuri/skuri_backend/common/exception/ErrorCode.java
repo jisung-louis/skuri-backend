@@ -12,6 +12,7 @@ public enum ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "잘못된 요청입니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "접근 권한이 없습니다."),
+    ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "ADMIN_REQUIRED", "관리자 권한이 필요합니다."),
     EMAIL_DOMAIN_RESTRICTED(HttpStatus.FORBIDDEN, "EMAIL_DOMAIN_RESTRICTED", "성결대학교 이메일(@sungkyul.ac.kr)만 사용 가능합니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "NOT_FOUND", "리소스를 찾을 수 없습니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."),
@@ -39,6 +40,12 @@ public enum ErrorCode {
     CANNOT_KICK_LEADER(HttpStatus.BAD_REQUEST, "CANNOT_KICK_LEADER", "리더는 강퇴할 수 없습니다."),
     INVALID_PARTY_STATE_TRANSITION(HttpStatus.CONFLICT, "INVALID_PARTY_STATE_TRANSITION", "허용되지 않는 파티 상태 전이입니다."),
     PARTY_CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "PARTY_CONCURRENT_MODIFICATION", "동시 요청 충돌이 발생했습니다. 다시 시도해주세요."),
+    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_ROOM_NOT_FOUND", "채팅방을 찾을 수 없습니다."),
+    NOT_CHAT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "NOT_CHAT_ROOM_MEMBER", "채팅방 멤버가 아닙니다."),
+    CHAT_ROOM_FULL(HttpStatus.CONFLICT, "CHAT_ROOM_FULL", "채팅방 정원이 가득 찼습니다."),
+    ALREADY_CHAT_ROOM_MEMBER(HttpStatus.CONFLICT, "ALREADY_CHAT_ROOM_MEMBER", "이미 채팅방에 참여 중입니다."),
+    STOMP_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "STOMP_AUTH_FAILED", "WebSocket 인증에 실패했습니다."),
+    BANK_ACCOUNT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT, "BANK_ACCOUNT_REQUIRED", "계좌 정보 등록 후 이용 가능합니다."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;

@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-04
+> 최종 수정일: 2026-03-05
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md)
 
 ---
@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영) |
 
 ---
 
@@ -41,6 +41,8 @@ Phase 8: Notification 인프라 (이벤트 기반 알림)
 Phase 9: 인프라 및 배포
     ↓
 Phase 10: Member 탈퇴/계정 라이프사이클 (정책 확정 후)
+    ↓
+Phase 11: 운영 공통 인프라 (Admin 공통)
 ```
 
 ---
@@ -123,6 +125,13 @@ com.skuri.skuri_backend
 - 신규 도메인 API를 추가할 때 해당 도메인 예시 상수 파일을 함께 추가/갱신한다.
 - Service/Entity 예외 규칙(`BusinessException`, `ErrorCode`) 변경 시 예시 상수와 Controller `@ApiResponses`를 동일 PR에서 동기화한다.
 - 커스텀 예외 메시지를 사용하는 경우, 예시 메시지도 실제 런타임 메시지와 동일하게 유지한다.
+
+#### 0-7. 계약/보안/범위 운영 정책
+
+- API 계약의 런타임 기준은 `/v3/api-docs`로 고정하고, `docs/api-specification.md`는 같은 PR에서 반드시 동기화한다.
+- WebSocket은 CONNECT 인증만으로 종료하지 않고 목적지(`SEND /app/chat/{chatRoomId}`, `SUBSCRIBE /topic/chat/{chatRoomId}`)별 인가를 서버에서 강제한다.
+- WebSocket CORS는 `*`를 금지하고, 프로필/환경별 허용 Origin(`CHAT_WS_ALLOWED_ORIGIN_PATTERNS`)을 명시한다.
+- 요청 범위 외 수정은 별도 PR 분리를 원칙으로 하며, 불가피하게 포함할 경우 PR에 근거와 영향 범위를 명시한다.
 
 ---
 
@@ -294,6 +303,8 @@ SSE 운영 제약:
 | 항목 | 설명 |
 |------|------|
 | WebSocket 설정 | STOMP + SockJS, Firebase ID Token 인증 |
+| WebSocket 인가 | CONNECT 이후 SEND/SUBSCRIBE 목적지별 멤버십 검증 |
+| WebSocket CORS | 프로필/환경별 허용 Origin 설정 (`CHAT_WS_ALLOWED_ORIGIN_PATTERNS`) |
 | ChatService | 공통 채팅 엔진 (메시지 저장, 전송, 읽음 처리) |
 | PartyMessageService | 파티 채팅 규칙 (계좌 공유, 도착 메시지, 종료 메시지) — Chat 엔진 사용 |
 | 채팅방 목록 요약 스트림 | 목록 화면은 `/user/queue/chat-rooms` 단일 구독으로 카드 요약(이름/인원/마지막 메시지/미읽음) 수신 |
@@ -309,17 +320,20 @@ SSE 운영 제약:
 | `PATCH` | `/v1/chat-rooms/{id}/read` | 읽음 처리 (`lastReadAt` 단조 증가) |
 | `PATCH` | `/v1/chat-rooms/{id}/settings` | 채팅방 설정(음소거 등) |
 | WebSocket | `SUBSCRIBE /user/queue/chat-rooms` | 내 채팅방 목록 요약 실시간 수신 |
-| WebSocket | `SUBSCRIBE /topic/chat-rooms/{chatRoomId}` | 채팅방 상세 메시지 실시간 수신 |
-| WebSocket | `SEND /app/chat-rooms/{chatRoomId}/messages` | 채팅방 메시지 전송 |
+| WebSocket | `SUBSCRIBE /topic/chat/{chatRoomId}` | 채팅방 상세 메시지 실시간 수신 |
+| WebSocket | `SEND /app/chat/{chatRoomId}` | 채팅방 메시지 전송 |
+| `POST` | `/v1/admin/chat-rooms` | 공개 채팅방 생성 (관리자) |
+| `DELETE` | `/v1/admin/chat-rooms/{chatRoomId}` | 공개 채팅방 삭제 (관리자) |
 
 #### 3-4. 완료 기준
 
-- [ ] WebSocket 연결 및 실시간 메시지 송수신 동작
-- [ ] 채팅방 목록 화면이 `/user/queue/chat-rooms` 단일 구독으로 카드 요약을 실시간 반영
-- [ ] 채팅방 상세 화면 진입 시 해당 room topic만 구독하고, 이탈 시 구독 해제
-- [ ] 파티 채팅방 자동 생성 (파티 생성 시) 동작
-- [ ] 읽음/미읽음 처리 동작
-- [ ] 파티 채팅 특수 메시지 (계좌, 도착, 종료) 동작
+- [x] WebSocket 연결 및 실시간 메시지 송수신 동작
+- [x] 채팅방 목록 화면이 `/user/queue/chat-rooms` 단일 구독으로 카드 요약을 실시간 반영
+- [x] 채팅방 상세 화면 진입 시 해당 room topic만 구독하고, 이탈 시 구독 해제
+- [x] 파티 채팅방 자동 생성 (파티 생성 시) 동작
+- [x] 읽음/미읽음 처리 동작
+- [x] 파티 채팅 특수 메시지 (계좌, 도착, 종료) 동작
+- [x] 관리자 공개 채팅방 API (`POST/DELETE /v1/admin/chat-rooms`) + `ADMIN_REQUIRED` 권한 정책 동작
 
 ---
 
@@ -355,12 +369,14 @@ SSE 운영 제약:
 | `DELETE` | `/v1/posts/{id}` | 게시글 삭제 (작성자) |
 | `POST` | `/v1/posts/{id}/like` | 좋아요 토글 |
 | `POST` | `/v1/posts/{id}/bookmark` | 북마크 토글 |
+| `DELETE` | `/v1/posts/{id}/like` | 좋아요 취소 |
+| `DELETE` | `/v1/posts/{id}/bookmark` | 북마크 취소 |
+| `GET` | `/v1/posts/bookmarked` | 북마크한 게시글 목록 |
 | `GET` | `/v1/posts/{postId}/comments` | 댓글 목록 |
 | `POST` | `/v1/posts/{postId}/comments` | 댓글 작성 |
 | `PATCH` | `/v1/comments/{id}` | 댓글 부분 수정 |
 | `DELETE` | `/v1/comments/{id}` | 댓글 삭제 |
-| `GET` | `/v1/members/me/posts` | 내 게시글 |
-| `GET` | `/v1/members/me/bookmarks` | 내 북마크 |
+| `POST` | `/v1/images` | 이미지 업로드 |
 | `GET` | `/v1/sse/posts` | 게시물 목록/조회수 실시간 구독 (SSE) |
 
 #### 4-4. 완료 기준
@@ -404,6 +420,10 @@ SSE 운영 제약:
 | `DELETE` | `/v1/notice-comments/{id}` | 공지 댓글 삭제 |
 | `GET` | `/v1/app-notices` | 앱 공지 목록 (**Public**) |
 | `GET` | `/v1/app-notices/{id}` | 앱 공지 상세 |
+| `POST` | `/v1/admin/app-notices` | 앱 공지 생성 (관리자) |
+| `PUT` | `/v1/admin/app-notices/{appNoticeId}` | 앱 공지 수정 (관리자) |
+| `DELETE` | `/v1/admin/app-notices/{appNoticeId}` | 앱 공지 삭제 (관리자) |
+| `POST` | `/v1/admin/notices/sync` | 학교 공지 동기화 실행 (관리자) |
 
 #### 5-4. 완료 기준
 
@@ -431,9 +451,15 @@ SSE 운영 제약:
 | Method | Path | 설명 |
 |--------|------|------|
 | `GET` | `/v1/courses` | 강의 검색 (학기, 학과, 교수, 키워드) |
-| `GET` | `/v1/members/me/timetable` | 내 시간표 조회 |
-| `PUT` | `/v1/members/me/timetable` | 시간표 저장 (강의 ID 목록) |
+| `GET` | `/v1/timetables/my` | 내 시간표 조회 |
+| `POST` | `/v1/timetables/my/courses` | 시간표에 강의 추가 |
+| `DELETE` | `/v1/timetables/my/courses/{courseId}` | 시간표에서 강의 삭제 |
 | `GET` | `/v1/academic-schedules` | 학사 일정 목록 |
+| `POST` | `/v1/admin/academic-schedules` | 학사 일정 추가 (관리자) |
+| `PUT` | `/v1/admin/academic-schedules/{scheduleId}` | 학사 일정 수정 (관리자) |
+| `DELETE` | `/v1/admin/academic-schedules/{scheduleId}` | 학사 일정 삭제 (관리자) |
+| `POST` | `/v1/admin/courses/bulk` | 학기 강의 일괄 등록 (관리자) |
+| `DELETE` | `/v1/admin/courses` | 학기 강의 전체 삭제 (관리자) |
 
 #### 6-3. 완료 기준
 
@@ -460,11 +486,19 @@ SSE 운영 제약:
 | Method | Path | 설명 |
 |--------|------|------|
 | `POST` | `/v1/inquiries` | 문의 접수 |
-| `GET` | `/v1/members/me/inquiries` | 내 문의 목록 |
+| `GET` | `/v1/inquiries/my` | 내 문의 목록 |
 | `POST` | `/v1/reports` | 신고 접수 |
 | `GET` | `/v1/app-versions/{platform}` | 앱 버전 정보 (**Public**) |
 | `GET` | `/v1/cafeteria-menus` | 학식 메뉴 (이번 주) |
 | `GET` | `/v1/cafeteria-menus/{weekId}` | 특정 주차 학식 메뉴 |
+| `GET` | `/v1/admin/inquiries` | 문의 전체 목록 조회 (관리자) |
+| `PATCH` | `/v1/admin/inquiries/{inquiryId}/status` | 문의 상태 처리 (관리자) |
+| `GET` | `/v1/admin/reports` | 신고 전체 목록 조회 (관리자) |
+| `PATCH` | `/v1/admin/reports/{reportId}/status` | 신고 상태 처리 (관리자) |
+| `PUT` | `/v1/admin/app-versions/{platform}` | 앱 버전 정보 업데이트 (관리자) |
+| `POST` | `/v1/admin/cafeteria-menus` | 학식 메뉴 등록 (관리자) |
+| `PUT` | `/v1/admin/cafeteria-menus/{weekId}` | 학식 메뉴 수정 (관리자) |
+| `DELETE` | `/v1/admin/cafeteria-menus/{weekId}` | 학식 메뉴 삭제 (관리자) |
 
 #### 7-3. 완료 기준
 
@@ -510,8 +544,9 @@ SSE 운영 제약:
 | Method | Path | 설명 |
 |--------|------|------|
 | `GET` | `/v1/notifications` | 알림 인박스 목록 |
-| `PATCH` | `/v1/notifications/{id}/read` | 알림 읽음 처리 |
-| `PATCH` | `/v1/notifications/read-all` | 전체 읽음 처리 |
+| `POST` | `/v1/notifications/{id}/read` | 알림 읽음 처리 |
+| `POST` | `/v1/notifications/read-all` | 전체 읽음 처리 |
+| `DELETE` | `/v1/notifications/{id}` | 알림 삭제 |
 | `GET` | `/v1/notifications/unread-count` | 미읽음 수 |
 | `POST` | `/v1/members/me/fcm-tokens` | FCM 토큰 등록 |
 | `DELETE` | `/v1/members/me/fcm-tokens` | FCM 토큰 해제 |
@@ -564,11 +599,48 @@ SSE 운영 제약:
 | 4 | 개인정보 처리 | 익명화/마스킹/삭제 범위 및 감사 로그 처리 |
 | 5 | 회귀 검증 | 탈퇴 후 인증/조회/참여 제한 및 기존 데이터 정합성 검증 |
 
-#### 10-2. 완료 기준
+#### 10-2. API
+
+| Method | Path | 설명 |
+|--------|------|------|
+| `DELETE` | `/v1/members/me` | 회원 탈퇴 (정책 확정 후) |
+
+#### 10-3. 완료 기준
 
 - [ ] 탈퇴 정책이 문서로 확정됨
 - [ ] `DELETE /v1/members/me` 동작 및 예외 케이스 검증 완료
 - [ ] 연관 도메인 데이터 정합성/개인정보 처리 규칙 검증 완료
+
+---
+
+### Phase 11: 운영 공통 인프라 (Admin 공통)
+
+> 도메인별 Admin API를 횡단하는 공통 권한/감사/백오피스 기능을 구축한다.
+
+#### 11-1. 구현 항목
+
+| # | 항목 | 설명 |
+|---|------|------|
+| 1 | Admin 권한 공통화 | `ADMIN_REQUIRED` 정책, 공통 인가 컴포넌트, 실패 응답 표준화 |
+| 2 | 운영 감사 로그 | Admin API 호출자/대상/변경 diff 기록, 추적성 확보 |
+| 3 | 운영 백오피스 연동 기준 | 페이지네이션/검색/필터/정렬 규약, CSV 내보내기 등 운영 UX 규약 |
+| 4 | Admin Contract Guard | 관리자/비관리자/미인증 시나리오 테스트 및 OpenAPI 예시 일관성 검증 |
+| 5 | 운영 데이터 접근 정책 | 문의/신고/공지/학사 데이터의 접근 범위, 보존 기간, 개인정보 마스킹 규칙 |
+
+#### 11-2. 비고
+
+- 현재 `docs/api-specification.md`에 정의된 Admin API는 Phase 3/5/6/7에 도메인별로 배치한다.
+- 특정 도메인에 귀속되지 않는 운영 공통 기능/엔드포인트만 Phase 11 대상으로 관리한다.
+- 2안 적용 기준:
+  - Firebase 인증 필터에서 `members.isAdmin=true` 사용자에 `ROLE_ADMIN` authority를 부여한다.
+  - Admin 엔드포인트는 `@PreAuthorize("hasRole('ADMIN')")`로 보호한다.
+  - Admin 경로 접근 거부는 `ADMIN_REQUIRED`(`403`)를 반환한다.
+
+#### 11-3. 완료 기준
+
+- [ ] Admin 공통 인가/감사 로그가 모든 Admin API에 일관 적용됨
+- [ ] 운영 대상(문의/신고) 조회/처리 API 계약 및 권한 검증 완료
+- [ ] 백오피스 연동 시나리오(검색/필터/처리/재처리) 회귀 검증 완료
 
 ---
 
@@ -585,6 +657,7 @@ Phase 1 ─── 필수 선행 ──→ Phase 7 (Support)
 Phase 2~7 ── 연동 ──→ Phase 8 (Notification)
 전체 ───────────────→ Phase 9 (인프라/배포)
 Phase 1~9 + 정책 확정 ─→ Phase 10 (Member 탈퇴)
+Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 ```
 
 **참고:** Phase 4~7 (Board, Notice, Academic, Support)은 서로 독립적이므로 **병렬 구현 가능**합니다.
@@ -604,7 +677,22 @@ Phase 1~9 + 정책 확정 ─→ Phase 10 (Member 탈퇴)
 5. Controller             (API 엔드포인트)
 6. Event (필요 시)         (도메인 이벤트 발행)
 7. OpenAPI 문서화          (`@Tag`, `@Operation`, `@ApiResponses`, DTO `@Schema`, GroupedOpenApi 반영)
+8. Serena Memory 동기화    (`.serena/memories/*.md`에서 영향받는 항목 갱신)
 ```
+
+---
+
+## 6. Serena Memory 운영 규칙
+
+- Serena Memory는 코드 구현 문서가 아니라, "현재 프로젝트 상태를 빠르게 회복하기 위한 온보딩 요약"으로 유지한다.
+- 기능/정책/운영 규칙 변경 시 아래 매핑으로 같은 PR에서 함께 갱신한다.
+  - 아키텍처/도메인: `project_overview`, `codebase_structure`
+  - 스타일/정책/검증 기준: `code_style_and_conventions`, `task_completion_checklist`
+  - 실행/테스트/운영 명령: `suggested_commands`
+- 머지 전 점검:
+  - `serena.check_onboarding_performed`
+  - `serena.list_memories`
+  - 최근 변경과 메모리 내용 불일치 여부 확인
 
 ---
 
@@ -620,3 +708,6 @@ Phase 1~9 + 정책 확정 ─→ Phase 10 (Member 탈퇴)
 
 > **문서 이력**
 > - 2026-02-26: 초안 작성
+> - 2026-03-05: Admin API를 도메인 Phase(3/5/6/7)에 배치, Phase 11(운영 공통 Admin 인프라) 추가, Phase 4/6/7/8 API 경로·메서드 동기화
+> - 2026-03-05: Support Phase에 관리자 문의/신고 조회·처리 API 추가 (`/v1/admin/inquiries`, `/v1/admin/reports`)
+> - 2026-03-05: Admin 권한 정책 구현 반영 — `ROLE_ADMIN + @PreAuthorize`, `ADMIN_REQUIRED` 표준화, Chat Admin API(`POST/DELETE /v1/admin/chat-rooms`) 완료 기준 반영

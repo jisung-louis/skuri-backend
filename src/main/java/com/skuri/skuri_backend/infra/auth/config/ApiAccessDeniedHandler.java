@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 public class ApiAccessDeniedHandler implements AccessDeniedHandler {
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMapperConfig.SHARED_OBJECT_MAPPER;
+    private static final String ADMIN_PATH_PREFIX = "/v1/admin/";
 
     @Override
     public void handle(
@@ -26,9 +27,14 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
             HttpServletResponse response,
             AccessDeniedException accessDeniedException
     ) throws IOException {
-        ErrorCode errorCode = accessDeniedException instanceof EmailDomainRestrictedException
-                ? ErrorCode.EMAIL_DOMAIN_RESTRICTED
-                : ErrorCode.FORBIDDEN;
+        ErrorCode errorCode;
+        if (accessDeniedException instanceof EmailDomainRestrictedException) {
+            errorCode = ErrorCode.EMAIL_DOMAIN_RESTRICTED;
+        } else if (isAdminPath(request)) {
+            errorCode = ErrorCode.ADMIN_REQUIRED;
+        } else {
+            errorCode = ErrorCode.FORBIDDEN;
+        }
 
         writeResponse(
                 response,
@@ -42,5 +48,10 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getWriter().write(OBJECT_MAPPER.writeValueAsString(body));
+    }
+
+    private boolean isAdminPath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return uri != null && uri.startsWith(ADMIN_PATH_PREFIX);
     }
 }

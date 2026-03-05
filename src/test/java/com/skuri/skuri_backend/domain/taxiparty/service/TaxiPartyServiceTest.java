@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.taxiparty.service;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.CreatePartyRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.PartyLocationRequest;
@@ -64,6 +65,9 @@ class TaxiPartyServiceTest {
     @Mock
     private JoinRequestSseService joinRequestSseService;
 
+    @Mock
+    private ChatService chatService;
+
     @InjectMocks
     private TaxiPartyService taxiPartyService;
 
@@ -81,6 +85,7 @@ class TaxiPartyServiceTest {
 
         assertEquals("party-created", response.id());
         assertEquals("party:party-created", response.chatRoomId());
+        verify(chatService).createPartyChatRoom(any(Party.class));
         verify(partySseService).publishPartyCreated(any(Party.class), eq(null));
     }
 

@@ -214,6 +214,7 @@
 - [ ] 민감 정보가 커밋에 없는가?
 - [ ] `./gradlew build`가 성공하는가?
 - [ ] 문서와 코드가 일치하는가?
+- [ ] Serena Memory (`.serena/memories/*.md`)가 이번 변경 내용과 동기화되었는가?
 - [ ] 이번 변경이 MVP 범위를 벗어나지 않는가?
 
 ---
@@ -226,4 +227,3 @@
 - `docs/domain-analysis.md`
 - `docs/erd.md`
 - `AGENTS.md`
-

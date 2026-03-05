@@ -31,3 +31,7 @@ firebase:
 
 security:
   allowed-email-domain: ${ALLOWED_EMAIL_DOMAIN:sungkyul.ac.kr}
+
+chat:
+  websocket:
+    allowed-origin-patterns: ${CHAT_WS_ALLOWED_ORIGIN_PATTERNS:}
