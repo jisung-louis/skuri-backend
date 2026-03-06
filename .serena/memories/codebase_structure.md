@@ -25,6 +25,12 @@
 - **Controller**: ChatRoomController (REST), ChatStompController (WebSocket)
 - **WebSocket**: ChatWebSocketConfig, FirebaseStompAuthChannelInterceptor
 
+### Board
+- **Entity**: Post, PostImage, Comment, PostInteraction
+- **Enum**: PostCategory
+- **Service**: BoardService
+- **Controller**: PostController, CommentController, MemberBoardController
+
 ### App
 - **Controller**: AppNoticeController, AppVersionController
 

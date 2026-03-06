@@ -17,7 +17,7 @@
 - 각 도메인별 커스텀 예외: `PartyNotFoundException`, `MemberNotFoundException` 등
 
 ## 네이밍 컨벤션
-- 패키지: 도메인별 분리 (member, taxiparty, chat, app)
+- 패키지: 도메인별 분리 (member, taxiparty, chat, board, app)
 - DTO: `XxxRequest`, `XxxResponse` (도메인별 dto/request, dto/response 하위)
 - Controller: `XxxController` (REST), `XxxStompController` (WebSocket)
 - Service: `XxxService`

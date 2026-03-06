@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-05
+> 최종 수정일: 2026-03-06
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md)
 
 ---
@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영) |
 
 ---
 
@@ -355,8 +355,10 @@ SSE 운영 제약:
 | 로직 | 설명 |
 |------|------|
 | 익명 처리 | `anonId` = `{postId}:{userId}`, `anonymousOrder` 서버 계산 (글 단위 순번) |
-| 좋아요/북마크 | `PostInteraction` 단일 테이블, 토글 방식 |
+| 좋아요/북마크 | `PostInteraction` 단일 테이블, 등록/취소 방식 |
 | 카운트 관리 | `viewCount`, `likeCount`, `commentCount`, `bookmarkCount` 동기화 |
+| 댓글 depth 제한 | depth 1(댓글 + 대댓글)까지만 허용, 초과 시 `COMMENT_DEPTH_EXCEEDED` |
+| 부모 삭제 정책(B) | 부모 댓글은 placeholder soft delete(`삭제된 댓글입니다`), 자식 댓글은 유지 |
 
 #### 4-3. API
 
@@ -364,26 +366,29 @@ SSE 운영 제약:
 |--------|------|------|
 | `POST` | `/v1/posts` | 게시글 작성 |
 | `GET` | `/v1/posts` | 게시글 목록 (카테고리 필터, 페이지네이션) |
-| `GET` | `/v1/posts/{id}` | 게시글 상세 (조회수 증가) |
-| `PATCH` | `/v1/posts/{id}` | 게시글 부분 수정 (작성자) |
-| `DELETE` | `/v1/posts/{id}` | 게시글 삭제 (작성자) |
-| `POST` | `/v1/posts/{id}/like` | 좋아요 토글 |
-| `POST` | `/v1/posts/{id}/bookmark` | 북마크 토글 |
-| `DELETE` | `/v1/posts/{id}/like` | 좋아요 취소 |
-| `DELETE` | `/v1/posts/{id}/bookmark` | 북마크 취소 |
+| `GET` | `/v1/posts/{postId}` | 게시글 상세 (조회수 증가) |
+| `PATCH` | `/v1/posts/{postId}` | 게시글 부분 수정 (작성자) |
+| `DELETE` | `/v1/posts/{postId}` | 게시글 삭제 (작성자) |
+| `POST` | `/v1/posts/{postId}/like` | 좋아요 토글 |
+| `POST` | `/v1/posts/{postId}/bookmark` | 북마크 토글 |
+| `DELETE` | `/v1/posts/{postId}/like` | 좋아요 취소 |
+| `DELETE` | `/v1/posts/{postId}/bookmark` | 북마크 취소 |
 | `GET` | `/v1/posts/bookmarked` | 북마크한 게시글 목록 |
 | `GET` | `/v1/posts/{postId}/comments` | 댓글 목록 |
 | `POST` | `/v1/posts/{postId}/comments` | 댓글 작성 |
-| `PATCH` | `/v1/comments/{id}` | 댓글 부분 수정 |
-| `DELETE` | `/v1/comments/{id}` | 댓글 삭제 |
-| `POST` | `/v1/images` | 이미지 업로드 |
-| `GET` | `/v1/sse/posts` | 게시물 목록/조회수 실시간 구독 (SSE) |
+| `PATCH` | `/v1/comments/{commentId}` | 댓글 부분 수정 |
+| `DELETE` | `/v1/comments/{commentId}` | 댓글 삭제 |
+| `GET` | `/v1/members/me/posts` | 내가 작성한 게시글 목록 |
+| `GET` | `/v1/members/me/bookmarks` | 내가 북마크한 게시글 목록 |
+| `POST` | `/v1/images` | 이미지 업로드 (후속 범위) |
+| `GET` | `/v1/sse/posts` | 게시물 목록/조회수 실시간 구독 (후속 범위) |
 
 #### 4-4. 완료 기준
 
-- [ ] 게시글 CRUD + 이미지 첨부 동작
-- [ ] 익명 댓글 순번 부여 정확히 동작
-- [ ] 좋아요/북마크 토글 + 카운트 동기화 동작
+- [x] 게시글 CRUD + 댓글/상호작용 API 동작
+- [x] 익명 댓글 순번 부여 규칙(`anonId`, `anonymousOrder`) 동작
+- [x] 좋아요/북마크 등록/취소 + 카운트 동기화 동작
+- [x] 댓글 depth 1 제한 및 부모 삭제 정책(B) 동작
 
 ---
 
@@ -711,3 +716,5 @@ Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 > - 2026-03-05: Admin API를 도메인 Phase(3/5/6/7)에 배치, Phase 11(운영 공통 Admin 인프라) 추가, Phase 4/6/7/8 API 경로·메서드 동기화
 > - 2026-03-05: Support Phase에 관리자 문의/신고 조회·처리 API 추가 (`/v1/admin/inquiries`, `/v1/admin/reports`)
 > - 2026-03-05: Admin 권한 정책 구현 반영 — `ROLE_ADMIN + @PreAuthorize`, `ADMIN_REQUIRED` 표준화, Chat Admin API(`POST/DELETE /v1/admin/chat-rooms`) 완료 기준 반영
+> - 2026-03-05: Phase 4(Board) 구현 반영 — 댓글 depth 1 제한, 부모 삭제 정책(B: placeholder soft delete), `/v1/members/me/posts|bookmarks` API 및 카운트 동기화 전략 문서화
+> - 2026-03-06: README/로드맵 현재 상태를 Phase 4 완료 기준으로 동기화하고, Board API 경로 변수명을 코드 기준(`postId/commentId`)으로 정렬

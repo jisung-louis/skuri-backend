@@ -304,6 +304,8 @@ Hooks:
     - isAnonymous, anonId (= "{postId}:{userId}", 글 단위 익명 식별자)
     - anonymousOrder (서버 계산, 아래 규칙 참조)
     - parentId (대댓글용), isDeleted
+    - depth 정책: 0(댓글), 1(대댓글)만 허용
+    - 부모 삭제 정책(B): 부모는 placeholder("삭제된 댓글입니다")로 soft delete, 자식은 유지
 
   anonymousOrder 계산 규칙:
     - 게시글(postId) 단위로 Map<anonId, order> 관리
@@ -313,6 +315,12 @@ Hooks:
     - isAnonymous = false이면 anonymousOrder = null
   - PostInteraction
     - userId, postId, isLiked, isBookmarked
+    - 좋아요/북마크 카운트 동기화는 Post aggregate와 같은 트랜잭션에서 처리
+
+조회/정렬:
+  - 게시글 정렬: latest/popular/mostCommented/mostViewed
+  - 내 작성글: GET /v1/members/me/posts
+  - 내 북마크글: GET /v1/members/me/bookmarks
 
 카테고리:
   - GENERAL (일반)
@@ -1189,7 +1197,7 @@ public class PartyMessageService {
 
 - [ ] **Phase 3: 부가 기능**
   - [ ] Notice 도메인 + RSS 크롤러
-  - [ ] Board 도메인
+  - [x] Board 도메인 (댓글 depth 1 제한, 부모 삭제 정책 B 반영)
   - [ ] Academic 도메인
   - [ ] Support 도메인
 
@@ -1210,3 +1218,4 @@ public class PartyMessageService {
 
 > **문서 이력**
 > - 2026-02-03: 초안 작성 (도메인 분석 완료)
+> - 2026-03-05: Board 도메인 구현 반영 — 댓글 depth 1 제한, 부모 placeholder soft delete 정책(B), 내 게시글/북마크 조회 책임 추가
