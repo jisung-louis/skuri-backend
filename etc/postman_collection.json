@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "e13e4470-32ef-4f85-9887-e1e5cc6a0a02",
     "name": "SKURI Backend API",
-    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`, `03. Chat > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n- **Chat Regression**: `03. Chat > 00. Core`, `03. Chat > 10. Scenario Regression`, `03. Chat > 20. Contract Guard`, `03. Chat > 30. Realtime`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`\n7. `03. Chat > 00. Core`\n8. `03. Chat > 10. Scenario Regression`\n9. `03. Chat > 20. Contract Guard`\n10. `03. Chat > 30. Realtime`",
+    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`, `03. Chat > 00. Core`, `04. Board > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`, `04. Board > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`, `04. Board > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n- **Chat Regression**: `03. Chat > 00. Core`, `03. Chat > 10. Scenario Regression`, `03. Chat > 20. Contract Guard`, `03. Chat > 30. Realtime`\n- **Board Regression**: `04. Board > 00. Core`, `04. Board > 10. Scenario Regression`, `04. Board > 20. Contract Guard`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`\n7. `03. Chat > 00. Core`\n8. `03. Chat > 10. Scenario Regression`\n9. `03. Chat > 20. Contract Guard`\n10. `03. Chat > 30. Realtime`\n11. `04. Board > 00. Core`\n12. `04. Board > 10. Scenario Regression`\n13. `04. Board > 20. Contract Guard`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -2746,6 +2746,1046 @@
           ]
         }
       ]
+    },
+    {
+      "name": "04. Board",
+      "description": "## 목적\n- Board 도메인을 Core/Scenario/Guard로 분리해 검증합니다.\n\n## 실행 전\n- Member Core 실행 후 사용자 변수(`leaderId/member1Id/member2Id`) 확보\n- 토큰 변수(`leaderToken/member1Token/member2Token`) 준비\n\n## 하위 폴더\n- `00. Core`\n- `10. Scenario Regression`\n- `20. Contract Guard`",
+      "item": [
+        {
+          "name": "00. Core",
+          "description": "## 목적\n- Phase 4 Board 구현 API의 정상 플로우를 검증합니다.\n\n## 통과 기준\n- 게시글/댓글 ID 변수 저장 및 재사용\n- 좋아요/북마크/내 목록/댓글 CRUD가 정상 동작",
+          "item": [
+            {
+              "name": "게시글 작성(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/posts",
+                "description": "## 기능\n- 게시글 작성(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardPostId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createPost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createPost)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Phase4 Board 검증용 게시글\",\n  \"content\": \"Postman Core API 검증을 위한 본문입니다.\",\n  \"category\": \"GENERAL\",\n  \"isAnonymous\": false,\n  \"images\": []\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('boardPostId', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "게시글 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/posts?category=GENERAL&sort=latest&page=0&size=10",
+                "description": "## 기능\n- 게시글 목록 조회\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/posts?category=GENERAL&sort=latest&page=0&size=10`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardListFirstPostId` 저장(목록 첫 게시글 ID)\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (getPosts)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (getPosts)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const content = j && j.data && j.data.content ? j.data.content : [];",
+                      "if (content.length > 0 && content[0].id) pm.collectionVariables.set('boardListFirstPostId', content[0].id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "게시글 상세 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}",
+                "description": "## 기능\n- 게시글 상세 조회\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (getPostDetail)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (getPostDetail)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "게시글 수정",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}",
+                "description": "## 기능\n- 게시글 수정\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (updatePost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (updatePost)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Phase4 Board 수정 제목\",\n  \"content\": \"게시글 수정 API 검증 본문입니다.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "게시글 좋아요 등록",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}/like",
+                "description": "## 기능\n- 게시글 좋아요 등록\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}/like`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (likePost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (likePost)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/board/entity/PostInteraction.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "게시글 북마크 등록",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}/bookmark",
+                "description": "## 기능\n- 게시글 북마크 등록\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}/bookmark`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (bookmarkPost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (bookmarkPost)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/board/entity/PostInteraction.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "북마크 게시글 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/posts/bookmarked?page=0&size=10",
+                "description": "## 기능\n- 북마크 게시글 목록 조회\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/posts/bookmarked?page=0&size=10`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (getBookmarkedPosts)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (getBookmarkedPosts)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "내 북마크 게시글 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/members/me/bookmarks?page=0&size=10",
+                "description": "## 기능\n- 내 북마크 게시글 목록 조회\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/members/me/bookmarks?page=0&size=10`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/MemberBoardController.java (getMyBookmarks)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (getMyBookmarks)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "내 게시글 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/members/me/posts?page=0&size=10",
+                "description": "## 기능\n- 내 게시글 목록 조회\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/members/me/posts?page=0&size=10`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/MemberBoardController.java (getMyPosts)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (getMyPosts)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "게시글 좋아요 취소",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}/like",
+                "description": "## 기능\n- 게시글 좋아요 취소\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}/like`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (unlikePost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (unlikePost)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/board/entity/PostInteraction.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "게시글 북마크 취소",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}/bookmark",
+                "description": "## 기능\n- 게시글 북마크 취소\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}/bookmark`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (unbookmarkPost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (unbookmarkPost)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/board/entity/PostInteraction.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "댓글 작성 루트(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}/comments",
+                "description": "## 기능\n- 댓글 작성 루트(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}/comments`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardRootCommentId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createComment)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"Core 루트 댓글입니다.\",\n  \"isAnonymous\": true,\n  \"parentId\": null\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('boardRootCommentId', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "댓글 작성 대댓글(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}/comments",
+                "description": "## 기능\n- 댓글 작성 대댓글(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}`, `{{boardRootCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}/comments`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardReplyCommentId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createComment)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"Core 대댓글입니다.\",\n  \"isAnonymous\": true,\n  \"parentId\": \"{{boardRootCommentId}}\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('boardReplyCommentId', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "댓글 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}/comments",
+                "description": "## 기능\n- 댓글 목록 조회\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}/comments`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (getComments)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (getComments)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "댓글 수정",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/comments/{{boardReplyCommentId}}",
+                "description": "## 기능\n- 댓글 수정\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardReplyCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/comments/{{boardReplyCommentId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/CommentController.java (updateComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (updateComment)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"Core 대댓글 수정 내용입니다.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "댓글 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/comments/{{boardReplyCommentId}}",
+                "description": "## 기능\n- 댓글 삭제\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardReplyCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/comments/{{boardReplyCommentId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/CommentController.java (deleteComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (deleteComment)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/board/entity/Comment.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "게시글 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/posts/{{boardPostId}}",
+                "description": "## 기능\n- 게시글 삭제\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- 변수 `{{boardPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/posts/{{boardPostId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (deletePost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (deletePost)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Scenario Regression",
+          "description": "## 목적\n- 익명 순번/부모 삭제 placeholder 정책을 시나리오로 회귀 검증합니다.\n\n## 통과 기준\n- 동일 작성자 익명 순번 유지\n- 부모 삭제 후 placeholder 유지 + 자식 댓글 보존",
+          "item": [
+            {
+              "name": "01. 익명 순번 + 부모 삭제 placeholder 시나리오",
+              "description": "## Given / When / Then\n- Given: 게시글 생성 후 익명 루트/대댓글 작성\n- When: 부모 댓글 삭제(soft delete placeholder)\n- Then: 부모는 삭제 표시, 자식 댓글은 트리에 유지",
+              "item": [
+                {
+                  "name": "시나리오 게시글 작성(201)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/posts",
+                    "description": "## 기능\n- 시나리오 게시글 작성(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardScenarioPostId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createPost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createPost)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"title\": \"Scenario 익명/placeholder 검증\",\n  \"content\": \"댓글 depth/placeholder 정책 검증용 게시글입니다.\",\n  \"category\": \"QUESTION\",\n  \"isAnonymous\": false,\n  \"images\": []\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('boardScenarioPostId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "익명 댓글 작성(순번1)(201)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/posts/{{boardScenarioPostId}}/comments",
+                    "description": "## 기능\n- 익명 댓글 작성(순번1)(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{boardScenarioPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardScenarioPostId}}/comments`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardScenarioRootCommentId` 저장\n- `boardScenarioAnonOrder` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (resolveAnonymousMetadata, createComment)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"content\": \"시나리오 루트 댓글\",\n  \"isAnonymous\": true,\n  \"parentId\": null\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('boardScenarioRootCommentId', j.data.id);",
+                          "if (j && j.data && j.data.anonymousOrder !== null && j.data.anonymousOrder !== undefined) {",
+                          "  pm.collectionVariables.set('boardScenarioAnonOrder', String(j.data.anonymousOrder));",
+                          "}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "익명 대댓글 작성(순번 유지)(201)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/posts/{{boardScenarioPostId}}/comments",
+                    "description": "## 기능\n- 익명 대댓글 작성(순번 유지)(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{boardScenarioPostId}}`, `{{boardScenarioRootCommentId}}`, `{{boardScenarioAnonOrder}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardScenarioPostId}}/comments`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardScenarioReplyCommentId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (resolveAnonymousMetadata, createComment)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"content\": \"시나리오 대댓글\",\n  \"isAnonymous\": true,\n  \"parentId\": \"{{boardScenarioRootCommentId}}\"\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('boardScenarioReplyCommentId', j.data.id);",
+                          "const expectedAnonOrder = pm.collectionVariables.get('boardScenarioAnonOrder');",
+                          "pm.test('익명 순번 유지', function () {",
+                          "  pm.expect(String(j.data.anonymousOrder)).to.eql(String(expectedAnonOrder));",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "부모 댓글 삭제(placeholder)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/v1/comments/{{boardScenarioRootCommentId}}",
+                    "description": "## 기능\n- 부모 댓글 삭제(placeholder)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{boardScenarioRootCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/comments/{{boardScenarioRootCommentId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/CommentController.java (deleteComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (deleteComment)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/board/entity/Comment.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+                  }
+                },
+                {
+                  "name": "댓글 목록 조회(placeholder 검증)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "url": "{{baseUrl}}/v1/posts/{{boardScenarioPostId}}/comments",
+                    "description": "## 기능\n- 댓글 목록 조회(placeholder 검증)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{boardScenarioPostId}}`, `{{boardScenarioRootCommentId}}`, `{{boardScenarioReplyCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/posts/{{boardScenarioPostId}}/comments`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (getComments)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (getComments, toCommentResponse)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/board/entity/Comment.java\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "const rootId = pm.collectionVariables.get('boardScenarioRootCommentId');",
+                          "const replyId = pm.collectionVariables.get('boardScenarioReplyCommentId');",
+                          "const roots = (j && j.data) ? j.data : [];",
+                          "const root = roots.find((c) => c.id === rootId);",
+                          "pm.test('부모 댓글 placeholder 유지', function () {",
+                          "  pm.expect(root).to.exist;",
+                          "  pm.expect(root.isDeleted).to.eql(true);",
+                          "  pm.expect(root.content).to.eql('삭제된 댓글입니다');",
+                          "});",
+                          "const replies = root && root.replies ? root.replies : [];",
+                          "const reply = replies.find((c) => c.id === replyId);",
+                          "pm.test('자식 댓글 유지', function () {",
+                          "  pm.expect(reply).to.exist;",
+                          "  pm.expect(reply.isDeleted).to.eql(false);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "시나리오 게시글 삭제(정리)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/v1/posts/{{boardScenarioPostId}}",
+                    "description": "## 기능\n- 시나리오 게시글 삭제(정리)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- 변수 `{{boardScenarioPostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/posts/{{boardScenarioPostId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (deletePost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (deletePost)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "20. Contract Guard",
+          "description": "## 목적\n- 인증/권한/검증/비즈니스 예외 계약을 검증합니다.\n\n## 통과 기준\n- 기대 HTTP 코드 및 `errorCode` 일치",
+          "item": [
+            {
+              "name": "00. Setup",
+              "description": "## 목적\n- Board 네거티브 검증용 기준 게시글/댓글을 생성합니다.\n\n## 출력 변수\n- `boardNegativePostId`, `boardNegativeRootCommentId`, `boardNegativeReplyCommentId`",
+              "item": [
+                {
+                  "name": "네거티브 기준 게시글 생성(201)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{leaderToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/posts",
+                    "description": "## 기능\n- 네거티브 기준 게시글 생성(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardNegativePostId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createPost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createPost)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"title\": \"Contract Guard 기준 게시글\",\n  \"content\": \"Board Contract Guard 검증용 게시글입니다.\",\n  \"category\": \"REVIEW\",\n  \"isAnonymous\": false,\n  \"images\": []\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('boardNegativePostId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "네거티브 루트 댓글 생성(201)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member1Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/posts/{{boardNegativePostId}}/comments",
+                    "description": "## 기능\n- 네거티브 루트 댓글 생성(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{boardNegativePostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardNegativePostId}}/comments`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardNegativeRootCommentId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createComment)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"content\": \"Contract Guard 루트 댓글\",\n  \"isAnonymous\": false,\n  \"parentId\": null\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('boardNegativeRootCommentId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "네거티브 대댓글 생성(201)",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{member2Token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "url": "{{baseUrl}}/v1/posts/{{boardNegativePostId}}/comments",
+                    "description": "## 기능\n- 네거티브 대댓글 생성(201)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{boardNegativePostId}}`, `{{boardNegativeRootCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardNegativePostId}}/comments`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardNegativeReplyCommentId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createComment)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"content\": \"Contract Guard 대댓글\",\n  \"isAnonymous\": false,\n  \"parentId\": \"{{boardNegativeRootCommentId}}\"\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const j = pm.response.json();",
+                          "if (j && j.data && j.data.id) pm.collectionVariables.set('boardNegativeReplyCommentId', j.data.id);"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "인증 없이 게시글 목록 조회(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/posts",
+                "description": "## 기능\n- 인증 없이 게시글 목록 조회(401 확인)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (인증 실패 검증)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/posts`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `401`\n- Collection 공통 Tests 통과\n- 에러 코드: `UNAUTHORIZED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (getPosts)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('UNAUTHORIZED', function () { pm.expect(j.errorCode).to.eql('UNAUTHORIZED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "존재하지 않는 게시글 상세 조회(404)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/posts/not-exist-post-id",
+                "description": "## 기능\n- 존재하지 않는 게시글 상세 조회(404)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{leaderToken}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/posts/not-exist-post-id`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `404`\n- Collection 공통 Tests 통과\n- 에러 코드: `POST_NOT_FOUND`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (getPostDetail)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (getPostDetail)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('POST_NOT_FOUND', function () { pm.expect(j.errorCode).to.eql('POST_NOT_FOUND'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "비작성자 게시글 수정 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/posts/{{boardNegativePostId}}",
+                "description": "## 기능\n- 비작성자 게시글 수정 권한 검증(403)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{boardNegativePostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/posts/{{boardNegativePostId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `NOT_POST_AUTHOR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (updatePost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (requirePostAuthor, updatePost)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"권한 위반 수정 시도\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('NOT_POST_AUTHOR', function () { pm.expect(j.errorCode).to.eql('NOT_POST_AUTHOR'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "비작성자 게시글 삭제 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/posts/{{boardNegativePostId}}",
+                "description": "## 기능\n- 비작성자 게시글 삭제 권한 검증(403)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{boardNegativePostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/posts/{{boardNegativePostId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `NOT_POST_AUTHOR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (deletePost)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (requirePostAuthor, deletePost)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('NOT_POST_AUTHOR', function () { pm.expect(j.errorCode).to.eql('NOT_POST_AUTHOR'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "대대댓글 작성 차단 검증(409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/posts/{{boardNegativePostId}}/comments",
+                "description": "## 기능\n- 대대댓글 작성 차단 검증(409)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{boardNegativePostId}}`, `{{boardNegativeReplyCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardNegativePostId}}/comments`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `409`\n- Collection 공통 Tests 통과\n- 에러 코드: `COMMENT_DEPTH_EXCEEDED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createComment)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/board/repository/CommentRepository.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"depth 2 초과 시도\",\n  \"isAnonymous\": false,\n  \"parentId\": \"{{boardNegativeReplyCommentId}}\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('COMMENT_DEPTH_EXCEEDED', function () { pm.expect(j.errorCode).to.eql('COMMENT_DEPTH_EXCEEDED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "네거티브 대댓글 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/comments/{{boardNegativeReplyCommentId}}",
+                "description": "## 기능\n- 네거티브 대댓글 삭제\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{boardNegativeReplyCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/comments/{{boardNegativeReplyCommentId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `boardDeletedCommentId` 저장\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/CommentController.java (deleteComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (deleteComment)\n- Domain: src/main/java/com/skuri/skuri_backend/domain/board/entity/Comment.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('boardDeletedCommentId', pm.collectionVariables.get('boardNegativeReplyCommentId'));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "삭제된 댓글 수정 차단 검증(409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/comments/{{boardDeletedCommentId}}",
+                "description": "## 기능\n- 삭제된 댓글 수정 차단 검증(409)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{boardDeletedCommentId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member2Token}}`\n\n## 요청\n- Method: `PATCH`\n- URL: `{{baseUrl}}/v1/comments/{{boardDeletedCommentId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `409`\n- Collection 공통 Tests 통과\n- 에러 코드: `COMMENT_ALREADY_DELETED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/CommentController.java (updateComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (updateComment)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"삭제된 댓글 수정 시도\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('COMMENT_ALREADY_DELETED', function () { pm.expect(j.errorCode).to.eql('COMMENT_ALREADY_DELETED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "댓글 작성 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/posts/{{boardNegativePostId}}/comments",
+                "description": "## 기능\n- 댓글 작성 검증 실패 확인(422)\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{boardNegativePostId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/posts/{{boardNegativePostId}}/comments`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 검증/비즈니스 규칙 위반 시 `409/422` 및 `errorCode` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/board/controller/PostController.java (createComment)\n- Service: src/main/java/com/skuri/skuri_backend/domain/board/service/BoardService.java (createComment)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드 정의: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \" \",\n  \"isAnonymous\": false,\n  \"parentId\": null\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('VALIDATION_ERROR', function () { pm.expect(j.errorCode).to.eql('VALIDATION_ERROR'); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -2896,6 +3936,54 @@
     {
       "key": "chatLastReadAt",
       "value": ""
+    },
+    {
+      "key": "boardPostId",
+      "value": ""
+    },
+    {
+      "key": "boardListFirstPostId",
+      "value": ""
+    },
+    {
+      "key": "boardRootCommentId",
+      "value": ""
+    },
+    {
+      "key": "boardReplyCommentId",
+      "value": ""
+    },
+    {
+      "key": "boardScenarioPostId",
+      "value": ""
+    },
+    {
+      "key": "boardScenarioRootCommentId",
+      "value": ""
+    },
+    {
+      "key": "boardScenarioReplyCommentId",
+      "value": ""
+    },
+    {
+      "key": "boardScenarioAnonOrder",
+      "value": ""
+    },
+    {
+      "key": "boardNegativePostId",
+      "value": ""
+    },
+    {
+      "key": "boardNegativeRootCommentId",
+      "value": ""
+    },
+    {
+      "key": "boardNegativeReplyCommentId",
+      "value": ""
+    },
+    {
+      "key": "boardDeletedCommentId",
+      "value": ""
     }
   ],
   "event": [
@@ -2955,6 +4043,13 @@
           "  '비관리자 공개 채팅방 삭제 권한 검증(403)': 'ADMIN_REQUIRED',",
           "  'PARTY 타입 공개 채팅방 생성 검증(400)': 'INVALID_REQUEST',",
           "  'isPublic=false 공개 채팅방 생성 검증(400)': 'INVALID_REQUEST',",
+          "  '인증 없이 게시글 목록 조회(401 확인)': 'UNAUTHORIZED',",
+          "  '존재하지 않는 게시글 상세 조회(404)': 'POST_NOT_FOUND',",
+          "  '비작성자 게시글 수정 권한 검증(403)': 'NOT_POST_AUTHOR',",
+          "  '비작성자 게시글 삭제 권한 검증(403)': 'NOT_POST_AUTHOR',",
+          "  '대대댓글 작성 차단 검증(409)': 'COMMENT_DEPTH_EXCEEDED',",
+          "  '삭제된 댓글 수정 차단 검증(409)': 'COMMENT_ALREADY_DELETED',",
+          "  '댓글 작성 검증 실패 확인(422)': 'VALIDATION_ERROR',",
           "};",
           "",
           "const isFirebaseEmulatorAuthRequest = name.startsWith('에뮬레이터 Google 로그인(') || name === '에뮬레이터 관리자 계정 생성(email/password)' || name === '에뮬레이터 관리자 로그인(토큰 저장)';",

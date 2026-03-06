@@ -40,6 +40,7 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("member")
                 .pathsToMatch("/v1/members/**")
+                .pathsToExclude("/v1/members/me/posts", "/v1/members/me/bookmarks")
                 .build();
     }
 
@@ -71,6 +72,19 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("chat")
                 .pathsToMatch("/v1/chat-rooms/**", "/v1/admin/chat-rooms/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi boardApi() {
+        return GroupedOpenApi.builder()
+                .group("board")
+                .pathsToMatch(
+                        "/v1/posts/**",
+                        "/v1/comments/**",
+                        "/v1/members/me/posts",
+                        "/v1/members/me/bookmarks"
+                )
                 .build();
     }
 }

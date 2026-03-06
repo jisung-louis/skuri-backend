@@ -219,7 +219,7 @@ erDiagram
         boolean is_anonymous "DEFAULT false"
         varchar(36) anon_id
         int anonymous_order "익명1, 익명2..."
-        varchar(36) parent_id FK "대댓글용"
+        varchar(36) parent_id FK "대댓글용(depth 1)"
         boolean is_deleted "DEFAULT false"
         datetime created_at
         datetime updated_at
@@ -634,7 +634,7 @@ erDiagram
 | 채팅방-메시지 | chat_rooms | chat_messages | 1:N | 채팅방에 여러 메시지 |
 | 게시글-이미지 | posts | post_images | 1:N | 게시글에 여러 이미지 |
 | 게시글-댓글 | posts | comments | 1:N | 게시글에 여러 댓글 |
-| 댓글-대댓글 | comments | comments | 1:N (self) | 댓글에 여러 대댓글 |
+| 댓글-대댓글 | comments | comments | 1:N (self) | depth 1까지만 허용, 부모 삭제 시 placeholder soft delete |
 | 게시글-상호작용 | posts | post_interactions | 1:N | 게시글에 여러 좋아요/북마크 |
 | 공지-읽음 | notices | notice_read_status | 1:N | 공지별 읽음 상태 |
 | 공지-댓글 | notices | notice_comments | 1:N | 공지에 여러 댓글 |
@@ -688,7 +688,7 @@ ALTER TABLE comments
 
 ALTER TABLE comments
   ADD CONSTRAINT fk_comments_parent
-  FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE;
+  FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE SET NULL;
 
 ALTER TABLE post_interactions
   ADD CONSTRAINT fk_post_interactions_post
@@ -836,3 +836,4 @@ CREATE INDEX idx_audit_logs_timestamp ON admin_audit_logs(timestamp DESC);
 
 > **문서 이력**
 > - 2026-02-03: 초안 작성
+> - 2026-03-05: Board 댓글 정책 동기화 — `comments.parent_id` 관계를 부모 보존 정책(B)에 맞게 정정(`ON DELETE SET NULL`), depth 1 제약/placeholder soft delete 설명 반영

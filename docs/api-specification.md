@@ -1225,21 +1225,44 @@ Authorization:Bearer <firebase_id_token>
 
 ## 5. Board API
 
-### 5.1 게시글 조회
+### 5.1 구현 범위
+
+| Method | Path | 설명 |
+|---|---|---|
+| `POST` | `/v1/posts` | 게시글 작성 |
+| `GET` | `/v1/posts` | 게시글 목록 조회 |
+| `GET` | `/v1/posts/{postId}` | 게시글 상세 조회 (조회수 증가) |
+| `PATCH` | `/v1/posts/{postId}` | 게시글 수정 (작성자) |
+| `DELETE` | `/v1/posts/{postId}` | 게시글 삭제 (작성자, soft delete) |
+| `POST` | `/v1/posts/{postId}/like` | 좋아요 등록 |
+| `DELETE` | `/v1/posts/{postId}/like` | 좋아요 취소 |
+| `POST` | `/v1/posts/{postId}/bookmark` | 북마크 등록 |
+| `DELETE` | `/v1/posts/{postId}/bookmark` | 북마크 취소 |
+| `GET` | `/v1/posts/bookmarked` | 내 북마크 게시글 목록 |
+| `GET` | `/v1/posts/{postId}/comments` | 댓글 트리 조회 |
+| `POST` | `/v1/posts/{postId}/comments` | 댓글/대댓글 작성 |
+| `PATCH` | `/v1/comments/{commentId}` | 댓글 수정 (작성자) |
+| `DELETE` | `/v1/comments/{commentId}` | 댓글 삭제 (작성자, placeholder soft delete) |
+| `GET` | `/v1/members/me/posts` | 내가 작성한 게시글 목록 |
+| `GET` | `/v1/members/me/bookmarks` | 내가 북마크한 게시글 목록 |
+
+### 5.2 게시글 목록/상세
 
 #### GET /v1/posts
-게시글 목록
 
-**Query Parameters:**
+**Query Parameters**
 
 | 파라미터 | 타입 | 설명 |
-|---------|------|------|
-| `category` | string | 카테고리 (GENERAL, QUESTION, REVIEW, ANNOUNCEMENT) |
-| `search` | string | 제목/내용 검색 |
-| `authorId` | string | 작성자 ID |
-| `sort` | string | 정렬 (latest, popular, mostCommented, mostViewed) |
+|---|---|---|
+| `category` | string | `GENERAL`, `QUESTION`, `REVIEW`, `ANNOUNCEMENT` |
+| `search` | string | 제목/본문 검색 |
+| `authorId` | string | 특정 작성자 필터 |
+| `sort` | string | `latest`, `popular`, `mostCommented`, `mostViewed` |
+| `page` | number | 기본 0 |
+| `size` | number | 기본 20 (1~100) |
 
-**Response:**
+**Response**
+
 ```json
 {
   "success": true,
@@ -1264,57 +1287,22 @@ Authorization:Bearer <firebase_id_token>
     ],
     "page": 0,
     "size": 20,
-    "totalElements": 100
+    "totalElements": 100,
+    "totalPages": 5,
+    "hasNext": true,
+    "hasPrevious": false
   }
 }
 ```
 
 #### GET /v1/posts/{postId}
-게시글 상세
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "post_uuid",
-    "title": "게시글 제목",
-    "content": "게시글 전체 내용",
-    "authorId": "user_uuid",
-    "authorName": "홍길동",
-    "authorProfileImage": "https://...",
-    "isAnonymous": false,
-    "category": "GENERAL",
-    "viewCount": 101,
-    "likeCount": 10,
-    "commentCount": 5,
-    "bookmarkCount": 3,
-    "images": [
-      {
-        "url": "https://...",
-        "thumbUrl": "https://...",
-        "width": 800,
-        "height": 600
-      }
-    ],
-    "isLiked": true,
-    "isBookmarked": false,
-    "isAuthor": true,
-    "createdAt": "2026-02-03T12:00:00Z",
-    "updatedAt": "2026-02-03T12:00:00Z"
-  }
-}
-```
+- 조회 시 `viewCount`를 서버에서 +1 동기화한다.
 
-#### GET /v1/posts/bookmarked
-북마크한 게시글 목록
-
-### 5.2 게시글 작성/수정
+### 5.3 게시글 작성/수정/삭제
 
 #### POST /v1/posts
-게시글 작성
 
-**Request:**
 ```json
 {
   "title": "게시글 제목",
@@ -1326,92 +1314,59 @@ Authorization:Bearer <firebase_id_token>
       "url": "https://...",
       "thumbUrl": "https://...",
       "width": 800,
-      "height": 600
+      "height": 600,
+      "size": 245123,
+      "mime": "image/jpeg"
     }
   ]
 }
 ```
 
 #### PATCH /v1/posts/{postId}
-게시글 수정
 
-**Request:**
 ```json
 {
   "title": "수정된 제목",
-  "content": "수정된 내용"
+  "content": "수정된 내용",
+  "category": "QUESTION"
 }
 ```
 
 #### DELETE /v1/posts/{postId}
-게시글 삭제
 
-### 5.3 게시글 상호작용
+- `posts.is_deleted=true`로 soft delete 처리한다.
+- 삭제된 게시글은 목록/상세/북마크 조회에서 제외한다.
+
+### 5.4 상호작용(좋아요/북마크)
+
+- 단일 테이블 `post_interactions`(`user_id`,`post_id`)에서 `isLiked`, `isBookmarked`를 함께 관리한다.
+- 카운트(`likeCount`, `bookmarkCount`)는 같은 트랜잭션에서 동기화한다.
 
 #### POST /v1/posts/{postId}/like
-좋아요
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "isLiked": true,
-    "likeCount": 11
-  }
-}
-```
-
 #### DELETE /v1/posts/{postId}/like
-좋아요 취소
-
 #### POST /v1/posts/{postId}/bookmark
-북마크
-
 #### DELETE /v1/posts/{postId}/bookmark
-북마크 취소
 
-### 5.4 댓글
+### 5.5 댓글 정책
+
+- 깊이 제한: 댓글(depth 0) + 대댓글(depth 1)만 허용한다.
+- `parentId`가 이미 대댓글(depth 1)인 경우 `409 COMMENT_DEPTH_EXCEEDED`.
+- 익명 규칙:
+  - `anonId = "{postId}:{userId}"`
+  - 게시글 단위로 기존 `anonId`가 있으면 기존 `anonymousOrder` 재사용
+  - 없으면 `max(anonymousOrder)+1` 부여
+  - 삭제 후에도 순번 재계산 없음
 
 #### GET /v1/posts/{postId}/comments
-댓글 목록
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "comment_uuid",
-      "content": "댓글 내용",
-      "authorId": "user_uuid",
-      "authorName": "홍길동",
-      "authorProfileImage": "https://...",
-      "isAnonymous": false,
-      "anonymousOrder": null,
-      "isAuthor": false,
-      "isPostAuthor": true,
-      "replies": [
-        {
-          "id": "reply_uuid",
-          "content": "대댓글 내용",
-          "authorId": "user_uuid_2",
-          "authorName": "익명2",
-          "isAnonymous": true,
-          "anonymousOrder": 2,
-          "createdAt": "2026-02-03T12:30:00Z"
-        }
-      ],
-      "createdAt": "2026-02-03T12:00:00Z"
-    }
-  ]
-}
-```
+**부모 삭제 정책(B)**
+
+- 부모 댓글 삭제 시 하드 삭제하지 않고 `isDeleted=true`, `content="삭제된 댓글입니다"`로 placeholder 처리
+- 자식 댓글은 유지한다.
+- 조회 응답은 트리 정합성을 보장하도록 부모 노드를 유지한 채 `replies`를 반환한다.
 
 #### POST /v1/posts/{postId}/comments
-댓글 작성
 
-**Request:**
 ```json
 {
   "content": "댓글 내용",
@@ -1420,7 +1375,6 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-**Request (대댓글):**
 ```json
 {
   "content": "대댓글 내용",
@@ -1430,19 +1384,28 @@ Authorization:Bearer <firebase_id_token>
 ```
 
 #### PATCH /v1/comments/{commentId}
-댓글 수정
-
 #### DELETE /v1/comments/{commentId}
-댓글 삭제
 
-### 5.5 에러 코드
+### 5.6 내 게시글/북마크
 
-| 에러 코드 | 설명 |
-|----------|------|
-| `POST_NOT_FOUND` | 게시글을 찾을 수 없음 |
-| `COMMENT_NOT_FOUND` | 댓글을 찾을 수 없음 |
-| `NOT_POST_AUTHOR` | 게시글 작성자가 아님 |
-| `NOT_COMMENT_AUTHOR` | 댓글 작성자가 아님 |
+#### GET /v1/members/me/posts
+
+- 내 작성글 페이징 조회.
+
+#### GET /v1/members/me/bookmarks
+
+- 내 북마크 페이징 조회.
+
+### 5.7 에러 코드
+
+| 에러 코드 | HTTP | 설명 |
+|---|---|---|
+| `POST_NOT_FOUND` | 404 | 게시글 없음 |
+| `COMMENT_NOT_FOUND` | 404 | 댓글 없음 |
+| `NOT_POST_AUTHOR` | 403 | 게시글 작성자만 수정/삭제 가능 |
+| `NOT_COMMENT_AUTHOR` | 403 | 댓글 작성자만 수정/삭제 가능 |
+| `COMMENT_DEPTH_EXCEEDED` | 409 | 댓글 depth 1 초과 |
+| `COMMENT_ALREADY_DELETED` | 409 | 이미 삭제된 댓글 수정/삭제 시도 |
 
 ---
 
@@ -3232,3 +3195,4 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강
+> - 2026-03-05: Board 계약 동기화 — 댓글 depth 1 제한, 부모 삭제 정책(B: placeholder soft delete), `/v1/members/me/posts|bookmarks` 및 Board 에러코드(`COMMENT_DEPTH_EXCEEDED`, `COMMENT_ALREADY_DELETED`) 반영
