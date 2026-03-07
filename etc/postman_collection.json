@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "e13e4470-32ef-4f85-9887-e1e5cc6a0a02",
     "name": "SKURI Backend API",
-    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`, `03. Chat > 00. Core`, `04. Board > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`, `04. Board > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`, `04. Board > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n- **Chat Regression**: `03. Chat > 00. Core`, `03. Chat > 10. Scenario Regression`, `03. Chat > 20. Contract Guard`, `03. Chat > 30. Realtime`\n- **Board Regression**: `04. Board > 00. Core`, `04. Board > 10. Scenario Regression`, `04. Board > 20. Contract Guard`\n- **Notice Regression**: `05. Notice > 00. Core`, `05. Notice > 10. Scenario Regression`, `05. Notice > 20. Contract Guard`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`\n7. `03. Chat > 00. Core`\n8. `03. Chat > 10. Scenario Regression`\n9. `03. Chat > 20. Contract Guard`\n10. `03. Chat > 30. Realtime`\n11. `04. Board > 00. Core`\n12. `04. Board > 10. Scenario Regression`\n13. `04. Board > 20. Contract Guard`\n14. `05. Notice > 00. Core`\n15. `05. Notice > 10. Scenario Regression`\n16. `05. Notice > 20. Contract Guard`",
+    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`, `03. Chat > 00. Core`, `04. Board > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`, `04. Board > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`, `04. Board > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n- **Chat Regression**: `03. Chat > 00. Core`, `03. Chat > 10. Scenario Regression`, `03. Chat > 20. Contract Guard`, `03. Chat > 30. Realtime`\n- **Board Regression**: `04. Board > 00. Core`, `04. Board > 10. Scenario Regression`, `04. Board > 20. Contract Guard`\n- **Notice Regression**: `05. Notice > 00. Core`, `05. Notice > 10. Scenario Regression`, `05. Notice > 20. Contract Guard`\n- **Academic Regression**: `06. Academic > 00. Core`, `06. Academic > 10. Scenario Regression`, `06. Academic > 20. Contract Guard`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n- Academic: `academicCore*`, `academicScenario*`, `academicGuard*`\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`\n7. `03. Chat > 00. Core`\n8. `03. Chat > 10. Scenario Regression`\n9. `03. Chat > 20. Contract Guard`\n10. `03. Chat > 30. Realtime`\n11. `04. Board > 00. Core`\n12. `04. Board > 10. Scenario Regression`\n13. `04. Board > 20. Contract Guard`\n14. `05. Notice > 00. Core`\n15. `05. Notice > 10. Scenario Regression`\n16. `05. Notice > 20. Contract Guard`\n17. `06. Academic > 00. Core`\n18. `06. Academic > 10. Scenario Regression`\n19. `06. Academic > 20. Contract Guard`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -5033,8 +5033,7 @@
                   "mode": "raw",
                   "raw": "{\n  \"content\": \"공지 depth 2 허용 검증\",\n  \"isAnonymous\": false,\n  \"parentId\": \"{{noticeContractReplyCommentId}}\"\n}"
                 }
-              }
-            ,
+              },
               "event": [
                 {
                   "listen": "test",
@@ -5198,6 +5197,1207 @@
                   "mode": "raw",
                   "raw": "{\n  \"title\": \"없는 앱 공지 수정 시도\"\n}"
                 }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06. Academic",
+      "description": "## 목적\n- Phase 6 Academic 도메인의 강의 검색/시간표/학사 일정/관리자 강의 동기화 API를 검증합니다.\n\n## 실행 전\n- `01. Member > 00. Core` 실행 후 `member1Token`, `adminToken` 확보\n- Postman 수동 검증은 예약 학기 `2099-1`, `2099-2`, `2100-1`을 사용해 기존 데이터 간섭을 줄입니다.\n\n## 하위 폴더\n- `00. Core`\n- `10. Scenario Regression`\n- `20. Contract Guard`",
+      "item": [
+        {
+          "name": "00. Core",
+          "description": "## 목적\n- Phase 6 Academic 구현 API의 기본 성공 흐름을 검증합니다.\n\n## 통과 기준\n- 관리자 강의 초기화/일괄 등록 후 강의 검색으로 courseId를 저장합니다.\n- 내 시간표 추가/조회/삭제가 정상 동작합니다.\n- 학사 일정 생성/조회/수정/삭제가 정상 동작합니다.",
+          "item": [
+            {
+              "name": "Core 학기 강의 초기화",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/courses?semester={{academicCoreSemester}}",
+                "description": "## 기능\n- Postman 전용 Core 학기 강의를 초기화합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n- Academic Core 검증은 예약 학기 `{{academicCoreSemester}}`를 사용합니다.\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/admin/courses?semester={{academicCoreSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicCoreCourseId`, `academicCoreAltCourseId`, `academicTimetableId` 초기화\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- semester 파라미터가 비어 있으면 `400 INVALID_REQUEST`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (deleteCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (deleteSemesterCourses)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/CourseRepository.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('Core 강의 초기화 semester 일치', function () { pm.expect(j.data.semester).to.eql(pm.collectionVariables.get('academicCoreSemester')); });",
+                      "['academicCoreCourseId', 'academicCoreAltCourseId', 'academicTimetableId'].forEach(function (key) { pm.collectionVariables.set(key, ''); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학기 강의 일괄 등록",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/courses/bulk",
+                "description": "## 기능\n- 관리자 강의 bulk 업서트로 Core 학기 강의를 준비합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n- `Core 학기 강의 초기화`가 선행되어야 합니다.\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/courses/bulk`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- 요청 필드가 비정상이면 `422 VALIDATION_ERROR`\n- 동시 충돌이 나면 `409 CONFLICT`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (bulkUpsertCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (bulkUpsertCourses)\n- DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/AdminBulkCoursesRequest.java\n- 예외 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"semester\": \"{{academicCoreSemester}}\",\n  \"courses\": [\n    {\n      \"code\": \"P6CORE101\",\n      \"division\": \"001\",\n      \"name\": \"Academic Core 설계\",\n      \"credits\": 3,\n      \"professor\": \"Phase6교수\",\n      \"department\": \"컴퓨터공학과\",\n      \"grade\": 2,\n      \"category\": \"전공선택\",\n      \"location\": \"IT201\",\n      \"note\": \"Postman Core 강의 A\",\n      \"schedule\": [\n        {\n          \"dayOfWeek\": 1,\n          \"startPeriod\": 3,\n          \"endPeriod\": 4\n        },\n        {\n          \"dayOfWeek\": 3,\n          \"startPeriod\": 3,\n          \"endPeriod\": 4\n        }\n      ]\n    },\n    {\n      \"code\": \"P6CORE102\",\n      \"division\": \"001\",\n      \"name\": \"Academic Core 검증\",\n      \"credits\": 2,\n      \"professor\": \"Phase6교수\",\n      \"department\": \"컴퓨터공학과\",\n      \"grade\": 2,\n      \"category\": \"전공선택\",\n      \"location\": \"IT202\",\n      \"note\": \"Postman Core 강의 B\",\n      \"schedule\": [\n        {\n          \"dayOfWeek\": 1,\n          \"startPeriod\": 5,\n          \"endPeriod\": 6\n        }\n      ]\n    }\n  ]\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('Core bulk 업서트 응답 필드 확인', function () { ['semester', 'created', 'updated', 'deleted'].forEach(function (key) { pm.expect(j.data).to.have.property(key); }); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "강의 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/courses?semester={{academicCoreSemester}}&department=%EC%BB%B4%ED%93%A8%ED%84%B0%EA%B3%B5%ED%95%99%EA%B3%BC&professor=Phase6%EA%B5%90%EC%88%98&search=Academic%20Core&dayOfWeek=1&grade=2&page=0&size=20",
+                "description": "## 기능\n- 학기/학과/교수/키워드/요일/학년 필터를 조합해 Core 강의를 조회합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- `학기 강의 일괄 등록`이 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/courses?semester={{academicCoreSemester}}&department=컴퓨터공학과&professor=Phase6교수&search=Academic Core&dayOfWeek=1&grade=2&page=0&size=20`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicCoreCourseId`, `academicCoreAltCourseId` 저장\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- dayOfWeek/grade/page/size가 비정상이면 `422 VALIDATION_ERROR`\n- 응답 목록이 비어 있으면 bulk 등록이 실제로 반영됐는지 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseController.java (getCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (getCourses)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/CourseRepository.java (search)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const content = (((j || {}).data || {}).content) || [];",
+                      "const first = content.find(function (course) { return course.code === 'P6CORE101'; });",
+                      "const second = content.find(function (course) { return course.code === 'P6CORE102'; });",
+                      "pm.test('Core 강의 2건이 필터 결과에 포함됨', function () { pm.expect(first).to.exist; pm.expect(second).to.exist; });",
+                      "if (first && first.id) pm.collectionVariables.set('academicCoreCourseId', first.id);",
+                      "if (second && second.id) pm.collectionVariables.set('academicCoreAltCourseId', second.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 시간표 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/timetables/my?semester={{academicCoreSemester}}",
+                "description": "## 기능\n- 특정 학기의 내 시간표를 조회합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n- 조회 대상 학기: `{{academicCoreSemester}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/timetables/my?semester={{academicCoreSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicTimetableId` 저장(존재 시)\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- semester 형식이 비정상이면 `422 VALIDATION_ERROR`\n- 응답에 `courses[]`, `slots[]`가 누락되면 DTO/직렬화 변경 여부 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (getMyTimetable)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (getMyTimetable)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/UserTimetableRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = j.data || {};",
+                      "pm.test('시간표 기본 배열 필드 존재', function () { pm.expect(data.courses).to.be.an('array'); pm.expect(data.slots).to.be.an('array'); });",
+                      "if (data.id) pm.collectionVariables.set('academicTimetableId', data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 시간표 강의 추가",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/courses",
+                "description": "## 기능\n- Core 강의를 내 시간표에 추가합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- `강의 목록 조회`가 선행되어 `{{academicCoreCourseId}}`가 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicTimetableId` 저장\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- courseId가 없거나 semester와 강의 학기가 다르면 `422 VALIDATION_ERROR`\n- 같은 강의가 이미 있으면 `409 COURSE_ALREADY_IN_TIMETABLE`\n- 시간이 겹치면 `409 TIMETABLE_CONFLICT`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (addCourse)\n- Request DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/AddMyTimetableCourseRequest.java\n- 예외 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{academicCoreCourseId}}\",\n  \"semester\": \"{{academicCoreSemester}}\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = j.data || {};",
+                      "pm.test('시간표 추가 후 color 필드가 노출되지 않음', function () { pm.expect(((data.courses || [])[0] || {})).to.not.have.property('color'); pm.expect(((data.slots || [])[0] || {})).to.not.have.property('color'); });",
+                      "pm.test('시간표 추가 후 courseCount 증가', function () { pm.expect(data.courseCount).to.be.at.least(1); });",
+                      "if (data.id) pm.collectionVariables.set('academicTimetableId', data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 시간표 재조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/timetables/my?semester={{academicCoreSemester}}",
+                "description": "## 기능\n- 강의 추가 후 시간표 응답 구조와 저장 결과를 다시 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- `내 시간표 강의 추가`가 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/timetables/my?semester={{academicCoreSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicTimetableId` 갱신\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- courses/slots 구조가 달라졌다면 DTO와 OpenAPI 예시 변경 여부 확인\n- 응답이 비어 있으면 직전 추가 요청 성공 여부 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (getMyTimetable)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (toResponse)\n- Response DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/response/UserTimetableResponse.java\n- Response DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/response/TimetableSlotResponse.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = j.data || {};",
+                      "pm.test('재조회 결과에 선택 강의가 포함됨', function () { pm.expect((data.courses || []).some(function (course) { return course.id === pm.collectionVariables.get('academicCoreCourseId'); })).to.eql(true); });",
+                      "if (data.id) pm.collectionVariables.set('academicTimetableId', data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 시간표 강의 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/timetables/my/courses/{{academicCoreCourseId}}?semester={{academicCoreSemester}}",
+                "description": "## 기능\n- Core 시간표에서 방금 추가한 강의를 제거합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- `내 시간표 강의 추가`가 선행되어야 합니다.\n- `{{academicCoreCourseId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/timetables/my/courses/{{academicCoreCourseId}}?semester={{academicCoreSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- courseId가 없으면 `404 COURSE_NOT_FOUND`\n- semester 파라미터를 빼먹으면 `400 INVALID_REQUEST`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (removeCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (removeCourse)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/UserTimetableRepository.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = j.data || {};",
+                      "pm.test('강의 삭제 후 목록이 비어 있음', function () { pm.expect(data.courseCount).to.eql(0); pm.expect(data.courses).to.be.an('array').that.has.lengthOf(0); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학사 일정 생성(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/academic-schedules",
+                "description": "## 기능\n- 관리자 학사 일정 생성 API를 검증합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/academic-schedules`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicScheduleId` 저장\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- 본문 필드가 비정상이면 `422 VALIDATION_ERROR`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java (createAcademicSchedule)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (createSchedule)\n- Request DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/CreateAcademicScheduleRequest.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Postman Core 수강신청\",\n  \"startDate\": \"2099-02-10\",\n  \"endDate\": \"2099-02-14\",\n  \"type\": \"MULTI\",\n  \"isPrimary\": true,\n  \"description\": \"Postman Core 검증용 학사 일정\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('academicScheduleId', j.data.id);",
+                      "pm.test('생성된 학사 일정 ID 저장', function () { pm.expect(pm.collectionVariables.get('academicScheduleId')).to.be.a('string').and.not.empty; });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학사 일정 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/academic-schedules?startDate=2099-02-01&endDate=2099-02-28&primary=true",
+                "description": "## 기능\n- 기간/주요 일정 필터로 Core 학사 일정을 조회합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- `학사 일정 생성(201)`이 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/academic-schedules?startDate=2099-02-01&endDate=2099-02-28&primary=true`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 기간 역전이면 `422 VALIDATION_ERROR`\n- startDate/endDate 형식이 잘못되면 `400 INVALID_REQUEST`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleController.java (getAcademicSchedules)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (getSchedules)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/AcademicScheduleRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const list = j.data || [];",
+                      "pm.test('생성한 Core 학사 일정이 조회됨', function () { pm.expect(list.some(function (item) { return item.id === pm.collectionVariables.get('academicScheduleId'); })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학사 일정 수정",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/admin/academic-schedules/{{academicScheduleId}}",
+                "description": "## 기능\n- 관리자 학사 일정 수정 API를 검증합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- `학사 일정 생성(201)`이 선행되어 `{{academicScheduleId}}`가 준비되어야 합니다.\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `PUT`\n- URL: `{{baseUrl}}/v1/admin/academic-schedules/{{academicScheduleId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- scheduleId가 없으면 `404 ACADEMIC_SCHEDULE_NOT_FOUND`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java (updateAcademicSchedule)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (updateSchedule)\n- Request DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/UpdateAcademicScheduleRequest.java\n- 예외 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Postman Core 수강신청 수정\",\n  \"startDate\": \"2099-02-10\",\n  \"endDate\": \"2099-02-15\",\n  \"type\": \"MULTI\",\n  \"isPrimary\": false,\n  \"description\": \"Postman Core 수정 검증용 학사 일정\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('수정 응답 title 반영', function () { pm.expect(j.data.title).to.eql('Postman Core 수강신청 수정'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학사 일정 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/academic-schedules/{{academicScheduleId}}",
+                "description": "## 기능\n- Core 학사 일정을 삭제합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- `학사 일정 생성(201)`이 선행되어 `{{academicScheduleId}}`가 준비되어야 합니다.\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/admin/academic-schedules/{{academicScheduleId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicScheduleId` 초기화\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- scheduleId가 없으면 `404 ACADEMIC_SCHEDULE_NOT_FOUND`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java (deleteAcademicSchedule)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (deleteSchedule)\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('academicScheduleId', '');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "10. Scenario Regression",
+          "description": "## 목적\n- Phase 6 Academic 사용자/관리자 시나리오 흐름을 연속 실행으로 검증합니다.\n\n## 통과 기준\n- 예약 학기 강의 업로드 후 복합 검색이 동작합니다.\n- 기본 학기 해석이 `AcademicSemesterResolver` 정책과 일치합니다.\n- 시간표 슬롯 구조와 주요 학사 일정 필터가 기대대로 동작합니다.",
+          "item": [
+            {
+              "name": "Scenario 학기 강의 초기화",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/courses?semester={{academicScenarioSemester}}",
+                "description": "## 기능\n- Scenario 전용 학기 강의를 초기화합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n- Scenario 예약 학기: `{{academicScenarioSemester}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/admin/courses?semester={{academicScenarioSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicScenarioCourseId`, `academicScenarioAltCourseId` 초기화\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (deleteCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (deleteSemesterCourses)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/UserTimetableCourseRepository.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "['academicScenarioCourseId', 'academicScenarioAltCourseId', 'academicScenarioScheduleId'].forEach(function (key) { pm.collectionVariables.set(key, ''); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 학기 강의 일괄 등록",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/courses/bulk",
+                "description": "## 기능\n- Scenario 검증에 사용할 강의 세트를 업로드합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- `Scenario 학기 강의 초기화`가 선행되어야 합니다.\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/courses/bulk`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- 본문이 비정상이면 `422 VALIDATION_ERROR`\n- 동시 충돌이 나면 `409 CONFLICT`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (bulkUpsertCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (bulkUpsertCourses)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/Course.java\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/CourseSchedule.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"semester\": \"{{academicScenarioSemester}}\",\n  \"courses\": [\n    {\n      \"code\": \"P6SCN201\",\n      \"division\": \"001\",\n      \"name\": \"Academic Scenario 설계\",\n      \"credits\": 3,\n      \"professor\": \"Scenario교수\",\n      \"department\": \"소프트웨어학과\",\n      \"grade\": 3,\n      \"category\": \"전공필수\",\n      \"location\": \"SW301\",\n      \"note\": \"Scenario 시드 A\",\n      \"schedule\": [\n        {\n          \"dayOfWeek\": 2,\n          \"startPeriod\": 1,\n          \"endPeriod\": 2\n        }\n      ]\n    },\n    {\n      \"code\": \"P6SCN202\",\n      \"division\": \"001\",\n      \"name\": \"Academic Scenario 실습\",\n      \"credits\": 2,\n      \"professor\": \"Scenario교수\",\n      \"department\": \"소프트웨어학과\",\n      \"grade\": 3,\n      \"category\": \"전공필수\",\n      \"location\": \"SW302\",\n      \"note\": \"Scenario 시드 B\",\n      \"schedule\": [\n        {\n          \"dayOfWeek\": 2,\n          \"startPeriod\": 3,\n          \"endPeriod\": 4\n        }\n      ]\n    }\n  ]\n}"
+                }
+              }
+            },
+            {
+              "name": "강의 검색 복합 필터 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/courses?semester={{academicScenarioSemester}}&department=%EC%86%8C%ED%94%84%ED%8A%B8%EC%9B%A8%EC%96%B4%ED%95%99%EA%B3%BC&professor=Scenario%EA%B5%90%EC%88%98&search=Scenario&dayOfWeek=2&grade=3&page=0&size=20",
+                "description": "## 기능\n- 복합 필터 조합이 Scenario 강의 검색에 그대로 반영되는지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- `Scenario 학기 강의 일괄 등록`이 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/courses?semester={{academicScenarioSemester}}&department=소프트웨어학과&professor=Scenario교수&search=Scenario&dayOfWeek=2&grade=3&page=0&size=20`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicScenarioCourseId`, `academicScenarioAltCourseId` 저장\n\n## 실패 시 확인\n- 응답이 비면 Scenario 강의 업로드가 실제로 성공했는지 확인\n- 필터가 다르게 동작하면 `CourseRepository.search` 조건식을 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseController.java (getCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (getCourses)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/CourseRepository.java (search)\n- 문서 계약: src/main/java/com/skuri/skuri_backend/domain/academic/dto/response/CourseSummaryResponse.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const content = (((j || {}).data || {}).content) || [];",
+                      "const first = content.find(function (course) { return course.code === 'P6SCN201'; });",
+                      "const second = content.find(function (course) { return course.code === 'P6SCN202'; });",
+                      "pm.test('Scenario 필터 결과에 두 강의가 포함됨', function () { pm.expect(first).to.exist; pm.expect(second).to.exist; });",
+                      "if (first && first.id) pm.collectionVariables.set('academicScenarioCourseId', first.id);",
+                      "if (second && second.id) pm.collectionVariables.set('academicScenarioAltCourseId', second.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 시간표 기본 학기 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/timetables/my",
+                "description": "## 기능\n- semester를 생략했을 때 서버의 기본 학기 해석이 현재 정책과 일치하는지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n- 서버 시계 기준 정책: 1월은 전년도 2학기, 2~7월은 1학기, 8~12월은 2학기\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/timetables/my`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicCurrentSemester` 계산/저장\n\n## 실패 시 확인\n- 기본 semester가 다르면 `AcademicSemesterResolver` 정책 변경 여부 확인\n- 인증 실패 시 `401 UNAUTHORIZED`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (getMyTimetable)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (getMyTimetable)\n- Resolver: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicSemesterResolver.java\n- Response DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/response/UserTimetableResponse.java"
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const now = new Date();",
+                      "const year = now.getFullYear();",
+                      "const month = now.getMonth() + 1;",
+                      "let semester;",
+                      "if (month === 1) { semester = `${year - 1}-2`; } else if (month >= 2 && month <= 7) { semester = `${year}-1`; } else { semester = `${year}-2`; }",
+                      "pm.collectionVariables.set('academicCurrentSemester', semester);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('기본 학기 해석 결과 일치', function () { pm.expect(j.data.semester).to.eql(pm.collectionVariables.get('academicCurrentSemester')); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 내 시간표 강의 추가",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/courses",
+                "description": "## 기능\n- Scenario 강의를 내 시간표에 추가해 후속 슬롯 구조 검증을 준비합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- `강의 검색 복합 필터 조회`가 선행되어 `{{academicScenarioCourseId}}`가 준비되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 중복 추가 시 `409 COURSE_ALREADY_IN_TIMETABLE`\n- 시간 충돌 시 `409 TIMETABLE_CONFLICT`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (addCourse)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/UserTimetable.java\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/UserTimetableCourse.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{academicScenarioCourseId}}\",\n  \"semester\": \"{{academicScenarioSemester}}\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Scenario 시간표 슬롯 구조 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/timetables/my?semester={{academicScenarioSemester}}",
+                "description": "## 기능\n- 시간표 응답이 RN이 바로 쓸 수 있는 `courses[] + slots[]` 구조인지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- `Scenario 내 시간표 강의 추가`가 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/timetables/my?semester={{academicScenarioSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 응답에서 `color`가 보이면 서버 계약과 문서가 어긋난 것\n- slots 필드가 없으면 `TimetableService.toResponse` 변경 여부 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (getMyTimetable)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (toResponse)\n- Response DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/response/TimetableCourseResponse.java\n- Response DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/response/TimetableSlotResponse.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = j.data || {};",
+                      "const firstCourse = (data.courses || [])[0] || {};",
+                      "const firstSlot = (data.slots || [])[0] || {};",
+                      "pm.test('시간표 슬롯 구조 필드 확인', function () { pm.expect(firstCourse).to.have.property('schedule'); pm.expect(firstSlot).to.have.property('dayOfWeek'); pm.expect(firstSlot).to.not.have.property('color'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 학사 일정 생성(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/academic-schedules",
+                "description": "## 기능\n- Scenario 흐름에서 조회용 주요 학사 일정을 생성합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/academic-schedules`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `201`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicScenarioScheduleId` 저장\n\n## 실패 시 확인\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- 본문이 비정상이면 `422 VALIDATION_ERROR`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java (createAcademicSchedule)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (createSchedule)\n- DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/CreateAcademicScheduleRequest.java\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/AcademicScheduleRepository.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Postman Scenario 개강\",\n  \"startDate\": \"2099-08-25\",\n  \"endDate\": \"2099-08-31\",\n  \"type\": \"MULTI\",\n  \"isPrimary\": true,\n  \"description\": \"Scenario 주요 일정 필터 검증용 일정\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "if (j && j.data && j.data.id) pm.collectionVariables.set('academicScenarioScheduleId', j.data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "주요 학사 일정 필터 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/academic-schedules?startDate=2099-08-01&endDate=2099-09-30&primary=true",
+                "description": "## 기능\n- Scenario에서 생성한 주요 일정이 공개 조회 조건에 맞게 내려오는지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- `Scenario 학사 일정 생성(201)`이 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/academic-schedules?startDate=2099-08-01&endDate=2099-09-30&primary=true`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 응답이 비어 있으면 생성한 일정의 기간/primary 값 확인\n- 필터 동작이 다르면 `AcademicScheduleService.getSchedules` 조건식 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleController.java (getAcademicSchedules)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (getSchedules)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/AcademicScheduleRepository.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const list = j.data || [];",
+                      "pm.test('Scenario 주요 일정이 조회됨', function () { pm.expect(list.some(function (item) { return item.id === pm.collectionVariables.get('academicScenarioScheduleId'); })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 내 시간표 강의 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/timetables/my/courses/{{academicScenarioCourseId}}?semester={{academicScenarioSemester}}",
+                "description": "## 기능\n- Scenario 시간표에 추가한 강의를 정리합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- `Scenario 내 시간표 강의 추가`가 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/timetables/my/courses/{{academicScenarioCourseId}}?semester={{academicScenarioSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- semester 파라미터가 빠지면 `400 INVALID_REQUEST`\n- courseId가 사라졌으면 `404 COURSE_NOT_FOUND`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (removeCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (removeCourse)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/UserTimetableRepository.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              }
+            },
+            {
+              "name": "Scenario 학사 일정 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/academic-schedules/{{academicScenarioScheduleId}}",
+                "description": "## 기능\n- Scenario에서 생성한 학사 일정을 정리합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Scenario Regression\n\n## 선행조건\n- `Scenario 학사 일정 생성(201)`이 선행되어 `{{academicScenarioScheduleId}}`가 준비되어야 합니다.\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/admin/academic-schedules/{{academicScenarioScheduleId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicScenarioScheduleId` 초기화\n\n## 실패 시 확인\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- scheduleId가 없으면 `404 ACADEMIC_SCHEDULE_NOT_FOUND`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java (deleteAcademicSchedule)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (deleteSchedule)\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('academicScenarioScheduleId', '');"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "20. Contract Guard",
+          "description": "## 목적\n- Academic 계약 보호용 인증/권한/검증/비즈니스 예외 케이스를 확인합니다.\n\n## 통과 기준\n- 대표 네거티브가 기대 HTTP 상태코드와 `errorCode`를 반환합니다.\n- 시간표 중복/시간 충돌, 관리자 권한, 검증 실패 케이스가 서버에서 강제됩니다.",
+          "item": [
+            {
+              "name": "Guard 학기 강의 초기화",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/courses?semester={{academicGuardSemester}}",
+                "description": "## 기능\n- Contract Guard 준비를 위해 예약 학기 강의를 초기화합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n- Guard 예약 학기: `{{academicGuardSemester}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/admin/courses?semester={{academicGuardSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicGuardCourseId`, `academicGuardConflictCourseId` 초기화\n\n## 실패 시 확인\n- 관리자 권한이 아니면 `403 ADMIN_REQUIRED`\n- semester가 비어 있으면 `400 INVALID_REQUEST`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (deleteCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (deleteSemesterCourses)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/CourseScheduleRepository.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "['academicGuardCourseId', 'academicGuardConflictCourseId'].forEach(function (key) { pm.collectionVariables.set(key, ''); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Guard 학기 강의 일괄 등록",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/courses/bulk",
+                "description": "## 기능\n- 중복/충돌 네거티브 검증에 사용할 Guard 강의를 업로드합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- `Guard 학기 강의 초기화`가 선행되어야 합니다.\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/courses/bulk`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 본문 검증 실패 시 `422 VALIDATION_ERROR`\n- 동시 충돌이 나면 `409 CONFLICT`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (bulkUpsertCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (bulkUpsertCourses)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/Course.java\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/CourseSchedule.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"semester\": \"{{academicGuardSemester}}\",\n  \"courses\": [\n    {\n      \"code\": \"P6GRD301\",\n      \"division\": \"001\",\n      \"name\": \"Academic Guard 기준\",\n      \"credits\": 3,\n      \"professor\": \"Guard교수\",\n      \"department\": \"테스트학과\",\n      \"grade\": 2,\n      \"category\": \"전공선택\",\n      \"location\": \"TS101\",\n      \"note\": \"중복/충돌 검증 기준 강의\",\n      \"schedule\": [\n        {\n          \"dayOfWeek\": 1,\n          \"startPeriod\": 3,\n          \"endPeriod\": 4\n        }\n      ]\n    },\n    {\n      \"code\": \"P6GRD302\",\n      \"division\": \"001\",\n      \"name\": \"Academic Guard 충돌\",\n      \"credits\": 2,\n      \"professor\": \"Guard교수\",\n      \"department\": \"테스트학과\",\n      \"grade\": 2,\n      \"category\": \"전공선택\",\n      \"location\": \"TS102\",\n      \"note\": \"시간 충돌 검증용 강의\",\n      \"schedule\": [\n        {\n          \"dayOfWeek\": 1,\n          \"startPeriod\": 4,\n          \"endPeriod\": 5\n        }\n      ]\n    }\n  ]\n}"
+                }
+              }
+            },
+            {
+              "name": "Guard 강의 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/courses?semester={{academicGuardSemester}}&department=%ED%85%8C%EC%8A%A4%ED%8A%B8%ED%95%99%EA%B3%BC&professor=Guard%EA%B5%90%EC%88%98&search=Guard&dayOfWeek=1&grade=2&page=0&size=20",
+                "description": "## 기능\n- Guard 네거티브 요청에서 사용할 강의 ID를 확보합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- `Guard 학기 강의 일괄 등록`이 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/courses?semester={{academicGuardSemester}}&department=테스트학과&professor=Guard교수&search=Guard&dayOfWeek=1&grade=2&page=0&size=20`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicGuardCourseId`, `academicGuardConflictCourseId` 저장\n\n## 실패 시 확인\n- 응답이 비면 Guard 강의 시드 업로드 여부 확인\n- 필터 동작이 다르면 `CourseRepository.search` 조건식 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseController.java (getCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (getCourses)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/CourseRepository.java (search)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const content = (((j || {}).data || {}).content) || [];",
+                      "const baseCourse = content.find(function (course) { return course.code === 'P6GRD301'; });",
+                      "const conflictCourse = content.find(function (course) { return course.code === 'P6GRD302'; });",
+                      "pm.test('Guard 강의 ID 확보', function () { pm.expect(baseCourse).to.exist; pm.expect(conflictCourse).to.exist; });",
+                      "if (baseCourse && baseCourse.id) pm.collectionVariables.set('academicGuardCourseId', baseCourse.id);",
+                      "if (conflictCourse && conflictCourse.id) pm.collectionVariables.set('academicGuardConflictCourseId', conflictCourse.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "인증 없이 강의 목록 조회(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/courses",
+                "description": "## 기능\n- 강의 검색 API의 인증 보호를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth: 없음\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/courses`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `401`\n- Collection 공통 Tests 통과\n- 에러 코드: `UNAUTHORIZED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- `errorCode`가 `UNAUTHORIZED`가 아니면 인증 진입점 매핑 확인\n- 공개 API로 풀렸다면 `SecurityConfig` 경로 설정 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseController.java (getCourses)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              }
+            },
+            {
+              "name": "강의 요일 필터 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/courses?dayOfWeek=0",
+                "description": "## 기능\n- 강의 검색 필터 검증 실패를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/courses?dayOfWeek=0`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- dayOfWeek 범위 검증이 빠졌다면 `CourseService.validateCourseFilters` 확인\n- 응답 포맷이 다르면 `GlobalExceptionHandler` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseController.java (getCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (validateCourseFilters)\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              }
+            },
+            {
+              "name": "인증 없이 내 시간표 조회(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/timetables/my?semester={{academicGuardSemester}}",
+                "description": "## 기능\n- 내 시간표 조회 API의 인증 보호를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth: 없음\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/timetables/my?semester={{academicGuardSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `401`\n- Collection 공통 Tests 통과\n- 에러 코드: `UNAUTHORIZED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 무인증 200이면 `SecurityConfig` 보호 경로 누락 여부 확인\n- `errorCode`가 다르면 인증 예외 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (getMyTimetable)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              }
+            },
+            {
+              "name": "내 시간표 강의 추가 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/courses",
+                "description": "## 기능\n- 내 시간표 강의 추가 요청 바디 검증 실패를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 빈 문자열이 통과하면 `AddMyTimetableCourseRequest` 제약 조건 확인\n- 응답이 500이면 `GlobalExceptionHandler` 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addCourse)\n- Request DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/AddMyTimetableCourseRequest.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"\",\n  \"semester\": \"\"\n}"
+                }
+              }
+            },
+            {
+              "name": "존재하지 않는 강의 시간표 추가(404)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/courses",
+                "description": "## 기능\n- 존재하지 않는 강의를 시간표에 추가할 때 404를 반환하는지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{academicNegativeCourseId}}`가 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `404`\n- Collection 공통 Tests 통과\n- 에러 코드: `COURSE_NOT_FOUND`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- `errorCode`가 다르면 `CourseNotFoundException` 매핑 확인\n- 404가 아니라 422면 courseId/semester 바디 자체가 잘못된 것인지 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (addCourse)\n- 예외 클래스: src/main/java/com/skuri/skuri_backend/domain/academic/exception/CourseNotFoundException.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{academicNegativeCourseId}}\",\n  \"semester\": \"{{academicGuardSemester}}\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Guard 내 시간표 기준 강의 추가",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/courses",
+                "description": "## 기능\n- 중복/충돌 검증 전에 기준 강의를 시간표에 먼저 담습니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- `Guard 강의 목록 조회`가 선행되어 `{{academicGuardCourseId}}`가 준비되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 이미 시간표에 남아 있으면 `409 COURSE_ALREADY_IN_TIMETABLE`\n- Guard 초기화/시드가 정상 동작했는지 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (addCourse)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/UserTimetable.java\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/UserTimetableRepository.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{academicGuardCourseId}}\",\n  \"semester\": \"{{academicGuardSemester}}\"\n}"
+                }
+              }
+            },
+            {
+              "name": "시간표 중복 강의 추가 차단 검증(409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/courses",
+                "description": "## 기능\n- 같은 시간표에 동일 강의를 두 번 추가할 수 없는지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- `Guard 내 시간표 기준 강의 추가`가 선행되어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `409`\n- Collection 공통 Tests 통과\n- 에러 코드: `COURSE_ALREADY_IN_TIMETABLE`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- `errorCode`가 다르면 `CourseAlreadyInTimetableException` 매핑 확인\n- 200이 나오면 `timetable.containsCourse` 검사 누락 여부 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (addCourse)\n- 예외 클래스: src/main/java/com/skuri/skuri_backend/domain/academic/exception/CourseAlreadyInTimetableException.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{academicGuardCourseId}}\",\n  \"semester\": \"{{academicGuardSemester}}\"\n}"
+                }
+              }
+            },
+            {
+              "name": "시간표 강의 시간 충돌 차단 검증(409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/courses",
+                "description": "## 기능\n- 겹치는 교시의 강의를 시간표에 동시에 추가할 수 없는지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- `Guard 내 시간표 기준 강의 추가`가 선행되어야 합니다.\n- `{{academicGuardConflictCourseId}}`가 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `409`\n- Collection 공통 Tests 통과\n- 에러 코드: `TIMETABLE_CONFLICT`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- `errorCode`가 다르면 `TimetableConflictException` 매핑 확인\n- 200이 나오면 `Course.conflictsWith` 또는 `CourseSchedule.overlaps` 검사 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (hasScheduleConflict)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/Course.java (conflictsWith)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/CourseSchedule.java (overlaps)",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{academicGuardConflictCourseId}}\",\n  \"semester\": \"{{academicGuardSemester}}\"\n}"
+                }
+              }
+            },
+            {
+              "name": "내 시간표 강의 삭제 학기 누락 검증(400)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/timetables/my/courses/{{academicGuardCourseId}}",
+                "description": "## 기능\n- 시간표 강의 삭제에서 필수 semester 파라미터 누락을 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- `{{academicGuardCourseId}}`가 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/timetables/my/courses/{{academicGuardCourseId}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `400`\n- Collection 공통 Tests 통과\n- 에러 코드: `INVALID_REQUEST`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 400이 아니면 컨트롤러 `@RequestParam(required=true)` 선언 확인\n- `errorCode`가 다르면 `GlobalExceptionHandler` 요청 파라미터 예외 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (removeCourse)\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "인증 없이 학사 일정 조회(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/academic-schedules",
+                "description": "## 기능\n- 학사 일정 조회 API의 인증 보호를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth: 없음\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/academic-schedules`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `401`\n- Collection 공통 Tests 통과\n- 에러 코드: `UNAUTHORIZED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 공개 API로 풀리면 `SecurityConfig` 보호 경로 누락 여부 확인\n- `errorCode`가 다르면 인증 진입점 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleController.java (getAcademicSchedules)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              }
+            },
+            {
+              "name": "학사 일정 기간 역전 검증(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/academic-schedules?startDate=2099-05-01&endDate=2099-03-01",
+                "description": "## 기능\n- 학사 일정 조회에서 startDate > endDate 검증을 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/academic-schedules?startDate=2099-05-01&endDate=2099-03-01`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 기간 역전 검증이 빠졌다면 `AcademicScheduleService.getSchedules` 확인\n- 400이 반환되면 날짜 파싱 오류 여부를 먼저 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleController.java (getAcademicSchedules)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (getSchedules)\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+              }
+            },
+            {
+              "name": "비관리자 학사 일정 생성 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/academic-schedules",
+                "description": "## 기능\n- 학사 일정 관리자 API가 비관리자에게 403을 반환하는지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/academic-schedules`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `ADMIN_REQUIRED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 403이 아니면 `@PreAuthorize` 또는 관리자 판별 로직 확인\n- `errorCode`가 다르면 접근 거부 핸들러 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java (createAcademicSchedule)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- Member 조회: src/main/java/com/skuri/skuri_backend/domain/member/repository/MemberRepository.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"권한 검증용 일정\",\n  \"startDate\": \"2099-03-01\",\n  \"endDate\": \"2099-03-03\",\n  \"type\": \"MULTI\",\n  \"isPrimary\": true,\n  \"description\": \"비관리자 생성 차단 확인\"\n}"
+                }
+              }
+            },
+            {
+              "name": "학사 일정 생성 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/academic-schedules",
+                "description": "## 기능\n- 학사 일정 생성 요청 필수 필드 검증을 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/academic-schedules`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 빈 title/null 날짜가 통과하면 request DTO 제약 조건 확인\n- 500이 나오면 검증 예외 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java (createAcademicSchedule)\n- Request DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/CreateAcademicScheduleRequest.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"\",\n  \"startDate\": null,\n  \"endDate\": null,\n  \"type\": null,\n  \"isPrimary\": null,\n  \"description\": null\n}"
+                }
+              }
+            },
+            {
+              "name": "존재하지 않는 학사 일정 수정(404)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/admin/academic-schedules/{{academicNegativeScheduleId}}",
+                "description": "## 기능\n- 존재하지 않는 학사 일정 수정 시 404를 반환하는지 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- 변수 `{{academicNegativeScheduleId}}`가 준비되어 있어야 합니다.\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `PUT`\n- URL: `{{baseUrl}}/v1/admin/academic-schedules/{{academicNegativeScheduleId}}`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `404`\n- Collection 공통 Tests 통과\n- 에러 코드: `ACADEMIC_SCHEDULE_NOT_FOUND`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- `errorCode`가 다르면 `AcademicScheduleNotFoundException` 매핑 확인\n- 403이 나오면 관리자 토큰 준비 여부 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java (updateAcademicSchedule)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java (updateSchedule)\n- 예외 클래스: src/main/java/com/skuri/skuri_backend/domain/academic/exception/AcademicScheduleNotFoundException.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"없는 일정 수정 시도\",\n  \"startDate\": \"2099-04-01\",\n  \"endDate\": \"2099-04-02\",\n  \"type\": \"MULTI\",\n  \"isPrimary\": false,\n  \"description\": \"없는 학사 일정 수정\"\n}"
+                }
+              }
+            },
+            {
+              "name": "비관리자 학기 강의 일괄 등록 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/courses/bulk",
+                "description": "## 기능\n- 강의 bulk 업로드 관리자 API의 403 보호를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/courses/bulk`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `403`\n- Collection 공통 Tests 통과\n- 에러 코드: `ADMIN_REQUIRED`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 403이 아니면 `@PreAuthorize` 또는 관리자 판별 로직 확인\n- `errorCode`가 다르면 접근 거부 핸들러 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (bulkUpsertCourses)\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- Member 조회: src/main/java/com/skuri/skuri_backend/domain/member/repository/MemberRepository.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"semester\": \"{{academicGuardSemester}}\",\n  \"courses\": [\n    {\n      \"code\": \"P6NOAUTH01\",\n      \"division\": \"001\",\n      \"name\": \"권한 검증 강의\",\n      \"credits\": 1,\n      \"professor\": \"Guard교수\",\n      \"department\": \"테스트학과\",\n      \"grade\": 1,\n      \"category\": \"교양선택\",\n      \"location\": \"TS999\",\n      \"note\": \"비관리자 업로드 차단\",\n      \"schedule\": [\n        {\n          \"dayOfWeek\": 2,\n          \"startPeriod\": 7,\n          \"endPeriod\": 7\n        }\n      ]\n    }\n  ]\n}"
+                }
+              }
+            },
+            {
+              "name": "학기 강의 일괄 등록 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/courses/bulk",
+                "description": "## 기능\n- 강의 bulk 업로드에서 null course 항목 검증을 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/admin/courses/bulk`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- null course가 통과하면 `AdminBulkCoursesRequest`와 서비스 방어 로직 확인\n- 500이 나오면 검증 예외 대신 NPE가 발생하는지 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (bulkUpsertCourses)\n- Request DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/AdminBulkCoursesRequest.java\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (validateBulkCoursesRequest)\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"semester\": \"{{academicGuardSemester}}\",\n  \"courses\": [null]\n}"
+                }
+              }
+            },
+            {
+              "name": "학기 강의 전체 삭제 학기 누락 검증(400)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/courses",
+                "description": "## 기능\n- 강의 전체 삭제에서 필수 semester 파라미터 누락을 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{adminToken}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/admin/courses`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `400`\n- Collection 공통 Tests 통과\n- 에러 코드: `INVALID_REQUEST`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 400이 아니면 컨트롤러 필수 파라미터 선언 확인\n- `errorCode`가 다르면 요청 파라미터 예외 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseAdminController.java (deleteCourses)\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 보안 설정: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
               }
             }
           ]
@@ -5461,6 +6661,66 @@
     {
       "key": "negativeAppNoticeId",
       "value": "missing-app-notice-id"
+    },
+    {
+      "key": "academicCoreSemester",
+      "value": "2099-1"
+    },
+    {
+      "key": "academicScenarioSemester",
+      "value": "2099-2"
+    },
+    {
+      "key": "academicGuardSemester",
+      "value": "2100-1"
+    },
+    {
+      "key": "academicCurrentSemester",
+      "value": ""
+    },
+    {
+      "key": "academicCoreCourseId",
+      "value": ""
+    },
+    {
+      "key": "academicCoreAltCourseId",
+      "value": ""
+    },
+    {
+      "key": "academicTimetableId",
+      "value": ""
+    },
+    {
+      "key": "academicScheduleId",
+      "value": ""
+    },
+    {
+      "key": "academicScenarioCourseId",
+      "value": ""
+    },
+    {
+      "key": "academicScenarioAltCourseId",
+      "value": ""
+    },
+    {
+      "key": "academicScenarioScheduleId",
+      "value": ""
+    },
+    {
+      "key": "academicGuardCourseId",
+      "value": ""
+    },
+    {
+      "key": "academicGuardConflictCourseId",
+      "value": ""
+    },
+    {
+      "key": "academicNegativeCourseId",
+      "value": "missing-academic-course-id"
+    },
+    {
+      "key": "academicNegativeScheduleId",
+      "value": "missing-academic-schedule-id"
     }
   ],
   "event": [
@@ -5537,6 +6797,22 @@
           "  '존재하지 않는 공지 상세 조회(404)': 'NOTICE_NOT_FOUND',",
           "  '잘못된 공지 카테고리 조회(400)': 'INVALID_REQUEST',",
           "  '인증 없이 공지 목록 조회(401 확인)': 'UNAUTHORIZED',",
+          "  '인증 없이 강의 목록 조회(401 확인)': 'UNAUTHORIZED',",
+          "  '강의 요일 필터 검증 실패 확인(422)': 'VALIDATION_ERROR',",
+          "  '인증 없이 내 시간표 조회(401 확인)': 'UNAUTHORIZED',",
+          "  '내 시간표 강의 추가 검증 실패 확인(422)': 'VALIDATION_ERROR',",
+          "  '존재하지 않는 강의 시간표 추가(404)': 'COURSE_NOT_FOUND',",
+          "  '시간표 중복 강의 추가 차단 검증(409)': 'COURSE_ALREADY_IN_TIMETABLE',",
+          "  '시간표 강의 시간 충돌 차단 검증(409)': 'TIMETABLE_CONFLICT',",
+          "  '내 시간표 강의 삭제 학기 누락 검증(400)': 'INVALID_REQUEST',",
+          "  '인증 없이 학사 일정 조회(401 확인)': 'UNAUTHORIZED',",
+          "  '학사 일정 기간 역전 검증(422)': 'VALIDATION_ERROR',",
+          "  '비관리자 학사 일정 생성 권한 검증(403)': 'ADMIN_REQUIRED',",
+          "  '학사 일정 생성 검증 실패 확인(422)': 'VALIDATION_ERROR',",
+          "  '존재하지 않는 학사 일정 수정(404)': 'ACADEMIC_SCHEDULE_NOT_FOUND',",
+          "  '비관리자 학기 강의 일괄 등록 권한 검증(403)': 'ADMIN_REQUIRED',",
+          "  '학기 강의 일괄 등록 검증 실패 확인(422)': 'VALIDATION_ERROR',",
+          "  '학기 강의 전체 삭제 학기 누락 검증(400)': 'INVALID_REQUEST',",
           "};",
           "",
           "const isFirebaseEmulatorAuthRequest = name.startsWith('에뮬레이터 Google 로그인(') || name === '에뮬레이터 관리자 계정 생성(email/password)' || name === '에뮬레이터 관리자 로그인(토큰 저장)';",
