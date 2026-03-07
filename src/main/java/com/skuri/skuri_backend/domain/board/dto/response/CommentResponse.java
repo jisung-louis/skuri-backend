@@ -3,12 +3,14 @@ package com.skuri.skuri_backend.domain.board.dto.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
-import java.util.List;
-
 @Schema(description = "댓글 응답")
 public record CommentResponse(
         @Schema(description = "댓글 ID", example = "comment_uuid")
         String id,
+        @Schema(description = "부모 댓글 ID", nullable = true, example = "parent_comment_uuid")
+        String parentId,
+        @Schema(description = "댓글 depth", example = "1")
+        int depth,
         @Schema(description = "댓글 본문", example = "댓글 내용")
         String content,
         @Schema(description = "작성자 ID", nullable = true, example = "user_uuid")
@@ -27,8 +29,6 @@ public record CommentResponse(
         boolean isPostAuthor,
         @Schema(description = "삭제된 댓글인지 여부", example = "false")
         boolean isDeleted,
-        @Schema(description = "대댓글 목록")
-        List<CommentResponse> replies,
         @Schema(description = "생성 시각", example = "2026-02-03T12:00:00")
         LocalDateTime createdAt,
         @Schema(description = "수정 시각", example = "2026-02-03T12:30:00")

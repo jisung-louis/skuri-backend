@@ -124,6 +124,8 @@ public final class OpenApiBoardExamples {
               "data": [
                 {
                   "id": "comment_uuid",
+                  "parentId": null,
+                  "depth": 0,
                   "content": "댓글 내용",
                   "authorId": "user_uuid",
                   "authorName": "홍길동",
@@ -133,25 +135,24 @@ public final class OpenApiBoardExamples {
                   "isAuthor": false,
                   "isPostAuthor": true,
                   "isDeleted": false,
-                  "replies": [
-                    {
-                      "id": "reply_uuid",
-                      "content": "대댓글 내용",
-                      "authorId": null,
-                      "authorName": "익명2",
-                      "authorProfileImage": null,
-                      "isAnonymous": true,
-                      "anonymousOrder": 2,
-                      "isAuthor": false,
-                      "isPostAuthor": false,
-                      "isDeleted": false,
-                      "replies": [],
-                      "createdAt": "2026-02-03T12:30:00",
-                      "updatedAt": "2026-02-03T12:30:00"
-                    }
-                  ],
                   "createdAt": "2026-02-03T12:00:00",
                   "updatedAt": "2026-02-03T12:00:00"
+                },
+                {
+                  "id": "reply_uuid",
+                  "parentId": "comment_uuid",
+                  "depth": 1,
+                  "content": "대댓글 내용",
+                  "authorId": null,
+                  "authorName": "익명2",
+                  "authorProfileImage": null,
+                  "isAnonymous": true,
+                  "anonymousOrder": 2,
+                  "isAuthor": false,
+                  "isPostAuthor": false,
+                  "isDeleted": false,
+                  "createdAt": "2026-02-03T12:30:00",
+                  "updatedAt": "2026-02-03T12:30:00"
                 }
               ]
             }
@@ -162,6 +163,8 @@ public final class OpenApiBoardExamples {
               "success": true,
               "data": {
                 "id": "comment_uuid",
+                "parentId": "root_comment_uuid",
+                "depth": 2,
                 "content": "댓글 내용",
                 "authorId": null,
                 "authorName": "익명1",
@@ -171,7 +174,6 @@ public final class OpenApiBoardExamples {
                 "isAuthor": true,
                 "isPostAuthor": false,
                 "isDeleted": false,
-                "replies": [],
                 "createdAt": "2026-02-03T12:00:00",
                 "updatedAt": "2026-02-03T12:00:00"
               }
@@ -249,15 +251,6 @@ public final class OpenApiBoardExamples {
               "success": false,
               "errorCode": "NOT_COMMENT_AUTHOR",
               "message": "댓글 작성자만 수정/삭제할 수 있습니다.",
-              "timestamp": "2026-03-05T20:30:00"
-            }
-            """;
-
-    public static final String ERROR_COMMENT_DEPTH_EXCEEDED = """
-            {
-              "success": false,
-              "errorCode": "COMMENT_DEPTH_EXCEEDED",
-              "message": "대댓글(1단계)까지만 작성할 수 있습니다.",
               "timestamp": "2026-03-05T20:30:00"
             }
             """;

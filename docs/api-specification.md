@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-05
+> 최종 수정일: 2026-03-07
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md)
 
 ---
@@ -46,13 +46,14 @@ Authorization: Bearer <firebase_id_token>
 
 **Public API (인증 불필요):**
 
-비즈니스 API 기준으로는 아래 2개 API만 인증 없이 호출 가능합니다.  
+비즈니스 API 기준으로는 아래 3개 API만 인증 없이 호출 가능합니다.  
 추가로 API 문서 UI/스펙 조회 엔드포인트도 인증 없이 접근 가능합니다.
 
 | API | 이유 |
 |-----|------|
 | `GET /v1/app-versions/{platform}` | 앱 실행 초기(로그인 전) 강제 업데이트 여부 확인 |
 | `GET /v1/app-notices` | 로그인 전 점검 공지 / 긴급 공지 표시 필요 |
+| `GET /v1/app-notices/{appNoticeId}` | 로그인 전 개별 점검/업데이트 공지 상세 표시 필요 |
 | `GET /v3/api-docs/**` | OpenAPI 스펙(JSON) 조회 |
 | `GET /swagger-ui/**`, `GET /swagger-ui.html` | Swagger UI 조회 |
 | `GET /scalar/**` | Scalar UI 조회 |
@@ -285,7 +286,8 @@ Spring 서버 처리:
       "partyNotifications": true,
       "noticeNotifications": true,
       "boardLikeNotifications": true,
-      "boardCommentNotifications": true,
+      "commentNotifications": true,
+      "bookmarkedPostCommentNotifications": true,
       "systemNotifications": true,
       "noticeNotificationsDetail": {
         "news": true,
@@ -336,12 +338,16 @@ Spring 서버 처리:
 
 - 부분 업데이트 API입니다.
 - 요청 본문에 포함되지 않은 알림 필드는 기존 값을 유지합니다.
+- 런타임 기준으로 현재 지원되는 필드는 `allNotifications`, `partyNotifications`, `noticeNotifications`, `boardLikeNotifications`, `commentNotifications`, `bookmarkedPostCommentNotifications`, `systemNotifications`, `noticeNotificationsDetail`입니다.
+- Phase 8 학사 일정 알림 구현 시 `academicScheduleNotifications`, `academicScheduleDayBeforeEnabled`, `academicScheduleAllEventsEnabled` 계열 필드가 추가될 예정입니다. 현재 런타임 계약에는 포함되지 않습니다.
 
 **Request:**
 ```json
 {
   "partyNotifications": true,
   "noticeNotifications": false,
+  "commentNotifications": true,
+  "bookmarkedPostCommentNotifications": true,
   "noticeNotificationsDetail": {
     "news": true,
     "academy": false
@@ -1239,7 +1245,7 @@ Authorization:Bearer <firebase_id_token>
 | `POST` | `/v1/posts/{postId}/bookmark` | 북마크 등록 |
 | `DELETE` | `/v1/posts/{postId}/bookmark` | 북마크 취소 |
 | `GET` | `/v1/posts/bookmarked` | 내 북마크 게시글 목록 |
-| `GET` | `/v1/posts/{postId}/comments` | 댓글 트리 조회 |
+| `GET` | `/v1/posts/{postId}/comments` | 댓글 목록 조회 (flat list, 무제한 depth) |
 | `POST` | `/v1/posts/{postId}/comments` | 댓글/대댓글 작성 |
 | `PATCH` | `/v1/comments/{commentId}` | 댓글 수정 (작성자) |
 | `DELETE` | `/v1/comments/{commentId}` | 댓글 삭제 (작성자, placeholder soft delete) |
@@ -1349,8 +1355,7 @@ Authorization:Bearer <firebase_id_token>
 
 ### 5.5 댓글 정책
 
-- 깊이 제한: 댓글(depth 0) + 대댓글(depth 1)만 허용한다.
-- `parentId`가 이미 대댓글(depth 1)인 경우 `409 COMMENT_DEPTH_EXCEEDED`.
+- 댓글은 `parentId` self-reference 기반으로 무제한 대댓글을 허용한다.
 - 익명 규칙:
   - `anonId = "{postId}:{userId}"`
   - 게시글 단위로 기존 `anonId`가 있으면 기존 `anonymousOrder` 재사용
@@ -1363,7 +1368,9 @@ Authorization:Bearer <firebase_id_token>
 
 - 부모 댓글 삭제 시 하드 삭제하지 않고 `isDeleted=true`, `content="삭제된 댓글입니다"`로 placeholder 처리
 - 자식 댓글은 유지한다.
-- 조회 응답은 트리 정합성을 보장하도록 부모 노드를 유지한 채 `replies`를 반환한다.
+- 조회 응답은 flat list를 반환한다.
+- 각 댓글은 최소 `id`, `parentId`, `depth`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
+- 서버는 thread 순서를 보장한 flat list를 반환하고, 클라이언트가 트리 UI를 조립한다.
 
 #### POST /v1/posts/{postId}/comments
 
@@ -1404,7 +1411,6 @@ Authorization:Bearer <firebase_id_token>
 | `COMMENT_NOT_FOUND` | 404 | 댓글 없음 |
 | `NOT_POST_AUTHOR` | 403 | 게시글 작성자만 수정/삭제 가능 |
 | `NOT_COMMENT_AUTHOR` | 403 | 댓글 작성자만 수정/삭제 가능 |
-| `COMMENT_DEPTH_EXCEEDED` | 409 | 댓글 depth 1 초과 |
 | `COMMENT_ALREADY_DELETED` | 409 | 이미 삭제된 댓글 수정/삭제 시도 |
 
 ---
@@ -1421,7 +1427,9 @@ Authorization:Bearer <firebase_id_token>
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `category` | string | 카테고리 (새소식, 학사, 학생 등) |
-| `search` | string | 제목 검색 |
+| `search` | string | 제목/요약 검색 |
+| `page` | number | 페이지 번호 (기본 0) |
+| `size` | number | 페이지 크기 (기본 20, 최대 100) |
 
 **Response:**
 ```json
@@ -1432,21 +1440,33 @@ Authorization:Bearer <firebase_id_token>
       {
         "id": "notice_id",
         "title": "2026학년도 1학기 수강신청 안내",
+        "rssPreview": "수강신청 일정, 대상 학년, 유의사항을 안내합니다.",
         "category": "학사",
         "department": "성결대학교",
         "author": "교무처",
-        "postedAt": "2026-02-01T00:00:00Z",
+        "postedAt": "2026-02-01T00:00:00",
         "viewCount": 500,
+        "likeCount": 10,
         "commentCount": 10,
-        "isRead": true
+        "isRead": true,
+        "isLiked": false
       }
     ],
     "page": 0,
     "size": 20,
-    "totalElements": 1000
+    "totalElements": 1000,
+    "totalPages": 50,
+    "hasNext": true,
+    "hasPrevious": false
   }
 }
 ```
+
+**검증 규칙:**
+- `category`는 14개 공지 카테고리만 허용한다.
+- `page < 0` 또는 `size < 1 || size > 100`이면 `422 VALIDATION_ERROR`
+- `rssPreview`는 RSS의 `description/content/contentSnippet` fallback으로 수집한 미리보기 텍스트다.
+- `rssPreview`는 RSS 길이 제한 때문에 잘린 텍스트일 수 있으며, AI 요약이 아니다.
 
 #### GET /v1/notices/{noticeId}
 공지사항 상세
@@ -1458,14 +1478,16 @@ Authorization:Bearer <firebase_id_token>
   "data": {
     "id": "notice_id",
     "title": "2026학년도 1학기 수강신청 안내",
-    "content": "요약 내용",
-    "contentDetail": "<html>...</html>",
+    "rssPreview": "RSS 미리보기",
+    "bodyHtml": "<html>...</html>",
     "link": "https://www.sungkyul.ac.kr/...",
     "category": "학사",
     "department": "성결대학교",
     "author": "교무처",
-    "postedAt": "2026-02-01T00:00:00Z",
+    "source": "RSS",
+    "postedAt": "2026-02-01T00:00:00",
     "viewCount": 501,
+    "likeCount": 11,
     "commentCount": 10,
     "attachments": [
       {
@@ -1474,18 +1496,104 @@ Authorization:Bearer <firebase_id_token>
         "previewUrl": "https://..."
       }
     ],
-    "isRead": true
+    "isRead": true,
+    "isLiked": true
   }
 }
 ```
 
+**정책:**
+- `rssPreview`는 RSS에서 받은 미리보기 텍스트이며, 일부 공지는 원문 2~3줄 수준에서 잘려 들어올 수 있다.
+- `bodyHtml`은 상세 페이지에서 크롤링한 HTML 원문이며, 클라이언트가 공지 웹 구조(`h*`, `table`, `br` 등)를 최대한 유지해서 렌더링할 수 있도록 그대로 저장한다.
+- `bodyText`는 `bodyHtml`에서 태그를 제거해 정규화한 내부 저장용 텍스트이며, 검색/AI 요약/RAG 용도로 사용한다. 현재 공개 API에는 노출하지 않는다.
+- `summary` 컬럼은 추후 AI 생성 공지 요약을 저장하기 위한 예약 필드이며, 현재 공개 API에는 노출하지 않는다.
+- 상세 조회는 조회수만 증가시키며, 읽음 상태를 저장하지 않는다.
+- 읽음 상태 저장은 `POST /v1/notices/{noticeId}/read`로만 처리한다.
+
 #### POST /v1/notices/{noticeId}/read
 읽음 표시
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "noticeId": "notice_id",
+    "isRead": true,
+    "readAt": "2026-02-01T12:34:56"
+  }
+}
+```
+
+#### POST /v1/notices/{noticeId}/like
+공지 좋아요 등록
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isLiked": true,
+    "likeCount": 11
+  }
+}
+```
+
+#### DELETE /v1/notices/{noticeId}/like
+공지 좋아요 취소
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isLiked": false,
+    "likeCount": 10
+  }
+}
+```
 
 ### 6.2 공지 댓글
 
 #### GET /v1/notices/{noticeId}/comments
 공지 댓글 목록
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "notice_comment_uuid",
+      "parentId": null,
+      "depth": 0,
+      "content": "댓글 내용",
+      "authorId": "user_uuid",
+      "authorName": "홍길동",
+      "isAnonymous": false,
+      "anonymousOrder": null,
+      "isAuthor": true,
+      "isDeleted": false,
+      "createdAt": "2026-02-03T12:00:00",
+      "updatedAt": "2026-02-03T12:00:00"
+    },
+    {
+      "id": "notice_reply_uuid",
+      "parentId": "notice_comment_uuid",
+      "depth": 1,
+      "content": "대댓글 내용",
+      "authorId": null,
+      "authorName": "익명2",
+      "isAnonymous": true,
+      "anonymousOrder": 2,
+      "isAuthor": false,
+      "isDeleted": false,
+      "createdAt": "2026-02-03T12:10:00",
+      "updatedAt": "2026-02-03T12:10:00"
+    }
+  ]
+}
+```
 
 #### POST /v1/notices/{noticeId}/comments
 공지 댓글 작성
@@ -1498,6 +1606,39 @@ Authorization:Bearer <firebase_id_token>
   "parentId": null
 }
 ```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "notice_comment_uuid",
+    "parentId": null,
+    "depth": 0,
+    "content": "댓글 내용",
+    "authorId": "user_uuid",
+    "authorName": "홍길동",
+    "isAnonymous": false,
+    "anonymousOrder": null,
+    "isAuthor": true,
+    "isDeleted": false,
+    "createdAt": "2026-02-03T12:00:00",
+    "updatedAt": "2026-02-03T12:00:00"
+  }
+}
+```
+
+**댓글 정책:**
+- 댓글은 `parentId` self-reference 기반으로 무제한 대댓글을 허용한다.
+- 익명 규칙:
+  - `anonId = "{noticeId}:{userId}"`
+  - 공지 단위로 기존 `anonId`가 있으면 기존 `anonymousOrder` 재사용
+  - 없으면 `max(anonymousOrder)+1` 부여
+  - 삭제 후에도 순번 재계산 없음
+- 부모 댓글 삭제 시 하드 삭제하지 않고 `isDeleted=true`, `content="삭제된 댓글입니다"` placeholder 처리하며 자식은 유지한다.
+- 조회 응답은 flat list를 반환한다.
+- 각 댓글은 최소 `id`, `parentId`, `depth`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
+- 서버는 thread 순서를 보장한 flat list를 반환하고, 클라이언트가 트리 UI를 조립한다.
 
 #### DELETE /v1/notice-comments/{commentId}
 공지 댓글 삭제
@@ -1520,7 +1661,9 @@ Authorization:Bearer <firebase_id_token>
       "priority": "NORMAL",
       "imageUrls": ["https://..."],
       "actionUrl": "https://...",
-      "publishedAt": "2026-02-01T00:00:00Z"
+      "publishedAt": "2026-02-01T00:00:00Z",
+      "createdAt": "2026-01-31T18:00:00Z",
+      "updatedAt": "2026-01-31T18:00:00Z"
     }
   ]
 }
@@ -1529,6 +1672,31 @@ Authorization:Bearer <firebase_id_token>
 #### GET /v1/app-notices/{appNoticeId}
 앱 공지 상세
 
+**정책:**
+- `GET /v1/app-notices`
+- `GET /v1/app-notices/{appNoticeId}`
+위 두 API는 모두 Public API이며 인증이 필요 없다.
+- Public 조회는 `publishedAt <= now()`인 앱 공지만 노출한다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "app_notice_uuid",
+    "title": "서버 점검 안내",
+    "content": "2월 20일 새벽 2시~4시 서버 점검이 있습니다.",
+    "category": "MAINTENANCE",
+    "priority": "HIGH",
+    "imageUrls": [],
+    "actionUrl": null,
+    "publishedAt": "2026-02-20T00:00:00Z",
+    "createdAt": "2026-02-19T12:00:00Z",
+    "updatedAt": "2026-02-19T12:00:00Z"
+  }
+}
+```
+
 ### 6.4 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
@@ -1536,7 +1704,9 @@ Authorization:Bearer <firebase_id_token>
 | `NOTICE_NOT_FOUND` | 404 | 존재하지 않는 학교 공지 |
 | `APP_NOTICE_NOT_FOUND` | 404 | 존재하지 않는 앱 공지 |
 | `NOTICE_COMMENT_NOT_FOUND` | 404 | 존재하지 않는 공지 댓글 |
-| `NOT_NOTICE_COMMENT_AUTHOR` | 403 | 댓글 작성자가 아닌데 수정/삭제 시도 |
+| `NOT_NOTICE_COMMENT_AUTHOR` | 403 | 댓글 작성자가 아닌데 삭제 시도 |
+| `COMMENT_ALREADY_DELETED` | 409 | 이미 삭제된 댓글 재삭제 시도 |
+| `RESOURCE_CONCURRENT_MODIFICATION` | 409 | 공지 동기화가 이미 진행 중임 |
 
 ---
 
@@ -1688,6 +1858,12 @@ Authorization:Bearer <firebase_id_token>
   ]
 }
 ```
+
+**구현 예정 알림 정책 (Phase 8):**
+- 기본 리마인더 기준일은 `startDate`
+- 기본 발송 시각은 당일 오전 `09:00`
+- 기본 대상은 중요 일정(`isPrimary = true`)
+- 사용자 옵션으로 전날 오전 `09:00` 추가와 모든 일정 대상 확장을 허용
 
 ### 7.4 에러 코드
 
@@ -1903,6 +2079,41 @@ Authorization:Bearer <firebase_id_token>
 |----------|------|------|
 | `NOTIFICATION_NOT_FOUND` | 404 | 존재하지 않는 알림 |
 | `NOT_NOTIFICATION_OWNER` | 403 | 다른 사람의 알림 접근 시도 |
+
+### 9.4 구현 예정 알림 정책
+
+> Phase 8 Spring Notification 인프라는 현행 RN + Firebase Cloud Functions 운영 정책을 기본으로 이관합니다.
+
+| 알림 타입 | 기준 트리거 | 수신 대상 | 설정 반영 | 인앱 인박스 |
+|----------|-------------|-----------|-----------|-------------|
+| `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | `partyNotifications` | X |
+| `JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | 현재 개별 토글 미반영 | O |
+| `JOIN_ACCEPTED` / `JOIN_DECLINED` | 요청 상태 변경 | 요청자 | 현재 개별 토글 미반영 | O |
+| `PARTY_CLOSED` / `PARTY_ARRIVED` | 파티 상태 변경 | 리더 제외 파티 멤버 | 현재 개별 토글 미반영 | `PARTY_CLOSED`: X / `PARTY_ARRIVED`: O |
+| `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | 현재 개별 토글 미반영 | O |
+| `MEMBER_KICKED` | 강퇴 감지 | 강퇴된 멤버 | 현재 개별 토글 미반영 | O |
+| `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | 현재 개별 토글 미반영 | O |
+| `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 | 채팅방 멤버(송신자 제외) | `allNotifications` + 채팅방 mute | X |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 | 파티 멤버(송신자 제외) | 채팅 mute 중심, 전역 토글 반영은 현행 비일관 | X |
+| `POST_LIKED` | 게시글 좋아요 | 게시글 작성자 | `boardLikeNotifications` | O |
+| `COMMENT_CREATED` (게시글) | 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | `commentNotifications` + `bookmarkedPostCommentNotifications` (중복 수신자는 1회 dedupe) | O |
+| `COMMENT_CREATED` (공지) | 댓글/답글 생성 | 공지 작성자 또는 부모 댓글 작성자 | `commentNotifications` | O |
+| `NOTICE` | 새 학교 공지 | 공지 허용 사용자 | `allNotifications` + `noticeNotifications` + `noticeNotificationsDetail` | O |
+| `APP_NOTICE` | 앱 공지 생성 | 일반: 시스템 알림 허용 사용자 / 긴급: 전체 사용자 | 일반: `allNotifications` + `systemNotifications`, 긴급: 설정 무시 | O |
+| `ACADEMIC_SCHEDULE` | 학사 일정 리마인더 | 학사 일정 알림 허용 사용자 | `allNotifications` + `academicScheduleNotifications` | O |
+
+- 학사 일정 리마인더는 `AcademicScheduleReminderEvent` 기반으로 처리한다.
+- 기본 정책:
+  - 기준일: `AcademicSchedule.startDate`
+  - 시각: 오전 `09:00`
+  - 대상: 중요 일정(`isPrimary = true`)
+- 사용자 옵션:
+  - 일정 전날 오전 `09:00` 추가
+  - 중요 일정만이 아니라 모든 일정 대상으로 확장
+- 구현 시 `notificationSetting` 확장 예정 필드:
+  - `academicScheduleNotifications`
+  - `academicScheduleDayBeforeEnabled`
+  - `academicScheduleAllEventsEnabled`
 
 ---
 
@@ -2824,8 +3035,12 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-#### PUT /v1/admin/app-notices/{appNoticeId}
-앱 공지 수정
+#### PATCH /v1/admin/app-notices/{appNoticeId}
+앱 공지 부분 수정
+
+- 전달한 필드만 반영한다.
+- 누락된 필드와 `null` 필드는 변경하지 않는다.
+- 모든 수정 가능 필드를 보내면 전체 수정처럼 사용할 수 있다.
 
 **Request:**
 ```json
@@ -2836,8 +3051,35 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "app_notice_uuid",
+    "title": "서버 점검 안내 (수정)",
+    "content": "점검 시간이 변경되었습니다.",
+    "category": "MAINTENANCE",
+    "priority": "HIGH",
+    "imageUrls": [],
+    "actionUrl": null,
+    "publishedAt": "2026-02-20T00:00:00Z",
+    "createdAt": "2026-02-19T12:00:00Z",
+    "updatedAt": "2026-02-19T12:30:00Z"
+  }
+}
+```
+
 #### DELETE /v1/admin/app-notices/{appNoticeId}
 앱 공지 삭제
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null
+}
+```
 
 ---
 
@@ -2946,10 +3188,17 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
     "created": 15,
     "updated": 3,
     "skipped": 42,
-    "syncedAt": "2026-02-19T12:00:00Z"
+    "failed": 2,
+    "syncedAt": "2026-02-19T12:00:00"
   }
 }
 ```
+
+**예외:**
+- 동기화가 이미 진행 중이면 `409 RESOURCE_CONCURRENT_MODIFICATION`
+
+**운영 정책:**
+- 개별 공지 저장 실패는 전체 동기화를 중단하지 않고 `failed`로 집계한 뒤 다음 공지 처리를 계속합니다.
 
 ---
 
@@ -3196,3 +3445,4 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강
 > - 2026-03-05: Board 계약 동기화 — 댓글 depth 1 제한, 부모 삭제 정책(B: placeholder soft delete), `/v1/members/me/posts|bookmarks` 및 Board 에러코드(`COMMENT_DEPTH_EXCEEDED`, `COMMENT_ALREADY_DELETED`) 반영
+> - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, `commentNotifications` / `bookmarkedPostCommentNotifications` 계약 반영

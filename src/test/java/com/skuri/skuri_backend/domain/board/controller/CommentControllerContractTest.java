@@ -159,6 +159,8 @@ class CommentControllerContractTest {
     private CommentResponse commentResponse() {
         return new CommentResponse(
                 "comment-1",
+                null,
+                0,
                 "댓글 내용",
                 "firebase-uid",
                 "홍길동",
@@ -168,7 +170,6 @@ class CommentControllerContractTest {
                 true,
                 false,
                 false,
-                List.of(),
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

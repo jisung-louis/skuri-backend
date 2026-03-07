@@ -14,8 +14,10 @@ public record UpdateMemberNotificationSettingsRequest(
         Boolean noticeNotifications,
         @Schema(description = "게시글 좋아요 알림 on/off", example = "false", nullable = true)
         Boolean boardLikeNotifications,
-        @Schema(description = "게시글 댓글 알림 on/off", example = "true", nullable = true)
-        Boolean boardCommentNotifications,
+        @Schema(description = "댓글 알림 on/off (Board/Notice 공통)", example = "true", nullable = true)
+        Boolean commentNotifications,
+        @Schema(description = "북마크한 게시글의 새 댓글 알림 on/off", example = "true", nullable = true)
+        Boolean bookmarkedPostCommentNotifications,
         @Schema(description = "시스템 알림 on/off", example = "true", nullable = true)
         Boolean systemNotifications,
         @Schema(description = "공지 상세 알림 설정 맵", example = "{\"academic\":true,\"event\":false}", nullable = true)

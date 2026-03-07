@@ -30,9 +30,23 @@
 - **Enum**: PostCategory
 - **Service**: BoardService
 - **Controller**: PostController, CommentController, MemberBoardController
+- **댓글 정책**: Board/Notice 공통으로 무제한 depth 댓글을 저장하고, 조회 API는 `parentId`와 `depth`를 포함한 flat list를 반환한다.
+
+### Notice
+- **Entity**: Notice, NoticeComment, NoticeReadStatus, NoticeLike
+- **Service**: NoticeService, NoticeSyncService
+- **Controller**: NoticeController, NoticeCommentController, NoticeAdminController
+- **외부 연동**: SungkyulNoticeRssClient, SungkyulNoticeDetailCrawler, SungkyulNoticeTlsSupport
+- **필드 의미**: Notice는 `rssPreview`를 목록/상세 API에 노출하고, `summary`는 향후 AI 요약용 예약 필드로 유지한다. `bodyHtml`은 RN 렌더링용 원문 HTML, `bodyText`는 검색/AI/RAG용 정규화 plain text다.
+- **운영 메모**: 성결대학교 사이트 TLS 체인 이슈로 인해 Notice 크롤링 경로에서만 trust-all SSL socket factory 사용
+- **동기화 정책**: `body_html`은 LONGTEXT로 저장하고, 개별 공지 저장 실패는 `failed` 집계 후 다음 공지를 계속 처리
+- **Scheduler**: NoticeScheduler (평일 08:00~19:50, Asia/Seoul, 10분 주기)
 
 ### App
-- **Controller**: AppNoticeController, AppVersionController
+- **Entity**: AppNotice
+- **Service**: AppNoticeService
+- **Controller**: AppNoticeController, AppNoticeAdminController, AppVersionController
+- **관리 정책**: AppNotice 관리자 수정은 `PATCH /v1/admin/app-notices/{appNoticeId}` partial update 계약 사용
 
 ## 인증 흐름
 1. Firebase ID Token → FirebaseAuthenticationFilter

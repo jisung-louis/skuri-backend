@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeController;
+import com.skuri.skuri_backend.domain.app.controller.AppNoticeAdminController;
 import com.skuri.skuri_backend.domain.app.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.board.controller.CommentController;
 import com.skuri.skuri_backend.domain.board.controller.MemberBoardController;
@@ -8,6 +9,9 @@ import com.skuri.skuri_backend.domain.board.controller.PostController;
 import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
 import com.skuri.skuri_backend.domain.chat.controller.ChatRoomController;
 import com.skuri.skuri_backend.domain.member.controller.MemberController;
+import com.skuri.skuri_backend.domain.notice.controller.NoticeAdminController;
+import com.skuri.skuri_backend.domain.notice.controller.NoticeCommentController;
+import com.skuri.skuri_backend.domain.notice.controller.NoticeController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.JoinRequestController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.PartyController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.PartySseController;
@@ -28,6 +32,10 @@ class OpenApiResponseExamplesConventionTest {
     private static final List<Class<?>> TARGET_CONTROLLERS = List.of(
             AppVersionController.class,
             AppNoticeController.class,
+            AppNoticeAdminController.class,
+            NoticeController.class,
+            NoticeCommentController.class,
+            NoticeAdminController.class,
             PostController.class,
             CommentController.class,
             MemberBoardController.class,

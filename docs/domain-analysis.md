@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-05
+> 최종 수정일: 2026-03-07
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -96,7 +96,7 @@ Hooks:
     - photoURL, realname, isAdmin, joinedAt, lastLogin
   - NotificationSetting
     - allNotifications, partyNotifications, noticeNotifications
-    - boardLikeNotifications, boardCommentNotifications
+    - boardLikeNotifications, commentNotifications, bookmarkedPostCommentNotifications
     - systemNotifications
     - noticeNotificationsDetail (카테고리별 상세 설정)
   - LinkedAccount
@@ -303,8 +303,9 @@ Hooks:
     - id, postId, content, authorId, authorName, authorProfileImage
     - isAnonymous, anonId (= "{postId}:{userId}", 글 단위 익명 식별자)
     - anonymousOrder (서버 계산, 아래 규칙 참조)
-    - parentId (대댓글용), isDeleted
-    - depth 정책: 0(댓글), 1(대댓글)만 허용
+    - parentId (self-reference), isDeleted
+    - depth 제한 없음 (무제한 self-reference)
+    - 조회 응답은 flat list + `parentId` + `depth`
     - 부모 삭제 정책(B): 부모는 placeholder("삭제된 댓글입니다")로 soft delete, 자식은 유지
 
   anonymousOrder 계산 규칙:
@@ -341,7 +342,7 @@ Firestore 컬렉션:
   - appNotices/{noticeId}
 
 Cloud Functions:
-  - scheduledRSSFetch (10분 주기, 평일 8-20시)
+  - scheduledRSSFetch (10분 주기, 평일 08:00~19:50)
   - onNoticeCreated (새 공지 알림)
   - onAppNoticeCreated (앱 공지 알림)
 
@@ -354,22 +355,55 @@ Hooks:
 엔티티:
   - Notice
     - id (Base64(link).replace(/=+$/, '').slice(0, 120) — 링크 기반 안정 ID)
-    - title, content, link, postedAt, category
-    - department, author, source, contentHash (중복 배제용)
-    - contentDetail (HTML), contentAttachments[]
+    - title, rssPreview, summary, link, postedAt, category
+    - department, author, source
+    - rssFingerprint (레거시 링크/날짜 기반 변경 감지용)
+    - detailHash (상세 HTML/첨부 변경 감지용)
+    - contentHash (실제 내용 기반 dedup용)
+    - bodyText (plain text), bodyHtml (HTML), attachments[]
+    - detailCheckedAt (상세 재검증 시각)
     - viewCount, likeCount, commentCount
   - NoticeComment
     - id, noticeId, userId, userDisplayName
     - content, isAnonymous, anonId (= "{noticeId}:{userId}")
     - anonymousOrder (서버 계산: Board Comment의 anonymousOrder 계산 규칙과 동일, noticeId 단위 Map 관리)
-    - replyCount, parentId, isDeleted
+    - parentId, isDeleted
+    - depth 제한 없음 (무제한 self-reference)
+    - 조회 응답은 Board Comment와 동일하게 flat list + `parentId` + `depth`
+    - 부모 삭제 정책: Board Comment와 동일하게 placeholder soft delete
   - NoticeReadStatus
     - userId, noticeId, isRead, readAt
+  - NoticeLike
+    - userId, noticeId
+    - 공지 좋아요 중복 방지 및 likeCount 동기화 용도
   - AppNotice
     - id, title, content
     - category (UPDATE, MAINTENANCE, EVENT, GENERAL)
     - priority (HIGH, NORMAL, LOW)
     - imageUrls[], actionUrl, publishedAt
+
+동기화 정책:
+  - 스케줄: 평일 08:00~19:50, 10분 주기, Asia/Seoul
+  - 링크 기반 안정 ID는 유지한다.
+  - `rssFingerprint`는 레거시(`title|fullLink|rawDate`) 기준을 유지한다.
+  - `contentHash`는 링크를 제외한 실제 내용 + 상세 본문/첨부 기반으로 계산해 중복을 배제한다.
+  - `rssPreview`는 RSS `description/content/contentSnippet` fallback으로 수집한 미리보기 텍스트다.
+  - `rssPreview`는 RSS 길이 제한 때문에 중간에서 잘릴 수 있으며, AI 요약을 의미하지 않는다.
+  - `summary`는 추후 AI가 생성한 공지 요약을 저장하기 위한 예약 필드다. 현재 공개 API에는 노출하지 않는다.
+  - `bodyHtml`은 상세 페이지 `.view-con`에서 수집한 HTML 원문이며, RN 앱이 웹 구조를 최대한 유지해 렌더링할 수 있도록 그대로 저장한다.
+  - `bodyText`는 `bodyHtml`에서 태그를 제거하고 줄바꿈/표 셀 구분을 정규화한 내부 텍스트다.
+  - 성결대학교 사이트의 TLS 체인 이슈로 인해, 현재 Spring 구현은 공지 RSS/상세 크롤링 경로에서만 TLS 인증서 검증을 비활성화한다.
+  - 개별 공지 저장 실패는 전체 동기화를 중단하지 않고 `failed`로 집계한 뒤 다음 공지 처리를 계속한다.
+  - 상세 재크롤링 조건:
+    - 신규 공지
+    - RSS 메타 변경
+    - `detailHash` 없음
+    - 마지막 상세 검증 시점이 24시간 초과
+  - 관리자 수동 sync는 상세 재크롤링을 강제로 수행한다.
+
+향후 확장 준비:
+  - AI 요약은 `summary` 컬럼에 저장하고, `contentHash`가 바뀌면 기존 AI 요약을 무효화한다.
+  - RAG/공지 챗봇은 `bodyText`를 기준으로 chunking/embedding을 수행하고, `title/category/postedAt/link`를 citation 메타데이터로 사용한다.
 
 학교 공지 카테고리 (14개):
   새소식, 학사, 학생, 장학/등록/학자금, 입학,
@@ -404,6 +438,13 @@ Hooks:
   - AcademicSchedule
     - id, title, startDate, endDate
     - type (SINGLE, MULTI), isPrimary, description
+
+학사 일정 알림 정책 (후속 구현):
+  - 기본 트리거 기준일은 `startDate`다.
+  - 기본 발송 시각은 당일 오전 09:00이다.
+  - 기본 대상은 중요 일정(`isPrimary = true`)이다.
+  - 사용자 옵션으로 전날 오전 09:00 추가 발송과 모든 일정 대상 확장을 허용한다.
+  - 실제 발송은 Notification 인프라(FCM + 인앱 인박스) Phase에서 처리한다.
 ```
 
 ### 3.7 Support (지원/운영)
@@ -560,7 +601,47 @@ UserNotification 엔티티:
   - PARTY_JOIN_DECLINED, PARTY_CLOSED, PARTY_ARRIVED
   - PARTY_ENDED, MEMBER_KICKED, SETTLEMENT_COMPLETED
   - CHAT_MESSAGE, POST_LIKED, COMMENT_CREATED
-  - NOTICE, APP_NOTICE
+  - NOTICE, APP_NOTICE, ACADEMIC_SCHEDULE
+
+정책 원칙:
+  - Spring Notification 인프라는 현행 RN + Firebase Cloud Functions 운영 정책을 기본으로 이관한다.
+  - 다만 `allNotifications` 및 도메인 토글 반영이 현재 이벤트마다 일관되지 않으므로, Phase 8 구현 시 "현재 동작 유지"와 "설정 일관성 정규화" 중 무엇을 택하는지 이벤트별로 명시한다.
+
+현행 운영 정책 기준:
+  - `PARTY_CREATED`: 생성자 제외 전체 사용자 대상, `partyNotifications` 반영, 인앱 인박스 미생성
+  - `JOIN_REQUEST`: 파티 리더 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `JOIN_ACCEPTED` / `JOIN_DECLINED`: 요청자 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `PARTY_CLOSED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 미생성
+  - `PARTY_ARRIVED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `SETTLEMENT_COMPLETED`: 파티 전체 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `MEMBER_KICKED`: 강퇴된 멤버 대상, 자진 이탈과 리더 제외, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `PARTY_ENDED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `CHAT_MESSAGE`(공개 채팅): 채팅방 멤버 대상, `allNotifications` + 채팅방 mute 반영, 인앱 인박스 미생성
+  - `CHAT_MESSAGE`(파티 채팅): 파티 멤버 대상, 채팅 mute 중심 정책이며 전역 토글 반영은 현재 비일관, 인앱 인박스 미생성
+  - `POST_LIKED`: 게시글 작성자 대상, 자기 좋아요 제외, `boardLikeNotifications` 반영, 인앱 인박스 생성
+  - `COMMENT_CREATED`(게시글): 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 대상, 자기 자신 제외, `commentNotifications` + `bookmarkedPostCommentNotifications` 반영, 중복 대상자는 1회 dedupe 후 인앱 인박스 생성
+  - `COMMENT_CREATED`(공지): 공지 작성자 또는 부모 댓글 작성자 대상, 자기 자신 제외, `commentNotifications` 반영 및 인앱 인박스 생성
+  - `NOTICE`: `allNotifications` + `noticeNotifications` + `noticeNotificationsDetail` 반영
+  - `APP_NOTICE`: 일반 공지는 `allNotifications` + `systemNotifications` 반영, `urgent`는 설정 무시 강제 발송
+
+Phase 8 댓글 알림 정책:
+  - Board/Notice 공통 댓글 알림 설정은 `commentNotifications`를 사용한다.
+  - `COMMENT_CREATED`(게시글)은 게시글 작성자/부모 댓글 작성자 외에도 "해당 게시글을 북마크한 사용자"를 수신 대상에 포함한다.
+  - 게시글 북마크 기반 댓글 알림은 `bookmarkedPostCommentNotifications`로 분리한다.
+  - 동일 사용자가 여러 수신 조건에 동시에 해당하면 푸시/인앱 인박스는 1회만 생성한다.
+
+학사 일정 리마인더 정책:
+  - 이벤트명: `AcademicScheduleReminderEvent`
+  - 기본 발송 시각: 오전 09:00
+  - 기본 대상: 중요 일정(`isPrimary = true`)
+  - 사용자 옵션:
+    - 전날 오전 09:00 추가
+    - 모든 일정 대상 확장
+  - 멀티데이 일정은 `startDate`를 기준으로 리마인더를 계산한다.
+  - 구현 시 `NotificationSetting`은 최소 아래 설정을 추가한다:
+    - `academicScheduleNotifications`
+    - `academicScheduleDayBeforeEnabled`
+    - `academicScheduleAllEventsEnabled`
 ```
 
 ---
@@ -705,7 +786,8 @@ public class NotificationSetting {
     private boolean partyNotifications = true;
     private boolean noticeNotifications = true;
     private boolean boardLikeNotifications = true;
-    private boolean boardCommentNotifications = true;
+    private boolean commentNotifications = true;
+    private boolean bookmarkedPostCommentNotifications = true;
     private boolean systemNotifications = true;
 
     @Convert(converter = BooleanMapJsonConverter.class)
@@ -1186,7 +1268,7 @@ public class PartyMessageService {
   - [x] Member 도메인 구현
     - [x] Firebase ID Token 검증 필터/인증 컨텍스트 구성 (서버 토큰 발급 없음)
     - [x] `members.isAdmin` 기반 `ROLE_ADMIN` authority 부여 + `@PreAuthorize("hasRole('ADMIN')")` 적용
-    - [x] 공개 API(`GET /v1/app-versions/**`, `GET /v1/app-notices`, `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /scalar/**`) permitAll
+    - [x] 공개 API(`GET /v1/app-versions/**`, `GET /v1/app-notices/**`, `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /scalar/**`) permitAll
     - [x] 보호 API 미인증 요청 401, 이메일 도메인 불일치 403, 관리자 API 비권한 요청 `403 ADMIN_REQUIRED`
 
 - [ ] **Phase 2: 핵심 비즈니스**
@@ -1196,8 +1278,8 @@ public class PartyMessageService {
   - [ ] FCM 푸시 연동
 
 - [ ] **Phase 3: 부가 기능**
-  - [ ] Notice 도메인 + RSS 크롤러
-  - [x] Board 도메인 (댓글 depth 1 제한, 부모 삭제 정책 B 반영)
+  - [x] Notice 도메인 + RSS 크롤러
+- [x] Board 도메인 (무제한 depth 댓글, flat list 조회, 부모 삭제 정책 B 반영)
   - [ ] Academic 도메인
   - [ ] Support 도메인
 
@@ -1219,3 +1301,4 @@ public class PartyMessageService {
 > **문서 이력**
 > - 2026-02-03: 초안 작성 (도메인 분석 완료)
 > - 2026-03-05: Board 도메인 구현 반영 — 댓글 depth 1 제한, 부모 placeholder soft delete 정책(B), 내 게시글/북마크 조회 책임 추가
+> - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리

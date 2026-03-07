@@ -2,6 +2,10 @@ package com.skuri.skuri_backend.infra.auth;
 
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeController;
 import com.skuri.skuri_backend.domain.app.controller.AppVersionController;
+import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeResponse;
+import com.skuri.skuri_backend.domain.app.entity.AppNoticeCategory;
+import com.skuri.skuri_backend.domain.app.entity.AppNoticePriority;
+import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
 import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
@@ -57,6 +61,9 @@ class SecurityIntegrationTest {
 
     @MockitoBean
     private MemberService memberService;
+
+    @MockitoBean
+    private AppNoticeService appNoticeService;
 
     @MockitoBean
     private ChatAdminService chatAdminService;
@@ -133,6 +140,7 @@ class SecurityIntegrationTest {
                                 true,
                                 true,
                                 true,
+                                true,
                                 Map.of("news", true)
                         ),
                         LocalDateTime.now(),
@@ -152,9 +160,16 @@ class SecurityIntegrationTest {
 
     @Test
     void 공개Api_인증없이_접근가능() throws Exception {
+        when(appNoticeService.getPublishedNotices()).thenReturn(java.util.List.of(appNoticeResponse()));
+        when(appNoticeService.getPublishedNotice("app-notice-1")).thenReturn(appNoticeResponse());
+
         mockMvc.perform(get("/v1/app-notices"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/v1/app-notices/app-notice-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("app-notice-1"));
 
         mockMvc.perform(get("/v1/app-versions/ios"))
                 .andExpect(status().isOk())
@@ -216,5 +231,20 @@ class SecurityIntegrationTest {
         );
         ReflectionTestUtils.setField(admin, "isAdmin", true);
         when(memberRepository.findById(uid)).thenReturn(Optional.of(admin));
+    }
+
+    private AppNoticeResponse appNoticeResponse() {
+        return new AppNoticeResponse(
+                "app-notice-1",
+                "앱 공지",
+                "앱 공지 내용",
+                AppNoticeCategory.MAINTENANCE,
+                AppNoticePriority.HIGH,
+                java.util.List.of(),
+                null,
+                LocalDateTime.of(2026, 2, 20, 0, 0),
+                LocalDateTime.of(2026, 2, 19, 12, 0),
+                LocalDateTime.of(2026, 2, 19, 12, 0)
+        );
     }
 }

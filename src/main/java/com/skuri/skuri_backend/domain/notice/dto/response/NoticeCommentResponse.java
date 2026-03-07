@@ -1,0 +1,33 @@
+package com.skuri.skuri_backend.domain.notice.dto.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.LocalDateTime;
+@Schema(description = "공지 댓글 응답")
+public record NoticeCommentResponse(
+        @Schema(description = "댓글 ID", example = "notice_comment_uuid")
+        String id,
+        @Schema(description = "부모 댓글 ID", nullable = true, example = "notice_parent_comment_uuid")
+        String parentId,
+        @Schema(description = "댓글 depth", example = "1")
+        int depth,
+        @Schema(description = "댓글 본문", example = "댓글 내용")
+        String content,
+        @Schema(description = "작성자 ID", nullable = true, example = "user_uuid")
+        String authorId,
+        @Schema(description = "작성자 이름", nullable = true, example = "홍길동")
+        String authorName,
+        @Schema(description = "익명 여부", example = "false")
+        boolean isAnonymous,
+        @Schema(description = "익명 순번", nullable = true, example = "2")
+        Integer anonymousOrder,
+        @Schema(description = "내가 작성한 댓글인지 여부", example = "false")
+        boolean isAuthor,
+        @Schema(description = "삭제된 댓글인지 여부", example = "false")
+        boolean isDeleted,
+        @Schema(description = "생성 시각", example = "2026-02-03T12:00:00")
+        LocalDateTime createdAt,
+        @Schema(description = "수정 시각", example = "2026-02-03T12:30:00")
+        LocalDateTime updatedAt
+) {
+}

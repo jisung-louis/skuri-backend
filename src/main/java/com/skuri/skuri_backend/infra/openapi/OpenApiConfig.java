@@ -48,7 +48,21 @@ public class OpenApiConfig {
     public GroupedOpenApi appApi() {
         return GroupedOpenApi.builder()
                 .group("app")
-                .pathsToMatch("/v1/app-versions/**", "/v1/app-notices/**")
+                .pathsToMatch("/v1/app-versions/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi noticeApi() {
+        return GroupedOpenApi.builder()
+                .group("notice")
+                .pathsToMatch(
+                        "/v1/notices/**",
+                        "/v1/notice-comments/**",
+                        "/v1/app-notices/**",
+                        "/v1/admin/notices/**",
+                        "/v1/admin/app-notices/**"
+                )
                 .build();
     }
 

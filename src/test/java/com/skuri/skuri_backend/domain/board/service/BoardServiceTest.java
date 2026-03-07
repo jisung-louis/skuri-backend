@@ -86,7 +86,7 @@ class BoardServiceTest {
     }
 
     @Test
-    void createComment_대댓글1단계는허용된다() {
+    void createComment_대댓글은_무제한으로허용된다() {
         Post post = post("post-1", "author-1");
         Comment parent = comment("comment-1", post, null, "author-1", false, null);
         Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "사용자", LocalDateTime.now());
@@ -109,11 +109,13 @@ class BoardServiceTest {
         );
 
         assertEquals("comment-2", response.id());
+        assertEquals("comment-1", response.parentId());
+        assertEquals(1, response.depth());
         assertEquals(1, post.getCommentCount());
     }
 
     @Test
-    void createComment_대대댓글은차단된다() {
+    void createComment_대대댓글도허용된다() {
         Post post = post("post-1", "author-1");
         Comment root = comment("root-1", post, null, "author-1", false, null);
         Comment child = comment("child-1", post, root, "member-2", false, null);
@@ -122,36 +124,48 @@ class BoardServiceTest {
         when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
         when(memberRepository.findById("member-1")).thenReturn(Optional.of(member));
         when(commentRepository.findByIdAndPostId("child-1", "post-1")).thenReturn(Optional.of(child));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
+            Comment saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", "comment-3");
+            ReflectionTestUtils.setField(saved, "createdAt", LocalDateTime.now());
+            ReflectionTestUtils.setField(saved, "updatedAt", LocalDateTime.now());
+            return saved;
+        });
 
-        BusinessException exception = assertThrows(
-                BusinessException.class,
-                () -> boardService.createComment(
-                        "member-1",
-                        "post-1",
-                        new CreateCommentRequest("대대댓글", false, "child-1")
-                )
+        CommentResponse response = boardService.createComment(
+                "member-1",
+                "post-1",
+                new CreateCommentRequest("대대댓글", false, "child-1")
         );
 
-        assertEquals(ErrorCode.COMMENT_DEPTH_EXCEEDED, exception.getErrorCode());
+        assertEquals("comment-3", response.id());
+        assertEquals("child-1", response.parentId());
+        assertEquals(2, response.depth());
     }
 
     @Test
-    void getComments_부모삭제시_placeholder유지_자식은유지된다() {
+    void getComments_flatList로반환되고_부모삭제시_placeholder유지_자손은유지된다() {
         Post post = post("post-1", "author-1");
         Comment parent = comment("comment-1", post, null, "author-1", false, null);
         Comment child = comment("comment-2", post, parent, "member-2", true, 2);
+        Comment grandChild = comment("comment-3", post, child, "member-3", false, null);
         parent.softDelete();
 
         when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
-        when(commentRepository.findByPostIdOrderByCreatedAtAsc("post-1")).thenReturn(List.of(parent, child));
+        when(commentRepository.findByPostIdOrderByCreatedAtAsc("post-1")).thenReturn(List.of(parent, child, grandChild));
 
         List<CommentResponse> responses = boardService.getComments("member-3", "post-1");
 
-        assertEquals(1, responses.size());
+        assertEquals(3, responses.size());
         assertTrue(responses.get(0).isDeleted());
         assertEquals(Comment.DELETED_PLACEHOLDER, responses.get(0).content());
-        assertEquals(1, responses.get(0).replies().size());
-        assertEquals("comment-2", responses.get(0).replies().get(0).id());
+        assertEquals(0, responses.get(0).depth());
+        assertEquals("comment-2", responses.get(1).id());
+        assertEquals("comment-1", responses.get(1).parentId());
+        assertEquals(1, responses.get(1).depth());
+        assertEquals("comment-3", responses.get(2).id());
+        assertEquals("comment-2", responses.get(2).parentId());
+        assertEquals(2, responses.get(2).depth());
     }
 
     @Test

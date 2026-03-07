@@ -1,0 +1,39 @@
+package com.skuri.skuri_backend.domain.notice.repository;
+
+import com.skuri.skuri_backend.domain.notice.entity.NoticeComment;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface NoticeCommentRepository extends JpaRepository<NoticeComment, String> {
+
+    @Query("""
+            select c
+            from NoticeComment c
+            where c.notice.id = :noticeId
+            order by c.createdAt asc
+            """)
+    List<NoticeComment> findByNoticeIdOrderByCreatedAtAsc(@Param("noticeId") String noticeId);
+
+    @Query("""
+            select c
+            from NoticeComment c
+            where c.id = :commentId
+              and c.notice.id = :noticeId
+            """)
+    Optional<NoticeComment> findByIdAndNoticeId(@Param("commentId") String commentId, @Param("noticeId") String noticeId);
+
+    Optional<NoticeComment> findById(String commentId);
+
+    Optional<NoticeComment> findFirstByNotice_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(String noticeId, String anonId);
+
+    @Query("""
+            select coalesce(max(c.anonymousOrder), 0)
+            from NoticeComment c
+            where c.notice.id = :noticeId
+            """)
+    int findMaxAnonymousOrderByNoticeId(@Param("noticeId") String noticeId);
+}

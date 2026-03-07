@@ -22,13 +22,52 @@ public final class OpenApiAppExamples {
               "success": true,
               "data": [
                 {
-                  "id": "notice-2026-spring-01",
-                  "title": "개강 주간 택시 이벤트",
-                  "content": "첫 주 택시파티 이용 시 포인트 2배 적립",
-                  "category": "event",
-                  "publishedAt": "2026-03-02T09:00:00"
+                  "id": "app_notice_uuid",
+                  "title": "앱 업데이트 안내",
+                  "content": "새로운 기능이 추가되었습니다.",
+                  "category": "UPDATE",
+                  "priority": "NORMAL",
+                  "imageUrls": ["https://cdn.skuri.app/notices/update.png"],
+                  "actionUrl": "https://skuri.app/update",
+                  "publishedAt": "2026-02-01T00:00:00",
+                  "createdAt": "2026-01-31T18:00:00",
+                  "updatedAt": "2026-01-31T18:00:00"
                 }
               ]
             }
             """;
+
+    public static final String SUCCESS_APP_NOTICE_DETAIL = """
+            {
+              "success": true,
+              "data": {
+                "id": "app_notice_uuid",
+                "title": "서버 점검 안내",
+                "content": "2월 20일 새벽 2시~4시 서버 점검이 있습니다.",
+                "category": "MAINTENANCE",
+                "priority": "HIGH",
+                "imageUrls": [],
+                "actionUrl": null,
+                "publishedAt": "2026-02-20T00:00:00",
+                "createdAt": "2026-02-19T12:00:00",
+                "updatedAt": "2026-02-19T12:00:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_APP_NOTICE_CREATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "app_notice_uuid",
+                "title": "서버 점검 안내",
+                "createdAt": "2026-02-19T12:00:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_APP_NOTICE_UPDATE = SUCCESS_APP_NOTICE_DETAIL;
+
+    public static final String ERROR_APP_NOTICE_NOT_FOUND =
+            "{\"success\":false,\"message\":\"앱 공지를 찾을 수 없습니다.\",\"errorCode\":\"APP_NOTICE_NOT_FOUND\",\"timestamp\":\"2026-03-06T12:00:00\"}";
 }

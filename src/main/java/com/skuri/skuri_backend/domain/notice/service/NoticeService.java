@@ -1,0 +1,388 @@
+package com.skuri.skuri_backend.domain.notice.service;
+
+import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeDetailResponse;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeReadResponse;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeSummaryResponse;
+import com.skuri.skuri_backend.domain.notice.entity.Notice;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeCategory;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeComment;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeLike;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeReadStatus;
+import com.skuri.skuri_backend.domain.notice.exception.NoticeCommentNotFoundException;
+import com.skuri.skuri_backend.domain.notice.exception.NoticeNotFoundException;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentRepository;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeLikeRepository;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeReadStatusRepository;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class NoticeService {
+
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 100;
+
+    private final NoticeRepository noticeRepository;
+    private final NoticeCommentRepository noticeCommentRepository;
+    private final NoticeReadStatusRepository noticeReadStatusRepository;
+    private final NoticeLikeRepository noticeLikeRepository;
+    private final MemberRepository memberRepository;
+
+    @Transactional(readOnly = true)
+    public PageResponse<NoticeSummaryResponse> getNotices(
+            String memberId,
+            String category,
+            String search,
+            Integer page,
+            Integer size
+    ) {
+        String resolvedCategory = resolveCategory(category);
+        Pageable pageable = resolvePageable(page, size);
+        Page<Notice> noticePage = noticeRepository.search(resolvedCategory, trimToNull(search), pageable);
+        List<String> noticeIds = noticePage.getContent().stream().map(Notice::getId).toList();
+        Set<String> readNoticeIds = noticeIds.isEmpty()
+                ? Set.of()
+                : Set.copyOf(noticeReadStatusRepository.findReadNoticeIds(memberId, noticeIds));
+        Set<String> likedNoticeIds = noticeIds.isEmpty()
+                ? Set.of()
+                : Set.copyOf(noticeLikeRepository.findLikedNoticeIds(memberId, noticeIds));
+
+        return PageResponse.from(noticePage.map(notice -> toSummaryResponse(
+                notice,
+                readNoticeIds.contains(notice.getId()),
+                likedNoticeIds.contains(notice.getId())
+        )));
+    }
+
+    @Transactional
+    public NoticeDetailResponse getNoticeDetail(String memberId, String noticeId) {
+        int updatedRows = noticeRepository.incrementViewCount(noticeId);
+        if (updatedRows == 0) {
+            throw new NoticeNotFoundException();
+        }
+
+        Notice notice = findNoticeOrThrow(noticeId);
+        boolean isRead = noticeReadStatusRepository.existsById_UserIdAndId_NoticeIdAndReadTrue(memberId, noticeId);
+        boolean isLiked = noticeLikeRepository.existsById_UserIdAndId_NoticeId(memberId, noticeId);
+        return toDetailResponse(notice, isRead, isLiked);
+    }
+
+    @Transactional
+    public NoticeReadResponse markRead(String memberId, String noticeId) {
+        Notice notice = findNoticeOrThrow(noticeId);
+        LocalDateTime readAt = LocalDateTime.now();
+        NoticeReadStatus status = noticeReadStatusRepository.findById_UserIdAndId_NoticeId(memberId, noticeId)
+                .orElseGet(() -> NoticeReadStatus.create(notice, memberId, readAt));
+        status.markRead(readAt);
+        noticeReadStatusRepository.save(status);
+        return new NoticeReadResponse(noticeId, true, status.getReadAt());
+    }
+
+    @Transactional(readOnly = true)
+    public List<NoticeCommentResponse> getComments(String memberId, String noticeId) {
+        findNoticeOrThrow(noticeId);
+        List<NoticeComment> comments = noticeCommentRepository.findByNoticeIdOrderByCreatedAtAsc(noticeId);
+        return flattenComments(comments, memberId);
+    }
+
+    @Transactional
+    public NoticeCommentResponse createComment(String memberId, String noticeId, CreateNoticeCommentRequest request) {
+        Notice notice = findNoticeForUpdateOrThrow(noticeId);
+        Member author = findMemberOrThrow(memberId);
+
+        NoticeComment parent = null;
+        if (request.parentId() != null) {
+            parent = noticeCommentRepository.findByIdAndNoticeId(request.parentId(), noticeId)
+                    .orElseThrow(NoticeCommentNotFoundException::new);
+        }
+
+        AnonymousMetadata anonymousMetadata = resolveAnonymousMetadata(noticeId, memberId, request.isAnonymous());
+        NoticeComment comment = NoticeComment.create(
+                notice,
+                memberId,
+                resolveDisplayName(author),
+                request.content().trim(),
+                request.isAnonymous(),
+                anonymousMetadata.anonId,
+                anonymousMetadata.anonymousOrder,
+                parent
+        );
+        NoticeComment saved = noticeCommentRepository.save(comment);
+        notice.increaseCommentCount(1);
+
+        return toCommentResponse(saved, memberId, resolveDepth(saved));
+    }
+
+    @Transactional
+    public void deleteComment(String memberId, String commentId) {
+        NoticeComment comment = noticeCommentRepository.findById(commentId)
+                .orElseThrow(NoticeCommentNotFoundException::new);
+
+        requireCommentAuthor(comment, memberId);
+        if (comment.isDeleted()) {
+            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
+        }
+
+        Notice notice = findNoticeForUpdateOrThrow(comment.getNotice().getId());
+        comment.softDelete();
+        notice.increaseCommentCount(-1);
+    }
+
+    @Transactional
+    public NoticeLikeResponse likeNotice(String memberId, String noticeId) {
+        Notice notice = findNoticeForUpdateOrThrow(noticeId);
+        if (noticeLikeRepository.existsById_UserIdAndId_NoticeId(memberId, noticeId)) {
+            return new NoticeLikeResponse(true, notice.getLikeCount());
+        }
+        noticeLikeRepository.save(NoticeLike.create(notice, memberId));
+        notice.increaseLikeCount(1);
+        return new NoticeLikeResponse(true, notice.getLikeCount());
+    }
+
+    @Transactional
+    public NoticeLikeResponse unlikeNotice(String memberId, String noticeId) {
+        Notice notice = findNoticeForUpdateOrThrow(noticeId);
+        noticeLikeRepository.findById_UserIdAndId_NoticeId(memberId, noticeId)
+                .ifPresent(like -> {
+                    noticeLikeRepository.delete(like);
+                    notice.increaseLikeCount(-1);
+                });
+        return new NoticeLikeResponse(false, notice.getLikeCount());
+    }
+
+    private NoticeSummaryResponse toSummaryResponse(Notice notice, boolean isRead, boolean isLiked) {
+        return new NoticeSummaryResponse(
+                notice.getId(),
+                notice.getTitle(),
+                notice.getRssPreview(),
+                notice.getCategory(),
+                notice.getDepartment(),
+                notice.getAuthor(),
+                notice.getPostedAt(),
+                notice.getViewCount(),
+                notice.getLikeCount(),
+                notice.getCommentCount(),
+                isRead,
+                isLiked
+        );
+    }
+
+    private NoticeDetailResponse toDetailResponse(Notice notice, boolean isRead, boolean isLiked) {
+        return new NoticeDetailResponse(
+                notice.getId(),
+                notice.getTitle(),
+                notice.getRssPreview(),
+                notice.getBodyHtml(),
+                notice.getLink(),
+                notice.getCategory(),
+                notice.getDepartment(),
+                notice.getAuthor(),
+                notice.getSource(),
+                notice.getPostedAt(),
+                notice.getViewCount(),
+                notice.getLikeCount(),
+                notice.getCommentCount(),
+                List.copyOf(notice.getAttachments()),
+                isRead,
+                isLiked
+        );
+    }
+
+    private List<NoticeCommentResponse> flattenComments(List<NoticeComment> comments, String memberId) {
+        Map<String, List<NoticeComment>> childrenByParent = new LinkedHashMap<>();
+        List<NoticeComment> roots = new ArrayList<>();
+
+        for (NoticeComment comment : comments) {
+            if (comment.hasParent()) {
+                childrenByParent.computeIfAbsent(comment.getParent().getId(), key -> new ArrayList<>()).add(comment);
+            } else {
+                roots.add(comment);
+            }
+        }
+
+        List<NoticeCommentResponse> flattened = new ArrayList<>();
+        for (NoticeComment root : roots) {
+            appendCommentTree(flattened, root, 0, memberId, childrenByParent);
+        }
+        return flattened;
+    }
+
+    private void appendCommentTree(
+            List<NoticeCommentResponse> flattened,
+            NoticeComment comment,
+            int depth,
+            String memberId,
+            Map<String, List<NoticeComment>> childrenByParent
+    ) {
+        flattened.add(toCommentResponse(comment, memberId, depth));
+        for (NoticeComment child : childrenByParent.getOrDefault(comment.getId(), List.of())) {
+            appendCommentTree(flattened, child, depth + 1, memberId, childrenByParent);
+        }
+    }
+
+    private int resolveDepth(NoticeComment comment) {
+        int depth = 0;
+        NoticeComment current = comment;
+        while (current.hasParent()) {
+            depth++;
+            current = current.getParent();
+        }
+        return depth;
+    }
+
+    private NoticeCommentResponse toCommentResponse(NoticeComment comment, String memberId, int depth) {
+        boolean deleted = comment.isDeleted();
+        AuthorView authorView = resolveAuthorView(
+                comment.isAnonymous(),
+                deleted,
+                comment.getUserId(),
+                comment.getUserDisplayName(),
+                comment.getAnonymousOrder()
+        );
+        return new NoticeCommentResponse(
+                comment.getId(),
+                comment.hasParent() ? comment.getParent().getId() : null,
+                depth,
+                comment.getContent(),
+                authorView.authorId,
+                authorView.authorName,
+                !deleted && comment.isAnonymous(),
+                deleted ? null : comment.getAnonymousOrder(),
+                !deleted && comment.isAuthor(memberId),
+                deleted,
+                comment.getCreatedAt(),
+                comment.getUpdatedAt()
+        );
+    }
+
+    private AuthorView resolveAuthorView(
+            boolean anonymous,
+            boolean deleted,
+            String authorId,
+            String authorName,
+            Integer anonymousOrder
+    ) {
+        if (deleted) {
+            return new AuthorView(null, null);
+        }
+        if (!anonymous) {
+            return new AuthorView(authorId, authorName);
+        }
+        String displayName = anonymousOrder == null ? "익명" : "익명" + anonymousOrder;
+        return new AuthorView(null, displayName);
+    }
+
+    private AnonymousMetadata resolveAnonymousMetadata(String noticeId, String userId, boolean anonymous) {
+        if (!anonymous) {
+            return new AnonymousMetadata(null, null);
+        }
+
+        String anonId = noticeId + ":" + userId;
+        Integer existingOrder = noticeCommentRepository
+                .findFirstByNotice_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(noticeId, anonId)
+                .map(NoticeComment::getAnonymousOrder)
+                .orElse(null);
+        if (existingOrder != null) {
+            return new AnonymousMetadata(anonId, existingOrder);
+        }
+
+        int nextOrder = noticeCommentRepository.findMaxAnonymousOrderByNoticeId(noticeId) + 1;
+        return new AnonymousMetadata(anonId, nextOrder);
+    }
+
+    private void requireCommentAuthor(NoticeComment comment, String memberId) {
+        if (!comment.isAuthor(memberId)) {
+            throw new BusinessException(ErrorCode.NOT_NOTICE_COMMENT_AUTHOR);
+        }
+    }
+
+    private Notice findNoticeOrThrow(String noticeId) {
+        return noticeRepository.findById(noticeId)
+                .orElseThrow(NoticeNotFoundException::new);
+    }
+
+    private Notice findNoticeForUpdateOrThrow(String noticeId) {
+        return noticeRepository.findByIdForUpdate(noticeId)
+                .orElseThrow(NoticeNotFoundException::new);
+    }
+
+    private Member findMemberOrThrow(String memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    private Pageable resolvePageable(Integer page, Integer size) {
+        int resolvedPage = page == null ? 0 : page;
+        int resolvedSize = size == null ? DEFAULT_PAGE_SIZE : size;
+        if (resolvedPage < 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "page는 0 이상이어야 합니다.");
+        }
+        if (resolvedSize < 1 || resolvedSize > MAX_PAGE_SIZE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "size는 1 이상 100 이하여야 합니다.");
+        }
+        return PageRequest.of(resolvedPage, resolvedSize, Sort.by(Sort.Direction.DESC, "postedAt", "createdAt"));
+    }
+
+    private String resolveCategory(String category) {
+        String normalized = trimToNull(category);
+        if (normalized == null) {
+            return null;
+        }
+        try {
+            return NoticeCategory.fromLabel(normalized).label();
+        } catch (IllegalArgumentException e) {
+            String supported = java.util.Arrays.stream(NoticeCategory.values())
+                    .map(NoticeCategory::label)
+                    .collect(Collectors.joining(", "));
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "category는 다음 값만 허용됩니다: " + supported);
+        }
+    }
+
+    private String resolveDisplayName(Member member) {
+        if (StringUtils.hasText(member.getNickname())) {
+            return member.getNickname().trim();
+        }
+        if (StringUtils.hasText(member.getRealname())) {
+            return member.getRealname().trim();
+        }
+        return member.getId();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private record AnonymousMetadata(String anonId, Integer anonymousOrder) {
+    }
+
+    private record AuthorView(String authorId, String authorName) {
+    }
+}

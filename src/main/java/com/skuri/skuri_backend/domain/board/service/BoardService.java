@@ -37,6 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -213,23 +214,7 @@ public class BoardService {
     public List<CommentResponse> getComments(String memberId, String postId) {
         Post post = findActivePostOrThrow(postId);
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
-
-        Map<String, List<Comment>> repliesByParent = new LinkedHashMap<>();
-        for (Comment comment : comments) {
-            if (comment.hasParent()) {
-                repliesByParent.computeIfAbsent(comment.getParent().getId(), key -> new java.util.ArrayList<>()).add(comment);
-            }
-        }
-
-        return comments.stream()
-                .filter(Comment::isRoot)
-                .map(root -> {
-                    List<CommentResponse> replies = repliesByParent.getOrDefault(root.getId(), List.of()).stream()
-                            .map(reply -> toCommentResponse(reply, memberId, post.getAuthorId(), List.of()))
-                            .toList();
-                    return toCommentResponse(root, memberId, post.getAuthorId(), replies);
-                })
-                .toList();
+        return flattenComments(comments, memberId, post.getAuthorId());
     }
 
     @Transactional
@@ -241,9 +226,6 @@ public class BoardService {
         if (request.parentId() != null) {
             parent = commentRepository.findByIdAndPostId(request.parentId(), postId)
                     .orElseThrow(CommentNotFoundException::new);
-            if (parent.hasParent()) {
-                throw new BusinessException(ErrorCode.COMMENT_DEPTH_EXCEEDED);
-            }
         }
 
         AnonymousMetadata anonymousMetadata = resolveAnonymousMetadata(postId, memberId, request.isAnonymous());
@@ -263,7 +245,7 @@ public class BoardService {
         post.increaseCommentCount(1);
         post.updateLastCommentAt(LocalDateTime.now());
 
-        return toCommentResponse(saved, memberId, post.getAuthorId(), List.of());
+        return toCommentResponse(saved, memberId, post.getAuthorId(), resolveDepth(saved));
     }
 
     @Transactional
@@ -277,7 +259,7 @@ public class BoardService {
         }
 
         comment.updateContent(request.content().trim());
-        return toCommentResponse(comment, memberId, comment.getPost().getAuthorId(), List.of());
+        return toCommentResponse(comment, memberId, comment.getPost().getAuthorId(), resolveDepth(comment));
     }
 
     @Transactional
@@ -402,11 +384,54 @@ public class BoardService {
         );
     }
 
+    private List<CommentResponse> flattenComments(List<Comment> comments, String memberId, String postAuthorId) {
+        Map<String, List<Comment>> childrenByParent = new LinkedHashMap<>();
+        List<Comment> roots = new ArrayList<>();
+
+        for (Comment comment : comments) {
+            if (comment.hasParent()) {
+                childrenByParent.computeIfAbsent(comment.getParent().getId(), key -> new ArrayList<>()).add(comment);
+            } else {
+                roots.add(comment);
+            }
+        }
+
+        List<CommentResponse> flattened = new ArrayList<>();
+        for (Comment root : roots) {
+            appendCommentTree(flattened, root, 0, memberId, postAuthorId, childrenByParent);
+        }
+        return flattened;
+    }
+
+    private void appendCommentTree(
+            List<CommentResponse> flattened,
+            Comment comment,
+            int depth,
+            String memberId,
+            String postAuthorId,
+            Map<String, List<Comment>> childrenByParent
+    ) {
+        flattened.add(toCommentResponse(comment, memberId, postAuthorId, depth));
+        for (Comment child : childrenByParent.getOrDefault(comment.getId(), List.of())) {
+            appendCommentTree(flattened, child, depth + 1, memberId, postAuthorId, childrenByParent);
+        }
+    }
+
+    private int resolveDepth(Comment comment) {
+        int depth = 0;
+        Comment current = comment;
+        while (current.hasParent()) {
+            depth++;
+            current = current.getParent();
+        }
+        return depth;
+    }
+
     private CommentResponse toCommentResponse(
             Comment comment,
             String memberId,
             String postAuthorId,
-            List<CommentResponse> replies
+            int depth
     ) {
         boolean deleted = comment.isDeleted();
         AuthorView authorView = resolveAuthorView(
@@ -420,6 +445,8 @@ public class BoardService {
 
         return new CommentResponse(
                 comment.getId(),
+                comment.hasParent() ? comment.getParent().getId() : null,
+                depth,
                 comment.getContent(),
                 authorView.authorId,
                 authorView.authorName,
@@ -429,7 +456,6 @@ public class BoardService {
                 !deleted && comment.isAuthor(memberId),
                 !deleted && comment.isAuthor(postAuthorId),
                 deleted,
-                replies,
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
         );

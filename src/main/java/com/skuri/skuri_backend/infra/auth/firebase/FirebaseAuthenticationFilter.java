@@ -52,7 +52,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
         String uri = request.getRequestURI();
-        return "/v1/app-notices".equals(uri) || uri.startsWith("/v1/app-versions/");
+        return uri.startsWith("/v1/app-notices/") || "/v1/app-notices".equals(uri) || uri.startsWith("/v1/app-versions/");
     }
 
     @Override

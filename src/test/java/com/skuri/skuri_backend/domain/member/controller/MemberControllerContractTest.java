@@ -212,6 +212,8 @@ class MemberControllerContractTest {
                                 .content("""
                                         {
                                           "partyNotifications": true,
+                                          "commentNotifications": false,
+                                          "bookmarkedPostCommentNotifications": true,
                                           "noticeNotifications": false,
                                           "noticeNotificationsDetail": {
                                             "news": true,
@@ -312,6 +314,7 @@ class MemberControllerContractTest {
                 false,
                 new MemberBankAccountResponse("카카오뱅크", "3333-01-1234567", "홍길동", false),
                 new MemberNotificationSettingResponse(
+                        true,
                         true,
                         true,
                         true,
