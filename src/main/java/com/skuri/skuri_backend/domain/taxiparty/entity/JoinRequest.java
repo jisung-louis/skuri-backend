@@ -13,7 +13,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -21,15 +20,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(
-        name = "join_requests",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_join_requests_party_requester_status",
-                        columnNames = {"party_id", "requester_id", "status"}
-                )
-        }
-)
+@Table(name = "join_requests")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class JoinRequest extends BaseTimeEntity {
 

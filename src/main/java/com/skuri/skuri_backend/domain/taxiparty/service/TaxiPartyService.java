@@ -33,7 +33,6 @@ import com.skuri.skuri_backend.domain.taxiparty.exception.JoinRequestNotFoundExc
 import com.skuri.skuri_backend.domain.taxiparty.exception.PartyNotFoundException;
 import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
-import org.springframework.dao.DataIntegrityViolationException;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -275,13 +274,9 @@ public class TaxiPartyService {
             throw new BusinessException(ErrorCode.ALREADY_REQUESTED);
         }
 
-        try {
-            JoinRequest joinRequest = joinRequestRepository.saveAndFlush(JoinRequest.create(party, requesterId));
-            joinRequestSseService.publishJoinRequestCreated(joinRequest);
-            return toJoinRequestResponse(joinRequest);
-        } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(ErrorCode.ALREADY_REQUESTED);
-        }
+        JoinRequest joinRequest = joinRequestRepository.save(JoinRequest.create(party, requesterId));
+        joinRequestSseService.publishJoinRequestCreated(joinRequest);
+        return toJoinRequestResponse(joinRequest);
     }
 
     @Transactional
