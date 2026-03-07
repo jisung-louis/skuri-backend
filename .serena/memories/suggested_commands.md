@@ -12,6 +12,7 @@
 ./gradlew test                                      # 전체 테스트 (H2 인메모리 DB)
 SPRING_PROFILES_ACTIVE=local ./gradlew test          # local 프로필로 테스트
 ./gradlew test --tests "com.skuri...ClassName"       # 특정 클래스만 테스트
+./gradlew test --tests 'com.skuri.skuri_backend.domain.academic.*'  # Academic 도메인 테스트
 ./gradlew cleanTest test                             # 캐시 무시 재테스트
 ```
 

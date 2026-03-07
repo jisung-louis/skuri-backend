@@ -42,6 +42,15 @@
 - **동기화 정책**: `body_html`은 LONGTEXT로 저장하고, 개별 공지 저장 실패는 `failed` 집계 후 다음 공지를 계속 처리
 - **Scheduler**: NoticeScheduler (평일 08:00~19:50, Asia/Seoul, 10분 주기)
 
+### Academic
+- **Entity**: Course, CourseSchedule, UserTimetable, UserTimetableCourse, AcademicSchedule
+- **Service**: CourseService, TimetableService, AcademicScheduleService
+- **Controller**: CourseController, TimetableController, AcademicScheduleController, AcademicScheduleAdminController, CourseAdminController
+- **Repository**: CourseRepository, CourseScheduleRepository, UserTimetableRepository, UserTimetableCourseRepository, AcademicScheduleRepository
+- **운영 정책**: `Course`는 `semester + code + division` unique, 시간표는 `user_id + semester` unique이며 동일 강의 중복 추가 및 시간 충돌을 차단한다.
+- **응답 정책**: 시간표 응답은 `courses[] + slots[]` 구조를 반환하고, `GET /v1/timetables/my`는 semester 미지정 시 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙을 사용한다.
+- **학기 기준 배경**: 실제 학교 학기 시작은 3월/9월이지만, 수강신청/시간표 준비 수요를 반영해 스쿠리는 한 달 앞선 2월/8월부터 새 학기 기준을 적용한다.
+
 ### App
 - **Entity**: AppNotice
 - **Service**: AppNoticeService
