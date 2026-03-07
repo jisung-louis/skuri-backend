@@ -112,7 +112,8 @@ public class Member extends BaseTimeEntity {
             Boolean partyNotifications,
             Boolean noticeNotifications,
             Boolean boardLikeNotifications,
-            Boolean boardCommentNotifications,
+            Boolean commentNotifications,
+            Boolean bookmarkedPostCommentNotifications,
             Boolean systemNotifications,
             java.util.Map<String, Boolean> noticeNotificationsDetail
     ) {
@@ -124,7 +125,8 @@ public class Member extends BaseTimeEntity {
                 partyNotifications,
                 noticeNotifications,
                 boardLikeNotifications,
-                boardCommentNotifications,
+                commentNotifications,
+                bookmarkedPostCommentNotifications,
                 systemNotifications,
                 noticeNotificationsDetail
         );

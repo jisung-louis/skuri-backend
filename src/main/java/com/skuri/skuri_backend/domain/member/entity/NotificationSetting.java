@@ -28,8 +28,11 @@ public class NotificationSetting {
     @Column(name = "board_like_notifications")
     private boolean boardLikeNotifications;
 
-    @Column(name = "board_comment_notifications")
-    private boolean boardCommentNotifications;
+    @Column(name = "comment_notifications")
+    private boolean commentNotifications;
+
+    @Column(name = "bookmarked_post_comment_notifications")
+    private boolean bookmarkedPostCommentNotifications;
 
     @Column(name = "system_notifications")
     private boolean systemNotifications;
@@ -43,7 +46,8 @@ public class NotificationSetting {
             boolean partyNotifications,
             boolean noticeNotifications,
             boolean boardLikeNotifications,
-            boolean boardCommentNotifications,
+            boolean commentNotifications,
+            boolean bookmarkedPostCommentNotifications,
             boolean systemNotifications,
             Map<String, Boolean> noticeNotificationsDetail
     ) {
@@ -51,7 +55,8 @@ public class NotificationSetting {
         this.partyNotifications = partyNotifications;
         this.noticeNotifications = noticeNotifications;
         this.boardLikeNotifications = boardLikeNotifications;
-        this.boardCommentNotifications = boardCommentNotifications;
+        this.commentNotifications = commentNotifications;
+        this.bookmarkedPostCommentNotifications = bookmarkedPostCommentNotifications;
         this.systemNotifications = systemNotifications;
         this.noticeNotificationsDetail = noticeNotificationsDetail != null
                 ? new HashMap<>(noticeNotificationsDetail)
@@ -71,6 +76,7 @@ public class NotificationSetting {
                 true,
                 true,
                 true,
+                true,
                 defaults
         );
     }
@@ -80,7 +86,8 @@ public class NotificationSetting {
             Boolean partyNotifications,
             Boolean noticeNotifications,
             Boolean boardLikeNotifications,
-            Boolean boardCommentNotifications,
+            Boolean commentNotifications,
+            Boolean bookmarkedPostCommentNotifications,
             Boolean systemNotifications,
             Map<String, Boolean> noticeNotificationsDetail
     ) {
@@ -96,8 +103,11 @@ public class NotificationSetting {
         if (boardLikeNotifications != null) {
             this.boardLikeNotifications = boardLikeNotifications;
         }
-        if (boardCommentNotifications != null) {
-            this.boardCommentNotifications = boardCommentNotifications;
+        if (commentNotifications != null) {
+            this.commentNotifications = commentNotifications;
+        }
+        if (bookmarkedPostCommentNotifications != null) {
+            this.bookmarkedPostCommentNotifications = bookmarkedPostCommentNotifications;
         }
         if (systemNotifications != null) {
             this.systemNotifications = systemNotifications;

@@ -243,29 +243,9 @@ class PostControllerContractTest {
                                 .header(AUTHORIZATION, "Bearer valid-token")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].id").value("comment-1"));
-    }
-
-    @Test
-    void postComments_depth초과_409() throws Exception {
-        mockValidToken();
-        when(boardService.createComment(eq("firebase-uid"), eq("post-1"), any(CreateCommentRequest.class)))
-                .thenThrow(new BusinessException(ErrorCode.COMMENT_DEPTH_EXCEEDED));
-
-        mockMvc.perform(
-                        post("/v1/posts/post-1/comments")
-                                .header(AUTHORIZATION, "Bearer valid-token")
-                                .contentType(APPLICATION_JSON)
-                                .content("""
-                                        {
-                                          "content": "대댓글",
-                                          "isAnonymous": true,
-                                          "parentId": "comment-2"
-                                        }
-                                        """)
-                )
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.errorCode").value("COMMENT_DEPTH_EXCEEDED"));
+                .andExpect(jsonPath("$.data[0].id").value("comment-1"))
+                .andExpect(jsonPath("$.data[0].parentId").value("parent-comment-1"))
+                .andExpect(jsonPath("$.data[0].depth").value(1));
     }
 
     @Test
@@ -356,6 +336,8 @@ class PostControllerContractTest {
     private CommentResponse commentResponse() {
         return new CommentResponse(
                 "comment-1",
+                "parent-comment-1",
+                1,
                 "댓글 내용",
                 "firebase-uid",
                 "홍길동",
@@ -365,7 +347,6 @@ class PostControllerContractTest {
                 true,
                 false,
                 false,
-                List.of(),
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

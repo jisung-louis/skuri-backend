@@ -1,6 +1,6 @@
 # Spring 백엔드 ERD (Entity Relationship Diagram)
 
-> 최종 수정일: 2026-03-04
+> 최종 수정일: 2026-03-07
 > 관련 문서: [도메인 분석](./domain-analysis.md)
 
 ---
@@ -38,7 +38,8 @@ erDiagram
         boolean party_notifications "DEFAULT true"
         boolean notice_notifications "DEFAULT true"
         boolean board_like_notifications "DEFAULT true"
-        boolean board_comment_notifications "DEFAULT true"
+        boolean comment_notifications "DEFAULT true"
+        boolean bookmarked_post_comment_notifications "DEFAULT true"
         boolean system_notifications "DEFAULT true"
         json notice_notifications_detail
         datetime joined_at
@@ -219,7 +220,7 @@ erDiagram
         boolean is_anonymous "DEFAULT false"
         varchar(36) anon_id
         int anonymous_order "익명1, 익명2..."
-        varchar(36) parent_id FK "대댓글용(depth 1)"
+        varchar(36) parent_id FK "무제한 self-reference"
         boolean is_deleted "DEFAULT false"
         datetime created_at
         datetime updated_at
@@ -237,22 +238,27 @@ erDiagram
     posts ||--o{ post_images : "has"
     posts ||--o{ comments : "has"
     posts ||--o{ post_interactions : "has"
-    comments ||--o{ comments : "replies to"
+    comments ||--o{ comments : "parent-child"
 
     %% ===== NOTICE 도메인 =====
     notices {
         varchar(120) id PK "Base64(link).replace(/=+$/,'').slice(0,120)"
         varchar(500) title "NOT NULL"
-        text content
+        text rss_preview "RSS 미리보기 텍스트"
+        text summary "AI 요약 텍스트 (nullable)"
         varchar(500) link "NOT NULL"
         datetime posted_at
         varchar(50) category
         varchar(50) department
         varchar(100) author
         varchar(20) source "RSS"
+        varchar(40) rss_fingerprint "legacy SHA1(title|link|rawDate)"
+        varchar(40) detail_hash "HTML + attachments SHA1"
         varchar(40) content_hash "SHA1"
-        text content_detail "크롤링된 HTML"
-        json content_attachments "첨부파일 목록"
+        datetime detail_checked_at
+        longtext body_text "HTML 정규화 plain text"
+        longtext body_html "크롤링된 HTML"
+        json attachments "첨부파일 목록"
         int view_count "DEFAULT 0"
         int like_count "DEFAULT 0"
         int comment_count "DEFAULT 0"
@@ -276,11 +282,15 @@ erDiagram
         boolean is_anonymous "DEFAULT false"
         varchar(36) anon_id
         int anonymous_order "익명1, 익명2..."
-        int reply_count "DEFAULT 0"
         varchar(36) parent_id FK
         boolean is_deleted "DEFAULT false"
         datetime created_at
         datetime updated_at
+    }
+
+    notice_likes {
+        varchar(36) user_id PK "회원 ID"
+        varchar(120) notice_id PK,FK
     }
 
     app_notices {
@@ -292,12 +302,14 @@ erDiagram
         json image_urls "string[]"
         varchar(500) action_url
         datetime published_at
+        datetime created_at
         datetime updated_at
     }
 
     notices ||--o{ notice_read_status : "has"
     notices ||--o{ notice_comments : "has"
-    notice_comments ||--o{ notice_comments : "replies to"
+    notices ||--o{ notice_likes : "has"
+    notice_comments ||--o{ notice_comments : "parent-child"
 ```
 
 ### 1.3 Generic 도메인 (Academic, Support)
@@ -479,13 +491,16 @@ erDiagram
 | party_notifications | BOOLEAN | DEFAULT true | 파티 알림 |
 | notice_notifications | BOOLEAN | DEFAULT true | 공지 알림 |
 | board_like_notifications | BOOLEAN | DEFAULT true | 좋아요 알림 |
-| board_comment_notifications | BOOLEAN | DEFAULT true | 댓글 알림 |
+| comment_notifications | BOOLEAN | DEFAULT true | Board/Notice 공통 댓글 알림 |
+| bookmarked_post_comment_notifications | BOOLEAN | DEFAULT true | 북마크한 게시글의 새 댓글 알림 |
 | system_notifications | BOOLEAN | DEFAULT true | 시스템 알림 |
 | notice_notifications_detail | JSON | | 공지 카테고리별 설정 |
 | joined_at | DATETIME | | 가입일 |
 | last_login | DATETIME | | 마지막 로그인 |
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |
+
+> 학사 일정 알림용 `academic_schedule_notifications`, `academic_schedule_day_before_enabled`, `academic_schedule_all_events_enabled` 컬럼은 Phase 8에서 추가 예정이다.
 
 **linked_accounts 테이블 상세:**
 
@@ -588,6 +603,7 @@ erDiagram
 | `notices` | 학교 공지 | ~10,000 |
 | `notice_read_status` | 읽음 상태 | ~500,000 |
 | `notice_comments` | 공지 댓글 | ~5,000/년 |
+| `notice_likes` | 공지 좋아요 | ~200,000 |
 | `app_notices` | 앱 공지 | ~100 |
 
 ### 2.6 Academic 도메인
@@ -634,10 +650,11 @@ erDiagram
 | 채팅방-메시지 | chat_rooms | chat_messages | 1:N | 채팅방에 여러 메시지 |
 | 게시글-이미지 | posts | post_images | 1:N | 게시글에 여러 이미지 |
 | 게시글-댓글 | posts | comments | 1:N | 게시글에 여러 댓글 |
-| 댓글-대댓글 | comments | comments | 1:N (self) | depth 1까지만 허용, 부모 삭제 시 placeholder soft delete |
+| 댓글-대댓글 | comments | comments | 1:N (self) | 무제한 self-reference + placeholder soft delete |
 | 게시글-상호작용 | posts | post_interactions | 1:N | 게시글에 여러 좋아요/북마크 |
 | 공지-읽음 | notices | notice_read_status | 1:N | 공지별 읽음 상태 |
 | 공지-댓글 | notices | notice_comments | 1:N | 공지에 여러 댓글 |
+| 공지-좋아요 | notices | notice_likes | 1:N | 공지별 좋아요 |
 | 강의-시간 | courses | course_schedules | 1:N | 강의에 여러 시간 슬롯 |
 | 시간표-강의 | user_timetables | user_timetable_courses | 1:N | 시간표에 여러 강의 |
 | 회원-알림 | members | user_notifications | 1:N | 회원에게 여러 알림 |
@@ -779,6 +796,7 @@ CREATE INDEX idx_post_interactions_user_bookmarked ON post_interactions(user_id,
 CREATE INDEX idx_notices_category ON notices(category);
 CREATE INDEX idx_notices_posted_at ON notices(posted_at DESC);
 CREATE INDEX idx_notices_category_posted ON notices(category, posted_at DESC);
+CREATE INDEX idx_notices_content_hash ON notices(content_hash);
 
 -- notice_read_status
 CREATE INDEX idx_notice_read_user ON notice_read_status(user_id);
@@ -786,6 +804,9 @@ CREATE INDEX idx_notice_read_user ON notice_read_status(user_id);
 -- notice_comments
 CREATE INDEX idx_notice_comments_notice ON notice_comments(notice_id);
 CREATE INDEX idx_notice_comments_parent ON notice_comments(parent_id);
+
+-- notice_likes
+CREATE INDEX idx_notice_likes_user ON notice_likes(user_id);
 ```
 
 ### 4.6 Academic 도메인
@@ -837,3 +858,4 @@ CREATE INDEX idx_audit_logs_timestamp ON admin_audit_logs(timestamp DESC);
 > **문서 이력**
 > - 2026-02-03: 초안 작성
 > - 2026-03-05: Board 댓글 정책 동기화 — `comments.parent_id` 관계를 부모 보존 정책(B)에 맞게 정정(`ON DELETE SET NULL`), depth 1 제약/placeholder soft delete 설명 반영
+> - 2026-03-07: Board/Notice 댓글 정책 구현 반영 — 무제한 self-reference, 댓글 알림 설정 컬럼(`comment_notifications`, `bookmarked_post_comment_notifications`) 반영

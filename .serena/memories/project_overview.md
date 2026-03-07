@@ -23,6 +23,7 @@ domain/
 ├── taxiparty/    # 택시 파티 (핵심 도메인 - 생성/참여/정산/상태관리)
 ├── chat/         # 채팅 (WebSocket STOMP, 채팅방, 메시지)
 ├── board/        # 커뮤니티 게시판 (게시글/댓글/좋아요/북마크)
+├── notice/       # 학교 공지 (RSS 수집, 상세 크롤링, 읽음/좋아요/댓글)
 └── app/          # 앱 공지/버전 관리
 ```
 
@@ -43,6 +44,20 @@ common/
 ├── entity/       # BaseTimeEntity
 └── exception/    # ErrorCode, GlobalExceptionHandler, BusinessException
 ```
+
+## 운영 정책
+- NoticeScheduler: 평일 08:00~19:50 (Asia/Seoul), 10분 주기
+- 성결대학교 공지 수집은 사이트 TLS 체인 이슈로 인해 Notice 전용 클라이언트에서만 인증서 검증을 비활성화
+- Notice sync 응답은 `created/updated/skipped/failed`를 반환하고, 개별 공지 저장 실패가 나도 다음 항목을 계속 처리
+- Notice 엔티티는 `rssPreview`(RSS 미리보기), `summary`(향후 AI 요약 예약), `bodyText`(정규화 plain text), `bodyHtml`(RN 렌더링용 원문 HTML), `attachments`로 구분한다.
+- AppNotice 관리자 수정 API: `PATCH /v1/admin/app-notices/{appNoticeId}`
+- AppNotice PATCH는 전달한 필드만 반영하고, 누락되거나 `null`인 필드는 유지
+- 학사 일정 알림은 Phase 8 Notification 인프라에서 구현 예정이며, 기본 정책은 중요 일정(`isPrimary=true`) `startDate` 당일 오전 09:00 발송, 사용자 옵션은 전날 추가/모든 일정 확장이다.
+- Phase 8 Notification 설계는 현행 RN + Firebase Cloud Functions 푸시 정책을 기본으로 이관하며, `allNotifications`/도메인 토글 반영이 불일치한 이벤트는 구현 시 정규화 여부를 명시한다.
+- 댓글 알림 정책은 `commentNotifications`(Board/Notice 공통 댓글 알림)와 `bookmarkedPostCommentNotifications`(북마크 게시글 댓글 알림)로 분리된다.
+- `COMMENT_CREATED`(게시글)은 게시글 작성자/부모 댓글 작성자/해당 게시글 북마크 사용자를 수신 대상으로 하며, 동일 사용자 중복 수신은 1회로 dedupe한다.
+- Comment 도메인은 Board/Notice 공통 정책으로 운영하며, 무제한 depth 저장 + flat list 조회 + placeholder soft delete를 사용한다.
+- 학사 일정 알림 구현 시 `NotificationSetting` 확장 후보는 `academicScheduleNotifications`, `academicScheduleDayBeforeEnabled`, `academicScheduleAllEventsEnabled`다.
 
 ## 이메일 도메인 제한
 - `sungkyul.ac.kr` 도메인 이메일만 허용

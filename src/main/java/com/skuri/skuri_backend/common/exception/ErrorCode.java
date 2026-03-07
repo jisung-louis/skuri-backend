@@ -50,7 +50,10 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT_NOT_FOUND", "댓글을 찾을 수 없습니다."),
     NOT_POST_AUTHOR(HttpStatus.FORBIDDEN, "NOT_POST_AUTHOR", "게시글 작성자만 수정/삭제할 수 있습니다."),
     NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_COMMENT_AUTHOR", "댓글 작성자만 수정/삭제할 수 있습니다."),
-    COMMENT_DEPTH_EXCEEDED(HttpStatus.CONFLICT, "COMMENT_DEPTH_EXCEEDED", "대댓글(1단계)까지만 작성할 수 있습니다."),
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_NOT_FOUND", "공지사항을 찾을 수 없습니다."),
+    APP_NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "APP_NOTICE_NOT_FOUND", "앱 공지를 찾을 수 없습니다."),
+    NOTICE_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_COMMENT_NOT_FOUND", "공지 댓글을 찾을 수 없습니다."),
+    NOT_NOTICE_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_NOTICE_COMMENT_AUTHOR", "공지 댓글 작성자만 삭제할 수 있습니다."),
     COMMENT_ALREADY_DELETED(HttpStatus.CONFLICT, "COMMENT_ALREADY_DELETED", "이미 삭제된 댓글입니다."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "서버 내부 오류가 발생했습니다.");
 

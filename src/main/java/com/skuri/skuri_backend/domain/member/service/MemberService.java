@@ -102,7 +102,8 @@ public class MemberService {
                 request.partyNotifications(),
                 request.noticeNotifications(),
                 request.boardLikeNotifications(),
-                request.boardCommentNotifications(),
+                request.commentNotifications(),
+                request.bookmarkedPostCommentNotifications(),
                 request.systemNotifications(),
                 request.noticeNotificationsDetail()
         );
@@ -205,7 +206,8 @@ public class MemberService {
                 notificationSetting.isPartyNotifications(),
                 notificationSetting.isNoticeNotifications(),
                 notificationSetting.isBoardLikeNotifications(),
-                notificationSetting.isBoardCommentNotifications(),
+                notificationSetting.isCommentNotifications(),
+                notificationSetting.isBookmarkedPostCommentNotifications(),
                 notificationSetting.isSystemNotifications(),
                 detail
         );

@@ -532,7 +532,7 @@ public class PostController {
     }
 
     @GetMapping("/{postId}/comments")
-    @Operation(summary = "댓글 목록 조회", description = "댓글 트리를 조회합니다. (댓글 + 대댓글 1단계)")
+    @Operation(summary = "댓글 목록 조회", description = "댓글 목록을 flat list로 조회합니다. (무제한 depth)")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -572,7 +572,7 @@ public class PostController {
     }
 
     @PostMapping("/{postId}/comments")
-    @Operation(summary = "댓글 작성", description = "댓글/대댓글(1단계) 작성")
+    @Operation(summary = "댓글 작성", description = "댓글/답글을 작성합니다. depth 제한은 없습니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
@@ -605,15 +605,6 @@ public class PostController {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "409",
-                    description = "댓글 depth 제한 위반",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "depth_exceeded", value = OpenApiBoardExamples.ERROR_COMMENT_DEPTH_EXCEEDED)
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "422",
                     description = "요청 검증 실패",
                     content = @Content(
@@ -643,7 +634,7 @@ public class PostController {
                                     name = "reply",
                                     value = """
                                             {
-                                              "content": "대댓글 내용",
+                                              "content": "n단계 답글 내용",
                                               "isAnonymous": true,
                                               "parentId": "parent_comment_uuid"
                                             }

@@ -51,7 +51,8 @@ public final class OpenApiMemberExamples {
                   "partyNotifications": true,
                   "noticeNotifications": true,
                   "boardLikeNotifications": false,
-                  "boardCommentNotifications": true,
+                  "commentNotifications": true,
+                  "bookmarkedPostCommentNotifications": true,
                   "systemNotifications": true,
                   "noticeNotificationsDetail": {
                     "academic": true,
@@ -87,7 +88,8 @@ public final class OpenApiMemberExamples {
                   "partyNotifications": true,
                   "noticeNotifications": true,
                   "boardLikeNotifications": false,
-                  "boardCommentNotifications": true,
+                  "commentNotifications": true,
+                  "bookmarkedPostCommentNotifications": true,
                   "systemNotifications": true,
                   "noticeNotificationsDetail": {
                     "academic": true,
@@ -123,7 +125,8 @@ public final class OpenApiMemberExamples {
                   "partyNotifications": true,
                   "noticeNotifications": true,
                   "boardLikeNotifications": false,
-                  "boardCommentNotifications": true,
+                  "commentNotifications": true,
+                  "bookmarkedPostCommentNotifications": true,
                   "systemNotifications": true,
                   "noticeNotificationsDetail": {
                     "academic": true,
@@ -159,7 +162,8 @@ public final class OpenApiMemberExamples {
                   "partyNotifications": true,
                   "noticeNotifications": true,
                   "boardLikeNotifications": true,
-                  "boardCommentNotifications": true,
+                  "commentNotifications": true,
+                  "bookmarkedPostCommentNotifications": true,
                   "systemNotifications": true,
                   "noticeNotificationsDetail": {
                     "academic": true,
