@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.app.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.domain.app.dto.request.CreateAppNoticeRequest;
 import com.skuri.skuri_backend.domain.app.dto.request.UpdateAppNoticeRequest;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeCreateResponse;
@@ -7,6 +8,7 @@ import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeResponse;
 import com.skuri.skuri_backend.domain.app.entity.AppNotice;
 import com.skuri.skuri_backend.domain.app.exception.AppNoticeNotFoundException;
 import com.skuri.skuri_backend.domain.app.repository.AppNoticeRepository;
+import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ import java.util.List;
 public class AppNoticeService {
 
     private final AppNoticeRepository appNoticeRepository;
+    private final AfterCommitApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public List<AppNoticeResponse> getPublishedNotices() {
@@ -45,6 +48,7 @@ public class AppNoticeService {
                 trimToNull(request.actionUrl()),
                 request.publishedAt()
         ));
+        eventPublisher.publish(new NotificationDomainEvent.AppNoticeCreated(appNotice.getId()));
         return new AppNoticeCreateResponse(appNotice.getId(), appNotice.getTitle(), appNotice.getCreatedAt());
     }
 

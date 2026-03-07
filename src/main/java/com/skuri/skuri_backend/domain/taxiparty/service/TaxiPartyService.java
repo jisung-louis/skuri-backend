@@ -1,12 +1,14 @@
 package com.skuri.skuri_backend.domain.taxiparty.service;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.CreatePartyRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.UpdatePartyRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestListItemResponse;
@@ -62,6 +64,7 @@ public class TaxiPartyService {
     private final ChatService chatService;
     private final PartySseService partySseService;
     private final JoinRequestSseService joinRequestSseService;
+    private final AfterCommitApplicationEventPublisher eventPublisher;
 
     @Transactional
     public PartyCreateResponse createParty(String leaderId, CreatePartyRequest request) {
@@ -84,6 +87,7 @@ public class TaxiPartyService {
         chatService.createPartyChatRoom(created);
         Member leader = memberRepository.findById(leaderId).orElse(null);
         partySseService.publishPartyCreated(created, leader);
+        eventPublisher.publish(new NotificationDomainEvent.PartyCreated(created.getId()));
 
         return new PartyCreateResponse(created.getId(), "party:" + created.getId());
     }
@@ -160,9 +164,11 @@ public class TaxiPartyService {
     public PartyStatusResponse closeParty(String actorId, String partyId) {
         Party party = findPartyDetailOrThrow(partyId);
         requireLeader(party, actorId);
+        PartyStatus beforeStatus = party.getStatus();
         party.close();
         savePartyWithLockHandling(party);
         partySseService.publishPartyStatusChanged(party);
+        eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
     }
 
@@ -170,9 +176,11 @@ public class TaxiPartyService {
     public PartyStatusResponse reopenParty(String actorId, String partyId) {
         Party party = findPartyDetailOrThrow(partyId);
         requireLeader(party, actorId);
+        PartyStatus beforeStatus = party.getStatus();
         party.reopen();
         savePartyWithLockHandling(party);
         partySseService.publishPartyStatusChanged(party);
+        eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
     }
 
@@ -180,9 +188,11 @@ public class TaxiPartyService {
     public PartyDetailResponse arriveParty(String actorId, String partyId, int taxiFare) {
         Party party = findPartyDetailOrThrow(partyId);
         requireLeader(party, actorId);
+        PartyStatus beforeStatus = party.getStatus();
         party.arrive(taxiFare);
         savePartyWithLockHandling(party);
         partySseService.publishPartyStatusChanged(party);
+        eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
 
         Map<String, Member> memberMap = getMemberMap(party.getMemberIds());
         return toPartyDetailResponse(party, memberMap);
@@ -192,9 +202,11 @@ public class TaxiPartyService {
     public PartyStatusResponse endParty(String actorId, String partyId) {
         Party party = findPartyDetailOrThrow(partyId);
         requireLeader(party, actorId);
+        PartyStatus beforeStatus = party.getStatus();
         party.forceEnd();
         savePartyWithLockHandling(party);
         partySseService.publishPartyStatusChanged(party);
+        eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
     }
 
@@ -202,9 +214,11 @@ public class TaxiPartyService {
     public PartyStatusResponse cancelParty(String actorId, String partyId) {
         Party party = findPartyDetailOrThrow(partyId);
         requireLeader(party, actorId);
+        PartyStatus beforeStatus = party.getStatus();
         party.cancel();
         savePartyWithLockHandling(party);
         partySseService.publishPartyDeleted(party.getId());
+        eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
     }
 
@@ -228,6 +242,7 @@ public class TaxiPartyService {
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
         partySseService.publishPartyMemberLeft(party, memberId, "KICKED", recipientsBeforeRemoval);
+        eventPublisher.publish(new NotificationDomainEvent.PartyMemberKicked(party.getId(), memberId));
     }
 
     @Transactional
@@ -276,6 +291,7 @@ public class TaxiPartyService {
 
         JoinRequest joinRequest = joinRequestRepository.save(JoinRequest.create(party, requesterId));
         joinRequestSseService.publishJoinRequestCreated(joinRequest);
+        eventPublisher.publish(new NotificationDomainEvent.PartyJoinRequestCreated(joinRequest.getId()));
         return toJoinRequestResponse(joinRequest);
     }
 
@@ -316,7 +332,9 @@ public class TaxiPartyService {
         joinRequestSseService.publishJoinRequestUpdated(joinRequest, previousStatus);
         if (beforeStatus != party.getStatus()) {
             partySseService.publishPartyStatusChanged(party);
+            eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         }
+        eventPublisher.publish(new NotificationDomainEvent.PartyJoinRequestProcessed(joinRequest.getId(), joinRequest.getStatus()));
         return toJoinRequestAcceptResponse(joinRequest);
     }
 
@@ -328,6 +346,7 @@ public class TaxiPartyService {
         joinRequest.decline();
         joinRequestRepository.save(joinRequest);
         joinRequestSseService.publishJoinRequestUpdated(joinRequest, previousStatus);
+        eventPublisher.publish(new NotificationDomainEvent.PartyJoinRequestProcessed(joinRequest.getId(), joinRequest.getStatus()));
         return toJoinRequestResponse(joinRequest);
     }
 
@@ -369,6 +388,9 @@ public class TaxiPartyService {
 
         boolean allSettled = party.confirmSettlement(memberId);
         savePartyWithLockHandling(party);
+        if (allSettled) {
+            eventPublisher.publish(new NotificationDomainEvent.PartySettlementCompleted(party.getId()));
+        }
 
         MemberSettlement target = party.getSettlementItems().stream()
                 .filter(item -> item.getMemberId().equals(memberId))

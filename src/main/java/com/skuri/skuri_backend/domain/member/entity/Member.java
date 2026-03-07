@@ -115,6 +115,9 @@ public class Member extends BaseTimeEntity {
             Boolean commentNotifications,
             Boolean bookmarkedPostCommentNotifications,
             Boolean systemNotifications,
+            Boolean academicScheduleNotifications,
+            Boolean academicScheduleDayBeforeEnabled,
+            Boolean academicScheduleAllEventsEnabled,
             java.util.Map<String, Boolean> noticeNotificationsDetail
     ) {
         if (this.notificationSetting == null) {
@@ -128,6 +131,9 @@ public class Member extends BaseTimeEntity {
                 commentNotifications,
                 bookmarkedPostCommentNotifications,
                 systemNotifications,
+                academicScheduleNotifications,
+                academicScheduleDayBeforeEnabled,
+                academicScheduleAllEventsEnabled,
                 noticeNotificationsDetail
         );
     }

@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.domain.board.service;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.board.dto.request.CreateCommentRequest;
@@ -28,6 +29,7 @@ import com.skuri.skuri_backend.domain.board.repository.PostSummaryProjection;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -53,6 +55,7 @@ public class BoardService {
     private final CommentRepository commentRepository;
     private final PostInteractionRepository postInteractionRepository;
     private final MemberRepository memberRepository;
+    private final AfterCommitApplicationEventPublisher eventPublisher;
 
     @Transactional
     public PostDetailResponse createPost(String memberId, CreatePostRequest request) {
@@ -162,6 +165,7 @@ public class BoardService {
 
         if (interaction.like()) {
             post.increaseLikeCount(1);
+            eventPublisher.publish(new NotificationDomainEvent.BoardPostLiked(post.getId(), memberId));
         }
 
         return new PostLikeResponse(interaction.isLiked(), post.getLikeCount());
@@ -246,6 +250,7 @@ public class BoardService {
 
         post.increaseCommentCount(1);
         post.updateLastCommentAt(LocalDateTime.now());
+        eventPublisher.publish(new NotificationDomainEvent.BoardCommentCreated(saved.getId()));
 
         return toCommentResponse(saved, memberId, post.getAuthorId(), resolveDepth(saved));
     }

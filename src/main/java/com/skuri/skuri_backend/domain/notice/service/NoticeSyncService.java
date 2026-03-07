@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.notice.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeSyncResponse;
@@ -7,6 +8,7 @@ import com.skuri.skuri_backend.domain.notice.entity.Notice;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeAttachment;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeCategory;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
+import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class NoticeSyncService {
     private final NoticeRssClient noticeRssClient;
     private final NoticeDetailCrawler noticeDetailCrawler;
     private final NoticeSyncLock noticeSyncLock;
+    private final AfterCommitApplicationEventPublisher eventPublisher;
 
     public NoticeSyncResponse syncManually() {
         if (!noticeSyncLock.tryLock()) {
@@ -121,7 +124,7 @@ public class NoticeSyncService {
                 if (duplicate != null) {
                     return SyncOutcome.SKIPPED;
                 }
-                noticeRepository.save(Notice.create(
+                Notice saved = noticeRepository.save(Notice.create(
                         item.id(),
                         item.title(),
                         item.rssPreview(),
@@ -139,6 +142,7 @@ public class NoticeSyncService {
                         bodyHtml,
                         attachments
                 ));
+                eventPublisher.publish(new NotificationDomainEvent.NoticeCreated(saved.getId()));
                 return SyncOutcome.CREATED;
             }
 

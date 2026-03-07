@@ -125,4 +125,16 @@ public class OpenApiConfig {
                 )
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi notificationApi() {
+        return GroupedOpenApi.builder()
+                .group("notification")
+                .pathsToMatch(
+                        "/v1/notifications/**",
+                        "/v1/members/me/fcm-tokens",
+                        "/v1/sse/notifications"
+                )
+                .build();
+    }
 }
