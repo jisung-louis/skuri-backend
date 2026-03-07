@@ -1,6 +1,8 @@
 package com.skuri.skuri_backend.domain.support.entity;
 
 import com.skuri.skuri_backend.common.entity.BaseTimeEntity;
+import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.common.exception.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,13 +11,22 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "reports")
+@Table(
+        name = "reports",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_reports_reporter_target",
+                        columnNames = {"reporter_id", "target_type", "target_id"}
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Report extends BaseTimeEntity {
 
@@ -82,6 +93,9 @@ public class Report extends BaseTimeEntity {
     }
 
     public void updateReview(ReportStatus status, String action, String adminMemo) {
+        if (!this.status.canTransitionTo(status)) {
+            throw new BusinessException(ErrorCode.INVALID_REPORT_STATUS_TRANSITION);
+        }
         this.status = status;
         this.action = action;
         this.adminMemo = adminMemo;

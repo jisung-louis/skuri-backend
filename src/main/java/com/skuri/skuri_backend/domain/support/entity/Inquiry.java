@@ -1,6 +1,8 @@
 package com.skuri.skuri_backend.domain.support.entity;
 
 import com.skuri.skuri_backend.common.entity.BaseTimeEntity;
+import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.common.exception.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -91,6 +93,9 @@ public class Inquiry extends BaseTimeEntity {
     }
 
     public void updateStatus(InquiryStatus status, String adminMemo) {
+        if (!this.status.canTransitionTo(status)) {
+            throw new BusinessException(ErrorCode.INVALID_INQUIRY_STATUS_TRANSITION);
+        }
         this.status = status;
         this.adminMemo = adminMemo;
     }

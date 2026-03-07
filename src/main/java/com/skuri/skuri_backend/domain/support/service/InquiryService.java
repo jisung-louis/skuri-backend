@@ -18,6 +18,7 @@ import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -27,6 +28,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class InquiryService {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final InquiryRepository inquiryRepository;
     private final MemberRepository memberRepository;
@@ -56,7 +59,7 @@ public class InquiryService {
 
     @Transactional(readOnly = true)
     public PageResponse<AdminInquiryResponse> getAdminInquiries(InquiryStatus status, int page, int size) {
-        PageRequest pageable = PageRequest.of(page, size);
+        Pageable pageable = resolvePageable(page, size);
         Page<AdminInquiryResponse> inquiryPage = (status == null
                 ? inquiryRepository.findAllByOrderByCreatedAtDesc(pageable)
                 : inquiryRepository.findByStatusOrderByCreatedAtDesc(status, pageable))
@@ -68,9 +71,6 @@ public class InquiryService {
     public AdminInquiryResponse updateInquiryStatus(String inquiryId, UpdateInquiryStatusRequest request) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
                 .orElseThrow(InquiryNotFoundException::new);
-        if (!inquiry.getStatus().canTransitionTo(request.status())) {
-            throw new BusinessException(ErrorCode.INVALID_INQUIRY_STATUS_TRANSITION);
-        }
         inquiry.updateStatus(request.status(), trimToNull(request.memo()));
         inquiryRepository.saveAndFlush(inquiry);
         return toAdminResponse(inquiry);
@@ -116,6 +116,16 @@ public class InquiryService {
             }
         }
         return trimToNull(authenticatedMember.providerDisplayName());
+    }
+
+    private Pageable resolvePageable(int page, int size) {
+        if (page < 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "page는 0 이상이어야 합니다.");
+        }
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "size는 1 이상 100 이하여야 합니다.");
+        }
+        return PageRequest.of(page, size);
     }
 
     private String normalizeRequired(String value) {

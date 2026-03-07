@@ -23,12 +23,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @RestController
 @RequestMapping("/v1/cafeteria-menus")
 @Tag(name = "Support Cafeteria API", description = "학식 메뉴 조회 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
 public class CafeteriaMenuController {
+
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
     private final CafeteriaMenuService cafeteriaMenuService;
 
@@ -91,7 +94,7 @@ public class CafeteriaMenuController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                cafeteriaMenuService.getCurrentWeekMenu(date == null ? LocalDate.now() : date)
+                cafeteriaMenuService.getCurrentWeekMenu(date == null ? LocalDate.now(KOREA_ZONE) : date)
         ));
     }
 

@@ -19,8 +19,10 @@ import com.skuri.skuri_backend.domain.support.entity.ReportTargetType;
 import com.skuri.skuri_backend.domain.support.exception.ReportNotFoundException;
 import com.skuri.skuri_backend.domain.support.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,6 +32,8 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 public class ReportService {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final ReportRepository reportRepository;
     private final PostRepository postRepository;
@@ -48,20 +52,24 @@ public class ReportService {
             throw new BusinessException(ErrorCode.CANNOT_REPORT_YOURSELF);
         }
 
-        Report report = reportRepository.save(Report.create(
-                request.targetType(),
-                normalizedTargetId,
-                targetAuthorId,
-                normalizeCode(request.category()),
-                normalizeRequired(request.reason()),
-                reporterId
-        ));
-        return new ReportCreateResponse(report.getId(), report.getStatus(), report.getCreatedAt());
+        try {
+            Report report = reportRepository.saveAndFlush(Report.create(
+                    request.targetType(),
+                    normalizedTargetId,
+                    targetAuthorId,
+                    normalizeCode(request.category()),
+                    normalizeRequired(request.reason()),
+                    reporterId
+            ));
+            return new ReportCreateResponse(report.getId(), report.getStatus(), report.getCreatedAt());
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.REPORT_ALREADY_SUBMITTED);
+        }
     }
 
     @Transactional(readOnly = true)
     public PageResponse<AdminReportResponse> getAdminReports(ReportStatus status, ReportTargetType targetType, int page, int size) {
-        Page<AdminReportResponse> reportPage = reportRepository.search(status, targetType, PageRequest.of(page, size))
+        Page<AdminReportResponse> reportPage = reportRepository.search(status, targetType, resolvePageable(page, size))
                 .map(this::toAdminResponse);
         return PageResponse.from(reportPage);
     }
@@ -70,9 +78,6 @@ public class ReportService {
     public AdminReportResponse updateReportStatus(String reportId, UpdateReportStatusRequest request) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(ReportNotFoundException::new);
-        if (!report.getStatus().canTransitionTo(request.status())) {
-            throw new BusinessException(ErrorCode.INVALID_REPORT_STATUS_TRANSITION);
-        }
         report.updateReview(request.status(), normalizeOptionalCode(request.action()), trimToNull(request.memo()));
         reportRepository.saveAndFlush(report);
         return toAdminResponse(report);
@@ -107,6 +112,16 @@ public class ReportService {
                 report.getCreatedAt(),
                 report.getUpdatedAt()
         );
+    }
+
+    private Pageable resolvePageable(int page, int size) {
+        if (page < 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "page는 0 이상이어야 합니다.");
+        }
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "size는 1 이상 100 이하여야 합니다.");
+        }
+        return PageRequest.of(page, size);
     }
 
     private String normalizeRequired(String value) {
