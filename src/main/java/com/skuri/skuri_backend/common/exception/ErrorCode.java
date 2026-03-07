@@ -56,7 +56,6 @@ public enum ErrorCode {
     NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_COMMENT_AUTHOR", "댓글 작성자만 수정/삭제할 수 있습니다."),
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_NOT_FOUND", "공지사항을 찾을 수 없습니다."),
     APP_NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "APP_NOTICE_NOT_FOUND", "앱 공지를 찾을 수 없습니다."),
-    APP_VERSION_NOT_FOUND(HttpStatus.NOT_FOUND, "APP_VERSION_NOT_FOUND", "앱 버전 정보를 찾을 수 없습니다."),
     NOTICE_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_COMMENT_NOT_FOUND", "공지 댓글을 찾을 수 없습니다."),
     NOT_NOTICE_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_NOTICE_COMMENT_AUTHOR", "공지 댓글 작성자만 삭제할 수 있습니다."),
     COMMENT_ALREADY_DELETED(HttpStatus.CONFLICT, "COMMENT_ALREADY_DELETED", "이미 삭제된 댓글입니다."),

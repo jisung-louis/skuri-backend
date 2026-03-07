@@ -1,4 +1,4 @@
-package com.skuri.skuri_backend.domain.app.controller;
+package com.skuri.skuri_backend.domain.support.controller;
 
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.AppVersionResponse;
@@ -31,7 +31,7 @@ public class AppVersionController {
     @GetMapping("/{platform}")
     @Operation(
             summary = "앱 버전 정보 조회",
-            description = "로그인 전에도 호출 가능한 공개 API입니다.",
+            description = "로그인 전에도 호출 가능한 공개 API입니다. 저장된 버전 정보가 없으면 minimumVersion 1.0.0 기본 응답을 반환합니다.",
             security = @SecurityRequirement(name = "")
     )
     @ApiResponses({
@@ -51,15 +51,6 @@ public class AppVersionController {
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_INVALID_REQUEST)
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404",
-                    description = "앱 버전 정보 없음",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "app_version_not_found", value = OpenApiSupportExamples.ERROR_APP_VERSION_NOT_FOUND)
                     )
             )
     })

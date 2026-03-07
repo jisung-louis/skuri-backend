@@ -214,9 +214,6 @@ public final class OpenApiSupportExamples {
     public static final String ERROR_INVALID_REPORT_STATUS_TRANSITION =
             "{\"success\":false,\"message\":\"허용되지 않는 신고 상태 전이입니다.\",\"errorCode\":\"INVALID_REPORT_STATUS_TRANSITION\",\"timestamp\":\"2026-03-07T12:00:00\"}";
 
-    public static final String ERROR_APP_VERSION_NOT_FOUND =
-            "{\"success\":false,\"message\":\"앱 버전 정보를 찾을 수 없습니다.\",\"errorCode\":\"APP_VERSION_NOT_FOUND\",\"timestamp\":\"2026-03-07T12:00:00\"}";
-
     public static final String ERROR_CAFETERIA_MENU_NOT_FOUND =
             "{\"success\":false,\"message\":\"학식 메뉴를 찾을 수 없습니다.\",\"errorCode\":\"CAFETERIA_MENU_NOT_FOUND\",\"timestamp\":\"2026-03-07T12:00:00\"}";
 

@@ -7,7 +7,6 @@ import com.skuri.skuri_backend.domain.support.dto.response.AppVersionAdminUpdate
 import com.skuri.skuri_backend.domain.support.dto.response.AppVersionResponse;
 import com.skuri.skuri_backend.domain.support.entity.AppPlatform;
 import com.skuri.skuri_backend.domain.support.entity.AppVersion;
-import com.skuri.skuri_backend.domain.support.exception.AppVersionNotFoundException;
 import com.skuri.skuri_backend.domain.support.repository.AppVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,13 +17,16 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class AppVersionService {
 
+    private static final String DEFAULT_MINIMUM_VERSION = "1.0.0";
+
     private final AppVersionRepository appVersionRepository;
 
     @Transactional(readOnly = true)
     public AppVersionResponse getAppVersion(String platform) {
-        AppVersion appVersion = appVersionRepository.findById(normalizePlatform(platform))
-                .orElseThrow(AppVersionNotFoundException::new);
-        return toResponse(appVersion);
+        String normalizedPlatform = normalizePlatform(platform);
+        return appVersionRepository.findById(normalizedPlatform)
+                .map(this::toResponse)
+                .orElseGet(() -> defaultResponse(normalizedPlatform));
     }
 
     @Transactional
@@ -68,6 +70,19 @@ public class AppVersionService {
                 appVersion.isShowButton(),
                 appVersion.getButtonText(),
                 appVersion.getButtonUrl()
+        );
+    }
+
+    private AppVersionResponse defaultResponse(String platform) {
+        return new AppVersionResponse(
+                platform,
+                DEFAULT_MINIMUM_VERSION,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null
         );
     }
 
