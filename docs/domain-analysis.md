@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-07
+> 최종 수정일: 2026-03-08
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -190,6 +190,8 @@ Hooks:
 
 동시성 제어:
   - Party 엔티티의 `@Version` 기반 Optimistic Lock으로 동시 동승 요청/수락 충돌을 방어
+  - 같은 사용자의 파티 생성/동승 요청/수락 경로는 `members` row lock으로 직렬화하여 `ALREADY_IN_PARTY` 불변식을 보존
+  - 같은 사용자의 동승 요청은 `members` row lock 하에서 `PENDING` 존재 여부를 확인해 동일 파티 live request 중복을 차단하고, 취소/거절 이후 재요청 이력은 허용
   - 충돌 시 `PARTY_CONCURRENT_MODIFICATION` 에러로 재시도 유도
 
 저장소 설계:
@@ -274,6 +276,7 @@ Hooks:
   - STOMP 에러 수신: `/user/queue/errors` (`errorCode/message/timestamp`)
   - WS 인가: CONNECT 인증 후에도 SEND/SUBSCRIBE 시 채팅방 멤버십을 서버에서 추가 검증
   - 미읽음 계산: `message.createdAt > lastReadAt` 기준 (동일 시각은 읽음)
+  - `lastReadAt`는 서버 현재 시각과 마지막 메시지 시각을 상한으로 clamp하여 미래 시각 입력으로 인한 unread 왜곡을 방지
   - 방별 다중 구독(모든 방 topic 동시 구독)은 연결 수/브로드캐스트 비용 증가로 사용하지 않음
 ```
 
@@ -596,6 +599,7 @@ Hooks:
   - `/v1/sse/members/me/join-requests` (요청자 본인 동승요청 상태)
   - 알림, 게시물 목록/조회수
 - WebSocket: 채팅(목록 요약 `/user/queue/chat-rooms`, 상세 메시지 `/topic/chat/{chatRoomId}`, 전송 `/app/chat/{chatRoomId}`)
+  - 파티 멤버 변화(수락/탈퇴/강퇴)는 `chat_room_members`와 `chat_rooms.member_count`를 즉시 동기화한다.
 
 ### 5.2 Notification 인프라 상세
 
@@ -663,7 +667,7 @@ Phase 8 댓글 알림 정책:
 
 ## 6. 패키지 구조
 
-> 현재 코드베이스(Phase 2 TaxiParty 구현 반영 시점) 기준 구조입니다.
+> 현재 코드베이스(Phase 7 Support 구현 반영 시점) 기준 구조입니다.
 
 ```
 com.skuri.skuri_backend
@@ -1305,15 +1309,15 @@ public class PartyMessageService {
 
 - [ ] **Phase 2: 핵심 비즈니스**
   - [x] TaxiParty 도메인 구현
-  - [ ] Chat 도메인 구현 (WebSocket)
+  - [x] Chat 도메인 구현 (WebSocket)
   - [ ] 도메인 이벤트 + Notification 인프라
   - [ ] FCM 푸시 연동
 
-- [ ] **Phase 3: 부가 기능**
+- [x] **Phase 3: 부가 기능**
   - [x] Notice 도메인 + RSS 크롤러
-- [x] Board 도메인 (무제한 depth 댓글, flat list 조회, 부모 삭제 정책 B 반영)
-  - [ ] Academic 도메인
-  - [ ] Support 도메인
+  - [x] Board 도메인 (무제한 depth 댓글, flat list 조회, 부모 삭제 정책 B 반영)
+  - [x] Academic 도메인
+  - [x] Support 도메인
 
 - [ ] **Phase 4: 데이터 마이그레이션**
   - [ ] Firestore → MySQL 데이터 이관 스크립트

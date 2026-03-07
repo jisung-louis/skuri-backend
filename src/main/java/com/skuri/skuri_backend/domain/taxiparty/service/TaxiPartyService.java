@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.CreatePartyRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.UpdatePartyRequest;
@@ -64,6 +65,7 @@ public class TaxiPartyService {
 
     @Transactional
     public PartyCreateResponse createParty(String leaderId, CreatePartyRequest request) {
+        lockMemberOrThrow(leaderId);
         if (partyRepository.existsActivePartyByMemberId(leaderId, ACTIVE_PARTY_STATUSES, null)) {
             throw new BusinessException(ErrorCode.ALREADY_IN_PARTY);
         }
@@ -224,6 +226,7 @@ public class TaxiPartyService {
         List<String> recipientsBeforeRemoval = party.getMemberIds();
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
+        chatService.syncPartyChatRoomMembers(party);
         partySseService.publishPartyMemberLeft(party, memberId, "KICKED", recipientsBeforeRemoval);
     }
 
@@ -246,12 +249,14 @@ public class TaxiPartyService {
 
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
+        chatService.syncPartyChatRoomMembers(party);
         partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
     }
 
     @Transactional
     public JoinRequestResponse createJoinRequest(String requesterId, String partyId) {
         Party party = findPartyDetailOrThrow(partyId);
+        lockMemberOrThrow(requesterId);
 
         if (party.getStatus() == PartyStatus.ENDED) {
             throw new BusinessException(ErrorCode.PARTY_ENDED);
@@ -290,6 +295,7 @@ public class TaxiPartyService {
         }
 
         String requesterId = joinRequest.getRequesterId();
+        lockMemberOrThrow(requesterId);
         if (party.isMember(requesterId)) {
             throw new BusinessException(ErrorCode.ALREADY_IN_PARTY);
         }
@@ -302,6 +308,7 @@ public class TaxiPartyService {
 
         joinRequestRepository.save(joinRequest);
         savePartyWithLockHandling(party);
+        chatService.syncPartyChatRoomMembers(party);
         String requesterName = memberRepository.findById(requesterId)
                 .map(Member::getNickname)
                 .orElse(null);
@@ -398,6 +405,11 @@ public class TaxiPartyService {
     private JoinRequest findJoinRequestOrThrow(String requestId) {
         return joinRequestRepository.findDetailById(requestId)
                 .orElseThrow(JoinRequestNotFoundException::new);
+    }
+
+    private void lockMemberOrThrow(String memberId) {
+        memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(MemberNotFoundException::new);
     }
 
     private void requireLeader(Party party, String actorId) {

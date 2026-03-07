@@ -39,8 +39,10 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -60,20 +62,32 @@ public class ChatService {
 
     @Transactional
     public void createPartyChatRoom(Party party) {
-        String chatRoomId = "party:" + party.getId();
-        if (chatRoomRepository.existsById(chatRoomId)) {
-            return;
-        }
+        syncPartyChatRoomMembers(party);
+    }
 
-        ChatRoom room = ChatRoom.createPartyRoom(party.getId());
-        chatRoomRepository.save(room);
+    @Transactional
+    public void syncPartyChatRoomMembers(Party party) {
+        String chatRoomId = "party:" + party.getId();
+        ChatRoom room = chatRoomRepository.findById(chatRoomId)
+                .orElseGet(() -> chatRoomRepository.save(ChatRoom.createPartyRoom(party.getId())));
+        Map<String, ChatRoomMember> currentMembers = chatRoomMemberRepository.findById_ChatRoomId(chatRoomId).stream()
+                .collect(Collectors.toMap(ChatRoomMember::getMemberId, Function.identity()));
+        Set<String> expectedMembers = new LinkedHashSet<>(party.getMemberIds());
+
+        for (ChatRoomMember member : currentMembers.values()) {
+            if (!expectedMembers.contains(member.getMemberId())) {
+                chatRoomMemberRepository.delete(member);
+            }
+        }
 
         LocalDateTime joinedAt = LocalDateTime.now();
-        for (String memberId : party.getMemberIds()) {
-            ChatRoomMember member = ChatRoomMember.create(room, memberId, joinedAt);
-            chatRoomMemberRepository.save(member);
-            room.increaseMemberCount();
+        for (String memberId : expectedMembers) {
+            if (!currentMembers.containsKey(memberId)) {
+                chatRoomMemberRepository.save(ChatRoomMember.create(room, memberId, joinedAt));
+            }
         }
+
+        room.updateMemberCount(expectedMembers.size());
         chatRoomRepository.save(room);
     }
 
@@ -157,9 +171,9 @@ public class ChatService {
 
     @Transactional
     public ChatReadUpdateResponse markAsRead(String memberId, String chatRoomId, LocalDateTime lastReadAt) {
-        findRoomOrThrow(chatRoomId);
+        ChatRoom room = findRoomOrThrow(chatRoomId);
         ChatRoomMember member = requireChatRoomMember(chatRoomId, memberId);
-        boolean updated = member.advanceLastReadAt(lastReadAt);
+        boolean updated = member.advanceLastReadAt(clampLastReadAt(room, lastReadAt));
         if (updated) {
             chatRoomMemberRepository.save(member);
         }
@@ -281,6 +295,18 @@ public class ChatService {
             return room.getMessageCount();
         }
         return chatMessageRepository.countByChatRoomIdAndCreatedAtAfter(room.getId(), lastReadAt);
+    }
+
+    private LocalDateTime clampLastReadAt(ChatRoom room, LocalDateTime requestedLastReadAt) {
+        if (requestedLastReadAt == null) {
+            return null;
+        }
+
+        LocalDateTime upperBound = LocalDateTime.now();
+        if (room.getLastMessageTimestamp() != null && room.getLastMessageTimestamp().isBefore(upperBound)) {
+            upperBound = room.getLastMessageTimestamp();
+        }
+        return requestedLastReadAt.isAfter(upperBound) ? upperBound : requestedLastReadAt;
     }
 
     private Comparator<ChatRoom> chatRoomComparator() {

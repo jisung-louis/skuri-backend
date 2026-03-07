@@ -52,6 +52,11 @@ common/
 - 성결대학교 공지 수집은 사이트 TLS 체인 이슈로 인해 Notice 전용 클라이언트에서만 인증서 검증을 비활성화
 - Notice sync 응답은 `created/updated/skipped/failed`를 반환하고, 개별 공지 저장 실패가 나도 다음 항목을 계속 처리
 - Notice 엔티티는 `rssPreview`(RSS 미리보기), `summary`(향후 AI 요약 예약), `bodyText`(정규화 plain text), `bodyHtml`(RN 렌더링용 원문 HTML), `attachments`로 구분한다.
+- Notice RSS `postedAt`은 offset-aware 파싱을 사용하고, 상세 크롤링 실패 시 기존 상세 본문/첨부/해시를 보존한다.
+- TaxiParty는 생성/참여 요청/참여 승인 시 `Member` row lock으로 동일 사용자의 활성 파티 참여를 직렬화한다.
+- 같은 사용자의 동승 요청은 `Member` row lock과 `PENDING` 존재 여부 확인으로 중복 live request를 차단하고, 취소/거절 이후 재요청 이력은 허용한다.
+- 파티 멤버 변동(승인/탈퇴/강퇴)은 `chat_room_members`와 `chat_rooms.member_count`를 즉시 동기화한다.
+- 채팅 읽음 시각(`lastReadAt`)은 서버 현재 시각과 마지막 메시지 시각을 상한으로 clamp한다.
 - AppNotice 관리자 수정 API: `PATCH /v1/admin/app-notices/{appNoticeId}`
 - AppNotice PATCH는 전달한 필드만 반영하고, 누락되거나 `null`인 필드는 유지
 - Support 도메인은 `Inquiry`, `Report`, `AppVersion`, `CafeteriaMenu` 엔티티와 관리자 운영 API를 포함한다.

@@ -125,6 +125,10 @@ public class ChatRoom extends BaseTimeEntity {
         }
     }
 
+    public void updateMemberCount(int memberCount) {
+        this.memberCount = Math.max(0, memberCount);
+    }
+
     public void applyNewMessage(ChatMessage message) {
         this.messageCount += 1;
         this.lastMessageText = message.getText();

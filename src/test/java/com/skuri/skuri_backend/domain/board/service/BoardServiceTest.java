@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class BoardServiceTest {
@@ -248,6 +249,17 @@ class BoardServiceTest {
     }
 
     @Test
+    void updatePost_공백만전달되면_VALIDATION_ERROR() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> boardService.updatePost("member-1", "post-1", new UpdatePostRequest("   ", null, null))
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        verify(postRepository, never()).findByIdAndDeletedFalse("post-1");
+    }
+
+    @Test
     void deletePost_작성자이면_softDelete() {
         Post post = post("post-1", "author-1");
         when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
@@ -263,7 +275,7 @@ class BoardServiceTest {
         ReflectionTestUtils.setField(post, "commentCount", 2);
         Comment comment = comment("comment-1", post, null, "member-1", false, null);
 
-        when(commentRepository.findActiveById("comment-1")).thenReturn(Optional.of(comment));
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
         when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
 
         boardService.deleteComment("member-1", "comment-1");
@@ -271,6 +283,24 @@ class BoardServiceTest {
         assertTrue(comment.isDeleted());
         assertEquals(Comment.DELETED_PLACEHOLDER, comment.getContent());
         assertEquals(1, post.getCommentCount());
+    }
+
+    @Test
+    void deleteComment_이미삭제된댓글이면_COMMENT_ALREADY_DELETED() {
+        Post post = post("post-1", "author-1");
+        ReflectionTestUtils.setField(post, "commentCount", 2);
+        Comment comment = comment("comment-1", post, null, "member-1", false, null);
+        comment.softDelete();
+
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> boardService.deleteComment("member-1", "comment-1")
+        );
+
+        assertEquals(ErrorCode.COMMENT_ALREADY_DELETED, exception.getErrorCode());
+        verify(postRepository, never()).findActiveByIdForUpdate("post-1");
     }
 
     private Post post(String id, String authorId) {

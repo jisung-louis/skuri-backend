@@ -127,7 +127,9 @@ public class BoardService {
 
     @Transactional
     public PostDetailResponse updatePost(String memberId, String postId, UpdatePostRequest request) {
-        if (request.title() == null && request.content() == null && request.category() == null) {
+        String title = trimToNull(request.title());
+        String content = trimToNull(request.content());
+        if (title == null && content == null && request.category() == null) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "수정할 필드를 최소 1개 이상 입력해야 합니다.");
         }
 
@@ -135,8 +137,8 @@ public class BoardService {
         requirePostAuthor(post, memberId);
 
         post.update(
-                trimToNull(request.title()),
-                trimToNull(request.content()),
+                title,
+                content,
                 request.category()
         );
 
@@ -264,7 +266,7 @@ public class BoardService {
 
     @Transactional
     public void deleteComment(String memberId, String commentId) {
-        Comment comment = commentRepository.findActiveById(commentId)
+        Comment comment = commentRepository.findByIdForUpdate(commentId)
                 .orElseThrow(CommentNotFoundException::new);
 
         requireCommentAuthor(comment, memberId);

@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.dto.request.AdminCreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoomMember;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +55,8 @@ class ChatAdminServiceTest {
 
         assertEquals("성결대 전체 채팅방", response.name());
         assertEquals(ChatRoomType.UNIVERSITY, response.type());
+        verify(chatRoomRepository, times(2)).save(any(ChatRoom.class));
+        verify(chatRoomMemberRepository).save(any(ChatRoomMember.class));
     }
 
     @Test
@@ -161,4 +165,3 @@ class ChatAdminServiceTest {
         assertEquals(ErrorCode.CHAT_ROOM_NOT_FOUND, exception.getErrorCode());
     }
 }
-
