@@ -1721,12 +1721,14 @@ Authorization:Bearer <firebase_id_token>
 
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
-| `semester` | string | 학기 (2026-1) |
+| `semester` | string | 학기 (예: `2026-1`, 미지정 시 전체 학기 검색) |
 | `department` | string | 학과 |
 | `professor` | string | 교수명 |
-| `search` | string | 강의명 검색 |
+| `search` | string | 강의명/과목코드/카테고리/교수/강의실/비고 키워드 검색 |
 | `dayOfWeek` | int | 요일 (1-5) |
-| `grade` | int | 학년 (1-4) |
+| `grade` | int | 학년 |
+| `page` | int | 페이지 번호 (기본: 0) |
+| `size` | int | 페이지 크기 (기본: 20, 최대: 100) |
 
 **Response:**
 ```json
@@ -1736,6 +1738,7 @@ Authorization:Bearer <firebase_id_token>
     "content": [
       {
         "id": "course_uuid",
+        "semester": "2026-1",
         "code": "01255",
         "division": "001",
         "name": "민법총칙",
@@ -1744,6 +1747,8 @@ Authorization:Bearer <firebase_id_token>
         "department": "법학과",
         "grade": 2,
         "category": "전공선택",
+        "location": "영401",
+        "note": null,
         "schedule": [
           {
             "dayOfWeek": 1,
@@ -1755,13 +1760,15 @@ Authorization:Bearer <firebase_id_token>
             "startPeriod": 3,
             "endPeriod": 4
           }
-        ],
-        "location": "영401"
+        ]
       }
     ],
     "page": 0,
     "size": 20,
-    "totalElements": 500
+    "totalElements": 500,
+    "totalPages": 25,
+    "hasNext": true,
+    "hasPrevious": false
   }
 }
 ```
@@ -1784,21 +1791,42 @@ Authorization:Bearer <firebase_id_token>
   "data": {
     "id": "timetable_uuid",
     "semester": "2026-1",
+    "courseCount": 1,
+    "totalCredits": 3,
     "courses": [
       {
         "id": "course_uuid",
+        "code": "01255",
+        "division": "001",
         "name": "민법총칙",
         "professor": "문상혁",
         "location": "영401",
+        "category": "전공선택",
+        "credits": 3,
         "schedule": [
           { "dayOfWeek": 1, "startPeriod": 3, "endPeriod": 4 }
-        ],
-        "color": "#4CAF50"
+        ]
+      }
+    ],
+    "slots": [
+      {
+        "courseId": "course_uuid",
+        "courseName": "민법총칙",
+        "code": "01255",
+        "dayOfWeek": 1,
+        "startPeriod": 3,
+        "endPeriod": 4,
+        "professor": "문상혁",
+        "location": "영401"
       }
     ]
   }
 }
 ```
+
+시간표가 아직 생성되지 않은 경우에도 `200 OK`를 반환하며, `id`는 `null`, `courses`/`slots`는 빈 배열로 내려간다.
+`semester`를 생략하면 서버는 현재 날짜 기준 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙으로 학기를 계산한다.
+성결대학교 실제 학기 시작은 3월/9월이지만, 스쿠리는 수강신청과 시간표 준비 수요를 반영해 한 달 앞선 2월/8월부터 새 학기를 사용한다.
 
 #### POST /v1/timetables/my/courses
 시간표에 강의 추가
@@ -1811,6 +1839,10 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
+**Response (200 OK):**
+
+`GET /v1/timetables/my`와 동일한 형태의 최신 시간표를 반환한다.
+
 #### DELETE /v1/timetables/my/courses/{courseId}
 시간표에서 강의 삭제
 
@@ -1818,7 +1850,11 @@ Authorization:Bearer <firebase_id_token>
 
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
-| `semester` | string | 학기 |
+| `semester` | string | 학기 (필수) |
+
+**Response (200 OK):**
+
+`GET /v1/timetables/my`와 동일한 형태의 최신 시간표를 반환한다.
 
 ### 7.3 학사 일정
 
@@ -1870,8 +1906,10 @@ Authorization:Bearer <firebase_id_token>
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
 | `COURSE_NOT_FOUND` | 404 | 존재하지 않는 강의 |
+| `ACADEMIC_SCHEDULE_NOT_FOUND` | 404 | 존재하지 않는 학사 일정 |
 | `TIMETABLE_CONFLICT` | 409 | 시간표 추가 시 기존 강의와 시간 충돌 |
 | `COURSE_ALREADY_IN_TIMETABLE` | 409 | 이미 시간표에 추가된 강의 중복 추가 |
+| `CONFLICT` | 409 | 관리자 강의 bulk 처리 중 동시 저장 충돌 |
 
 ---
 
@@ -3258,7 +3296,10 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
     "id": "schedule_uuid",
     "title": "중간고사",
     "startDate": "2026-04-15",
-    "endDate": "2026-04-21"
+    "endDate": "2026-04-21",
+    "type": "MULTI",
+    "isPrimary": true,
+    "description": "2026학년도 1학기 중간고사"
   }
 }
 ```
@@ -3266,8 +3307,18 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 #### PUT /v1/admin/academic-schedules/{scheduleId}
 학사 일정 수정
 
+**Request / Response:** `POST /v1/admin/academic-schedules`와 동일한 필드를 사용하며, 성공 시 `200 OK`로 전체 학사 일정 객체를 반환한다.
+
 #### DELETE /v1/admin/academic-schedules/{scheduleId}
 학사 일정 삭제
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null
+}
+```
 
 ---
 
@@ -3276,20 +3327,28 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 #### POST /v1/admin/courses/bulk
 학기 강의 일괄 등록 (매 학기 강의 데이터 업로드)
 
+`semester + code + division` 조합을 기준으로 업서트하며, 같은 학기에 기존에 존재하지만 이번 요청에 없는 강의는 삭제한다.
+동시 업로드 등으로 유니크 충돌이 발생하면 `409 CONFLICT`를 반환한다.
+
 **Request:**
 ```json
 {
   "semester": "2026-1",
   "courses": [
     {
+      "code": "CSE301",
+      "division": "001",
       "name": "소프트웨어공학",
       "professor": "홍길동",
       "department": "컴퓨터공학과",
-      "credit": 3,
+      "credits": 3,
       "grade": 3,
+      "category": "전공필수",
+      "location": "공학관 301",
+      "note": null,
       "schedule": [
-        { "dayOfWeek": 1, "startPeriod": 1, "endPeriod": 2, "classroom": "공학관 301" },
-        { "dayOfWeek": 3, "startPeriod": 1, "endPeriod": 2, "classroom": "공학관 301" }
+        { "dayOfWeek": 1, "startPeriod": 1, "endPeriod": 2 },
+        { "dayOfWeek": 3, "startPeriod": 1, "endPeriod": 2 }
       ]
     }
   ]
@@ -3316,7 +3375,20 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
-| `semester` | string | 삭제할 학기 (예: `2026-1`) |
+| `semester` | string | 삭제할 학기 (필수, 예: `2026-1`) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "semester": "2026-1",
+    "created": 0,
+    "updated": 0,
+    "deleted": 125
+  }
+}
+```
 
 ---
 

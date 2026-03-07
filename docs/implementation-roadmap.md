@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영) |
 
 ---
 
@@ -473,7 +473,7 @@ SSE 운영 제약:
 
 ### Phase 6: Academic 도메인
 
-> 읽기 위주의 학사 정보 제공.
+> 학사 정보 조회 + 시간표 관리 + 관리자 운영 API 제공.
 
 #### 6-1. 엔티티
 
@@ -500,8 +500,24 @@ SSE 운영 제약:
 
 #### 6-3. 완료 기준
 
-- [ ] 강의 검색 + 시간표 CRUD 동작
-- [ ] 학사 일정 조회 동작
+- [x] 강의 검색 필터(`semester`, `department`, `professor`, `search`, `dayOfWeek`, `grade`) 동작
+- [x] 내 시간표 조회/강의 추가/강의 삭제 동작
+- [x] 시간표 무결성 규칙 적용
+  - [x] 같은 사용자 + 학기 조합은 시간표 1개만 허용
+  - [x] 같은 시간표 내 동일 강의 중복 추가 차단
+  - [x] 같은 요일/교시 겹침 시간 충돌 차단
+- [x] 학사 일정 조회 동작
+- [x] 관리자 학사 일정 CRUD 동작
+- [x] 관리자 학기 강의 bulk 업서트/전체 삭제 동작
+- [x] OpenAPI (`/v3/api-docs`, Swagger UI, Scalar) 반영
+- [x] Phase 6 Postman 수동 검증 컬렉션(`etc/postman_collection.json > 06. Academic`) 반영
+
+구현 계약 메모:
+- 강의 bulk 등록 계약은 `credits` + 강의 단위 `location`으로 통일한다.
+- 시간표 조회/추가/삭제는 동일한 시간표 응답(`courses[] + slots[]`)을 반환한다.
+- 시간표 색상 결정 책임은 백엔드가 아닌 프론트엔드(RN 앱)에 둔다.
+- `GET /v1/timetables/my`의 semester 기본값은 서버 규칙(`2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2`)을 사용한다.
+- 실제 학교 학기 시작은 3월/9월이지만, 스쿠리는 수강신청/시간표 준비 수요를 반영해 학기 기준을 한 달 앞당겨 사용한다.
 
 #### 6-4. 학사 일정 알림 정책 (Phase 8 연동 예정)
 

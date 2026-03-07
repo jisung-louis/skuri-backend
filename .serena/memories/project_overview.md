@@ -24,6 +24,7 @@ domain/
 ├── chat/         # 채팅 (WebSocket STOMP, 채팅방, 메시지)
 ├── board/        # 커뮤니티 게시판 (게시글/댓글/좋아요/북마크)
 ├── notice/       # 학교 공지 (RSS 수집, 상세 크롤링, 읽음/좋아요/댓글)
+├── academic/     # 학사 정보 (강의 검색, 시간표, 학사 일정, 관리자 강의/학사일정 관리)
 └── app/          # 앱 공지/버전 관리
 ```
 
@@ -57,6 +58,12 @@ common/
 - 댓글 알림 정책은 `commentNotifications`(Board/Notice 공통 댓글 알림)와 `bookmarkedPostCommentNotifications`(북마크 게시글 댓글 알림)로 분리된다.
 - `COMMENT_CREATED`(게시글)은 게시글 작성자/부모 댓글 작성자/해당 게시글 북마크 사용자를 수신 대상으로 하며, 동일 사용자 중복 수신은 1회로 dedupe한다.
 - Comment 도메인은 Board/Notice 공통 정책으로 운영하며, 무제한 depth 저장 + flat list 조회 + placeholder soft delete를 사용한다.
+- Academic 도메인은 `Course`, `CourseSchedule`, `UserTimetable`, `UserTimetableCourse`, `AcademicSchedule` 엔티티로 구성된다.
+- `Course`는 `semester + code + division` unique 제약을 가지며, 관리자 강의 bulk 등록 계약은 같은 키 기준 업서트 + 누락 강의 삭제 방식이다.
+- 시간표는 `userId + semester` unique 규칙을 가지며, 같은 시간표 내 동일 강의 중복 추가와 시간 겹침(dayOfWeek/startPeriod/endPeriod overlap)을 서버에서 차단한다.
+- `GET /v1/timetables/my`는 semester 미지정 시 현재 날짜 기준 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙으로 현재 학기를 해석한다.
+- 실제 학교 학기 시작은 3월/9월이지만, 스쿠리는 수강신청/시간표 준비 수요를 반영해 한 달 앞선 2월/8월부터 새 학기 기준을 적용한다.
+- 관리자 강의 bulk 등록 계약은 필드명 `credits`와 강의 단위 `location`으로 통일한다.
 - 학사 일정 알림 구현 시 `NotificationSetting` 확장 후보는 `academicScheduleNotifications`, `academicScheduleDayBeforeEnabled`, `academicScheduleAllEventsEnabled`다.
 
 ## 이메일 도메인 제한
