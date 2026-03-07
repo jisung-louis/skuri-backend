@@ -566,6 +566,9 @@ erDiagram
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |
 
+- Unique 제약: `uk_join_requests_party_requester_status (party_id, requester_id, status)`
+  - 동일 파티/요청자에 대한 `PENDING` 중복 생성 race를 DB 레벨에서 차단
+
 ### 2.3 Chat 도메인
 
 | 테이블 | 설명 | 예상 레코드 수 |
@@ -752,6 +755,7 @@ CREATE INDEX idx_join_requests_party ON join_requests(party_id);
 CREATE INDEX idx_join_requests_requester ON join_requests(requester_id);
 CREATE INDEX idx_join_requests_status ON join_requests(status);
 CREATE INDEX idx_join_requests_party_status ON join_requests(party_id, status);
+CREATE UNIQUE INDEX uk_join_requests_party_requester_status ON join_requests(party_id, requester_id, status);
 ```
 
 ### 4.3 Chat 도메인
