@@ -434,10 +434,22 @@ Hooks:
   - CourseSchedule (Embedded)
     - dayOfWeek (1-5), startPeriod, endPeriod
   - UserTimetable
-    - id, userId, semester, courseIds[]
+    - id, userId, semester
+    - unique(userId, semester)
+    - courses[] via UserTimetableCourse
+    - 같은 시간표 내 동일 강의 중복 추가 금지
+    - 시간표 강의 추가 시 dayOfWeek/startPeriod/endPeriod overlap 차단
+    - 조회 응답은 `courses[] + slots[]` 구조로 프론트 렌더링을 지원
+    - `GET /v1/timetables/my`는 semester 미지정 시 현재 날짜 기준 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙으로 현재 학기를 해석
+    - 실제 학교 학기 시작은 3월/9월이지만, 수강신청/시간표 준비 수요를 반영해 스쿠리 학기 기준을 한 달 앞당겨 사용
+  - UserTimetableCourse
+    - timetableId, courseId
   - AcademicSchedule
     - id, title, startDate, endDate
     - type (SINGLE, MULTI), isPrimary, description
+  - Course 검색
+    - semester/department/professor/dayOfWeek/grade 필터 지원
+    - search는 강의명/과목코드/카테고리/교수/강의실/비고를 대상으로 한다
 
 학사 일정 알림 정책 (후속 구현):
   - 기본 트리거 기준일은 `startDate`다.

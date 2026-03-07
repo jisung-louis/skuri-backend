@@ -371,6 +371,10 @@ erDiagram
     user_timetables ||--o{ user_timetable_courses : "contains"
     courses ||--o{ user_timetable_courses : "included in"
 
+    %% runtime contract note:
+    %% 강의 일괄 등록 계약은 credits + 강의 단위 location을 사용하며,
+    %% 개별 course_schedules에는 강의실 컬럼을 두지 않는다.
+
     %% ===== SUPPORT 도메인 =====
     inquiries {
         varchar(36) id PK "UUID"
@@ -817,6 +821,7 @@ CREATE INDEX idx_courses_semester ON courses(semester);
 CREATE INDEX idx_courses_department ON courses(department);
 CREATE INDEX idx_courses_professor ON courses(professor);
 CREATE INDEX idx_courses_code ON courses(code);
+CREATE UNIQUE INDEX uk_courses_semester_code_division ON courses(semester, code, division);
 
 -- user_timetables
 CREATE INDEX idx_user_timetables_user ON user_timetables(user_id);
