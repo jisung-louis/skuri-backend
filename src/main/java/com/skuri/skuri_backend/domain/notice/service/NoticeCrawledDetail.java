@@ -7,9 +7,18 @@ import java.util.List;
 public record NoticeCrawledDetail(
         String html,
         String text,
-        List<NoticeAttachment> attachments
+        List<NoticeAttachment> attachments,
+        boolean successful
 ) {
     public static NoticeCrawledDetail empty() {
-        return new NoticeCrawledDetail("", "", List.of());
+        return new NoticeCrawledDetail("", "", List.of(), true);
+    }
+
+    public static NoticeCrawledDetail of(String html, String text, List<NoticeAttachment> attachments) {
+        return new NoticeCrawledDetail(html, text, attachments, true);
+    }
+
+    public static NoticeCrawledDetail failed() {
+        return new NoticeCrawledDetail(null, null, null, false);
     }
 }

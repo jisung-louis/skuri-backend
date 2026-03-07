@@ -25,6 +25,7 @@ public class SungkyulNoticeRssClient implements NoticeRssClient {
     private static final String RSS_BASE_URL = "https://www.sungkyul.ac.kr/bbs/skukr";
     private static final String BASE_URL = "https://www.sungkyul.ac.kr";
     private static final int TIMEOUT_MILLIS = 10_000;
+    private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
 
     @Override
     public List<NoticeFeedItem> fetch(NoticeCategory category, int rowCount) {
@@ -97,17 +98,24 @@ public class SungkyulNoticeRssClient implements NoticeRssClient {
             return LocalDateTime.now();
         }
 
+        String trimmed = rawDate.trim();
         try {
-            String normalized = rawDate.contains("T") ? rawDate : rawDate.replace(' ', 'T');
-            return OffsetDateTime.parse(normalized + "+09:00").toLocalDateTime();
+            return OffsetDateTime.parse(trimmed)
+                    .withOffsetSameInstant(KST_OFFSET)
+                    .toLocalDateTime();
         } catch (DateTimeParseException ignored) {
             try {
-                return OffsetDateTime.parse(rawDate, DateTimeFormatter.RFC_1123_DATE_TIME)
-                        .withOffsetSameInstant(ZoneOffset.ofHours(9))
+                return OffsetDateTime.parse(trimmed, DateTimeFormatter.RFC_1123_DATE_TIME)
+                        .withOffsetSameInstant(KST_OFFSET)
                         .toLocalDateTime();
             } catch (DateTimeParseException ex) {
-                log.warn("공지 날짜 파싱 실패: rawDate={}", rawDate, ex);
-                return LocalDateTime.now();
+                try {
+                    String normalized = trimmed.contains("T") ? trimmed : trimmed.replace(' ', 'T');
+                    return LocalDateTime.parse(normalized, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                } catch (DateTimeParseException secondEx) {
+                    log.warn("공지 날짜 파싱 실패: rawDate={}", rawDate, secondEx);
+                    return LocalDateTime.now();
+                }
             }
         }
     }

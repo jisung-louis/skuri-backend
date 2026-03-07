@@ -22,7 +22,7 @@ public class SungkyulNoticeDetailCrawler implements NoticeDetailCrawler {
     @Override
     public NoticeCrawledDetail crawl(String noticeUrl) {
         if (!StringUtils.hasText(noticeUrl)) {
-            return NoticeCrawledDetail.empty();
+            return NoticeCrawledDetail.failed();
         }
 
         try {
@@ -49,10 +49,10 @@ public class SungkyulNoticeDetailCrawler implements NoticeDetailCrawler {
                     && !StringUtils.hasText(attachment.downloadUrl())
                     && !StringUtils.hasText(attachment.previewUrl()));
 
-            return new NoticeCrawledDetail(html, text, attachments);
+            return NoticeCrawledDetail.of(html, text, attachments);
         } catch (IOException e) {
             log.warn("공지 상세 크롤링 실패: noticeUrl={}", noticeUrl, e);
-            return NoticeCrawledDetail.empty();
+            return NoticeCrawledDetail.failed();
         }
     }
 

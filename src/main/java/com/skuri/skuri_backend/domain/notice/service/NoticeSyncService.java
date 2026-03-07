@@ -88,6 +88,7 @@ public class NoticeSyncService {
         try {
             Notice existing = noticeRepository.findById(item.id()).orElse(null);
             boolean shouldCrawlDetail = forceDetailRefresh || shouldCrawlDetail(existing, item.rssFingerprint(), syncedAt);
+            boolean detailRefreshed = false;
 
             String detailHash = existing == null ? null : existing.getDetailHash();
             bodyText = existing == null ? "" : existing.getBodyText();
@@ -96,10 +97,13 @@ public class NoticeSyncService {
 
             if (shouldCrawlDetail) {
                 NoticeCrawledDetail detail = noticeDetailCrawler.crawl(item.link());
-                bodyText = detail.text();
-                bodyHtml = detail.html();
-                attachments = detail.attachments();
-                detailHash = NoticeHashUtils.detailHash(bodyHtml, attachments);
+                if (detail.successful()) {
+                    bodyText = detail.text();
+                    bodyHtml = detail.html();
+                    attachments = detail.attachments();
+                    detailHash = NoticeHashUtils.detailHash(bodyHtml, attachments);
+                    detailRefreshed = true;
+                }
             }
 
             String finalContentHash = NoticeHashUtils.contentHash(
@@ -130,7 +134,7 @@ public class NoticeSyncService {
                         item.rssFingerprint(),
                         detailHash,
                         finalContentHash,
-                        shouldCrawlDetail ? syncedAt : null,
+                        detailRefreshed ? syncedAt : null,
                         bodyText,
                         bodyHtml,
                         attachments
@@ -139,7 +143,7 @@ public class NoticeSyncService {
             }
 
             if (finalContentHash.equals(existing.getContentHash())) {
-                if (metadataChanged || shouldCrawlDetail) {
+                if (metadataChanged || detailRefreshed) {
                     existing.applySync(
                             item.title(),
                             item.rssPreview(),
@@ -152,7 +156,7 @@ public class NoticeSyncService {
                             item.rssFingerprint(),
                             detailHash,
                             finalContentHash,
-                            shouldCrawlDetail ? syncedAt : existing.getDetailCheckedAt(),
+                            detailRefreshed ? syncedAt : existing.getDetailCheckedAt(),
                             bodyText,
                             bodyHtml,
                             attachments
@@ -176,7 +180,7 @@ public class NoticeSyncService {
                     item.rssFingerprint(),
                     detailHash,
                     finalContentHash,
-                    shouldCrawlDetail ? syncedAt : existing.getDetailCheckedAt(),
+                    detailRefreshed ? syncedAt : existing.getDetailCheckedAt(),
                     bodyText,
                     bodyHtml,
                     attachments
