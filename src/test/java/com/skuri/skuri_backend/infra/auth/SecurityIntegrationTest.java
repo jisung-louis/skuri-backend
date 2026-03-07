@@ -6,6 +6,9 @@ import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeResponse;
 import com.skuri.skuri_backend.domain.app.entity.AppNoticeCategory;
 import com.skuri.skuri_backend.domain.app.entity.AppNoticePriority;
 import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
+import com.skuri.skuri_backend.domain.support.controller.AppVersionAdminController;
+import com.skuri.skuri_backend.domain.support.dto.response.AppVersionResponse;
+import com.skuri.skuri_backend.domain.support.service.AppVersionService;
 import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
@@ -39,12 +42,14 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {
         MemberController.class,
         AppVersionController.class,
+        AppVersionAdminController.class,
         AppNoticeController.class,
         ChatAdminRoomController.class
 })
@@ -64,6 +69,9 @@ class SecurityIntegrationTest {
 
     @MockitoBean
     private AppNoticeService appNoticeService;
+
+    @MockitoBean
+    private AppVersionService appVersionService;
 
     @MockitoBean
     private ChatAdminService chatAdminService;
@@ -162,6 +170,17 @@ class SecurityIntegrationTest {
     void 공개Api_인증없이_접근가능() throws Exception {
         when(appNoticeService.getPublishedNotices()).thenReturn(java.util.List.of(appNoticeResponse()));
         when(appNoticeService.getPublishedNotice("app-notice-1")).thenReturn(appNoticeResponse());
+        when(appVersionService.getAppVersion("ios"))
+                .thenReturn(new AppVersionResponse(
+                        "ios",
+                        "1.5.0",
+                        false,
+                        "새로운 기능이 추가되었습니다.",
+                        "업데이트 안내",
+                        true,
+                        "업데이트",
+                        "https://apps.apple.com/..."
+                ));
 
         mockMvc.perform(get("/v1/app-notices"))
                 .andExpect(status().isOk())
@@ -186,6 +205,31 @@ class SecurityIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer user-token")
                                 .contentType("application/json")
                                 .content("{\"name\":\"운영 채팅방\",\"type\":\"CUSTOM\",\"isPublic\":true}")
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("ADMIN_REQUIRED"));
+    }
+
+    @Test
+    void support관리자Api_비관리자토큰_403_ADMIN_REQUIRED() throws Exception {
+        mockToken("user-token", "firebase-uid", false);
+
+        mockMvc.perform(
+                        put("/v1/admin/app-versions/ios")
+                                .header(AUTHORIZATION, "Bearer user-token")
+                                .contentType("application/json")
+                                .content("""
+                                        {
+                                          "minimumVersion": "1.6.0",
+                                          "forceUpdate": true,
+                                          "title": "필수 업데이트 안내",
+                                          "message": "안정성 개선을 위한 필수 업데이트입니다.",
+                                          "showButton": true,
+                                          "buttonText": "업데이트",
+                                          "buttonUrl": "https://apps.apple.com/..."
+                                        }
+                                        """)
                 )
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))

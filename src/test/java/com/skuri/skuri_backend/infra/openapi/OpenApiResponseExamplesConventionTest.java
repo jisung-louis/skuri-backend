@@ -12,6 +12,13 @@ import com.skuri.skuri_backend.domain.member.controller.MemberController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeAdminController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeCommentController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeController;
+import com.skuri.skuri_backend.domain.support.controller.AppVersionAdminController;
+import com.skuri.skuri_backend.domain.support.controller.CafeteriaMenuAdminController;
+import com.skuri.skuri_backend.domain.support.controller.CafeteriaMenuController;
+import com.skuri.skuri_backend.domain.support.controller.InquiryAdminController;
+import com.skuri.skuri_backend.domain.support.controller.InquiryController;
+import com.skuri.skuri_backend.domain.support.controller.ReportAdminController;
+import com.skuri.skuri_backend.domain.support.controller.ReportController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.JoinRequestController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.PartyController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.PartySseController;
@@ -31,6 +38,7 @@ class OpenApiResponseExamplesConventionTest {
 
     private static final List<Class<?>> TARGET_CONTROLLERS = List.of(
             AppVersionController.class,
+            AppVersionAdminController.class,
             AppNoticeController.class,
             AppNoticeAdminController.class,
             NoticeController.class,
@@ -42,6 +50,12 @@ class OpenApiResponseExamplesConventionTest {
             ChatRoomController.class,
             ChatAdminRoomController.class,
             MemberController.class,
+            InquiryController.class,
+            InquiryAdminController.class,
+            ReportController.class,
+            ReportAdminController.class,
+            CafeteriaMenuController.class,
+            CafeteriaMenuAdminController.class,
             PartyController.class,
             JoinRequestController.class,
             PartySseController.class
