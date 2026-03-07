@@ -8,6 +8,9 @@ import com.skuri.skuri_backend.domain.board.controller.PostController;
 import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
 import com.skuri.skuri_backend.domain.chat.controller.ChatRoomController;
 import com.skuri.skuri_backend.domain.member.controller.MemberController;
+import com.skuri.skuri_backend.domain.notification.controller.FcmTokenController;
+import com.skuri.skuri_backend.domain.notification.controller.NotificationController;
+import com.skuri.skuri_backend.domain.notification.controller.NotificationSseController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeAdminController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeCommentController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeController;
@@ -56,6 +59,9 @@ class OpenApiResponseExamplesConventionTest {
             ReportAdminController.class,
             CafeteriaMenuController.class,
             CafeteriaMenuAdminController.class,
+            NotificationController.class,
+            FcmTokenController.class,
+            NotificationSseController.class,
             PartyController.class,
             JoinRequestController.class,
             PartySseController.class

@@ -233,6 +233,9 @@ class MemberServiceTest {
                         false,
                         true,
                         null,
+                        null,
+                        null,
+                        null,
                         Map.of("news", false, "academy", true, "scholarship", true)
                 )
         );
@@ -245,6 +248,9 @@ class MemberServiceTest {
         assertFalse(response.notificationSetting().commentNotifications());
         assertTrue(response.notificationSetting().bookmarkedPostCommentNotifications());
         assertTrue(response.notificationSetting().systemNotifications());
+        assertTrue(response.notificationSetting().academicScheduleNotifications());
+        assertTrue(response.notificationSetting().academicScheduleDayBeforeEnabled());
+        assertFalse(response.notificationSetting().academicScheduleAllEventsEnabled());
         assertEquals(Map.of("news", false, "academy", true, "scholarship", true), response.notificationSetting().noticeNotificationsDetail());
     }
 
@@ -256,7 +262,19 @@ class MemberServiceTest {
                 MemberNotFoundException.class,
                 () -> memberService.updateMyNotificationSettings(
                         "not-found",
-                        new UpdateMemberNotificationSettingsRequest(null, null, null, null, null, null, null, null)
+                        new UpdateMemberNotificationSettingsRequest(
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                        )
                 )
         );
     }

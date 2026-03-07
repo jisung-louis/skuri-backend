@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.notice.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeSyncResponse;
 import com.skuri.skuri_backend.domain.notice.entity.Notice;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeCategory;
@@ -41,6 +42,9 @@ class NoticeSyncServiceTest {
 
     @Mock
     private NoticeSyncLock noticeSyncLock;
+
+    @Mock
+    private AfterCommitApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private NoticeSyncService noticeSyncService;

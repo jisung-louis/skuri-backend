@@ -321,6 +321,9 @@ class MemberControllerContractTest {
                         true,
                         true,
                         true,
+                        true,
+                        true,
+                        false,
                         Map.of("news", true, "academy", true, "scholarship", false)
                 ),
                 LocalDateTime.now(),
