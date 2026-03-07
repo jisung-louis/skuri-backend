@@ -84,4 +84,15 @@ class InquiryServiceTest {
 
         assertEquals(ErrorCode.INVALID_INQUIRY_STATUS_TRANSITION, exception.getErrorCode());
     }
+
+    @Test
+    void getAdminInquiries_음수페이지_실패() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> inquiryService.getAdminInquiries(null, -1, 20)
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        assertEquals("page는 0 이상이어야 합니다.", exception.getMessage());
+    }
 }

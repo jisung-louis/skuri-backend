@@ -2,7 +2,6 @@ package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeController;
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeAdminController;
-import com.skuri.skuri_backend.domain.app.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.board.controller.CommentController;
 import com.skuri.skuri_backend.domain.board.controller.MemberBoardController;
 import com.skuri.skuri_backend.domain.board.controller.PostController;
@@ -12,6 +11,7 @@ import com.skuri.skuri_backend.domain.member.controller.MemberController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeAdminController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeCommentController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeController;
+import com.skuri.skuri_backend.domain.support.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.support.controller.AppVersionAdminController;
 import com.skuri.skuri_backend.domain.support.controller.CafeteriaMenuAdminController;
 import com.skuri.skuri_backend.domain.support.controller.CafeteriaMenuController;

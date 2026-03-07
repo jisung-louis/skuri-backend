@@ -105,6 +105,21 @@ class ReportAdminControllerContractTest {
     }
 
     @Test
+    void getReports_잘못된페이지파라미터_422() throws Exception {
+        mockToken("admin-token", true);
+        when(reportService.getAdminReports(null, null, 0, 0))
+                .thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "size는 1 이상 100 이하여야 합니다."));
+
+                mockMvc.perform(
+                        get("/v1/admin/reports")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("size", "0")
+                )
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void updateReportStatus_관리자정상요청_200() throws Exception {
         mockToken("admin-token", true);
         when(reportService.updateReportStatus(eq("report-1"), any(UpdateReportStatusRequest.class)))

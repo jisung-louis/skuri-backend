@@ -1,11 +1,11 @@
 package com.skuri.skuri_backend.infra.auth;
 
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeController;
-import com.skuri.skuri_backend.domain.app.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeResponse;
 import com.skuri.skuri_backend.domain.app.entity.AppNoticeCategory;
 import com.skuri.skuri_backend.domain.app.entity.AppNoticePriority;
 import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
+import com.skuri.skuri_backend.domain.support.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.support.controller.AppVersionAdminController;
 import com.skuri.skuri_backend.domain.support.dto.response.AppVersionResponse;
 import com.skuri.skuri_backend.domain.support.service.AppVersionService;

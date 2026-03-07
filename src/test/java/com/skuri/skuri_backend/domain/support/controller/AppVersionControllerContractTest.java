@@ -2,7 +2,6 @@ package com.skuri.skuri_backend.domain.support.controller;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
-import com.skuri.skuri_backend.domain.app.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.support.dto.response.AppVersionResponse;
 import com.skuri.skuri_backend.domain.support.service.AppVersionService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
@@ -71,12 +70,23 @@ class AppVersionControllerContractTest {
     }
 
     @Test
-    void getAppVersion_버전정보없음_404() throws Exception {
+    void getAppVersion_버전정보없을때기본값응답_200() throws Exception {
         when(appVersionService.getAppVersion("ios"))
-                .thenThrow(new BusinessException(ErrorCode.APP_VERSION_NOT_FOUND));
+                .thenReturn(new AppVersionResponse(
+                        "ios",
+                        "1.0.0",
+                        false,
+                        null,
+                        null,
+                        false,
+                        null,
+                        null
+                ));
 
         mockMvc.perform(get("/v1/app-versions/ios"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorCode").value("APP_VERSION_NOT_FOUND"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.minimumVersion").value("1.0.0"))
+                .andExpect(jsonPath("$.data.forceUpdate").value(false))
+                .andExpect(jsonPath("$.data.showButton").value(false));
     }
 }

@@ -105,6 +105,21 @@ class InquiryAdminControllerContractTest {
     }
 
     @Test
+    void getInquiries_잘못된페이지파라미터_422() throws Exception {
+        mockToken("admin-token", true);
+        when(inquiryService.getAdminInquiries(null, -1, 20))
+                .thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "page는 0 이상이어야 합니다."));
+
+                mockMvc.perform(
+                        get("/v1/admin/inquiries")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("page", "-1")
+                )
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void updateInquiryStatus_관리자정상요청_200() throws Exception {
         mockToken("admin-token", true);
         when(inquiryService.updateInquiryStatus(eq("inquiry-1"), any(UpdateInquiryStatusRequest.class)))
