@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-06
+> 최종 수정일: 2026-03-07
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md)
 
 ---
@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영) |
 
 ---
 
@@ -153,7 +153,7 @@ com.skuri.skuri_backend
 | 1 | Firebase 초기화 | `infra/auth/config/FirebaseConfig.java` | Firebase Admin SDK 초기화 (`@Bean FirebaseApp`) |
 | 2 | Token 검증 | `infra/auth/firebase/FirebaseTokenVerifier.java` | `FirebaseAuth.verifyIdToken()` 래핑 |
 | 3 | 인증 필터 | `infra/auth/firebase/FirebaseAuthenticationFilter.java` | `OncePerRequestFilter` — ID Token 추출, 검증, SecurityContext 설정 |
-| 4 | Security 설정 | `infra/auth/config/SecurityConfig.java` | 필터 체인 (`/v1/app-versions/**`, `/v1/app-notices` permitAll, 나머지 인증 필수) |
+| 4 | Security 설정 | `infra/auth/config/SecurityConfig.java` | 필터 체인 (`/v1/app-versions/**`, `/v1/app-notices/**` permitAll, 나머지 인증 필수) |
 | 5 | OpenAPI 설정 | `infra/openapi/OpenApiConfig.java` | 전역 API 메타데이터, Bearer 보안 스키마, GroupedOpenApi 설정 |
 | 6 | Emulator 가드 | `infra/auth/config/FirebaseAuthEnvironmentGuard.java` | `local-emulator` 전용 허용 + emulator host 오염 차단 |
 
@@ -357,7 +357,7 @@ SSE 운영 제약:
 | 익명 처리 | `anonId` = `{postId}:{userId}`, `anonymousOrder` 서버 계산 (글 단위 순번) |
 | 좋아요/북마크 | `PostInteraction` 단일 테이블, 등록/취소 방식 |
 | 카운트 관리 | `viewCount`, `likeCount`, `commentCount`, `bookmarkCount` 동기화 |
-| 댓글 depth 제한 | depth 1(댓글 + 대댓글)까지만 허용, 초과 시 `COMMENT_DEPTH_EXCEEDED` |
+| 댓글 구조 | 무제한 depth 저장 + flat list 조회 응답 (`parentId`, `depth`) |
 | 부모 삭제 정책(B) | 부모 댓글은 placeholder soft delete(`삭제된 댓글입니다`), 자식 댓글은 유지 |
 
 #### 4-3. API
@@ -388,7 +388,7 @@ SSE 운영 제약:
 - [x] 게시글 CRUD + 댓글/상호작용 API 동작
 - [x] 익명 댓글 순번 부여 규칙(`anonId`, `anonymousOrder`) 동작
 - [x] 좋아요/북마크 등록/취소 + 카운트 동기화 동작
-- [x] 댓글 depth 1 제한 및 부모 삭제 정책(B) 동작
+- [x] 무제한 depth 댓글 + flat list 조회 + 부모 삭제 정책(B) 동작
 
 ---
 
@@ -403,39 +403,71 @@ SSE 운영 제약:
 | `Notice` | `notices` | 학교 공지 (크롤링) |
 | `NoticeComment` | `notice_comments` | 공지 댓글 |
 | `NoticeReadStatus` | `notice_read_status` | 읽음 상태 |
+| `NoticeLike` | `notice_likes` | 공지 좋아요 |
 | `AppNotice` | `app_notices` | 앱 운영 공지 |
 
 #### 5-2. 핵심 구현
 
 | 항목 | 설명 |
 |------|------|
-| RSS 크롤러 | `@Scheduled` 평일 8~20시, 10분마다 RSS 피드 파싱 → DB 저장 |
-| contentHash | SHA1 해시로 중복 공지 배제 |
+| RSS 크롤러 | `@Scheduled` 평일 08:00~19:50, 10분마다 RSS 피드 파싱 → DB 저장 |
+| rssFingerprint | 레거시(`title|fullLink|rawDate`) 기준 변경 감지 |
+| contentHash | 링크를 제외한 실제 내용 + 상세 본문/첨부 기반 SHA1 해시로 dedup |
+| detail 재검증 | 신규/메타 변경/`detailHash` 없음/24시간 초과 시 재크롤링 |
 | 공지 ID | `Base64(link).replace(/=+$/, '').slice(0, 120)` — 링크 기반 안정 ID |
+| 저장 구조 | `rssPreview`(RSS 미리보기), `bodyHtml`(원문 HTML), `bodyText`(정규화 text), `summary`(향후 AI 요약 예약) |
 
 #### 5-3. API
 
 | Method | Path | 설명 |
 |--------|------|------|
-| `GET` | `/v1/notices` | 공지 목록 (카테고리/학과 필터) |
-| `GET` | `/v1/notices/{id}` | 공지 상세 (읽음 처리) |
+| `GET` | `/v1/notices` | 공지 목록 (카테고리/검색 필터) |
+| `GET` | `/v1/notices/{id}` | 공지 상세 조회 |
 | `POST` | `/v1/notices/{id}/read` | 읽음 표시 |
+| `POST` | `/v1/notices/{id}/like` | 좋아요 등록 |
+| `DELETE` | `/v1/notices/{id}/like` | 좋아요 취소 |
 | `GET` | `/v1/notices/{noticeId}/comments` | 공지 댓글 목록 |
 | `POST` | `/v1/notices/{noticeId}/comments` | 공지 댓글 작성 |
 | `DELETE` | `/v1/notice-comments/{id}` | 공지 댓글 삭제 |
 | `GET` | `/v1/app-notices` | 앱 공지 목록 (**Public**) |
 | `GET` | `/v1/app-notices/{id}` | 앱 공지 상세 |
 | `POST` | `/v1/admin/app-notices` | 앱 공지 생성 (관리자) |
-| `PUT` | `/v1/admin/app-notices/{appNoticeId}` | 앱 공지 수정 (관리자) |
+| `PATCH` | `/v1/admin/app-notices/{appNoticeId}` | 앱 공지 부분 수정 (관리자) |
 | `DELETE` | `/v1/admin/app-notices/{appNoticeId}` | 앱 공지 삭제 (관리자) |
 | `POST` | `/v1/admin/notices/sync` | 학교 공지 동기화 실행 (관리자) |
 
 #### 5-4. 완료 기준
 
-- [ ] RSS 크롤러가 주기적으로 공지 수집 동작
-- [ ] 중복 공지 필터링 동작
-- [ ] 공지 댓글 + 익명 순번 동작
-- [ ] AppNotice 비인증 조회 동작
+- [x] RSS 크롤러가 주기적으로 공지 수집 동작
+- [x] 중복 공지 필터링 동작
+- [x] 공지 댓글 + 익명 순번 동작
+- [x] AppNotice 비인증 조회 동작
+
+#### 5-5. 공통 Comment 정책 (Board/Notice 공통)
+
+- Comment 도메인은 Board/Notice에 종속된 부가 기능이 아니라 공통 정책을 공유하는 독립 하위 도메인으로 본다.
+- 저장 정책:
+  - `parentId` self-reference를 유지하되 depth 제한은 제거한다.
+  - Board / Notice 모두 무제한 대댓글을 허용한다.
+- 조회 정책:
+  - 댓글 조회 API는 flat list를 반환한다.
+  - 각 댓글은 최소 `id`, `parentId`, `depth`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
+  - 서버는 thread 순서를 보장한 flat list를 반환하고, 클라이언트가 이를 트리처럼 렌더링한다.
+- 삭제 정책:
+  - 부모 삭제 시 placeholder soft delete는 유지한다.
+  - 하위 댓글은 depth와 무관하게 모두 보존한다.
+- 알림 정책:
+  - Board / Notice 공통 댓글 알림 마스터는 `commentNotifications`로 통일한다.
+  - Board 게시글 북마크 기반 댓글 알림은 `bookmarkedPostCommentNotifications`로 분리한다.
+  - 댓글 작성 시 수신 대상이 중복되면 푸시/인앱 인박스는 1회만 생성한다.
+
+#### 5-5. AI / RAG 준비 메모
+
+- `summary` 컬럼은 추후 AI가 생성한 공지 요약 저장용으로 예약한다.
+- `bodyText`는 `bodyHtml`을 정규화한 plain text로 저장하고, 추후 chunking/embedding의 원본으로 사용한다.
+- `contentHash`가 변하면 기존 AI 요약/임베딩은 재생성 대상으로 간주한다.
+- 공지 챗봇(RAG)은 `title`, `category`, `postedAt`, `link`를 citation 메타데이터로 사용한다.
+- `bodyHtml`은 RN 앱의 웹형 렌더링 요구 때문에 유지한다. AI/RAG는 `bodyText`를 기준으로 처리한다.
 
 ---
 
@@ -470,6 +502,17 @@ SSE 운영 제약:
 
 - [ ] 강의 검색 + 시간표 CRUD 동작
 - [ ] 학사 일정 조회 동작
+
+#### 6-4. 학사 일정 알림 정책 (Phase 8 연동 예정)
+
+- 기본 트리거 기준일은 `AcademicSchedule.startDate`로 본다.
+- 기본 발송 시각은 `오전 09:00`이다.
+- 기본 발송 대상은 중요 일정(`isPrimary = true`)이다.
+- 기본 발송 시점은 일정 당일 `오전 09:00`이다.
+- 사용자 옵션으로 다음 정책을 추가 허용한다.
+  - 일정 전날 `오전 09:00` 추가
+  - 중요 일정만이 아니라 모든 일정 대상 확장
+- 실제 FCM/인앱 인박스 발송은 Phase 8 Notification 인프라에서 구현한다.
 
 ---
 
@@ -516,6 +559,7 @@ SSE 운영 제약:
 ### Phase 8: Notification 인프라
 
 > 도메인 이벤트 기반 알림 시스템. FCM + 인앱 인박스.
+> 기본 이관 원칙: 기존 RN + Firebase Cloud Functions 운영 정책을 우선 보존한다. 다만 `allNotifications` 및 도메인 토글 반영이 현행 구현에서 일관되지 않은 항목은 Phase 8 설계에서 명시적으로 정규화한다.
 
 #### 8-1. 구현 범위
 
@@ -543,6 +587,38 @@ SSE 운영 제약:
 | CommentCreatedEvent | COMMENT_CREATED | O | O |
 | NoticeCreatedEvent | NOTICE | O | O |
 | AppNoticeCreatedEvent | APP_NOTICE | O | O |
+| AcademicScheduleReminderEvent | ACADEMIC_SCHEDULE | O | O |
+
+#### 8-2-1. 알림 정책 상세 (현행 운영 정책 기준)
+
+| 알림 타입 | 기본 트리거 | 기본 수신 대상 | 제외/예외 | 설정 반영 | 인앱 인박스 |
+|-----------|-------------|----------------|-----------|-----------|-------------|
+| `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | 생성자 제외 | `partyNotifications` | X |
+| `JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | 토큰 없음 시 푸시 없음 | 현재 개별 토글 미반영 | O |
+| `JOIN_ACCEPTED` / `JOIN_DECLINED` | 동승 요청 상태 변경 | 요청자 | `accepted` / `declined` 외 상태 미발송 | 현재 개별 토글 미반영 | O |
+| `PARTY_CLOSED` | 파티 상태 `open -> closed` | 리더 제외 파티 멤버 | 해당 상태 전이 외 미발송 | 현재 개별 토글 미반영 | X |
+| `PARTY_ARRIVED` | 파티 상태 `* -> arrived` | 리더 제외 파티 멤버 | 해당 상태 전이 외 미발송 | 현재 개별 토글 미반영 | O |
+| `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | 이미 정산 완료 상태였으면 미발송 | 현재 개별 토글 미반영 | O |
+| `MEMBER_KICKED` | 파티 멤버 강퇴 | 강퇴된 멤버 | 자진 이탈(`_selfLeaveMemberId`)과 리더 제외 | 현재 개별 토글 미반영 | O |
+| `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | 리더만 남은 파티는 제외 | 현재 개별 토글 미반영 | O |
+| `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 생성 | 채팅방 멤버(송신자 제외) | 채팅방 mute 대상 제외 | `allNotifications` + 채팅방 mute | X |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 생성 | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외 | 채팅 mute 중심, 전역 토글 반영은 현행 비일관 | X |
+| `POST_LIKED` | 게시글 좋아요 생성 | 게시글 작성자 | 자기 글 좋아요 제외 | `boardLikeNotifications` | O |
+| `COMMENT_CREATED` (게시글) | 게시글 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | 자기 자신 대상 제외, 동일 사용자 중복 수신은 1회로 dedupe | `commentNotifications` + `bookmarkedPostCommentNotifications` | O |
+| `COMMENT_CREATED` (공지) | 공지 댓글/답글 생성 | 공지 작성자 또는 부모 댓글 작성자 | 자기 자신 대상 제외 | `commentNotifications` | O |
+| `NOTICE` | 새 학교 공지 생성 | 공지 허용 사용자 | 카테고리 상세 토글 비활성 사용자 제외 | `allNotifications` + `noticeNotifications` + `noticeNotificationsDetail` | O |
+| `APP_NOTICE` | 앱 공지 생성 | 일반: 시스템 알림 허용 사용자 / 긴급: 전체 사용자 | `urgent`는 설정 무시 강제 발송 | 일반: `allNotifications` + `systemNotifications` / 긴급: 설정 무시 | O |
+| `ACADEMIC_SCHEDULE` | 학사 일정 리마인더 시각 도달 | 학사 일정 알림 허용 사용자 | 기본은 중요 일정만 대상 | `allNotifications` + `academicScheduleNotifications` | O |
+
+#### 8-2-2. 학사 일정 알림 사용자 옵션 (계획)
+
+- `academicScheduleNotifications`: 학사 일정 알림 마스터 토글
+- `academicScheduleDayBeforeEnabled`: 전날 오전 09:00 추가 여부
+- `academicScheduleAllEventsEnabled`: 중요 일정만이 아니라 모든 일정 대상으로 확장할지 여부
+- 기본값:
+  - `academicScheduleNotifications = true`
+  - `academicScheduleDayBeforeEnabled = true`
+  - `academicScheduleAllEventsEnabled = false`
 
 #### 8-3. API
 
@@ -563,6 +639,8 @@ SSE 운영 제약:
 - [ ] FCM 푸시 발송 동작
 - [ ] 알림 인박스 CRUD 동작
 - [ ] 알림 설정 반영 (mute, 카테고리별 on/off)
+- [ ] 학사 일정 리마인더 정책 반영 (기본: 중요 일정 당일 09:00, 옵션: 전날 추가 / 모든 일정)
+- [ ] 기존 Cloud Functions 운영 정책과의 parity 검증 (수신 대상, 예외 조건, 인앱 생성 여부)
 - [ ] `/v1/sse/notifications`로 인앱 실시간 알림/미읽음 수 반영 동작
 
 ---
@@ -718,3 +796,4 @@ Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 > - 2026-03-05: Admin 권한 정책 구현 반영 — `ROLE_ADMIN + @PreAuthorize`, `ADMIN_REQUIRED` 표준화, Chat Admin API(`POST/DELETE /v1/admin/chat-rooms`) 완료 기준 반영
 > - 2026-03-05: Phase 4(Board) 구현 반영 — 댓글 depth 1 제한, 부모 삭제 정책(B: placeholder soft delete), `/v1/members/me/posts|bookmarks` API 및 카운트 동기화 전략 문서화
 > - 2026-03-06: README/로드맵 현재 상태를 Phase 4 완료 기준으로 동기화하고, Board API 경로 변수명을 코드 기준(`postId/commentId`)으로 정렬
+> - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리(`commentNotifications`, `bookmarkedPostCommentNotifications`)
