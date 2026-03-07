@@ -45,10 +45,19 @@ public class OpenApiConfig {
     }
 
     @Bean
-    public GroupedOpenApi appApi() {
+    public GroupedOpenApi supportApi() {
         return GroupedOpenApi.builder()
-                .group("app")
-                .pathsToMatch("/v1/app-versions/**")
+                .group("support")
+                .pathsToMatch(
+                        "/v1/app-versions/**",
+                        "/v1/inquiries/**",
+                        "/v1/reports/**",
+                        "/v1/cafeteria-menus/**",
+                        "/v1/admin/inquiries/**",
+                        "/v1/admin/reports/**",
+                        "/v1/admin/app-versions/**",
+                        "/v1/admin/cafeteria-menus/**"
+                )
                 .build();
     }
 

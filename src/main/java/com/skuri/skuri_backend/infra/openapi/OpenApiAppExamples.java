@@ -5,18 +5,6 @@ public final class OpenApiAppExamples {
     private OpenApiAppExamples() {
     }
 
-    public static final String SUCCESS_APP_VERSION = """
-            {
-              "success": true,
-              "data": {
-                "platform": "ios",
-                "minVersion": "1.4.0",
-                "latestVersion": "1.6.1",
-                "forceUpdate": false
-              }
-            }
-            """;
-
     public static final String SUCCESS_APP_NOTICES = """
             {
               "success": true,
