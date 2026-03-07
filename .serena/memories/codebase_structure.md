@@ -57,6 +57,13 @@
 - **Controller**: AppNoticeController, AppNoticeAdminController, AppVersionController
 - **관리 정책**: AppNotice 관리자 수정은 `PATCH /v1/admin/app-notices/{appNoticeId}` partial update 계약 사용
 
+### Support
+- **Entity**: Inquiry, Report, AppVersion, CafeteriaMenu
+- **Service**: InquiryService, ReportService, AppVersionService, CafeteriaMenuService
+- **Controller**: InquiryController, ReportController, CafeteriaMenuController, InquiryAdminController, ReportAdminController, AppVersionAdminController, CafeteriaMenuAdminController
+- **운영 정책**: `GET /v1/app-versions/{platform}`는 공개 API이고, Support Admin API는 모두 `ROLE_ADMIN` + `403 ADMIN_REQUIRED` 정책을 따른다.
+- **enum 기준**: Report는 `targetType=POST|COMMENT|MEMBER`, `status=PENDING|REVIEWING|ACTIONED|REJECTED`를 사용한다.
+
 ## 인증 흐름
 1. Firebase ID Token → FirebaseAuthenticationFilter
 2. Token 검증 → FirebaseTokenVerifier (prod) / DisabledFirebaseTokenVerifier (test)
