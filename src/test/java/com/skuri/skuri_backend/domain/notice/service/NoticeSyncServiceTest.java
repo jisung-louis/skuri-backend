@@ -67,7 +67,7 @@ class NoticeSyncServiceTest {
 
         when(noticeRepository.findById("new-id")).thenReturn(Optional.empty());
         when(noticeRepository.findFirstByContentHash(contentHash)).thenReturn(Optional.of(existing));
-        when(noticeDetailCrawler.crawl(item.link())).thenReturn(new NoticeCrawledDetail("<p>동일 상세</p>", "동일 상세", List.of()));
+        when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.of("<p>동일 상세</p>", "동일 상세", List.of()));
 
         NoticeSyncService.SyncOutcome outcome = noticeSyncService.syncSingleNotice(item, LocalDateTime.now(), true);
 
@@ -85,7 +85,7 @@ class NoticeSyncServiceTest {
             NoticeCategory category = invocation.getArgument(0);
             return category == NoticeCategory.ACADEMIC ? List.of(item) : List.of();
         });
-        when(noticeDetailCrawler.crawl(item.link())).thenReturn(new NoticeCrawledDetail("<p>상세</p>", "상세", List.of()));
+        when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.of("<p>상세</p>", "상세", List.of()));
         when(noticeRepository.findById("notice-1")).thenAnswer(invocation -> Optional.ofNullable(stored.get()));
         when(noticeRepository.findFirstByContentHash(any())).thenAnswer(invocation -> {
             Notice current = stored.get();
@@ -127,7 +127,7 @@ class NoticeSyncServiceTest {
         ReflectionTestUtils.setField(existing, "detailCheckedAt", syncedAt.minusDays(2));
 
         when(noticeRepository.findById("notice-1")).thenReturn(Optional.of(existing));
-        when(noticeDetailCrawler.crawl(item.link())).thenReturn(new NoticeCrawledDetail("<p>new</p>", "new", List.of()));
+        when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.of("<p>new</p>", "new", List.of()));
         when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         NoticeSyncService.SyncOutcome outcome = noticeSyncService.syncSingleNotice(item, syncedAt, false);
@@ -136,6 +136,26 @@ class NoticeSyncServiceTest {
         assertNotEquals("old-content-hash", existing.getContentHash());
         assertEquals("new", existing.getBodyText());
         assertEquals("<p>new</p>", existing.getBodyHtml());
+    }
+
+    @Test
+    void syncSingleNotice_상세크롤링실패시_기존상세를보존한다() {
+        Notice existing = storedNotice("notice-1", "old-content-hash", "rss-1", "detail-old", "<p>old</p>");
+        NoticeFeedItem item = noticeFeedItem("notice-1", "rss-2");
+        LocalDateTime originalCheckedAt = existing.getDetailCheckedAt();
+        String originalDetailHash = existing.getDetailHash();
+
+        when(noticeRepository.findById("notice-1")).thenReturn(Optional.of(existing));
+        when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.failed());
+        when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        NoticeSyncService.SyncOutcome outcome = noticeSyncService.syncSingleNotice(item, LocalDateTime.of(2026, 3, 6, 12, 0), true);
+
+        assertEquals(NoticeSyncService.SyncOutcome.UPDATED, outcome);
+        assertEquals("상세 텍스트", existing.getBodyText());
+        assertEquals("<p>old</p>", existing.getBodyHtml());
+        assertEquals(originalDetailHash, existing.getDetailHash());
+        assertEquals(originalCheckedAt, existing.getDetailCheckedAt());
     }
 
     @Test
@@ -175,7 +195,7 @@ class NoticeSyncServiceTest {
         when(noticeRepository.findById("notice-failed")).thenReturn(Optional.empty());
         when(noticeRepository.findById("notice-success")).thenReturn(Optional.empty());
         when(noticeRepository.findFirstByContentHash(any())).thenReturn(Optional.empty());
-        when(noticeDetailCrawler.crawl(any())).thenReturn(new NoticeCrawledDetail("<p>상세</p>", "상세", List.of()));
+        when(noticeDetailCrawler.crawl(any())).thenReturn(NoticeCrawledDetail.of("<p>상세</p>", "상세", List.of()));
         when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> {
             Notice notice = invocation.getArgument(0);
             if ("notice-failed".equals(notice.getId())) {
