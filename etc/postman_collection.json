@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "e13e4470-32ef-4f85-9887-e1e5cc6a0a02",
     "name": "SKURI Backend API",
-    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`, `03. Chat > 00. Core`, `04. Board > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`, `04. Board > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`, `04. Board > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n- **Chat Regression**: `03. Chat > 00. Core`, `03. Chat > 10. Scenario Regression`, `03. Chat > 20. Contract Guard`, `03. Chat > 30. Realtime`\n- **Board Regression**: `04. Board > 00. Core`, `04. Board > 10. Scenario Regression`, `04. Board > 20. Contract Guard`\n- **Notice Regression**: `05. Notice > 00. Core`, `05. Notice > 10. Scenario Regression`, `05. Notice > 20. Contract Guard`\n- **Academic Regression**: `06. Academic > 00. Core`, `06. Academic > 10. Scenario Regression`, `06. Academic > 20. Contract Guard`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n- Academic: `academicCore*`, `academicScenario*`, `academicGuard*`\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`\n7. `03. Chat > 00. Core`\n8. `03. Chat > 10. Scenario Regression`\n9. `03. Chat > 20. Contract Guard`\n10. `03. Chat > 30. Realtime`\n11. `04. Board > 00. Core`\n12. `04. Board > 10. Scenario Regression`\n13. `04. Board > 20. Contract Guard`\n14. `05. Notice > 00. Core`\n15. `05. Notice > 10. Scenario Regression`\n16. `05. Notice > 20. Contract Guard`\n17. `06. Academic > 00. Core`\n18. `06. Academic > 10. Scenario Regression`\n19. `06. Academic > 20. Contract Guard`",
+    "description": "## 컬렉션 개요\n- SKURI 루트 Postman 컬렉션입니다.\n- Phase가 추가될 때 동일 파일에서 누적 갱신합니다.\n\n## 지원 범위\n- 구현 완료된 Phase API만 포함\n- 미구현/로드맵 예정 API는 제외\n\n## 실행 모드\n- **Smoke**: `00. Public & Common`\n- **Core Regression**: `01. Member > 00. Core`, `02. TaxiParty > 00. Core`, `03. Chat > 00. Core`, `04. Board > 00. Core`\n- **Scenario Regression**: `02. TaxiParty > 10. Scenario Regression`, `04. Board > 10. Scenario Regression`\n- **Contract Guard**: `01. Member > 20. Contract Guard`, `02. TaxiParty > 20. Contract Guard`, `04. Board > 20. Contract Guard`\n- **Realtime**: `02. TaxiParty > 30. Realtime`\n\n- **Chat Regression**: `03. Chat > 00. Core`, `03. Chat > 10. Scenario Regression`, `03. Chat > 20. Contract Guard`, `03. Chat > 30. Realtime`\n- **Board Regression**: `04. Board > 00. Core`, `04. Board > 10. Scenario Regression`, `04. Board > 20. Contract Guard`\n- **Notice Regression**: `05. Notice > 00. Core`, `05. Notice > 10. Scenario Regression`, `05. Notice > 20. Contract Guard`\n- **Academic Regression**: `06. Academic > 00. Core`, `06. Academic > 10. Scenario Regression`, `06. Academic > 20. Contract Guard`\n- **Support Regression**: `07. Support > 00. Core`, `07. Support > 10. Scenario Regression`, `07. Support > 20. Contract Guard`\n\n## 변수 규약\n- 토큰: `leaderToken`, `member1Token`, `member2Token`, `invalidDomainToken`\n- 식별자: 도메인 prefix를 유지하고 요청 Tests에서 자동 저장\n- Academic: `academicCore*`, `academicScenario*`, `academicGuard*`\n- Support: `supportCore*`, `supportScenario*`, `supportGuard*`\n\n## 공통 실패 해석\n- `401`: 인증 누락/만료\n- `403`: 권한 위반 또는 요청 주체 불일치\n- `409`: 상태머신/동시성 충돌\n- `422`: 입력값 검증 실패\n\n## 권장 실행 순서\n1. `00. Public & Common`\n2. `01. Member`\n3. `02. TaxiParty > 00. Core`\n4. `02. TaxiParty > 10. Scenario Regression`\n5. `02. TaxiParty > 20. Contract Guard`\n6. `02. TaxiParty > 30. Realtime`\n7. `03. Chat > 00. Core`\n8. `03. Chat > 10. Scenario Regression`\n9. `03. Chat > 20. Contract Guard`\n10. `03. Chat > 30. Realtime`\n11. `04. Board > 00. Core`\n12. `04. Board > 10. Scenario Regression`\n13. `04. Board > 20. Contract Guard`\n14. `05. Notice > 00. Core`\n15. `05. Notice > 10. Scenario Regression`\n16. `05. Notice > 20. Contract Guard`\n17. `06. Academic > 00. Core`\n18. `06. Academic > 10. Scenario Regression`\n19. `06. Academic > 20. Contract Guard`\n20. `07. Support > 00. Core`\n21. `07. Support > 10. Scenario Regression`\n22. `07. Support > 20. Contract Guard`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -18,7 +18,7 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/v1/app-versions/ios",
-            "description": "## 기능\n- 앱 버전 조회\n\n## 테스트 모드\n- Smoke\n\n## 선행조건\n- 추가 선행 변수 없음\n- Auth: 없음 (공개 API)\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/app-versions/ios`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 만료/누락 시 `401 UNAUTHORIZED`\n- 권한 불충분 시 `403 FORBIDDEN` 또는 도메인 권한 코드\n- 상태머신/동시성 위반 시 `409` 계열 코드 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/app/controller/AppVersionController.java (getAppVersion)\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (requestMatchers permitAll)"
+            "description": "## 기능\n    - 로그인 전 앱 버전 메타데이터를 조회합니다. 저장된 데이터가 없으면 기본 1.0.0 응답을 확인합니다.\n\n    ## 테스트 모드\n    - Smoke\n\n    ## 선행조건\n    - 추가 선행 변수 없음\n- Auth: 없음 (Public API)\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/app-versions/ios`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 응답이 400이면 platform 값이 `ios`인지 확인\n- 저장 데이터가 없으면 `minimumVersion=1.0.0` 기본 응답이 내려오는지 확인\n- 공개 경로인데 401/403이 나오면 SecurityConfig permitAll 설정을 확인\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionController.java (getAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (getAppVersion)\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
           },
           "event": [
             {
@@ -6403,6 +6403,1827 @@
           ]
         }
       ]
+    },
+    {
+      "name": "07. Support",
+      "description": "## 목적\n- Phase 7 Support 도메인의 문의/신고/앱 버전/학식 메뉴 API를 검증합니다.\n\n## 실행 전\n- `01. Member > 00. Core` 실행 후 `leaderToken`, `member1Token`, `member2Token`, `adminToken`, `leaderId`, `member1Id`, `member2Id` 확보\n- 신고 생성 요청은 전 상태 중복 금지 정책 때문에 동일 신고자/대상 조합을 재사용하면 `409 REPORT_ALREADY_SUBMITTED`\n- 학식 메뉴는 예약 주차(`2099-W08`, `2099-W09`, `2099-W10`)를 사용하고 Core/Guard에서 삭제로 정리\n\n## 하위 폴더\n- `00. Core`\n- `10. Scenario Regression`\n- `20. Contract Guard`",
+      "item": [
+        {
+          "name": "00. Core",
+          "item": [
+            {
+              "name": "기본 앱 버전 조회",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/app-versions/ios",
+                "description": "## 기능\n    - 로그인 전 iOS 앱 버전을 조회해 기본값 또는 현재 저장값을 확인합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - 추가 선행 변수 없음\n- Auth: 없음 (Public API)\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/app-versions/ios`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportObservedIosMinimumVersion 저장\n\n    ## 실패 시 확인\n    - 신규 환경이면 `minimumVersion=1.0.0` 기본 응답일 수 있습니다.\n- 기존 관리 데이터가 있으면 가장 최근 저장값이 반환됩니다.\n- 공개 API인데 401/403이면 SecurityConfig permitAll 설정을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionController.java (getAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (getAppVersion)\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "if (data.minimumVersion) pm.collectionVariables.set('supportObservedIosMinimumVersion', data.minimumVersion);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "앱 버전 업데이트(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/admin/app-versions/ios",
+                "description": "## 기능\n    - 관리자가 iOS 최소 버전과 강제 업데이트 메시지를 저장합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/admin/app-versions/ios`\n    - Body:\n```json\n{\n  \"minimumVersion\": \"1.6.0\",\n  \"forceUpdate\": true,\n  \"title\": \"필수 업데이트 안내\",\n  \"message\": \"안정성 개선을 위한 필수 업데이트입니다.\",\n  \"showButton\": true,\n  \"buttonText\": \"업데이트\",\n  \"buttonUrl\": \"https://apps.apple.com/app/id000000000\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportObservedIosMinimumVersion 저장\n\n    ## 실패 시 확인\n    - 관리자 권한이 없으면 `403 ADMIN_REQUIRED`\n- showButton=true인데 buttonText/buttonUrl 누락 시 `422 VALIDATION_ERROR`\n- platform이 `ios`/`android` 외 값이면 `400 INVALID_REQUEST`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionAdminController.java (upsertAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (upsertAppVersion)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/UpsertAppVersionRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"minimumVersion\": \"1.6.0\",\n  \"forceUpdate\": true,\n  \"title\": \"필수 업데이트 안내\",\n  \"message\": \"안정성 개선을 위한 필수 업데이트입니다.\",\n  \"showButton\": true,\n  \"buttonText\": \"업데이트\",\n  \"buttonUrl\": \"https://apps.apple.com/app/id000000000\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('minimumVersion=1.6.0 검증', function () { pm.expect(data.minimumVersion).to.eql('1.6.0'); });",
+                      "if (data.minimumVersion) pm.collectionVariables.set('supportObservedIosMinimumVersion', data.minimumVersion);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "앱 버전 재조회",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/app-versions/ios",
+                "description": "## 기능\n    - 관리자 저장 이후 iOS 앱 버전 공개 응답이 반영됐는지 확인합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `앱 버전 업데이트(관리자)` 선행\n- Auth: 없음 (Public API)\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/app-versions/ios`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportObservedIosMinimumVersion 저장\n\n    ## 실패 시 확인\n    - minimumVersion이 갱신되지 않으면 직전 관리자 저장 요청 응답을 확인합니다.\n- forceUpdate/showButton/buttonUrl 값이 기대와 다르면 AppVersionService 매핑을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionController.java (getAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (getAppVersion)\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('minimumVersion=1.6.0 검증', function () { pm.expect(data.minimumVersion).to.eql('1.6.0'); });",
+                      "pm.test('forceUpdate=true 검증', function () { pm.expect(((pm.response.json() || {}).data || {}).forceUpdate).to.eql(true); });",
+                      "pm.test('showButton=true 검증', function () { pm.expect(((pm.response.json() || {}).data || {}).showButton).to.eql(true); });",
+                      "if (data.minimumVersion) pm.collectionVariables.set('supportObservedIosMinimumVersion', data.minimumVersion);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "문의 접수(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/inquiries",
+                "description": "## 기능\n    - 일반 사용자가 BUG 문의를 접수합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token` 확보\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/inquiries`\n    - Body:\n```json\n{\n  \"type\": \"BUG\",\n  \"subject\": \"Phase 7 문의 접수 확인\",\n  \"content\": \"문의 접수와 내 문의 목록 동작을 확인합니다.\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportCoreInquiryId, supportCoreInquiryStatus 저장\n\n    ## 실패 시 확인\n    - type/subject/content 누락 시 `422 VALIDATION_ERROR`\n- 인증 누락 시 `401 UNAUTHORIZED`\n- 이메일 도메인이 다르면 `403 EMAIL_DOMAIN_RESTRICTED`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryController.java (createInquiry/getMyInquiries)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (createInquiry/getMyInquiries)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"BUG\",\n  \"subject\": \"Phase 7 문의 접수 확인\",\n  \"content\": \"문의 접수와 내 문의 목록 동작을 확인합니다.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=PENDING 검증', function () { pm.expect(data.status).to.eql('PENDING'); });",
+                      "if (data.id) pm.collectionVariables.set('supportCoreInquiryId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportCoreInquiryStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 문의 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/inquiries/my",
+                "description": "## 기능\n    - 방금 생성한 문의가 내 문의 목록에 포함되는지 확인합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `문의 접수(201)` 선행\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/inquiries/my`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 목록에 생성한 문의가 없으면 `supportCoreInquiryId` 저장 여부를 먼저 확인합니다.\n- 다른 사용자 토큰을 쓰면 목록이 달라질 수 있습니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryController.java (createInquiry/getMyInquiries)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (createInquiry/getMyInquiries)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const items = ((j || {}).data) || [];",
+                      "const targetId = pm.collectionVariables.get('supportCoreInquiryId');",
+                      "pm.test('방금 생성한 문의가 목록에 포함됨', function () { pm.expect(items.some(function (item) { return item.id === targetId; })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "신고 접수(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/reports",
+                "description": "## 기능\n    - member1이 member2를 대상으로 신고를 접수합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token`, `member2Id` 확보\n- Auth 토큰: `{{member1Token}}`\n- 같은 신고자/대상 조합은 전 상태에서 재사용할 수 없습니다.\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/reports`\n    - Body:\n```json\n{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{member2Id}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"수동 검증용 신고 생성입니다.\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportCoreReportId, supportCoreReportStatus 저장\n\n    ## 실패 시 확인\n    - 같은 신고자/대상 조합을 재실행하면 `409 REPORT_ALREADY_SUBMITTED`\n- 자기 자신을 대상으로 하면 `400 CANNOT_REPORT_YOURSELF`\n- 대상이 없으면 `404 MEMBER_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportController.java (createReport)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (createReport)\n- Entity/제약: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{member2Id}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"수동 검증용 신고 생성입니다.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=PENDING 검증', function () { pm.expect(data.status).to.eql('PENDING'); });",
+                      "if (data.id) pm.collectionVariables.set('supportCoreReportId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportCoreReportStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "문의 전체 목록 조회(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/admin/inquiries?status=PENDING&page=0&size=20",
+                "description": "## 기능\n    - 관리자가 PENDING 문의 목록에서 방금 생성한 문의를 조회합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `문의 접수(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/admin/inquiries?status=PENDING&page=0&size=20`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 관리자 토큰이 아니면 `403 ADMIN_REQUIRED`\n- page/size 범위가 잘못되면 `422 VALIDATION_ERROR`\n- status가 enum 범위를 벗어나면 `400 INVALID_REQUEST`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryAdminController.java (getInquiries/updateInquiryStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (getAdminInquiries/updateInquiryStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java (updateStatus)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const items = ((((j || {}).data) || {}).content) || [];",
+                      "const targetId = pm.collectionVariables.get('supportCoreInquiryId');",
+                      "pm.test('방금 생성한 문의가 관리자 목록에 포함됨', function () { pm.expect(items.some(function (item) { return item.id === targetId; })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "문의 상태 처리",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/inquiries/{{supportCoreInquiryId}}/status",
+                "description": "## 기능\n    - 관리자가 Core 문의 상태를 IN_PROGRESS로 변경합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `문의 접수(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/inquiries/{{supportCoreInquiryId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"IN_PROGRESS\",\n  \"memo\": \"Core 문의 확인 중\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportCoreInquiryStatus 저장\n\n    ## 실패 시 확인\n    - 존재하지 않는 문의면 `404 INQUIRY_NOT_FOUND`\n- 허용되지 않는 상태 전이면 `409 INVALID_INQUIRY_STATUS_TRANSITION`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryAdminController.java (getInquiries/updateInquiryStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (getAdminInquiries/updateInquiryStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java (updateStatus)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"memo\": \"Core 문의 확인 중\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=IN_PROGRESS 검증', function () { pm.expect(data.status).to.eql('IN_PROGRESS'); });",
+                      "if (data.id) pm.collectionVariables.set('supportCoreInquiryId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportCoreInquiryStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "신고 전체 목록 조회(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/admin/reports?status=PENDING&targetType=MEMBER&page=0&size=20",
+                "description": "## 기능\n    - 관리자가 PENDING MEMBER 신고 목록에서 방금 생성한 신고를 조회합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `신고 접수(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/admin/reports?status=PENDING&targetType=MEMBER&page=0&size=20`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 관리자 토큰이 아니면 `403 ADMIN_REQUIRED`\n- page/size 범위가 잘못되면 `422 VALIDATION_ERROR`\n- status/targetType이 enum 범위를 벗어나면 `400 INVALID_REQUEST`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const items = ((((j || {}).data) || {}).content) || [];",
+                      "const targetId = pm.collectionVariables.get('supportCoreReportId');",
+                      "pm.test('방금 생성한 신고가 관리자 목록에 포함됨', function () { pm.expect(items.some(function (item) { return item.id === targetId; })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "신고 상태 처리",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/reports/{{supportCoreReportId}}/status",
+                "description": "## 기능\n    - 관리자가 Core 신고 상태를 REVIEWING으로 변경합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `신고 접수(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/reports/{{supportCoreReportId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"REVIEWING\",\n  \"action\": \"REVIEW_STARTED\",\n  \"memo\": \"Core 신고 검토 시작\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportCoreReportStatus 저장\n\n    ## 실패 시 확인\n    - 존재하지 않는 신고면 `404 REPORT_NOT_FOUND`\n- 허용되지 않는 상태 전이면 `409 INVALID_REPORT_STATUS_TRANSITION`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"REVIEWING\",\n  \"action\": \"REVIEW_STARTED\",\n  \"memo\": \"Core 신고 검토 시작\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=REVIEWING 검증', function () { pm.expect(data.status).to.eql('REVIEWING'); });",
+                      "if (data.id) pm.collectionVariables.set('supportCoreReportId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportCoreReportStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학식 메뉴 등록(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus",
+                "description": "## 기능\n    - 관리자가 Core 주차 학식 메뉴를 등록합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus`\n    - Body:\n```json\n{\n  \"weekId\": \"{{supportCoreWeekId}}\",\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menus\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\",\n        \"김밥\"\n      ],\n      \"theBab\": [\n        \"돈까스\",\n        \"된장찌개\"\n      ]\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportCoreWeekId 저장\n\n    ## 실패 시 확인\n    - 이미 등록된 주차면 `409 CAFETERIA_MENU_ALREADY_EXISTS`\n- weekId와 weekStart가 맞지 않으면 `400 INVALID_REQUEST`\n- menus가 비어 있으면 `422 VALIDATION_ERROR`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weekId\": \"{{supportCoreWeekId}}\",\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menus\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\",\n        \"김밥\"\n      ],\n      \"theBab\": [\n        \"돈까스\",\n        \"된장찌개\"\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('weekId={{supportCoreWeekId}} 검증', function () { pm.expect(data.weekId).to.eql('{{supportCoreWeekId}}'); });",
+                      "if (data.weekId) pm.collectionVariables.set('supportCoreWeekId', data.weekId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "이번 주 학식 메뉴 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}",
+                "description": "## 기능\n    - 특정 날짜 기준으로 Core 주차 학식 메뉴를 조회합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportCoreWeekId 저장\n\n    ## 실패 시 확인\n    - date를 생략하면 서버가 Asia/Seoul 기준 오늘을 사용합니다.\n- 등록된 메뉴가 없으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "if (data.weekId) pm.collectionVariables.set('supportCoreWeekId', data.weekId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "특정 주차 학식 메뉴 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/cafeteria-menus/{{supportCoreWeekId}}",
+                "description": "## 기능\n    - weekId로 Core 학식 메뉴를 조회합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus/{{supportCoreWeekId}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - weekId 형식이 잘못되면 `400 INVALID_REQUEST`\n- 메뉴가 없으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "if (data.weekId) pm.collectionVariables.set('supportCoreWeekId', data.weekId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학식 메뉴 수정(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus/{{supportCoreWeekId}}",
+                "description": "## 기능\n    - 관리자가 Core 학식 메뉴를 전체 수정합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus/{{supportCoreWeekId}}`\n    - Body:\n```json\n{\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menus\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\",\n        \"라면\"\n      ],\n      \"theBab\": [\n        \"제육볶음\",\n        \"된장찌개\"\n      ],\n      \"fryRice\": [\n        \"볶음밥\"\n      ]\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 존재하지 않는 주차면 `404 CAFETERIA_MENU_NOT_FOUND`\n- weekStart/weekEnd/mus 형식 오류면 `422 VALIDATION_ERROR` 또는 `400 INVALID_REQUEST`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menus\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\",\n        \"라면\"\n      ],\n      \"theBab\": [\n        \"제육볶음\",\n        \"된장찌개\"\n      ],\n      \"fryRice\": [\n        \"볶음밥\"\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "if (data.weekId) pm.collectionVariables.set('supportCoreWeekId', data.weekId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학식 메뉴 삭제(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus/{{supportCoreWeekId}}",
+                "description": "## 기능\n    - 관리자가 Core 학식 메뉴를 삭제합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `DELETE`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus/{{supportCoreWeekId}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 존재하지 않는 주차면 `404 CAFETERIA_MENU_NOT_FOUND`\n- weekId 형식이 잘못되면 `400 INVALID_REQUEST`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Scenario Regression",
+          "item": [
+            {
+              "name": "Scenario 앱 버전 업데이트(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/admin/app-versions/android",
+                "description": "## 기능\n    - 관리자가 Android 버전을 비강제 업데이트 케이스로 저장합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/admin/app-versions/android`\n    - Body:\n```json\n{\n  \"minimumVersion\": \"2.0.0\",\n  \"forceUpdate\": false,\n  \"title\": \"선택 업데이트 안내\",\n  \"message\": \"새 기능을 사용할 수 있습니다.\",\n  \"showButton\": false,\n  \"buttonText\": null,\n  \"buttonUrl\": null\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportObservedAndroidMinimumVersion 저장\n\n    ## 실패 시 확인\n    - showButton=false이면 buttonText/buttonUrl은 null이어야 합니다.\n- 권한이 없으면 `403 ADMIN_REQUIRED`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionAdminController.java (upsertAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (upsertAppVersion)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/UpsertAppVersionRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"minimumVersion\": \"2.0.0\",\n  \"forceUpdate\": false,\n  \"title\": \"선택 업데이트 안내\",\n  \"message\": \"새 기능을 사용할 수 있습니다.\",\n  \"showButton\": false,\n  \"buttonText\": null,\n  \"buttonUrl\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('minimumVersion=2.0.0 검증', function () { pm.expect(data.minimumVersion).to.eql('2.0.0'); });",
+                      "if (data.minimumVersion) pm.collectionVariables.set('supportObservedAndroidMinimumVersion', data.minimumVersion);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 앱 버전 재조회",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/app-versions/android",
+                "description": "## 기능\n    - Android 공개 앱 버전 응답에 비강제 업데이트 설정이 반영됐는지 확인합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `Scenario 앱 버전 업데이트(관리자)` 선행\n- Auth: 없음 (Public API)\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/app-versions/android`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportObservedAndroidMinimumVersion 저장\n\n    ## 실패 시 확인\n    - showButton=false인데 버튼 필드가 내려오면 AppVersionService 매핑을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionController.java (getAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (getAppVersion)\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('minimumVersion=2.0.0 검증', function () { pm.expect(data.minimumVersion).to.eql('2.0.0'); });",
+                      "pm.test('forceUpdate=false 검증', function () { pm.expect(((pm.response.json() || {}).data || {}).forceUpdate).to.eql(false); });",
+                      "pm.test('showButton=false 검증', function () { pm.expect(((pm.response.json() || {}).data || {}).showButton).to.eql(false); });",
+                      "if (data.minimumVersion) pm.collectionVariables.set('supportObservedAndroidMinimumVersion', data.minimumVersion);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 문의 접수(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/inquiries",
+                "description": "## 기능\n    - member2가 추가 문의를 접수해 상태 전이 시나리오를 준비합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member2Token` 확보\n- Auth 토큰: `{{member2Token}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/inquiries`\n    - Body:\n```json\n{\n  \"type\": \"FEATURE\",\n  \"subject\": \"Support 시나리오 문의\",\n  \"content\": \"IN_PROGRESS -> RESOLVED 흐름을 검증합니다.\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportScenarioInquiryId, supportScenarioInquiryStatus 저장\n\n    ## 실패 시 확인\n    - 검증 실패 시 `422 VALIDATION_ERROR`\n- 이메일 도메인이 다르면 `403 EMAIL_DOMAIN_RESTRICTED`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryController.java (createInquiry/getMyInquiries)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (createInquiry/getMyInquiries)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"FEATURE\",\n  \"subject\": \"Support 시나리오 문의\",\n  \"content\": \"IN_PROGRESS -> RESOLVED 흐름을 검증합니다.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=PENDING 검증', function () { pm.expect(data.status).to.eql('PENDING'); });",
+                      "if (data.id) pm.collectionVariables.set('supportScenarioInquiryId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportScenarioInquiryStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 문의 상태 처리(IN_PROGRESS)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/inquiries/{{supportScenarioInquiryId}}/status",
+                "description": "## 기능\n    - 관리자가 Scenario 문의를 IN_PROGRESS로 변경합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `Scenario 문의 접수(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/inquiries/{{supportScenarioInquiryId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"IN_PROGRESS\",\n  \"memo\": \"Scenario 문의 검토 시작\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportScenarioInquiryStatus 저장\n\n    ## 실패 시 확인\n    - 문의 ID가 비어 있으면 이전 요청이 실패한 것입니다.\n- 허용되지 않는 상태 전이는 `409 INVALID_INQUIRY_STATUS_TRANSITION`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryAdminController.java (getInquiries/updateInquiryStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (getAdminInquiries/updateInquiryStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java (updateStatus)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"memo\": \"Scenario 문의 검토 시작\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=IN_PROGRESS 검증', function () { pm.expect(data.status).to.eql('IN_PROGRESS'); });",
+                      "if (data.id) pm.collectionVariables.set('supportScenarioInquiryId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportScenarioInquiryStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 문의 상태 처리(RESOLVED)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/inquiries/{{supportScenarioInquiryId}}/status",
+                "description": "## 기능\n    - 관리자가 Scenario 문의를 RESOLVED로 완료 처리합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `Scenario 문의 상태 처리(IN_PROGRESS)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/inquiries/{{supportScenarioInquiryId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"RESOLVED\",\n  \"memo\": \"Scenario 문의 처리 완료\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportScenarioInquiryStatus 저장\n\n    ## 실패 시 확인\n    - 상태 전이가 잘못되면 `409 INVALID_INQUIRY_STATUS_TRANSITION`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryAdminController.java (getInquiries/updateInquiryStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (getAdminInquiries/updateInquiryStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java (updateStatus)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"RESOLVED\",\n  \"memo\": \"Scenario 문의 처리 완료\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=RESOLVED 검증', function () { pm.expect(data.status).to.eql('RESOLVED'); });",
+                      "if (data.id) pm.collectionVariables.set('supportScenarioInquiryId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportScenarioInquiryStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 신고 접수(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member2Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/reports",
+                "description": "## 기능\n    - member2가 leader를 대상으로 추가 신고를 생성합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member2Token`, `leaderId` 확보\n- Auth 토큰: `{{member2Token}}`\n- 같은 신고자/대상 조합 재사용 시 `409 REPORT_ALREADY_SUBMITTED`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/reports`\n    - Body:\n```json\n{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{leaderId}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"Scenario 신고 상태 전이 검증용입니다.\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportScenarioReportId, supportScenarioReportStatus 저장\n\n    ## 실패 시 확인\n    - 자기 자신을 신고하면 `400 CANNOT_REPORT_YOURSELF`\n- 대상이 없으면 `404 MEMBER_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportController.java (createReport)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (createReport)\n- Entity/제약: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{leaderId}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"Scenario 신고 상태 전이 검증용입니다.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=PENDING 검증', function () { pm.expect(data.status).to.eql('PENDING'); });",
+                      "if (data.id) pm.collectionVariables.set('supportScenarioReportId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportScenarioReportStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 신고 상태 처리(REVIEWING)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/reports/{{supportScenarioReportId}}/status",
+                "description": "## 기능\n    - 관리자가 Scenario 신고를 REVIEWING으로 변경합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `Scenario 신고 접수(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/reports/{{supportScenarioReportId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"REVIEWING\",\n  \"action\": \"REVIEW_STARTED\",\n  \"memo\": \"Scenario 신고 검토 시작\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportScenarioReportStatus 저장\n\n    ## 실패 시 확인\n    - 신고 ID가 비어 있으면 이전 신고 접수가 실패한 것입니다.\n- 상태 전이가 잘못되면 `409 INVALID_REPORT_STATUS_TRANSITION`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"REVIEWING\",\n  \"action\": \"REVIEW_STARTED\",\n  \"memo\": \"Scenario 신고 검토 시작\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=REVIEWING 검증', function () { pm.expect(data.status).to.eql('REVIEWING'); });",
+                      "if (data.id) pm.collectionVariables.set('supportScenarioReportId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportScenarioReportStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 신고 상태 처리(ACTIONED)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/reports/{{supportScenarioReportId}}/status",
+                "description": "## 기능\n    - 관리자가 Scenario 신고를 ACTIONED로 완료 처리합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `Scenario 신고 상태 처리(REVIEWING)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/reports/{{supportScenarioReportId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"ACTIONED\",\n  \"action\": \"WARN_MEMBER\",\n  \"memo\": \"Scenario 신고 조치 완료\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportScenarioReportStatus 저장\n\n    ## 실패 시 확인\n    - 상태 전이가 잘못되면 `409 INVALID_REPORT_STATUS_TRANSITION`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"ACTIONED\",\n  \"action\": \"WARN_MEMBER\",\n  \"memo\": \"Scenario 신고 조치 완료\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=ACTIONED 검증', function () { pm.expect(data.status).to.eql('ACTIONED'); });",
+                      "if (data.id) pm.collectionVariables.set('supportScenarioReportId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportScenarioReportStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 학식 메뉴 등록(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus",
+                "description": "## 기능\n    - Scenario 주차 학식 메뉴를 등록합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus`\n    - Body:\n```json\n{\n  \"weekId\": \"{{supportScenarioWeekId}}\",\n  \"weekStart\": \"{{supportScenarioWeekStart}}\",\n  \"weekEnd\": \"{{supportScenarioWeekEnd}}\",\n  \"menus\": {\n    \"{{supportScenarioWeekStart}}\": {\n      \"rollNoodles\": [\n        \"칼국수\"\n      ],\n      \"theBab\": [\n        \"불고기백반\"\n      ]\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportScenarioWeekId 저장\n\n    ## 실패 시 확인\n    - 주차가 이미 있으면 `409 CAFETERIA_MENU_ALREADY_EXISTS`\n- 형식 검증 실패 시 `400/422` 응답을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weekId\": \"{{supportScenarioWeekId}}\",\n  \"weekStart\": \"{{supportScenarioWeekStart}}\",\n  \"weekEnd\": \"{{supportScenarioWeekEnd}}\",\n  \"menus\": {\n    \"{{supportScenarioWeekStart}}\": {\n      \"rollNoodles\": [\n        \"칼국수\"\n      ],\n      \"theBab\": [\n        \"불고기백반\"\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "if (data.weekId) pm.collectionVariables.set('supportScenarioWeekId', data.weekId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 특정 주차 학식 메뉴 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/cafeteria-menus/{{supportScenarioWeekId}}",
+                "description": "## 기능\n    - Scenario 주차 학식 메뉴를 조회해 등록 결과를 확인합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `Scenario 학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus/{{supportScenarioWeekId}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - weekId가 비어 있으면 이전 학식 등록이 실패한 것입니다.\n- 메뉴가 없으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "if (data.weekId) pm.collectionVariables.set('supportScenarioWeekId', data.weekId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Scenario 학식 메뉴 삭제(관리자)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus/{{supportScenarioWeekId}}",
+                "description": "## 기능\n    - Scenario 학식 메뉴를 삭제해 상태를 정리합니다.\n\n    ## 테스트 모드\n    - Scenario Regression\n\n    ## 선행조건\n    - `Scenario 학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `DELETE`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus/{{supportScenarioWeekId}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 이미 삭제됐으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            }
+          ]
+        },
+        {
+          "name": "20. Contract Guard",
+          "item": [
+            {
+              "name": "앱 버전 잘못된 플랫폼 검증(400)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/app-versions/windows",
+                "description": "## 기능\n    - 지원하지 않는 플랫폼 요청이 INVALID_REQUEST로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - 추가 선행 변수 없음\n- Auth: 없음 (Public API)\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/app-versions/windows`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `400`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `INVALID_REQUEST`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 400이 아니면 platform 정규화 로직과 예외 매핑을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionController.java (getAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (getAppVersion)\n- 공개 경로 허용: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=INVALID_REQUEST 검증', function () { pm.expect(j.errorCode).to.eql('INVALID_REQUEST'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "앱 버전 업데이트 비관리자 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/admin/app-versions/ios",
+                "description": "## 기능\n    - 비관리자 토큰으로 앱 버전 업데이트를 시도해 ADMIN_REQUIRED를 검증합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token` 확보\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/admin/app-versions/ios`\n    - Body:\n```json\n{\n  \"minimumVersion\": \"3.0.0\",\n  \"forceUpdate\": true,\n  \"title\": \"권한 검증\",\n  \"message\": \"비관리자 차단 확인\",\n  \"showButton\": false,\n  \"buttonText\": null,\n  \"buttonUrl\": null\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `403`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `ADMIN_REQUIRED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 403이 아니면 관리자 인가 규칙이 누락된 것입니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionAdminController.java (upsertAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (upsertAppVersion)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/UpsertAppVersionRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"minimumVersion\": \"3.0.0\",\n  \"forceUpdate\": true,\n  \"title\": \"권한 검증\",\n  \"message\": \"비관리자 차단 확인\",\n  \"showButton\": false,\n  \"buttonText\": null,\n  \"buttonUrl\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=ADMIN_REQUIRED 검증', function () { pm.expect(j.errorCode).to.eql('ADMIN_REQUIRED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "앱 버전 업데이트 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/admin/app-versions/ios",
+                "description": "## 기능\n    - showButton=true인데 buttonText/buttonUrl이 없는 요청이 VALIDATION_ERROR로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/admin/app-versions/ios`\n    - Body:\n```json\n{\n  \"minimumVersion\": \"3.0.0\",\n  \"forceUpdate\": true,\n  \"title\": \"검증 실패\",\n  \"message\": \"버튼 설정 누락\",\n  \"showButton\": true,\n  \"buttonText\": null,\n  \"buttonUrl\": null\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `422`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `VALIDATION_ERROR`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 422가 아니면 UpsertAppVersionRequest의 AssertTrue 검증을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/AppVersionAdminController.java (upsertAppVersion)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/AppVersionService.java (upsertAppVersion)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/UpsertAppVersionRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"minimumVersion\": \"3.0.0\",\n  \"forceUpdate\": true,\n  \"title\": \"검증 실패\",\n  \"message\": \"버튼 설정 누락\",\n  \"showButton\": true,\n  \"buttonText\": null,\n  \"buttonUrl\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=VALIDATION_ERROR 검증', function () { pm.expect(j.errorCode).to.eql('VALIDATION_ERROR'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "인증 없이 문의 접수(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/inquiries",
+                "description": "## 기능\n    - 문의 접수 API가 인증 없이는 호출되지 않는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - 추가 선행 변수 없음\n- Auth: 없음\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/inquiries`\n    - Body:\n```json\n{\n  \"type\": \"BUG\",\n  \"subject\": \"무인증 문의\",\n  \"content\": \"401 검증용\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `401`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `UNAUTHORIZED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 401이 아니면 보호 API 인증 정책을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryController.java (createInquiry/getMyInquiries)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (createInquiry/getMyInquiries)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"BUG\",\n  \"subject\": \"무인증 문의\",\n  \"content\": \"401 검증용\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=UNAUTHORIZED 검증', function () { pm.expect(j.errorCode).to.eql('UNAUTHORIZED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "문의 접수 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/inquiries",
+                "description": "## 기능\n    - subject/content가 비어 있는 문의 요청이 VALIDATION_ERROR로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token` 확보\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/inquiries`\n    - Body:\n```json\n{\n  \"type\": \"BUG\",\n  \"subject\": \"\",\n  \"content\": \"\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `422`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `VALIDATION_ERROR`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 422가 아니면 CreateInquiryRequest 검증과 GlobalExceptionHandler를 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryController.java (createInquiry/getMyInquiries)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (createInquiry/getMyInquiries)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"BUG\",\n  \"subject\": \"\",\n  \"content\": \"\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=VALIDATION_ERROR 검증', function () { pm.expect(j.errorCode).to.eql('VALIDATION_ERROR'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "관리자 문의 목록 비관리자 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/admin/inquiries?page=0&size=20",
+                "description": "## 기능\n    - 비관리자 토큰으로 관리자 문의 목록 조회를 시도해 ADMIN_REQUIRED를 검증합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token` 확보\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/admin/inquiries?page=0&size=20`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `403`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `ADMIN_REQUIRED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 403이 아니면 Admin 경로 인가 규칙이 누락된 것입니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryAdminController.java (getInquiries/updateInquiryStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (getAdminInquiries/updateInquiryStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java (updateStatus)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=ADMIN_REQUIRED 검증', function () { pm.expect(j.errorCode).to.eql('ADMIN_REQUIRED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "관리자 문의 목록 페이지 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/admin/inquiries?page=-1&size=20",
+                "description": "## 기능\n    - 문의 관리자 목록에서 음수 page가 VALIDATION_ERROR로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/admin/inquiries?page=-1&size=20`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `422`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `VALIDATION_ERROR`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 422가 아니면 InquiryService의 resolvePageable 검증을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryAdminController.java (getInquiries/updateInquiryStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (getAdminInquiries/updateInquiryStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java (updateStatus)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=VALIDATION_ERROR 검증', function () { pm.expect(j.errorCode).to.eql('VALIDATION_ERROR'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Guard 문의 접수(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/inquiries",
+                "description": "## 기능\n    - 문의 상태 전이 Guard 검증용 문의를 생성합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `leaderToken` 확보\n- Auth 토큰: `{{leaderToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/inquiries`\n    - Body:\n```json\n{\n  \"type\": \"SERVICE\",\n  \"subject\": \"Guard 문의\",\n  \"content\": \"상태 전이 409 검증용 문의입니다.\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportGuardInquiryId, supportGuardInquiryStatus 저장\n\n    ## 실패 시 확인\n    - 같은 요청은 반복 생성 가능하지만 결과가 많아질 수 있습니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryController.java (createInquiry/getMyInquiries)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (createInquiry/getMyInquiries)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"SERVICE\",\n  \"subject\": \"Guard 문의\",\n  \"content\": \"상태 전이 409 검증용 문의입니다.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=PENDING 검증', function () { pm.expect(data.status).to.eql('PENDING'); });",
+                      "if (data.id) pm.collectionVariables.set('supportGuardInquiryId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportGuardInquiryStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Guard 문의 상태 처리(RESOLVED)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/inquiries/{{supportGuardInquiryId}}/status",
+                "description": "## 기능\n    - Guard 문의를 RESOLVED로 바꿔 잘못된 전이 검증 상태를 준비합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `Guard 문의 접수(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/inquiries/{{supportGuardInquiryId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"RESOLVED\",\n  \"memo\": \"Guard 문의 종료\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportGuardInquiryStatus 저장\n\n    ## 실패 시 확인\n    - 문의 ID가 없으면 이전 Guard 요청을 먼저 실행합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryAdminController.java (getInquiries/updateInquiryStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (getAdminInquiries/updateInquiryStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java (updateStatus)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"RESOLVED\",\n  \"memo\": \"Guard 문의 종료\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=RESOLVED 검증', function () { pm.expect(data.status).to.eql('RESOLVED'); });",
+                      "if (data.id) pm.collectionVariables.set('supportGuardInquiryId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportGuardInquiryStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "문의 상태 잘못된 전이 검증(409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/inquiries/{{supportGuardInquiryId}}/status",
+                "description": "## 기능\n    - RESOLVED 문의를 다시 PENDING으로 되돌리는 요청이 409로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `Guard 문의 상태 처리(RESOLVED)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/inquiries/{{supportGuardInquiryId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"PENDING\",\n  \"memo\": \"되돌리기 시도\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `409`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `INVALID_INQUIRY_STATUS_TRANSITION`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 409가 아니면 Inquiry 엔티티/서비스 상태 전이 검증을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/InquiryAdminController.java (getInquiries/updateInquiryStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java (getAdminInquiries/updateInquiryStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java (updateStatus)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"PENDING\",\n  \"memo\": \"되돌리기 시도\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=INVALID_INQUIRY_STATUS_TRANSITION 검증', function () { pm.expect(j.errorCode).to.eql('INVALID_INQUIRY_STATUS_TRANSITION'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "신고 자기 자신 대상 검증(400)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/reports",
+                "description": "## 기능\n    - member1이 자기 자신을 신고할 수 없는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token`, `member1Id` 확보\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/reports`\n    - Body:\n```json\n{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{member1Id}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"자기 자신 신고 차단 검증\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `400`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `CANNOT_REPORT_YOURSELF`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 400이 아니면 ReportService의 targetAuthorId 판정과 자기 자신 차단 로직을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportController.java (createReport)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (createReport)\n- Entity/제약: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{member1Id}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"자기 자신 신고 차단 검증\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=CANNOT_REPORT_YOURSELF 검증', function () { pm.expect(j.errorCode).to.eql('CANNOT_REPORT_YOURSELF'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Guard 신고 접수(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/reports",
+                "description": "## 기능\n    - 중복 신고/상태 전이 Guard 검증용 신고를 생성합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `leaderToken`, `member1Id` 확보\n- Auth 토큰: `{{leaderToken}}`\n- 같은 신고자/대상 조합을 이미 사용한 DB라면 다른 조합으로 바꿔야 합니다.\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/reports`\n    - Body:\n```json\n{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{member1Id}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"Guard 중복 신고 검증용입니다.\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportGuardReportId, supportGuardReportStatus 저장\n\n    ## 실패 시 확인\n    - 이미 같은 조합이 있으면 `409 REPORT_ALREADY_SUBMITTED`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportController.java (createReport)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (createReport)\n- Entity/제약: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{member1Id}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"Guard 중복 신고 검증용입니다.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=PENDING 검증', function () { pm.expect(data.status).to.eql('PENDING'); });",
+                      "if (data.id) pm.collectionVariables.set('supportGuardReportId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportGuardReportStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "신고 중복 접수 차단 검증(409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/reports",
+                "description": "## 기능\n    - 같은 신고자/대상 조합으로 재신고했을 때 409로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `Guard 신고 접수(201)` 선행\n- Auth 토큰: `{{leaderToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/reports`\n    - Body:\n```json\n{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{member1Id}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"동일 조합 재신고\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `409`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `REPORT_ALREADY_SUBMITTED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 409가 아니면 서비스 선조회와 DB unique 제약이 모두 반영됐는지 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportController.java (createReport)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (createReport)\n- Entity/제약: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"targetType\": \"MEMBER\",\n  \"targetId\": \"{{member1Id}}\",\n  \"category\": \"ABUSE\",\n  \"reason\": \"동일 조합 재신고\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=REPORT_ALREADY_SUBMITTED 검증', function () { pm.expect(j.errorCode).to.eql('REPORT_ALREADY_SUBMITTED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "관리자 신고 목록 비관리자 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/admin/reports?page=0&size=20",
+                "description": "## 기능\n    - 비관리자 토큰으로 관리자 신고 목록 조회를 시도해 ADMIN_REQUIRED를 검증합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token` 확보\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/admin/reports?page=0&size=20`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `403`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `ADMIN_REQUIRED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 403이 아니면 ReportAdminController 보안 설정을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=ADMIN_REQUIRED 검증', function () { pm.expect(j.errorCode).to.eql('ADMIN_REQUIRED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "관리자 신고 목록 페이지 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/admin/reports?page=0&size=0",
+                "description": "## 기능\n    - size=0 요청이 VALIDATION_ERROR로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/admin/reports?page=0&size=0`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `422`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `VALIDATION_ERROR`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 422가 아니면 ReportService의 resolvePageable 검증을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=VALIDATION_ERROR 검증', function () { pm.expect(j.errorCode).to.eql('VALIDATION_ERROR'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "관리자 신고 목록 필터 검증(400)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/admin/reports?targetType=INVALID&page=0&size=20",
+                "description": "## 기능\n    - 잘못된 targetType 필터가 INVALID_REQUEST로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/admin/reports?targetType=INVALID&page=0&size=20`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `400`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `INVALID_REQUEST`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 400이 아니면 enum 파라미터 변환과 GlobalExceptionHandler를 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=INVALID_REQUEST 검증', function () { pm.expect(j.errorCode).to.eql('INVALID_REQUEST'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Guard 신고 상태 처리(ACTIONED)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/reports/{{supportGuardReportId}}/status",
+                "description": "## 기능\n    - Guard 신고를 ACTIONED로 변경해 잘못된 상태 전이 검증 상태를 준비합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `Guard 신고 접수(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/reports/{{supportGuardReportId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"ACTIONED\",\n  \"action\": \"WARN_MEMBER\",\n  \"memo\": \"Guard 신고 조치 완료\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportGuardReportStatus 저장\n\n    ## 실패 시 확인\n    - 신고 ID가 없으면 Guard 신고 접수를 먼저 실행합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"ACTIONED\",\n  \"action\": \"WARN_MEMBER\",\n  \"memo\": \"Guard 신고 조치 완료\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('status=ACTIONED 검증', function () { pm.expect(data.status).to.eql('ACTIONED'); });",
+                      "if (data.id) pm.collectionVariables.set('supportGuardReportId', data.id);",
+                      "if (data.status) pm.collectionVariables.set('supportGuardReportStatus', data.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "신고 상태 잘못된 전이 검증(409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "url": "{{baseUrl}}/v1/admin/reports/{{supportGuardReportId}}/status",
+                "description": "## 기능\n    - ACTIONED 신고를 다시 REVIEWING으로 되돌리는 요청이 409로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `Guard 신고 상태 처리(ACTIONED)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PATCH`\n    - URL: `{{baseUrl}}/v1/admin/reports/{{supportGuardReportId}}/status`\n    - Body:\n```json\n{\n  \"status\": \"REVIEWING\",\n  \"action\": \"REVIEW_STARTED\",\n  \"memo\": \"되돌리기 시도\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `409`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `INVALID_REPORT_STATUS_TRANSITION`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 409가 아니면 Report 엔티티/서비스의 상태 전이 검증을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/ReportAdminController.java (getReports/updateReportStatus)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/ReportService.java (getAdminReports/updateReportStatus)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/support/entity/Report.java (updateReview)\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"REVIEWING\",\n  \"action\": \"REVIEW_STARTED\",\n  \"memo\": \"되돌리기 시도\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=INVALID_REPORT_STATUS_TRANSITION 검증', function () { pm.expect(j.errorCode).to.eql('INVALID_REPORT_STATUS_TRANSITION'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "인증 없이 학식 메뉴 조회(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}",
+                "description": "## 기능\n    - 학식 메뉴 조회 API가 인증 없이는 호출되지 않는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - 추가 선행 변수 없음\n- Auth: 없음\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `401`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `UNAUTHORIZED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 401이 아니면 Support 보호 API 인증 정책을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=UNAUTHORIZED 검증', function () { pm.expect(j.errorCode).to.eql('UNAUTHORIZED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학식 메뉴 주차 형식 검증(400)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/cafeteria-menus/invalid-week",
+                "description": "## 기능\n    - 잘못된 weekId 형식이 INVALID_REQUEST로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token` 확보\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus/invalid-week`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `400`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `INVALID_REQUEST`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 400이 아니면 weekId 정규식 검증과 예외 매핑을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=INVALID_REQUEST 검증', function () { pm.expect(j.errorCode).to.eql('INVALID_REQUEST'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학식 메뉴 등록 비관리자 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus",
+                "description": "## 기능\n    - 비관리자 토큰으로 학식 메뉴 등록을 시도해 ADMIN_REQUIRED를 검증합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `member1Token` 확보\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus`\n    - Body:\n```json\n{\n  \"weekId\": \"{{supportGuardWeekId}}\",\n  \"weekStart\": \"{{supportGuardWeekStart}}\",\n  \"weekEnd\": \"{{supportGuardWeekEnd}}\",\n  \"menus\": {\n    \"{{supportGuardWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\"\n      ]\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `403`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `ADMIN_REQUIRED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 403이 아니면 관리자 인가 설정을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weekId\": \"{{supportGuardWeekId}}\",\n  \"weekStart\": \"{{supportGuardWeekStart}}\",\n  \"weekEnd\": \"{{supportGuardWeekEnd}}\",\n  \"menus\": {\n    \"{{supportGuardWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\"\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=ADMIN_REQUIRED 검증', function () { pm.expect(j.errorCode).to.eql('ADMIN_REQUIRED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Guard 학식 메뉴 등록(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus",
+                "description": "## 기능\n    - 학식 메뉴 중복 등록 Guard 검증용 주차를 생성합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus`\n    - Body:\n```json\n{\n  \"weekId\": \"{{supportGuardWeekId}}\",\n  \"weekStart\": \"{{supportGuardWeekStart}}\",\n  \"weekEnd\": \"{{supportGuardWeekEnd}}\",\n  \"menus\": {\n    \"{{supportGuardWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\"\n      ]\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportGuardWeekId 저장\n\n    ## 실패 시 확인\n    - 같은 주차가 이미 있으면 `409 CAFETERIA_MENU_ALREADY_EXISTS`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weekId\": \"{{supportGuardWeekId}}\",\n  \"weekStart\": \"{{supportGuardWeekStart}}\",\n  \"weekEnd\": \"{{supportGuardWeekEnd}}\",\n  \"menus\": {\n    \"{{supportGuardWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\"\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "if (data.weekId) pm.collectionVariables.set('supportGuardWeekId', data.weekId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학식 메뉴 중복 등록 차단 검증(409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus",
+                "description": "## 기능\n    - 같은 weekId로 학식 메뉴를 재등록했을 때 409로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `Guard 학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus`\n    - Body:\n```json\n{\n  \"weekId\": \"{{supportGuardWeekId}}\",\n  \"weekStart\": \"{{supportGuardWeekStart}}\",\n  \"weekEnd\": \"{{supportGuardWeekEnd}}\",\n  \"menus\": {\n    \"{{supportGuardWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\"\n      ]\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `409`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `CAFETERIA_MENU_ALREADY_EXISTS`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 409가 아니면 CafeteriaMenuService와 DB 존재 여부 검증을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weekId\": \"{{supportGuardWeekId}}\",\n  \"weekStart\": \"{{supportGuardWeekStart}}\",\n  \"weekEnd\": \"{{supportGuardWeekEnd}}\",\n  \"menus\": {\n    \"{{supportGuardWeekStart}}\": {\n      \"rollNoodles\": [\n        \"우동\"\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=CAFETERIA_MENU_ALREADY_EXISTS 검증', function () { pm.expect(j.errorCode).to.eql('CAFETERIA_MENU_ALREADY_EXISTS'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Guard 학식 메뉴 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus/{{supportGuardWeekId}}",
+                "description": "## 기능\n    - Guard 학식 메뉴를 삭제해 중복 등록 테스트 흔적을 정리합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `Guard 학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `DELETE`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus/{{supportGuardWeekId}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 이미 삭제됐으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)"
+              }
+            },
+            {
+              "name": "학식 메뉴 등록 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/admin/cafeteria-menus",
+                "description": "## 기능\n    - menus가 비어 있는 학식 등록 요청이 VALIDATION_ERROR로 차단되는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus`\n    - Body:\n```json\n{\n  \"weekId\": \"{{supportNegativeWeekId}}\",\n  \"weekStart\": \"{{supportGuardWeekStart}}\",\n  \"weekEnd\": \"{{supportGuardWeekEnd}}\",\n  \"menus\": {}\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `422`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `VALIDATION_ERROR`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 422가 아니면 CreateCafeteriaMenuRequest의 @NotEmpty 검증을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weekId\": \"{{supportNegativeWeekId}}\",\n  \"weekStart\": \"{{supportGuardWeekStart}}\",\n  \"weekEnd\": \"{{supportGuardWeekEnd}}\",\n  \"menus\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=VALIDATION_ERROR 검증', function () { pm.expect(j.errorCode).to.eql('VALIDATION_ERROR'); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -6721,6 +8542,122 @@
     {
       "key": "academicNegativeScheduleId",
       "value": "missing-academic-schedule-id"
+    },
+    {
+      "key": "supportObservedIosMinimumVersion",
+      "value": ""
+    },
+    {
+      "key": "supportObservedAndroidMinimumVersion",
+      "value": ""
+    },
+    {
+      "key": "supportCoreInquiryId",
+      "value": ""
+    },
+    {
+      "key": "supportCoreInquiryStatus",
+      "value": ""
+    },
+    {
+      "key": "supportScenarioInquiryId",
+      "value": ""
+    },
+    {
+      "key": "supportScenarioInquiryStatus",
+      "value": ""
+    },
+    {
+      "key": "supportGuardInquiryId",
+      "value": ""
+    },
+    {
+      "key": "supportGuardInquiryStatus",
+      "value": ""
+    },
+    {
+      "key": "supportCoreReportId",
+      "value": ""
+    },
+    {
+      "key": "supportCoreReportStatus",
+      "value": ""
+    },
+    {
+      "key": "supportScenarioReportId",
+      "value": ""
+    },
+    {
+      "key": "supportScenarioReportStatus",
+      "value": ""
+    },
+    {
+      "key": "supportGuardReportId",
+      "value": ""
+    },
+    {
+      "key": "supportGuardReportStatus",
+      "value": ""
+    },
+    {
+      "key": "supportCoreWeekId",
+      "value": "2099-W08"
+    },
+    {
+      "key": "supportCoreWeekStart",
+      "value": "2099-02-16"
+    },
+    {
+      "key": "supportCoreWeekEnd",
+      "value": "2099-02-20"
+    },
+    {
+      "key": "supportCoreMenuDate",
+      "value": "2099-02-16"
+    },
+    {
+      "key": "supportScenarioWeekId",
+      "value": "2099-W09"
+    },
+    {
+      "key": "supportScenarioWeekStart",
+      "value": "2099-02-23"
+    },
+    {
+      "key": "supportScenarioWeekEnd",
+      "value": "2099-02-27"
+    },
+    {
+      "key": "supportScenarioMenuDate",
+      "value": "2099-02-23"
+    },
+    {
+      "key": "supportGuardWeekId",
+      "value": "2099-W10"
+    },
+    {
+      "key": "supportGuardWeekStart",
+      "value": "2099-03-02"
+    },
+    {
+      "key": "supportGuardWeekEnd",
+      "value": "2099-03-06"
+    },
+    {
+      "key": "supportGuardMenuDate",
+      "value": "2099-03-02"
+    },
+    {
+      "key": "supportNegativeInquiryId",
+      "value": "missing-support-inquiry-id"
+    },
+    {
+      "key": "supportNegativeReportId",
+      "value": "missing-support-report-id"
+    },
+    {
+      "key": "supportNegativeWeekId",
+      "value": "missing-support-week-id"
     }
   ],
   "event": [
