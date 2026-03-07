@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-07
+> 최종 수정일: 2026-03-08
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md)
 
 ---
@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영) |
 
 ---
 
@@ -575,6 +575,10 @@ SSE 운영 제약:
 - [x] 문의/신고 접수 동작
 - [x] 앱 버전 비인증 조회 동작
 - [x] 학식 메뉴 조회 동작
+- [x] 관리자 문의/신고 목록 조회 및 상태 처리 동작
+- [x] 관리자 앱 버전/학식 메뉴 운영 API 동작
+- [x] Admin 권한 정책(`ROLE_ADMIN`, `403 ADMIN_REQUIRED`) 및 공개 버전 조회(`permitAll`) 반영
+- [x] Support 페이지 응답 포맷 `PageResponse` 일관화 및 수동 검증 컬렉션(`etc/postman_collection.json > 07. Support`) 반영
 
 ---
 
@@ -819,3 +823,4 @@ Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 > - 2026-03-05: Phase 4(Board) 구현 반영 — 댓글 depth 1 제한, 부모 삭제 정책(B: placeholder soft delete), `/v1/members/me/posts|bookmarks` API 및 카운트 동기화 전략 문서화
 > - 2026-03-06: README/로드맵 현재 상태를 Phase 4 완료 기준으로 동기화하고, Board API 경로 변수명을 코드 기준(`postId/commentId`)으로 정렬
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리(`commentNotifications`, `bookmarkedPostCommentNotifications`)
+> - 2026-03-08: Phase 7 완료 기준으로 현재 상태를 갱신하고, Support 운영 API/기본 앱 버전 fallback/Postman 수동 검증 컬렉션 경로를 반영
