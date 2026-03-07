@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.dto.request.AdminCreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoomMember;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -38,6 +40,9 @@ public class ChatAdminService {
                 null
         );
         ChatRoom saved = chatRoomRepository.save(room);
+        chatRoomMemberRepository.save(ChatRoomMember.create(saved, adminId, LocalDateTime.now()));
+        saved.updateMemberCount(1);
+        chatRoomRepository.save(saved);
 
         return new AdminCreateChatRoomResponse(saved.getId(), saved.getName(), saved.getType());
     }
@@ -67,4 +72,3 @@ public class ChatAdminService {
         }
     }
 }
-
