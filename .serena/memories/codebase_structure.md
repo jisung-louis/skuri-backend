@@ -9,6 +9,7 @@
 - **Entity**: Party, PartyMember, JoinRequest, MemberSettlement, Location, PartyTag
 - **Enum**: PartyStatus, JoinRequestStatus, SettlementStatus, PartyEndReason
 - **Service**: TaxiPartyService (생성/조회/수정/상태전이/정산 핵심 로직 담당)
+- **동시성 정책**: 활성 파티 참여 검사는 `Member` row lock으로 직렬화하고, `join_requests`는 `(party_id, requester_id, status)` unique 제약으로 중복 `PENDING` 요청을 막는다.
 - **Controller**: PartyController, JoinRequestController, PartySseController
 - **기타 Service**: PartySseService, JoinRequestSseService, PartyTimeoutBatchService, PartyTimeoutCommandService
 - **Scheduler**: PartyTimeoutScheduler, PartySseHeartbeatScheduler
@@ -21,8 +22,10 @@
 ### Chat
 - **Entity**: ChatRoom, ChatRoomMember, ChatMessage, ChatAccountData, ChatArrivalData
 - **Enum**: ChatRoomType, ChatMessageType, ChatMessageDirection
-- **Service**: ChatService, PartyMessageService
+- **Service**: ChatService, PartyMessageService, ChatAdminService
 - **Controller**: ChatRoomController (REST), ChatStompController (WebSocket)
+- **멤버십 정책**: 파티 채팅방은 파티 멤버 목록과 `chat_room_members`를 동기화하고, 관리자 공개 채팅방 생성 시 생성자를 초기 멤버로 등록한다.
+- **읽음 처리 정책**: `lastReadAt`는 서버 현재 시각과 마지막 메시지 시각을 상한으로 clamp한 뒤 저장한다.
 - **WebSocket**: ChatWebSocketConfig, FirebaseStompAuthChannelInterceptor
 
 ### Board
@@ -39,6 +42,7 @@
 - **외부 연동**: SungkyulNoticeRssClient, SungkyulNoticeDetailCrawler, SungkyulNoticeTlsSupport
 - **필드 의미**: Notice는 `rssPreview`를 목록/상세 API에 노출하고, `summary`는 향후 AI 요약용 예약 필드로 유지한다. `bodyHtml`은 RN 렌더링용 원문 HTML, `bodyText`는 검색/AI/RAG용 정규화 plain text다.
 - **운영 메모**: 성결대학교 사이트 TLS 체인 이슈로 인해 Notice 크롤링 경로에서만 trust-all SSL socket factory 사용
+- **안정성 정책**: RSS `postedAt`은 offset-aware 파싱을 사용하고, 상세 크롤링 실패 시 기존 상세 본문/첨부를 보존한다.
 - **동기화 정책**: `body_html`은 LONGTEXT로 저장하고, 개별 공지 저장 실패는 `failed` 집계 후 다음 공지를 계속 처리
 - **Scheduler**: NoticeScheduler (평일 08:00~19:50, Asia/Seoul, 10분 주기)
 
