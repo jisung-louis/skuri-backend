@@ -28,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -282,7 +281,7 @@ class TaxiPartyServiceTest {
         when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), isNull())).thenReturn(false);
         when(joinRequestRepository.existsByParty_IdAndRequesterIdAndStatus("party-1", "requester-1", JoinRequestStatus.PENDING))
                 .thenReturn(false);
-        when(joinRequestRepository.saveAndFlush(any(JoinRequest.class))).thenAnswer(invocation -> {
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> {
             JoinRequest saved = invocation.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", "request-1");
             return saved;
@@ -313,22 +312,27 @@ class TaxiPartyServiceTest {
     }
 
     @Test
-    void createJoinRequest_저장충돌이면_ALREADY_REQUESTED() {
+    void createJoinRequest_이전취소이력이있어도_재요청가능() {
         Party party = sampleParty("party-1", "leader", 4, false);
+        JoinRequest canceled = JoinRequest.create(party, "requester-1");
+        canceled.cancel();
+
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
         when(memberRepository.findByIdForUpdate("requester-1")).thenReturn(Optional.of(member("requester-1")));
         when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), isNull())).thenReturn(false);
         when(joinRequestRepository.existsByParty_IdAndRequesterIdAndStatus("party-1", "requester-1", JoinRequestStatus.PENDING))
                 .thenReturn(false);
-        when(joinRequestRepository.saveAndFlush(any(JoinRequest.class)))
-                .thenThrow(new DataIntegrityViolationException("duplicate pending request"));
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> {
+            JoinRequest saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", "request-2");
+            return saved;
+        });
 
-        BusinessException exception = assertThrows(
-                BusinessException.class,
-                () -> taxiPartyService.createJoinRequest("requester-1", "party-1")
-        );
+        JoinRequestResponse response = taxiPartyService.createJoinRequest("requester-1", "party-1");
 
-        assertEquals(ErrorCode.ALREADY_REQUESTED, exception.getErrorCode());
+        assertEquals("request-2", response.id());
+        assertEquals(JoinRequestStatus.PENDING, response.status());
+        assertEquals(JoinRequestStatus.CANCELED, canceled.getStatus());
     }
 
     @Test
@@ -384,6 +388,42 @@ class TaxiPartyServiceTest {
         assertEquals("request-1", response.id());
         assertEquals(JoinRequestStatus.CANCELED, response.status());
         verify(joinRequestSseService).publishJoinRequestUpdated(joinRequest, JoinRequestStatus.PENDING);
+    }
+
+    @Test
+    void declineJoinRequest_이전거절이력이있어도_새요청을다시거절할수있다() {
+        Party party = sampleParty("party-1", "leader", 4, false);
+        JoinRequest previousRequest = JoinRequest.create(party, "requester-1");
+        previousRequest.decline();
+        JoinRequest currentRequest = JoinRequest.create(party, "requester-1");
+        ReflectionTestUtils.setField(currentRequest, "id", "request-2");
+
+        when(joinRequestRepository.findDetailById("request-2")).thenReturn(Optional.of(currentRequest));
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        JoinRequestResponse response = taxiPartyService.declineJoinRequest("leader", "request-2");
+
+        assertEquals("request-2", response.id());
+        assertEquals(JoinRequestStatus.DECLINED, response.status());
+        assertEquals(JoinRequestStatus.DECLINED, previousRequest.getStatus());
+    }
+
+    @Test
+    void cancelJoinRequest_이전취소이력이있어도_새요청을다시취소할수있다() {
+        Party party = sampleParty("party-1", "leader", 4, false);
+        JoinRequest previousRequest = JoinRequest.create(party, "requester-1");
+        previousRequest.cancel();
+        JoinRequest currentRequest = JoinRequest.create(party, "requester-1");
+        ReflectionTestUtils.setField(currentRequest, "id", "request-2");
+
+        when(joinRequestRepository.findDetailById("request-2")).thenReturn(Optional.of(currentRequest));
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        JoinRequestResponse response = taxiPartyService.cancelJoinRequest("requester-1", "request-2");
+
+        assertEquals("request-2", response.id());
+        assertEquals(JoinRequestStatus.CANCELED, response.status());
+        assertEquals(JoinRequestStatus.CANCELED, previousRequest.getStatus());
     }
 
     @Test
