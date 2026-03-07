@@ -101,4 +101,19 @@ public class OpenApiConfig {
                 )
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi academicApi() {
+        return GroupedOpenApi.builder()
+                .group("academic")
+                .pathsToMatch(
+                        "/v1/courses",
+                        "/v1/timetables/**",
+                        "/v1/academic-schedules/**",
+                        "/v1/admin/academic-schedules/**",
+                        "/v1/admin/courses",
+                        "/v1/admin/courses/**"
+                )
+                .build();
+    }
 }
