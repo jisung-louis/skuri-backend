@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -115,6 +116,27 @@ class ChatServiceTest {
     }
 
     @Test
+    void markAsRead_미래시각요청이면_마지막메시지시각으로보정한다() {
+        ChatRoom room = ChatRoom.create("room-1", "테스트", ChatRoomType.UNIVERSITY, null, null, null, true, null);
+        ReflectionTestUtils.setField(room, "lastMessageTimestamp", LocalDateTime.of(2026, 3, 5, 21, 30, 0));
+        ChatRoomMember roomMember = ChatRoomMember.create(room, "member-1", LocalDateTime.now().minusHours(2));
+
+        when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
+        when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1"))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.save(any(ChatRoomMember.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ChatReadUpdateResponse response = chatService.markAsRead(
+                "member-1",
+                "room-1",
+                LocalDateTime.of(2099, 3, 5, 21, 0, 0)
+        );
+
+        assertEquals(LocalDateTime.of(2026, 3, 5, 21, 30, 0), response.lastReadAt());
+        assertTrue(response.updated());
+    }
+
+    @Test
     void sendMessage_파티ACCOUNT타입이면_특수페이로드저장및브로드캐스트() {
         ChatRoom room = ChatRoom.createPartyRoom("party-1");
         ChatRoomMember roomMember = ChatRoomMember.create(room, "member-1", LocalDateTime.now().minusHours(1));
@@ -166,12 +188,43 @@ class ChatServiceTest {
         party.addMember("member-2");
         ReflectionTestUtils.setField(party, "id", "party-1");
 
-        when(chatRoomRepository.existsById("party:party-1")).thenReturn(false);
+        when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.empty());
         when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMemberRepository.findById_ChatRoomId("party:party-1")).thenReturn(List.of());
 
         chatService.createPartyChatRoom(party);
 
         verify(chatRoomRepository, times(2)).save(any(ChatRoom.class));
         verify(chatRoomMemberRepository, times(2)).save(any(ChatRoomMember.class));
+    }
+
+    @Test
+    void syncPartyChatRoomMembers_파티탈퇴멤버는_채팅멤버에서제거된다() {
+        Party party = Party.create(
+                "leader-1",
+                Location.of("성결대학교", 37.38, 126.93),
+                Location.of("안양역", 37.40, 126.92),
+                LocalDateTime.now().plusHours(2),
+                4,
+                List.of("빠른출발"),
+                "테스트"
+        );
+        ReflectionTestUtils.setField(party, "id", "party-1");
+
+        ChatRoom room = ChatRoom.createPartyRoom("party-1");
+        ChatRoomMember leaderMember = ChatRoomMember.create(room, "leader-1", LocalDateTime.now().minusHours(1));
+        ReflectionTestUtils.setField(leaderMember, "id", ChatRoomMemberId.of("party:party-1", "leader-1"));
+        ChatRoomMember removedMember = ChatRoomMember.create(room, "member-2", LocalDateTime.now().minusHours(1));
+        ReflectionTestUtils.setField(removedMember, "id", ChatRoomMemberId.of("party:party-1", "member-2"));
+
+        when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
+        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMemberRepository.findById_ChatRoomId("party:party-1")).thenReturn(List.of(leaderMember, removedMember));
+
+        chatService.syncPartyChatRoomMembers(party);
+
+        verify(chatRoomMemberRepository).delete(removedMember);
+        verify(chatRoomRepository).save(room);
+        assertEquals(1, room.getMemberCount());
     }
 }

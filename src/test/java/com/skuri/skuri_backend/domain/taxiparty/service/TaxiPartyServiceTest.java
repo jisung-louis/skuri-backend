@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.taxiparty.service;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
+import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.CreatePartyRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.PartyLocationRequest;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -74,6 +76,7 @@ class TaxiPartyServiceTest {
     @Test
     void createParty_정상생성() {
         CreatePartyRequest request = createPartyRequest(4);
+        when(memberRepository.findByIdForUpdate("leader")).thenReturn(Optional.of(member("leader")));
         when(partyRepository.existsActivePartyByMemberId(eq("leader"), anySet(), isNull())).thenReturn(false);
         when(partyRepository.save(any(Party.class))).thenAnswer(invocation -> {
             Party saved = invocation.getArgument(0);
@@ -91,6 +94,7 @@ class TaxiPartyServiceTest {
 
     @Test
     void createParty_활성파티가있으면_실패() {
+        when(memberRepository.findByIdForUpdate("leader")).thenReturn(Optional.of(member("leader")));
         when(partyRepository.existsActivePartyByMemberId(eq("leader"), anySet(), isNull())).thenReturn(true);
 
         BusinessException exception = assertThrows(
@@ -274,10 +278,11 @@ class TaxiPartyServiceTest {
     void createJoinRequest_정상생성() {
         Party party = sampleParty("party-1", "leader", 4, false);
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(memberRepository.findByIdForUpdate("requester-1")).thenReturn(Optional.of(member("requester-1")));
         when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), isNull())).thenReturn(false);
         when(joinRequestRepository.existsByParty_IdAndRequesterIdAndStatus("party-1", "requester-1", JoinRequestStatus.PENDING))
                 .thenReturn(false);
-        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> {
+        when(joinRequestRepository.saveAndFlush(any(JoinRequest.class))).thenAnswer(invocation -> {
             JoinRequest saved = invocation.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", "request-1");
             return saved;
@@ -294,9 +299,29 @@ class TaxiPartyServiceTest {
     void createJoinRequest_중복요청이면_ALREADY_REQUESTED() {
         Party party = sampleParty("party-1", "leader", 4, false);
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(memberRepository.findByIdForUpdate("requester-1")).thenReturn(Optional.of(member("requester-1")));
         when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), isNull())).thenReturn(false);
         when(joinRequestRepository.existsByParty_IdAndRequesterIdAndStatus("party-1", "requester-1", JoinRequestStatus.PENDING))
                 .thenReturn(true);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> taxiPartyService.createJoinRequest("requester-1", "party-1")
+        );
+
+        assertEquals(ErrorCode.ALREADY_REQUESTED, exception.getErrorCode());
+    }
+
+    @Test
+    void createJoinRequest_저장충돌이면_ALREADY_REQUESTED() {
+        Party party = sampleParty("party-1", "leader", 4, false);
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(memberRepository.findByIdForUpdate("requester-1")).thenReturn(Optional.of(member("requester-1")));
+        when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), isNull())).thenReturn(false);
+        when(joinRequestRepository.existsByParty_IdAndRequesterIdAndStatus("party-1", "requester-1", JoinRequestStatus.PENDING))
+                .thenReturn(false);
+        when(joinRequestRepository.saveAndFlush(any(JoinRequest.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate pending request"));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -313,6 +338,7 @@ class TaxiPartyServiceTest {
         ReflectionTestUtils.setField(joinRequest, "id", "request-1");
 
         when(joinRequestRepository.findDetailById("request-1")).thenReturn(Optional.of(joinRequest));
+        when(memberRepository.findByIdForUpdate("requester-1")).thenReturn(Optional.of(member("requester-1")));
         when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), eq("party-1"))).thenReturn(false);
         when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -324,6 +350,7 @@ class TaxiPartyServiceTest {
         assertEquals(2, party.getCurrentMembers());
         assertEquals(PartyStatus.CLOSED, party.getStatus());
         assertTrue(party.isMember("requester-1"));
+        verify(chatService).syncPartyChatRoomMembers(party);
         verify(partySseService).publishPartyMemberJoined(party, "requester-1", null, party.getMemberIds());
         verify(joinRequestSseService).publishJoinRequestUpdated(joinRequest, JoinRequestStatus.PENDING);
         verify(partySseService).publishPartyStatusChanged(party);
@@ -366,6 +393,7 @@ class TaxiPartyServiceTest {
         ReflectionTestUtils.setField(joinRequest, "id", "request-1");
 
         when(joinRequestRepository.findDetailById("request-1")).thenReturn(Optional.of(joinRequest));
+        when(memberRepository.findByIdForUpdate("requester-1")).thenReturn(Optional.of(member("requester-1")));
         when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), eq("party-1"))).thenReturn(false);
         when(partyRepository.saveAndFlush(any(Party.class)))
@@ -388,6 +416,7 @@ class TaxiPartyServiceTest {
         taxiPartyService.leaveParty("member-1", "party-1");
 
         assertFalse(party.isMember("member-1"));
+        verify(chatService).syncPartyChatRoomMembers(party);
         verify(partySseService).publishPartyMemberLeft(party, "member-1", "LEFT", party.getMemberIds());
     }
 
@@ -399,6 +428,7 @@ class TaxiPartyServiceTest {
 
         taxiPartyService.kickMember("leader", "party-1", "member-1");
 
+        verify(chatService).syncPartyChatRoomMembers(party);
         verify(partySseService).publishPartyMemberLeft(
                 eq(party),
                 eq("member-1"),
@@ -505,5 +535,9 @@ class TaxiPartyServiceTest {
             party.addMember("member-1");
         }
         return party;
+    }
+
+    private Member member(String memberId) {
+        return Member.create(memberId, memberId + "@sungkyul.ac.kr", memberId, LocalDateTime.now());
     }
 }
