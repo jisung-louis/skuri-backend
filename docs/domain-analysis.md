@@ -481,15 +481,16 @@ Hooks:
     - id, type (FEATURE, BUG, ACCOUNT, SERVICE, OTHER)
     - subject, content, userId, userEmail, userName
     - userRealname, userStudentId
-    - status (PENDING, IN_PROGRESS, RESOLVED)
+    - status (PENDING, IN_PROGRESS, RESOLVED), adminMemo
   - Report
-    - id, targetType (POST, COMMENT, CHAT_MESSAGE, PROFILE)
-    - targetId, targetAuthorId, category
-    - reporterId, status
+    - id, targetType (POST, COMMENT, MEMBER)
+    - targetId, targetAuthorId, category, reason
+    - reporterId, status (PENDING, REVIEWING, ACTIONED, REJECTED)
+    - action, adminMemo
   - AppVersion
     - platform (ios, android)
     - minimumVersion, forceUpdate, message
-    - icon, title, showButton, buttonText, buttonUrl
+    - title, showButton, buttonText, buttonUrl
   - CafeteriaMenu
     - weekId, weekStart, weekEnd
     - menus: Map<date, Map<restaurant, items[]>>
@@ -675,6 +676,23 @@ com.skuri.skuri_backend
 │   │   └── controller
 │   │       ├── AppNoticeController.java
 │   │       └── AppVersionController.java
+│   │
+│   ├── support
+│   │   ├── controller
+│   │   │   ├── InquiryController.java
+│   │   │   ├── ReportController.java
+│   │   │   ├── CafeteriaMenuController.java
+│   │   │   ├── InquiryAdminController.java
+│   │   │   ├── ReportAdminController.java
+│   │   │   ├── AppVersionAdminController.java
+│   │   │   └── CafeteriaMenuAdminController.java
+│   │   ├── dto
+│   │   │   ├── request
+│   │   │   └── response
+│   │   ├── entity
+│   │   ├── exception
+│   │   ├── repository
+│   │   └── service
 │   │
 │   ├── member
 │   │   ├── controller

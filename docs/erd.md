@@ -387,18 +387,22 @@ erDiagram
         varchar(50) user_realname
         varchar(20) user_student_id
         enum status "PENDING,IN_PROGRESS,RESOLVED"
+        varchar(500) admin_memo
         datetime created_at
         datetime updated_at
     }
 
     reports {
         varchar(36) id PK "UUID"
-        enum target_type "POST,COMMENT,CHAT_MESSAGE,PROFILE"
-        varchar(36) target_id "NOT NULL"
+        enum target_type "POST,COMMENT,MEMBER"
+        varchar(100) target_id "NOT NULL"
         varchar(36) target_author_id
         varchar(50) category
+        text reason "NOT NULL"
         varchar(36) reporter_id FK "NOT NULL"
-        enum status "PENDING,REVIEWED,RESOLVED,DISMISSED"
+        enum status "PENDING,REVIEWING,ACTIONED,REJECTED"
+        varchar(100) action
+        varchar(500) admin_memo
         datetime created_at
         datetime updated_at
     }
@@ -408,7 +412,6 @@ erDiagram
         varchar(20) minimum_version "NOT NULL"
         boolean force_update "DEFAULT false"
         varchar(500) message
-        varchar(100) icon
         varchar(100) title
         boolean show_button "DEFAULT false"
         varchar(100) button_text

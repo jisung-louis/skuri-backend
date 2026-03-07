@@ -545,6 +545,10 @@ SSE 운영 제약:
 | `AppVersion` | `app_versions` | 앱 버전 (ios, android) |
 | `CafeteriaMenu` | `cafeteria_menus` | 학식 메뉴 |
 
+`Report` 기준 enum:
+- `targetType`: `POST`, `COMMENT`, `MEMBER`
+- `status`: `PENDING`, `REVIEWING`, `ACTIONED`, `REJECTED`
+
 #### 7-2. API
 
 | Method | Path | 설명 |
@@ -566,9 +570,9 @@ SSE 운영 제약:
 
 #### 7-3. 완료 기준
 
-- [ ] 문의/신고 접수 동작
-- [ ] 앱 버전 비인증 조회 동작
-- [ ] 학식 메뉴 조회 동작
+- [x] 문의/신고 접수 동작
+- [x] 앱 버전 비인증 조회 동작
+- [x] 학식 메뉴 조회 동작
 
 ---
 
