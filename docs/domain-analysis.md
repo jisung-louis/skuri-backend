@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-07
+> 최종 수정일: 2026-03-08
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -667,7 +667,7 @@ Phase 8 댓글 알림 정책:
 
 ## 6. 패키지 구조
 
-> 현재 코드베이스(Phase 2 TaxiParty 구현 반영 시점) 기준 구조입니다.
+> 현재 코드베이스(Phase 7 Support 구현 반영 시점) 기준 구조입니다.
 
 ```
 com.skuri.skuri_backend
@@ -1309,15 +1309,15 @@ public class PartyMessageService {
 
 - [ ] **Phase 2: 핵심 비즈니스**
   - [x] TaxiParty 도메인 구현
-  - [ ] Chat 도메인 구현 (WebSocket)
+  - [x] Chat 도메인 구현 (WebSocket)
   - [ ] 도메인 이벤트 + Notification 인프라
   - [ ] FCM 푸시 연동
 
-- [ ] **Phase 3: 부가 기능**
+- [x] **Phase 3: 부가 기능**
   - [x] Notice 도메인 + RSS 크롤러
-- [x] Board 도메인 (무제한 depth 댓글, flat list 조회, 부모 삭제 정책 B 반영)
-  - [ ] Academic 도메인
-  - [ ] Support 도메인
+  - [x] Board 도메인 (무제한 depth 댓글, flat list 조회, 부모 삭제 정책 B 반영)
+  - [x] Academic 도메인
+  - [x] Support 도메인
 
 - [ ] **Phase 4: 데이터 마이그레이션**
   - [ ] Firestore → MySQL 데이터 이관 스크립트
