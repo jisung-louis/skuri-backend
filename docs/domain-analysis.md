@@ -191,7 +191,7 @@ Hooks:
 동시성 제어:
   - Party 엔티티의 `@Version` 기반 Optimistic Lock으로 동시 동승 요청/수락 충돌을 방어
   - 같은 사용자의 파티 생성/동승 요청/수락 경로는 `members` row lock으로 직렬화하여 `ALREADY_IN_PARTY` 불변식을 보존
-  - `join_requests`는 `(party_id, requester_id, status)` unique 제약으로 동일 파티 `PENDING` 중복 요청을 차단
+  - 같은 사용자의 동승 요청은 `members` row lock 하에서 `PENDING` 존재 여부를 확인해 동일 파티 live request 중복을 차단하고, 취소/거절 이후 재요청 이력은 허용
   - 충돌 시 `PARTY_CONCURRENT_MODIFICATION` 에러로 재시도 유도
 
 저장소 설계:
