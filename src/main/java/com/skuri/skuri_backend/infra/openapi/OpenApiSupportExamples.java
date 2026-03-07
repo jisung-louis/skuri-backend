@@ -1,0 +1,222 @@
+package com.skuri.skuri_backend.infra.openapi;
+
+public final class OpenApiSupportExamples {
+
+    private OpenApiSupportExamples() {
+    }
+
+    public static final String SUCCESS_INQUIRY_CREATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "inquiry_uuid",
+                "status": "PENDING",
+                "createdAt": "2026-02-03T12:00:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_MY_INQUIRIES = """
+            {
+              "success": true,
+              "data": [
+                {
+                  "id": "inquiry_uuid",
+                  "type": "BUG",
+                  "subject": "앱 오류 문의",
+                  "content": "채팅 화면에서 오류가 발생합니다.",
+                  "status": "PENDING",
+                  "createdAt": "2026-02-03T12:00:00",
+                  "updatedAt": "2026-02-03T12:00:00"
+                }
+              ]
+            }
+            """;
+
+    public static final String SUCCESS_REPORT_CREATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "report_uuid",
+                "status": "PENDING",
+                "createdAt": "2026-03-05T12:10:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_APP_VERSION = """
+            {
+              "success": true,
+              "data": {
+                "platform": "ios",
+                "minimumVersion": "1.5.0",
+                "forceUpdate": false,
+                "message": "새로운 기능이 추가되었습니다.",
+                "title": "업데이트 안내",
+                "showButton": true,
+                "buttonText": "업데이트",
+                "buttonUrl": "https://apps.apple.com/..."
+              }
+            }
+            """;
+
+    public static final String SUCCESS_CAFETERIA_MENU = """
+            {
+              "success": true,
+              "data": {
+                "weekId": "2026-W06",
+                "weekStart": "2026-02-03",
+                "weekEnd": "2026-02-07",
+                "menus": {
+                  "2026-02-03": {
+                    "rollNoodles": ["우동", "김밥"],
+                    "theBab": ["돈까스", "된장찌개"],
+                    "fryRice": ["볶음밥", "짜장면"]
+                  }
+                }
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_INQUIRIES_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "content": [
+                  {
+                    "id": "inquiry_uuid",
+                    "memberId": "user_uuid",
+                    "type": "BUG",
+                    "subject": "채팅 화면 오류",
+                    "content": "채팅 진입 시 앱이 종료됩니다.",
+                    "status": "PENDING",
+                    "memo": null,
+                    "userEmail": "user@sungkyul.ac.kr",
+                    "userName": "스쿠리유저",
+                    "userRealname": "홍길동",
+                    "userStudentId": "20201234",
+                    "createdAt": "2026-03-05T12:00:00",
+                    "updatedAt": "2026-03-05T12:00:00"
+                  }
+                ],
+                "page": 0,
+                "size": 20,
+                "totalElements": 53,
+                "totalPages": 3,
+                "hasNext": true,
+                "hasPrevious": false
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_INQUIRY_STATUS_UPDATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "inquiry_uuid",
+                "memberId": "user_uuid",
+                "type": "BUG",
+                "subject": "채팅 화면 오류",
+                "content": "채팅 진입 시 앱이 종료됩니다.",
+                "status": "RESOLVED",
+                "memo": "재현 후 수정 배포 완료",
+                "userEmail": "user@sungkyul.ac.kr",
+                "userName": "스쿠리유저",
+                "userRealname": "홍길동",
+                "userStudentId": "20201234",
+                "createdAt": "2026-03-05T12:00:00",
+                "updatedAt": "2026-03-05T12:30:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_REPORTS_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "content": [
+                  {
+                    "id": "report_uuid",
+                    "reporterId": "user_uuid",
+                    "targetType": "POST",
+                    "targetId": "post_uuid",
+                    "targetAuthorId": "target_user_uuid",
+                    "category": "SPAM",
+                    "reason": "광고성 게시글입니다.",
+                    "status": "PENDING",
+                    "action": null,
+                    "memo": null,
+                    "createdAt": "2026-03-05T12:10:00",
+                    "updatedAt": "2026-03-05T12:10:00"
+                  }
+                ],
+                "page": 0,
+                "size": 20,
+                "totalElements": 18,
+                "totalPages": 1,
+                "hasNext": false,
+                "hasPrevious": false
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_REPORT_STATUS_UPDATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "report_uuid",
+                "reporterId": "user_uuid",
+                "targetType": "POST",
+                "targetId": "post_uuid",
+                "targetAuthorId": "target_user_uuid",
+                "category": "SPAM",
+                "reason": "광고성 게시글입니다.",
+                "status": "ACTIONED",
+                "action": "DELETE_POST",
+                "memo": "광고성 게시물 삭제 및 사용자 경고",
+                "createdAt": "2026-03-05T12:10:00",
+                "updatedAt": "2026-03-05T12:20:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_APP_VERSION_UPDATE = """
+            {
+              "success": true,
+              "data": {
+                "platform": "ios",
+                "minimumVersion": "1.6.0",
+                "forceUpdate": true,
+                "updatedAt": "2026-02-19T12:00:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_CAFETERIA_MENU_CREATE = SUCCESS_CAFETERIA_MENU;
+
+    public static final String SUCCESS_ADMIN_CAFETERIA_MENU_UPDATE = SUCCESS_CAFETERIA_MENU;
+
+    public static final String ERROR_INQUIRY_NOT_FOUND =
+            "{\"success\":false,\"message\":\"문의를 찾을 수 없습니다.\",\"errorCode\":\"INQUIRY_NOT_FOUND\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_INVALID_INQUIRY_STATUS_TRANSITION =
+            "{\"success\":false,\"message\":\"허용되지 않는 문의 상태 전이입니다.\",\"errorCode\":\"INVALID_INQUIRY_STATUS_TRANSITION\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_REPORT_ALREADY_SUBMITTED =
+            "{\"success\":false,\"message\":\"동일 대상에 대한 중복 신고입니다.\",\"errorCode\":\"REPORT_ALREADY_SUBMITTED\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_CANNOT_REPORT_YOURSELF =
+            "{\"success\":false,\"message\":\"자기 자신은 신고할 수 없습니다.\",\"errorCode\":\"CANNOT_REPORT_YOURSELF\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_REPORT_NOT_FOUND =
+            "{\"success\":false,\"message\":\"신고를 찾을 수 없습니다.\",\"errorCode\":\"REPORT_NOT_FOUND\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_INVALID_REPORT_STATUS_TRANSITION =
+            "{\"success\":false,\"message\":\"허용되지 않는 신고 상태 전이입니다.\",\"errorCode\":\"INVALID_REPORT_STATUS_TRANSITION\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_CAFETERIA_MENU_NOT_FOUND =
+            "{\"success\":false,\"message\":\"학식 메뉴를 찾을 수 없습니다.\",\"errorCode\":\"CAFETERIA_MENU_NOT_FOUND\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_CAFETERIA_MENU_ALREADY_EXISTS =
+            "{\"success\":false,\"message\":\"이미 등록된 주차의 학식 메뉴입니다.\",\"errorCode\":\"CAFETERIA_MENU_ALREADY_EXISTS\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+}

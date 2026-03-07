@@ -59,6 +59,14 @@ public enum ErrorCode {
     NOTICE_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_COMMENT_NOT_FOUND", "공지 댓글을 찾을 수 없습니다."),
     NOT_NOTICE_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_NOTICE_COMMENT_AUTHOR", "공지 댓글 작성자만 삭제할 수 있습니다."),
     COMMENT_ALREADY_DELETED(HttpStatus.CONFLICT, "COMMENT_ALREADY_DELETED", "이미 삭제된 댓글입니다."),
+    INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "INQUIRY_NOT_FOUND", "문의를 찾을 수 없습니다."),
+    INVALID_INQUIRY_STATUS_TRANSITION(HttpStatus.CONFLICT, "INVALID_INQUIRY_STATUS_TRANSITION", "허용되지 않는 문의 상태 전이입니다."),
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "REPORT_NOT_FOUND", "신고를 찾을 수 없습니다."),
+    REPORT_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "REPORT_ALREADY_SUBMITTED", "동일 대상에 대한 중복 신고입니다."),
+    CANNOT_REPORT_YOURSELF(HttpStatus.BAD_REQUEST, "CANNOT_REPORT_YOURSELF", "자기 자신은 신고할 수 없습니다."),
+    INVALID_REPORT_STATUS_TRANSITION(HttpStatus.CONFLICT, "INVALID_REPORT_STATUS_TRANSITION", "허용되지 않는 신고 상태 전이입니다."),
+    CAFETERIA_MENU_NOT_FOUND(HttpStatus.NOT_FOUND, "CAFETERIA_MENU_NOT_FOUND", "학식 메뉴를 찾을 수 없습니다."),
+    CAFETERIA_MENU_ALREADY_EXISTS(HttpStatus.CONFLICT, "CAFETERIA_MENU_ALREADY_EXISTS", "이미 등록된 주차의 학식 메뉴입니다."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;

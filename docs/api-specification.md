@@ -1944,18 +1944,50 @@ Authorization:Bearer <firebase_id_token>
 #### GET /v1/inquiries/my
 내 문의 목록
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "inquiry_uuid",
+      "type": "BUG",
+      "subject": "앱 오류 문의",
+      "content": "채팅 화면에서 오류가 발생합니다.",
+      "status": "PENDING",
+      "createdAt": "2026-02-03T12:00:00Z",
+      "updatedAt": "2026-02-03T12:00:00Z"
+    }
+  ]
+}
+```
+
 ### 8.2 신고
 
 #### POST /v1/reports
 신고 등록
+
+**targetType:** `POST` | `COMMENT` | `MEMBER`
 
 **Request:**
 ```json
 {
   "targetType": "POST",
   "targetId": "post_uuid",
-  "category": "spam",
+  "category": "SPAM",
   "reason": "광고성 게시글입니다."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "report_uuid",
+    "status": "PENDING",
+    "createdAt": "2026-03-05T12:10:00Z"
+  }
 }
 ```
 
@@ -1963,6 +1995,8 @@ Authorization:Bearer <firebase_id_token>
 
 #### GET /v1/app-versions/{platform}
 앱 버전 정보 (Public API)
+
+- 저장된 버전 정보가 없으면 기본 응답으로 `minimumVersion=1.0.0`, `forceUpdate=false`, `showButton=false`를 반환합니다.
 
 **Response:**
 ```json
@@ -1990,7 +2024,7 @@ Authorization:Bearer <firebase_id_token>
 
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
-| `date` | date | 조회 날짜 (기본: 오늘) |
+| `date` | date | 조회 날짜 (기본: 오늘, Asia/Seoul 기준) |
 
 **Response:**
 ```json
@@ -2044,7 +2078,12 @@ Authorization:Bearer <firebase_id_token>
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
 | `INQUIRY_NOT_FOUND` | 404 | 존재하지 않는 문의 |
+| `CAFETERIA_MENU_NOT_FOUND` | 404 | 존재하지 않는 학식 메뉴 |
+| `CAFETERIA_MENU_ALREADY_EXISTS` | 409 | 이미 등록된 주차의 학식 메뉴 |
+| `REPORT_NOT_FOUND` | 404 | 존재하지 않는 신고 |
 | `REPORT_ALREADY_SUBMITTED` | 409 | 동일 대상에 대한 중복 신고 |
+| `INVALID_INQUIRY_STATUS_TRANSITION` | 409 | 허용되지 않는 문의 상태 전이 |
+| `INVALID_REPORT_STATUS_TRANSITION` | 409 | 허용되지 않는 신고 상태 전이 |
 | `CANNOT_REPORT_YOURSELF` | 400 | 자기 자신을 신고 시도 |
 
 ---
@@ -3261,11 +3300,40 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "weekId": "2026-W08",
+    "weekStart": "2026-02-16",
+    "weekEnd": "2026-02-20",
+    "menus": {
+      "2026-02-16": {
+        "rollNoodles": ["우동", "김밥"],
+        "theBab": ["돈까스", "된장찌개"],
+        "fryRice": ["볶음밥", "짜장면"]
+      }
+    }
+  }
+}
+```
+
 #### PUT /v1/admin/cafeteria-menus/{weekId}
 학식 메뉴 수정
 
+**Request / Response:** `POST /v1/admin/cafeteria-menus`와 동일한 필드를 사용하며, 성공 시 `200 OK`로 전체 학식 메뉴 객체를 반환한다.
+
 #### DELETE /v1/admin/cafeteria-menus/{weekId}
 학식 메뉴 삭제
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null
+}
+```
 
 ---
 
@@ -3402,8 +3470,11 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `status` | string | 문의 상태 필터 (`PENDING`, `IN_PROGRESS`, `RESOLVED`) |
-| `page` | int | 페이지 번호 |
-| `size` | int | 페이지 크기 |
+| `page` | int | 페이지 번호 (기본 0, 0 이상) |
+| `size` | int | 페이지 크기 (기본 20, 1~100) |
+
+- `page < 0` 또는 `size < 1 || size > 100`이면 `422 VALIDATION_ERROR`
+- `status`가 enum 범위를 벗어나면 `400 INVALID_REQUEST`
 
 **Response (200 OK):**
 ```json
@@ -3416,13 +3487,23 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
         "memberId": "user_uuid",
         "type": "BUG",
         "subject": "채팅 화면 오류",
+        "content": "채팅 진입 시 앱이 종료됩니다.",
         "status": "PENDING",
-        "createdAt": "2026-03-05T12:00:00Z"
+        "memo": null,
+        "userEmail": "user@sungkyul.ac.kr",
+        "userName": "스쿠리유저",
+        "userRealname": "홍길동",
+        "userStudentId": "20201234",
+        "createdAt": "2026-03-05T12:00:00Z",
+        "updatedAt": "2026-03-05T12:00:00Z"
       }
     ],
     "page": 0,
     "size": 20,
-    "totalElements": 53
+    "totalElements": 53,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrevious": false
   }
 }
 ```
@@ -3438,6 +3519,28 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "inquiry_uuid",
+    "memberId": "user_uuid",
+    "type": "BUG",
+    "subject": "채팅 화면 오류",
+    "content": "채팅 진입 시 앱이 종료됩니다.",
+    "status": "RESOLVED",
+    "memo": "재현 후 수정 배포 완료",
+    "userEmail": "user@sungkyul.ac.kr",
+    "userName": "스쿠리유저",
+    "userRealname": "홍길동",
+    "userStudentId": "20201234",
+    "createdAt": "2026-03-05T12:00:00Z",
+    "updatedAt": "2026-03-05T12:30:00Z"
+  }
+}
+```
+
 #### GET /v1/admin/reports
 신고 전체 목록 조회 (관리자)
 
@@ -3447,8 +3550,11 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 |---------|------|------|
 | `status` | string | 신고 상태 필터 (`PENDING`, `REVIEWING`, `ACTIONED`, `REJECTED`) |
 | `targetType` | string | 신고 대상 필터 (`POST`, `COMMENT`, `MEMBER`) |
-| `page` | int | 페이지 번호 |
-| `size` | int | 페이지 크기 |
+| `page` | int | 페이지 번호 (기본 0, 0 이상) |
+| `size` | int | 페이지 크기 (기본 20, 1~100) |
+
+- `page < 0` 또는 `size < 1 || size > 100`이면 `422 VALIDATION_ERROR`
+- `status`, `targetType`이 enum 범위를 벗어나면 `400 INVALID_REQUEST`
 
 **Response (200 OK):**
 ```json
@@ -3461,14 +3567,22 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
         "reporterId": "user_uuid",
         "targetType": "POST",
         "targetId": "post_uuid",
+        "targetAuthorId": "target_user_uuid",
         "category": "SPAM",
+        "reason": "광고성 게시글입니다.",
         "status": "PENDING",
-        "createdAt": "2026-03-05T12:10:00Z"
+        "action": null,
+        "memo": null,
+        "createdAt": "2026-03-05T12:10:00Z",
+        "updatedAt": "2026-03-05T12:10:00Z"
       }
     ],
     "page": 0,
     "size": 20,
-    "totalElements": 18
+    "totalElements": 18,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
   }
 }
 ```
@@ -3485,6 +3599,27 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "report_uuid",
+    "reporterId": "user_uuid",
+    "targetType": "POST",
+    "targetId": "post_uuid",
+    "targetAuthorId": "target_user_uuid",
+    "category": "SPAM",
+    "reason": "광고성 게시글입니다.",
+    "status": "ACTIONED",
+    "action": "DELETE_POST",
+    "memo": "광고성 게시물 삭제 및 사용자 경고",
+    "createdAt": "2026-03-05T12:10:00Z",
+    "updatedAt": "2026-03-05T12:20:00Z"
+  }
+}
+```
+
 ---
 
 ### 12.9 에러 코드
@@ -3492,6 +3627,15 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
 | `ADMIN_REQUIRED` | 403 | 관리자 권한 필요 |
+
+---
+
+> 변경 이력
+> - 2026-03-07: Support API 계약 동기화
+>   - `Report.targetType`를 `POST | COMMENT | MEMBER`로 통일
+>   - `Report.status`를 `PENDING | REVIEWING | ACTIONED | REJECTED`로 통일
+>   - Admin 문의/신고 목록 응답을 `PageResponse` 전체 필드(`totalPages`, `hasNext`, `hasPrevious`)와 일치하도록 보정
+>   - 앱 버전/학식 메뉴 관리자 응답 예시 보강
 
 ---
 

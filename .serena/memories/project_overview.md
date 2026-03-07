@@ -25,7 +25,8 @@ domain/
 ├── board/        # 커뮤니티 게시판 (게시글/댓글/좋아요/북마크)
 ├── notice/       # 학교 공지 (RSS 수집, 상세 크롤링, 읽음/좋아요/댓글)
 ├── academic/     # 학사 정보 (강의 검색, 시간표, 학사 일정, 관리자 강의/학사일정 관리)
-└── app/          # 앱 공지/버전 관리
+├── app/          # 앱 공지
+└── support/      # 문의/신고, 앱 버전, 학식 메뉴
 ```
 
 ## 인프라 구조
@@ -53,6 +54,10 @@ common/
 - Notice 엔티티는 `rssPreview`(RSS 미리보기), `summary`(향후 AI 요약 예약), `bodyText`(정규화 plain text), `bodyHtml`(RN 렌더링용 원문 HTML), `attachments`로 구분한다.
 - AppNotice 관리자 수정 API: `PATCH /v1/admin/app-notices/{appNoticeId}`
 - AppNotice PATCH는 전달한 필드만 반영하고, 누락되거나 `null`인 필드는 유지
+- Support 도메인은 `Inquiry`, `Report`, `AppVersion`, `CafeteriaMenu` 엔티티와 관리자 운영 API를 포함한다.
+- `GET /v1/app-versions/{platform}`는 공개 API이며, 저장 데이터가 없으면 기본 `minimumVersion=1.0.0`, `forceUpdate=false`, `showButton=false` 응답을 반환한다.
+- Support `Report`는 `reporterId + targetType + targetId` 기준으로 전 상태에서 중복 신고를 허용하지 않는다.
+- Support `Report` enum 기준은 API 계약 우선으로 `targetType=POST|COMMENT|MEMBER`, `status=PENDING|REVIEWING|ACTIONED|REJECTED`를 사용한다.
 - 학사 일정 알림은 Phase 8 Notification 인프라에서 구현 예정이며, 기본 정책은 중요 일정(`isPrimary=true`) `startDate` 당일 오전 09:00 발송, 사용자 옵션은 전날 추가/모든 일정 확장이다.
 - Phase 8 Notification 설계는 현행 RN + Firebase Cloud Functions 푸시 정책을 기본으로 이관하며, `allNotifications`/도메인 토글 반영이 불일치한 이벤트는 구현 시 정규화 여부를 명시한다.
 - 댓글 알림 정책은 `commentNotifications`(Board/Notice 공통 댓글 알림)와 `bookmarkedPostCommentNotifications`(북마크 게시글 댓글 알림)로 분리된다.
