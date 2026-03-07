@@ -98,6 +98,7 @@ Hooks:
     - allNotifications, partyNotifications, noticeNotifications
     - boardLikeNotifications, commentNotifications, bookmarkedPostCommentNotifications
     - systemNotifications
+    - academicScheduleNotifications, academicScheduleDayBeforeEnabled, academicScheduleAllEventsEnabled
     - noticeNotificationsDetail (카테고리별 상세 설정)
   - LinkedAccount
     - provider, providerId, email, providerDisplayName, photoURL
@@ -586,7 +587,7 @@ Hooks:
 |--------|----------|-------------------|
 | **Auth** | Firebase Auth (Google Sign-In) | Spring Security + Firebase Admin SDK (ID Token 검증, SecurityContext 설정) |
 | **Push** | FCM + Cloud Functions | FCM (Firebase Admin SDK) |
-| **Notification** | userNotifications 컬렉션 | UserNotification 테이블 + 이벤트 리스너 |
+| **Notification** | userNotifications 컬렉션 + users.fcmTokens[] | `user_notifications` + `fcm_tokens` 테이블 + 이벤트 리스너 |
 | **Storage** | Firebase Storage | AWS S3 또는 GCS |
 | **Realtime** | Firestore onSnapshot | SSE + WebSocket (STOMP + SockJS) |
 | **Scheduler** | Cloud Functions onSchedule | Spring Scheduler / Quartz |
@@ -608,8 +609,11 @@ Hooks:
 
 구성요소:
   - UserNotification (인앱 알림 인박스)
+  - FcmToken (멀티 디바이스 토큰 저장)
   - PushNotificationService (FCM 전송)
   - DomainEventNotificationListener (이벤트 수신)
+  - NotificationSseService (실시간 알림/미읽음 수 SSE)
+  - AcademicScheduleReminderScheduler (09:00 Asia/Seoul 리마인더 발행)
 
 UserNotification 엔티티:
   - id, userId, type, title, message
@@ -624,24 +628,28 @@ UserNotification 엔티티:
 
 정책 원칙:
   - Spring Notification 인프라는 현행 RN + Firebase Cloud Functions 운영 정책을 기본으로 이관한다.
+  - 저장 모델은 Firestore가 아니라 MySQL `user_notifications`, `fcm_tokens`를 사용한다.
+  - 상태 변경 성공 이후 `after-commit`으로 이벤트를 발행한다.
+  - 인앱 저장 실패/푸시 실패는 핵심 비즈니스 트랜잭션을 롤백시키지 않는다.
   - 다만 `allNotifications` 및 도메인 토글 반영이 현재 이벤트마다 일관되지 않으므로, Phase 8 구현 시 "현재 동작 유지"와 "설정 일관성 정규화" 중 무엇을 택하는지 이벤트별로 명시한다.
 
 현행 운영 정책 기준:
   - `PARTY_CREATED`: 생성자 제외 전체 사용자 대상, `partyNotifications` 반영, 인앱 인박스 미생성
-  - `JOIN_REQUEST`: 파티 리더 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
-  - `JOIN_ACCEPTED` / `JOIN_DECLINED`: 요청자 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `PARTY_JOIN_REQUEST`: 파티 리더 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED`: 요청자 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
   - `PARTY_CLOSED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 미생성
   - `PARTY_ARRIVED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
   - `SETTLEMENT_COMPLETED`: 파티 전체 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
   - `MEMBER_KICKED`: 강퇴된 멤버 대상, 자진 이탈과 리더 제외, 현재 개별 토글 미반영, 인앱 인박스 생성
   - `PARTY_ENDED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
   - `CHAT_MESSAGE`(공개 채팅): 채팅방 멤버 대상, `allNotifications` + 채팅방 mute 반영, 인앱 인박스 미생성
-  - `CHAT_MESSAGE`(파티 채팅): 파티 멤버 대상, 채팅 mute 중심 정책이며 전역 토글 반영은 현재 비일관, 인앱 인박스 미생성
+  - `CHAT_MESSAGE`(파티 채팅): 파티 멤버 대상, 채팅 mute 중심 parity를 유지하고 전역 토글은 현재 미반영, 인앱 인박스 미생성
   - `POST_LIKED`: 게시글 작성자 대상, 자기 좋아요 제외, `boardLikeNotifications` 반영, 인앱 인박스 생성
   - `COMMENT_CREATED`(게시글): 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 대상, 자기 자신 제외, `commentNotifications` + `bookmarkedPostCommentNotifications` 반영, 중복 대상자는 1회 dedupe 후 인앱 인박스 생성
-  - `COMMENT_CREATED`(공지): 공지 작성자 또는 부모 댓글 작성자 대상, 자기 자신 제외, `commentNotifications` 반영 및 인앱 인박스 생성
+  - `COMMENT_CREATED`(공지): 현재 `Notice.author`는 문자열 필드만 있어 공지 작성자 식별이 불가능하므로, 부모 댓글 작성자 대상 답글 알림만 발송
   - `NOTICE`: `allNotifications` + `noticeNotifications` + `noticeNotificationsDetail` 반영
-  - `APP_NOTICE`: 일반 공지는 `allNotifications` + `systemNotifications` 반영, `urgent`는 설정 무시 강제 발송
+  - `APP_NOTICE`: 일반 공지는 `allNotifications` + `systemNotifications` 반영, `AppNoticePriority.HIGH`는 설정 무시 강제 발송
+  - `ACADEMIC_SCHEDULE`: `allNotifications` + `academicScheduleNotifications` 반영, 기본은 중요 일정(`isPrimary=true`)만 대상
 
 Phase 8 댓글 알림 정책:
   - Board/Notice 공통 댓글 알림 설정은 `commentNotifications`를 사용한다.
@@ -650,8 +658,8 @@ Phase 8 댓글 알림 정책:
   - 동일 사용자가 여러 수신 조건에 동시에 해당하면 푸시/인앱 인박스는 1회만 생성한다.
 
 학사 일정 리마인더 정책:
-  - 이벤트명: `AcademicScheduleReminderEvent`
-  - 기본 발송 시각: 오전 09:00
+  - 이벤트명: `AcademicScheduleReminder`
+  - 기본 발송 시각: 오전 09:00 (Asia/Seoul)
   - 기본 대상: 중요 일정(`isPrimary = true`)
   - 사용자 옵션:
     - 전날 오전 09:00 추가
@@ -718,6 +726,19 @@ com.skuri.skuri_backend
 │   │   │   ├── MemberRepositoryCustom.java
 │   │   │   ├── MemberRepositoryImpl.java
 │   │   │   └── LinkedAccountRepository.java
+│   │   └── service
+│   │
+│   ├── notification
+│   │   ├── controller
+│   │   ├── dto
+│   │   │   ├── request
+│   │   │   └── response
+│   │   ├── entity
+│   │   ├── event
+│   │   ├── exception
+│   │   ├── model
+│   │   ├── repository
+│   │   ├── scheduler
 │   │   └── service
 │   │
 │   └── taxiparty
@@ -825,6 +846,9 @@ public class NotificationSetting {
     private boolean commentNotifications = true;
     private boolean bookmarkedPostCommentNotifications = true;
     private boolean systemNotifications = true;
+    private boolean academicScheduleNotifications = true;
+    private boolean academicScheduleDayBeforeEnabled = true;
+    private boolean academicScheduleAllEventsEnabled = false;
 
     @Convert(converter = BooleanMapJsonConverter.class)
     @Column(columnDefinition = "JSON")
@@ -1310,8 +1334,8 @@ public class PartyMessageService {
 - [ ] **Phase 2: 핵심 비즈니스**
   - [x] TaxiParty 도메인 구현
   - [x] Chat 도메인 구현 (WebSocket)
-  - [ ] 도메인 이벤트 + Notification 인프라
-  - [ ] FCM 푸시 연동
+  - [x] 도메인 이벤트 + Notification 인프라
+  - [x] FCM 푸시 연동
 
 - [x] **Phase 3: 부가 기능**
   - [x] Notice 도메인 + RSS 크롤러
@@ -1338,3 +1362,4 @@ public class PartyMessageService {
 > - 2026-02-03: 초안 작성 (도메인 분석 완료)
 > - 2026-03-05: Board 도메인 구현 반영 — 댓글 depth 1 제한, 부모 placeholder soft delete 정책(B), 내 게시글/북마크 조회 책임 추가
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리
+> - 2026-03-08: Phase 8 Notification 인프라 반영 — RDB 저장 모델(`user_notifications`, `fcm_tokens`), after-commit 이벤트, 학사 일정 알림 설정, `PARTY_*` canonical enum 동기화

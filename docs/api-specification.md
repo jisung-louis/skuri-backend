@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-07
+> 최종 수정일: 2026-03-08
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md)
 
 ---
@@ -124,8 +124,8 @@ Authorization: Bearer <firebase_id_token>
 ## 2. Member API
 
 > 구현 상태 (2026-03-02):
-> - 구현 완료: `POST /v1/members`, `GET /v1/members/me`, `PATCH /v1/members/me`, `PUT /v1/members/me/bank-account`, `PATCH /v1/members/me/notification-settings`, `GET /v1/members/{id}`
-> - 구현 예정: `DELETE /v1/members/me` (Phase 10), `POST/DELETE /v1/members/me/fcm-tokens` (Phase 8)
+> - 구현 완료: `POST /v1/members`, `GET /v1/members/me`, `PATCH /v1/members/me`, `PUT /v1/members/me/bank-account`, `PATCH /v1/members/me/notification-settings`, `GET /v1/members/{id}`, `POST/DELETE /v1/members/me/fcm-tokens`
+> - 구현 예정: `DELETE /v1/members/me` (Phase 10)
 
 ### 2.1 인증 및 로그인 플로우
 
@@ -289,6 +289,9 @@ Spring 서버 처리:
       "commentNotifications": true,
       "bookmarkedPostCommentNotifications": true,
       "systemNotifications": true,
+      "academicScheduleNotifications": true,
+      "academicScheduleDayBeforeEnabled": true,
+      "academicScheduleAllEventsEnabled": false,
       "noticeNotificationsDetail": {
         "news": true,
         "academy": true,
@@ -338,8 +341,8 @@ Spring 서버 처리:
 
 - 부분 업데이트 API입니다.
 - 요청 본문에 포함되지 않은 알림 필드는 기존 값을 유지합니다.
-- 런타임 기준으로 현재 지원되는 필드는 `allNotifications`, `partyNotifications`, `noticeNotifications`, `boardLikeNotifications`, `commentNotifications`, `bookmarkedPostCommentNotifications`, `systemNotifications`, `noticeNotificationsDetail`입니다.
-- Phase 8 학사 일정 알림 구현 시 `academicScheduleNotifications`, `academicScheduleDayBeforeEnabled`, `academicScheduleAllEventsEnabled` 계열 필드가 추가될 예정입니다. 현재 런타임 계약에는 포함되지 않습니다.
+- 런타임 기준으로 현재 지원되는 필드는 `allNotifications`, `partyNotifications`, `noticeNotifications`, `boardLikeNotifications`, `commentNotifications`, `bookmarkedPostCommentNotifications`, `systemNotifications`, `academicScheduleNotifications`, `academicScheduleDayBeforeEnabled`, `academicScheduleAllEventsEnabled`, `noticeNotificationsDetail`입니다.
+- 학사 일정 알림 기본값은 `academicScheduleNotifications=true`, `academicScheduleDayBeforeEnabled=true`, `academicScheduleAllEventsEnabled=false`입니다.
 
 **Request:**
 ```json
@@ -348,6 +351,9 @@ Spring 서버 처리:
   "noticeNotifications": false,
   "commentNotifications": true,
   "bookmarkedPostCommentNotifications": true,
+  "academicScheduleNotifications": true,
+  "academicScheduleDayBeforeEnabled": true,
+  "academicScheduleAllEventsEnabled": false,
   "noticeNotificationsDetail": {
     "news": true,
     "academy": false
@@ -388,10 +394,13 @@ Spring 서버 처리:
 
 ### 2.4 FCM 토큰
 
-> 구현 예정: Phase 8 (Notification 인프라)
+> 구현 완료: Phase 8 (Notification 인프라)
 
 #### POST /v1/members/me/fcm-tokens
 FCM 토큰 등록
+
+- 같은 토큰이 이미 존재하면 소유자/플랫폼을 현재 요청 기준으로 갱신합니다.
+- 멀티 디바이스를 지원하며, 토큰별 unique 제약을 사용합니다.
 
 **Request:**
 ```json
@@ -401,13 +410,31 @@ FCM 토큰 등록
 }
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
 #### DELETE /v1/members/me/fcm-tokens
 FCM 토큰 삭제
+
+- 존재하지 않는 토큰이거나 본인 소유가 아니어도 성공 응답을 반환합니다.
 
 **Request:**
 ```json
 {
   "token": "fcm_device_token"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": null
 }
 ```
 
@@ -2097,9 +2124,11 @@ Authorization:Bearer <firebase_id_token>
 
 **Query Parameters:**
 
-| 파라미터 | 타입 | 설명 |
-|---------|------|------|
-| `unreadOnly` | boolean | 읽지 않은 알림만 |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|--------|------|
+| `page` | int | 0 | 0부터 시작하는 페이지 번호 |
+| `size` | int | 20 | 페이지 크기 (`1~100`, 100 초과 시 100으로 clamp) |
+| `unreadOnly` | boolean | false | `true`면 읽지 않은 알림만 조회 |
 
 **Response:**
 ```json
@@ -2113,7 +2142,8 @@ Authorization:Bearer <firebase_id_token>
         "title": "동승 요청이 승인되었어요",
         "message": "파티에 합류하세요!",
         "data": {
-          "partyId": "party_uuid"
+          "partyId": "party_uuid",
+          "requestId": "join_request_uuid"
         },
         "isRead": false,
         "createdAt": "2026-02-03T12:00:00Z"
@@ -2121,6 +2151,10 @@ Authorization:Bearer <firebase_id_token>
     ],
     "page": 0,
     "size": 20,
+    "totalElements": 42,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrevious": false,
     "unreadCount": 5
   }
 }
@@ -2144,11 +2178,49 @@ Authorization:Bearer <firebase_id_token>
 #### POST /v1/notifications/{notificationId}/read
 알림 읽음 처리
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "notification_uuid",
+    "type": "PARTY_JOIN_ACCEPTED",
+    "title": "동승 요청이 승인되었어요",
+    "message": "파티에 합류하세요!",
+    "data": {
+      "partyId": "party_uuid",
+      "requestId": "join_request_uuid"
+    },
+    "isRead": true,
+    "createdAt": "2026-02-03T12:00:00Z"
+  }
+}
+```
+
 #### POST /v1/notifications/read-all
 모든 알림 읽음 처리
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "updatedCount": 3,
+    "unreadCount": 0
+  }
+}
+```
+
 #### DELETE /v1/notifications/{notificationId}
 알림 삭제
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": null
+}
+```
 
 ### 9.3 에러 코드
 
@@ -2157,37 +2229,48 @@ Authorization:Bearer <firebase_id_token>
 | `NOTIFICATION_NOT_FOUND` | 404 | 존재하지 않는 알림 |
 | `NOT_NOTIFICATION_OWNER` | 403 | 다른 사람의 알림 접근 시도 |
 
-### 9.4 구현 예정 알림 정책
+### 9.4 알림 정책 및 저장 모델
 
-> Phase 8 Spring Notification 인프라는 현행 RN + Firebase Cloud Functions 운영 정책을 기본으로 이관합니다.
+> Phase 8 Spring Notification 인프라는 `references/index.ts`의 Cloud Functions 운영 정책을 기준으로 parity를 맞추되,
+> 런타임 계약의 canonical enum/DTO는 Spring API 기준으로 정렬합니다.
+
+- 저장 모델:
+  - 인앱 인박스: `user_notifications`
+  - FCM 토큰: `fcm_tokens`
+  - 레퍼런스의 Firestore(`users/{uid}.fcmTokens[]`, `userNotifications/...`)는 운영 정책 비교용 참고 자료입니다.
+- 이벤트 발행 시점:
+  - 상태 변경 성공 후 `after-commit`으로 `ApplicationEventPublisher`에 전달합니다.
+  - 알림 저장/푸시 실패는 핵심 트랜잭션을 롤백시키지 않습니다.
 
 | 알림 타입 | 기준 트리거 | 수신 대상 | 설정 반영 | 인앱 인박스 |
 |----------|-------------|-----------|-----------|-------------|
 | `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | `partyNotifications` | X |
-| `JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | 현재 개별 토글 미반영 | O |
-| `JOIN_ACCEPTED` / `JOIN_DECLINED` | 요청 상태 변경 | 요청자 | 현재 개별 토글 미반영 | O |
+| `PARTY_JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | 현재 개별 토글 미반영 | O |
+| `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED` | 요청 상태 변경 | 요청자 | 현재 개별 토글 미반영 | O |
 | `PARTY_CLOSED` / `PARTY_ARRIVED` | 파티 상태 변경 | 리더 제외 파티 멤버 | 현재 개별 토글 미반영 | `PARTY_CLOSED`: X / `PARTY_ARRIVED`: O |
 | `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | 현재 개별 토글 미반영 | O |
 | `MEMBER_KICKED` | 강퇴 감지 | 강퇴된 멤버 | 현재 개별 토글 미반영 | O |
 | `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | 현재 개별 토글 미반영 | O |
 | `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 | 채팅방 멤버(송신자 제외) | `allNotifications` + 채팅방 mute | X |
-| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 | 파티 멤버(송신자 제외) | 채팅 mute 중심, 전역 토글 반영은 현행 비일관 | X |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 | 파티 멤버(송신자 제외) | 채팅 mute 중심 parity 우선, 전역 토글은 현재 미반영 | X |
 | `POST_LIKED` | 게시글 좋아요 | 게시글 작성자 | `boardLikeNotifications` | O |
 | `COMMENT_CREATED` (게시글) | 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | `commentNotifications` + `bookmarkedPostCommentNotifications` (중복 수신자는 1회 dedupe) | O |
-| `COMMENT_CREATED` (공지) | 댓글/답글 생성 | 공지 작성자 또는 부모 댓글 작성자 | `commentNotifications` | O |
+| `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `commentNotifications` | O |
 | `NOTICE` | 새 학교 공지 | 공지 허용 사용자 | `allNotifications` + `noticeNotifications` + `noticeNotificationsDetail` | O |
-| `APP_NOTICE` | 앱 공지 생성 | 일반: 시스템 알림 허용 사용자 / 긴급: 전체 사용자 | 일반: `allNotifications` + `systemNotifications`, 긴급: 설정 무시 | O |
+| `APP_NOTICE` | 앱 공지 생성 | 일반: 시스템 알림 허용 사용자 / `HIGH`: 전체 사용자 | 일반: `allNotifications` + `systemNotifications`, `HIGH`는 설정 무시 | O |
 | `ACADEMIC_SCHEDULE` | 학사 일정 리마인더 | 학사 일정 알림 허용 사용자 | `allNotifications` + `academicScheduleNotifications` | O |
 
-- 학사 일정 리마인더는 `AcademicScheduleReminderEvent` 기반으로 처리한다.
+- 공지 댓글은 현재 `Notice.author`가 회원 식별자가 아닌 문자열이므로, 루트 댓글 작성자(공지 작성자) 알림은 런타임에서 보장하지 않습니다. 현재 구현은 부모 댓글 작성자 대상 답글 알림만 발송합니다.
+- 학사 일정 리마인더는 `AcademicScheduleReminder` 도메인 이벤트 기반으로 처리합니다.
 - 기본 정책:
   - 기준일: `AcademicSchedule.startDate`
-  - 시각: 오전 `09:00`
+  - 시각: 오전 `09:00 Asia/Seoul`
   - 대상: 중요 일정(`isPrimary = true`)
+  - 멀티데이 일정은 `startDate`를 기준으로 계산
 - 사용자 옵션:
   - 일정 전날 오전 `09:00` 추가
   - 중요 일정만이 아니라 모든 일정 대상으로 확장
-- 구현 시 `notificationSetting` 확장 예정 필드:
+- 사용자 설정 필드:
   - `academicScheduleNotifications`
   - `academicScheduleDayBeforeEnabled`
   - `academicScheduleAllEventsEnabled`
@@ -2660,6 +2743,7 @@ type NotificationDataPayload = {
   commentId?: string;
   noticeId?: string;
   appNoticeId?: string;
+  academicScheduleId?: string;
 };
 
 type NotificationPayload = {
@@ -2678,7 +2762,8 @@ type NotificationPayload = {
     | "POST_LIKED"
     | "COMMENT_CREATED"
     | "NOTICE"
-    | "APP_NOTICE";
+    | "APP_NOTICE"
+    | "ACADEMIC_SCHEDULE";
   title: string;
   message: string;
   data: NotificationDataPayload;
@@ -2722,6 +2807,20 @@ data: {
   "createdAt": "2026-02-03T12:00:00"
 }
 
+// NOTIFICATION (학사 일정)
+event: NOTIFICATION
+data: {
+  "id": "notification_uuid",
+  "type": "ACADEMIC_SCHEDULE",
+  "title": "학사 일정 리마인더",
+  "message": "수강신청 일정이 오늘 시작돼요.",
+  "data": {
+    "academicScheduleId": "academic_schedule_uuid"
+  },
+  "isRead": false,
+  "createdAt": "2026-03-08T09:00:00"
+}
+
 // UNREAD_COUNT_CHANGED
 event: UNREAD_COUNT_CHANGED
 data: {
@@ -2741,8 +2840,8 @@ data: {
 |---------|---------|---------|
 | `PARTY_CREATED` | `partyId` | 파티 목록 |
 | `PARTY_JOIN_REQUEST` | `partyId`, `requestId` | 동승 요청 목록 |
-| `PARTY_JOIN_ACCEPTED` | `partyId` | 파티 상세 |
-| `PARTY_JOIN_DECLINED` | `partyId` | 파티 목록 |
+| `PARTY_JOIN_ACCEPTED` | `partyId`, `requestId` | 파티 상세 |
+| `PARTY_JOIN_DECLINED` | `partyId`, `requestId` | 파티 목록 |
 | `PARTY_CLOSED` | `partyId` | 파티 상세 |
 | `PARTY_ARRIVED` | `partyId` | 파티 상세 (정산) |
 | `PARTY_ENDED` | `partyId` | 파티 상세 |
@@ -2750,9 +2849,11 @@ data: {
 | `SETTLEMENT_COMPLETED` | `partyId` | 파티 상세 |
 | `CHAT_MESSAGE` | `chatRoomId` | 채팅방 |
 | `POST_LIKED` | `postId` | 게시글 상세 |
-| `COMMENT_CREATED` | `postId`, `commentId` | 게시글 상세 |
+| `COMMENT_CREATED` (게시글) | `postId`, `commentId` | 게시글 상세 |
+| `COMMENT_CREATED` (공지) | `noticeId`, `commentId` | 공지 상세 |
 | `NOTICE` | `noticeId` | 공지 상세 |
 | `APP_NOTICE` | `appNoticeId` | 앱 공지 상세 |
+| `ACADEMIC_SCHEDULE` | `academicScheduleId` | 학사 일정 상세 |
 
 ### 10.5 게시물 실시간 구독
 
@@ -3662,3 +3763,4 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강
 > - 2026-03-05: Board 계약 동기화 — 댓글 depth 1 제한, 부모 삭제 정책(B: placeholder soft delete), `/v1/members/me/posts|bookmarks` 및 Board 에러코드(`COMMENT_DEPTH_EXCEEDED`, `COMMENT_ALREADY_DELETED`) 반영
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, `commentNotifications` / `bookmarkedPostCommentNotifications` 계약 반영
+> - 2026-03-08: Phase 8 Notification 계약 반영 — `PARTY_*` canonical enum 정렬, Notification API pagination/FCM token/SSE strict DTO(`ACADEMIC_SCHEDULE`, `academicScheduleId`) 동기화, 학사 일정 알림 설정 필드 추가

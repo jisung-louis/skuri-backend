@@ -8224,6 +8224,525 @@
           ]
         }
       ]
+    },
+    {
+      "name": "08. Notification",
+      "description": "## 목적\n- Phase 8 Notification 인프라의 인박스/FCM token/SSE 계약을 수동 검증합니다.\n\n## 실행 전\n- `01. Member > 00. Core` 실행 후 `leaderToken`, `member1Token`, `adminToken`, `leaderId`, `member1Id` 확보\n- Core에서 생성한 앱 공지 ID(`notificationSeedAppNoticeId`)를 Scenario/Realtime에서 재사용합니다.\n\n## 하위 폴더\n- `00. Core`\n- `10. Scenario Regression`\n- `20. Contract Guard`\n- `30. Realtime`",
+      "item": [
+        {
+          "name": "00. Core",
+          "item": [
+            {
+              "name": "FCM 토큰 등록",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/members/me/fcm-tokens",
+                "description": "## 기능\n- member1 디바이스 FCM 토큰을 등록합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `01. Member > 00. Core` 실행 후 `member1Token` 확보\n\n## 기대 결과\n- HTTP 200\n- `ApiResponse.success=true`\n\n## 출력 변수\n- 없음",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"{{notificationFcmToken}}\",\n  \"platform\": \"ios\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "알림 시드 앱 공지 생성(201)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/admin/app-notices",
+                "description": "## 기능\n- Notification 파이프라인 검증용 앱 공지를 생성합니다. 생성 직후 전체 사용자 인박스/푸시 이벤트가 발생해야 합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `adminToken` 확보\n\n## 기대 결과\n- HTTP 201\n- 생성된 앱 공지 ID를 `notificationSeedAppNoticeId`에 저장",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Phase 8 Notification Seed\",\n  \"content\": \"Notification 인프라 수동 검증용 앱 공지입니다.\",\n  \"category\": \"GENERAL\",\n  \"priority\": \"NORMAL\",\n  \"imageUrls\": [],\n  \"actionUrl\": null,\n  \"publishedAt\": \"2026-03-08T09:00:00\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('appNoticeId 저장 가능', function () { pm.expect(data.id).to.be.a('string').and.not.empty; });",
+                      "pm.collectionVariables.set('notificationSeedAppNoticeId', data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 알림 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/notifications?page=0&size=20&unreadOnly=false",
+                "description": "## 기능\n- member1 인박스에서 방금 생성한 앱 공지 알림을 조회합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `알림 시드 앱 공지 생성(201)` 선행\n\n## 기대 결과\n- HTTP 200\n- `notificationMember1NotificationId` 저장"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const appNoticeId = pm.collectionVariables.get('notificationSeedAppNoticeId');",
+                      "const items = (((j || {}).data) || {}).content || [];",
+                      "const target = items.find(function (item) { return (((item || {}).data) || {}).appNoticeId === appNoticeId; });",
+                      "pm.test('시드 앱 공지 알림 존재', function () { pm.expect(target).to.exist; });",
+                      "if (target && target.id) pm.collectionVariables.set('notificationMember1NotificationId', target.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 미읽음 수 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/notifications/unread-count",
+                "description": "## 기능\n- member1 미읽음 알림 수를 조회합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `내 알림 목록 조회` 선행"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const count = (((j || {}).data) || {}).count;",
+                      "pm.test('count 존재', function () { pm.expect(count).to.be.a('number'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "단일 알림 읽음 처리",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/notifications/{{notificationMember1NotificationId}}/read",
+                "description": "## 기능\n- member1의 시드 알림 1건을 읽음 처리합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `내 알림 목록 조회` 선행"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('isRead=true 검증', function () { pm.expect((((j || {}).data) || {}).isRead).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "전체 읽음 처리",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/notifications/read-all",
+                "description": "## 기능\n- member1의 남은 미읽음 알림을 모두 읽음 처리합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `단일 알림 읽음 처리` 선행"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('unreadCount=0 또는 숫자 검증', function () { pm.expect((((j || {}).data) || {}).unreadCount).to.be.a('number'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "FCM 토큰 해제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/members/me/fcm-tokens",
+                "description": "## 기능\n- member1 FCM 토큰을 해제합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `FCM 토큰 등록` 선행",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"{{notificationFcmToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Scenario Regression",
+          "item": [
+            {
+              "name": "리더 알림 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{leaderToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/notifications?page=0&size=20&unreadOnly=false",
+                "description": "## 기능\n- 리더 인박스에서 같은 앱 공지 알림 ID를 조회해 타인 접근 권한 검증에 사용합니다.\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- `00. Core > 알림 시드 앱 공지 생성(201)` 선행"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const appNoticeId = pm.collectionVariables.get('notificationSeedAppNoticeId');",
+                      "const items = (((j || {}).data) || {}).content || [];",
+                      "const target = items.find(function (item) { return (((item || {}).data) || {}).appNoticeId === appNoticeId; });",
+                      "pm.test('리더 알림 존재', function () { pm.expect(target).to.exist; });",
+                      "if (target && target.id) pm.collectionVariables.set('notificationLeaderNotificationId', target.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "타인 알림 읽음 권한 검증(403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/notifications/{{notificationLeaderNotificationId}}/read",
+                "description": "## 기능\n- member1이 leader 알림을 읽음 처리하려고 시도해 `NOT_NOTIFICATION_OWNER`를 검증합니다.\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- `리더 알림 목록 조회` 선행"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=NOT_NOTIFICATION_OWNER 검증', function () { pm.expect(j.errorCode).to.eql('NOT_NOTIFICATION_OWNER'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 알림 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/notifications/{{notificationMember1NotificationId}}",
+                "description": "## 기능\n- member1이 시드 알림을 인박스에서 삭제합니다.\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- `00. Core > 내 알림 목록 조회` 선행"
+              }
+            },
+            {
+              "name": "시드 앱 공지 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/admin/app-notices/{{notificationSeedAppNoticeId}}",
+                "description": "## 기능\n- 수동 검증용 앱 공지를 삭제합니다.\n\n## 테스트 모드\n- Scenario Regression\n\n## 선행조건\n- `알림 시드 앱 공지 생성(201)` 선행"
+              }
+            }
+          ]
+        },
+        {
+          "name": "20. Contract Guard",
+          "item": [
+            {
+              "name": "FCM 토큰 등록 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/members/me/fcm-tokens",
+                "description": "## 기능\n- 빈 token과 잘못된 platform이 `VALIDATION_ERROR`로 차단되는지 확인합니다.\n\n## 테스트 모드\n- Contract Guard",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"\",\n  \"platform\": \"web\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=VALIDATION_ERROR 검증', function () { pm.expect(j.errorCode).to.eql('VALIDATION_ERROR'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "인증 없이 알림 목록 조회(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/notifications?page=0&size=20",
+                "description": "## 기능\n- 보호된 알림 목록 API가 인증 없이는 호출되지 않는지 확인합니다.\n\n## 테스트 모드\n- Contract Guard"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=UNAUTHORIZED 검증', function () { pm.expect(j.errorCode).to.eql('UNAUTHORIZED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "존재하지 않는 알림 읽음 처리(404)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/notifications/missing-notification-id/read",
+                "description": "## 기능\n- 존재하지 않는 알림 ID 읽음 처리가 `NOTIFICATION_NOT_FOUND`로 매핑되는지 확인합니다.\n\n## 테스트 모드\n- Contract Guard"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=NOTIFICATION_NOT_FOUND 검증', function () { pm.expect(j.errorCode).to.eql('NOTIFICATION_NOT_FOUND'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "인증 없이 알림 SSE 구독(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "text/event-stream"
+                  }
+                ],
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/sse/notifications",
+                "description": "## 기능\n- Notification SSE 구독 경로가 인증 필수인지 확인합니다.\n\n## 테스트 모드\n- Contract Guard"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=UNAUTHORIZED 검증', function () { pm.expect(j.errorCode).to.eql('UNAUTHORIZED'); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "30. Realtime",
+          "item": [
+            {
+              "name": "알림 SSE 구독",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "text/event-stream"
+                  },
+                  {
+                    "key": "Cache-Control",
+                    "value": "no-cache"
+                  }
+                ],
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/sse/notifications",
+                "description": "## 기능\n- Notification SSE 스트림을 구독합니다.\n\n## 테스트 모드\n- Realtime\n\n## 선행조건\n- `member1Token` 확보\n- 필요 시 다른 요청으로 새 알림을 발생시켜 `SNAPSHOT`, `NOTIFICATION`, `UNREAD_COUNT_CHANGED`, `HEARTBEAT` 이벤트를 확인합니다."
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -8658,6 +9177,22 @@
     {
       "key": "supportNegativeWeekId",
       "value": "missing-support-week-id"
+    },
+    {
+      "key": "notificationFcmToken",
+      "value": "dXZlbnQ6bm90aWZpY2F0aW9uLXRva2Vu"
+    },
+    {
+      "key": "notificationSeedAppNoticeId",
+      "value": ""
+    },
+    {
+      "key": "notificationMember1NotificationId",
+      "value": ""
+    },
+    {
+      "key": "notificationLeaderNotificationId",
+      "value": ""
     }
   ],
   "event": [
