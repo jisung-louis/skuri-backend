@@ -9,7 +9,7 @@
 - **Entity**: Party, PartyMember, JoinRequest, MemberSettlement, Location, PartyTag
 - **Enum**: PartyStatus, JoinRequestStatus, SettlementStatus, PartyEndReason
 - **Service**: TaxiPartyService (생성/조회/수정/상태전이/정산 핵심 로직 담당)
-- **동시성 정책**: 활성 파티 참여 검사는 `Member` row lock으로 직렬화하고, `join_requests`는 `(party_id, requester_id, status)` unique 제약으로 중복 `PENDING` 요청을 막는다.
+- **동시성 정책**: 활성 파티 참여 검사는 `Member` row lock으로 직렬화하고, 동승 요청은 같은 lock 범위에서 `PENDING` 존재 여부를 검사해 live request 중복만 차단한다.
 - **Controller**: PartyController, JoinRequestController, PartySseController
 - **기타 Service**: PartySseService, JoinRequestSseService, PartyTimeoutBatchService, PartyTimeoutCommandService
 - **Scheduler**: PartyTimeoutScheduler, PartySseHeartbeatScheduler
