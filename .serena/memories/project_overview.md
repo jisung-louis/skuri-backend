@@ -55,6 +55,8 @@ common/
 - AppNotice 관리자 수정 API: `PATCH /v1/admin/app-notices/{appNoticeId}`
 - AppNotice PATCH는 전달한 필드만 반영하고, 누락되거나 `null`인 필드는 유지
 - Support 도메인은 `Inquiry`, `Report`, `AppVersion`, `CafeteriaMenu` 엔티티와 관리자 운영 API를 포함한다.
+- `GET /v1/app-versions/{platform}`는 공개 API이며, 저장 데이터가 없으면 기본 `minimumVersion=1.0.0`, `forceUpdate=false`, `showButton=false` 응답을 반환한다.
+- Support `Report`는 `reporterId + targetType + targetId` 기준으로 전 상태에서 중복 신고를 허용하지 않는다.
 - Support `Report` enum 기준은 API 계약 우선으로 `targetType=POST|COMMENT|MEMBER`, `status=PENDING|REVIEWING|ACTIONED|REJECTED`를 사용한다.
 - 학사 일정 알림은 Phase 8 Notification 인프라에서 구현 예정이며, 기본 정책은 중요 일정(`isPrimary=true`) `startDate` 당일 오전 09:00 발송, 사용자 옵션은 전날 추가/모든 일정 확장이다.
 - Phase 8 Notification 설계는 현행 RN + Firebase Cloud Functions 푸시 정책을 기본으로 이관하며, `allNotifications`/도메인 토글 반영이 불일치한 이벤트는 구현 시 정규화 여부를 명시한다.

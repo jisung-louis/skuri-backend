@@ -487,10 +487,12 @@ Hooks:
     - targetId, targetAuthorId, category, reason
     - reporterId, status (PENDING, REVIEWING, ACTIONED, REJECTED)
     - action, adminMemo
+    - duplicate policy: unique(reporterId, targetType, targetId)
   - AppVersion
     - platform (ios, android)
     - minimumVersion, forceUpdate, message
     - title, showButton, buttonText, buttonUrl
+    - fallback policy: 저장 데이터가 없으면 `minimumVersion=1.0.0`, `forceUpdate=false`, `showButton=false`
   - CafeteriaMenu
     - weekId, weekStart, weekEnd
     - menus: Map<date, Map<restaurant, items[]>>
@@ -674,11 +676,11 @@ com.skuri.skuri_backend
 ├── domain
 │   ├── app
 │   │   └── controller
-│   │       ├── AppNoticeController.java
-│   │       └── AppVersionController.java
+│   │       └── AppNoticeController.java
 │   │
 │   ├── support
 │   │   ├── controller
+│   │   │   ├── AppVersionController.java
 │   │   │   ├── InquiryController.java
 │   │   │   ├── ReportController.java
 │   │   │   ├── CafeteriaMenuController.java

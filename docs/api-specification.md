@@ -1996,6 +1996,8 @@ Authorization:Bearer <firebase_id_token>
 #### GET /v1/app-versions/{platform}
 앱 버전 정보 (Public API)
 
+- 저장된 버전 정보가 없으면 기본 응답으로 `minimumVersion=1.0.0`, `forceUpdate=false`, `showButton=false`를 반환합니다.
+
 **Response:**
 ```json
 {
@@ -2022,7 +2024,7 @@ Authorization:Bearer <firebase_id_token>
 
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
-| `date` | date | 조회 날짜 (기본: 오늘) |
+| `date` | date | 조회 날짜 (기본: 오늘, Asia/Seoul 기준) |
 
 **Response:**
 ```json
@@ -2076,9 +2078,12 @@ Authorization:Bearer <firebase_id_token>
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
 | `INQUIRY_NOT_FOUND` | 404 | 존재하지 않는 문의 |
-| `APP_VERSION_NOT_FOUND` | 404 | 앱 버전 정보 없음 |
 | `CAFETERIA_MENU_NOT_FOUND` | 404 | 존재하지 않는 학식 메뉴 |
+| `CAFETERIA_MENU_ALREADY_EXISTS` | 409 | 이미 등록된 주차의 학식 메뉴 |
+| `REPORT_NOT_FOUND` | 404 | 존재하지 않는 신고 |
 | `REPORT_ALREADY_SUBMITTED` | 409 | 동일 대상에 대한 중복 신고 |
+| `INVALID_INQUIRY_STATUS_TRANSITION` | 409 | 허용되지 않는 문의 상태 전이 |
+| `INVALID_REPORT_STATUS_TRANSITION` | 409 | 허용되지 않는 신고 상태 전이 |
 | `CANNOT_REPORT_YOURSELF` | 400 | 자기 자신을 신고 시도 |
 
 ---
@@ -3465,8 +3470,11 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `status` | string | 문의 상태 필터 (`PENDING`, `IN_PROGRESS`, `RESOLVED`) |
-| `page` | int | 페이지 번호 |
-| `size` | int | 페이지 크기 |
+| `page` | int | 페이지 번호 (기본 0, 0 이상) |
+| `size` | int | 페이지 크기 (기본 20, 1~100) |
+
+- `page < 0` 또는 `size < 1 || size > 100`이면 `422 VALIDATION_ERROR`
+- `status`가 enum 범위를 벗어나면 `400 INVALID_REQUEST`
 
 **Response (200 OK):**
 ```json
@@ -3542,8 +3550,11 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 |---------|------|------|
 | `status` | string | 신고 상태 필터 (`PENDING`, `REVIEWING`, `ACTIONED`, `REJECTED`) |
 | `targetType` | string | 신고 대상 필터 (`POST`, `COMMENT`, `MEMBER`) |
-| `page` | int | 페이지 번호 |
-| `size` | int | 페이지 크기 |
+| `page` | int | 페이지 번호 (기본 0, 0 이상) |
+| `size` | int | 페이지 크기 (기본 20, 1~100) |
+
+- `page < 0` 또는 `size < 1 || size > 100`이면 `422 VALIDATION_ERROR`
+- `status`, `targetType`이 enum 범위를 벗어나면 `400 INVALID_REQUEST`
 
 **Response (200 OK):**
 ```json

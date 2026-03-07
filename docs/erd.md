@@ -399,7 +399,7 @@ erDiagram
         varchar(36) target_author_id
         varchar(50) category
         text reason "NOT NULL"
-        varchar(36) reporter_id FK "NOT NULL"
+        varchar(36) reporter_id FK "NOT NULL, UK(reporter_id,target_type,target_id)"
         enum status "PENDING,REVIEWING,ACTIONED,REJECTED"
         varchar(100) action
         varchar(500) admin_memo
@@ -836,7 +836,14 @@ CREATE INDEX idx_academic_schedules_date ON academic_schedules(start_date, end_d
 CREATE INDEX idx_academic_schedules_primary ON academic_schedules(is_primary);
 ```
 
-### 4.7 Notification 인프라
+### 4.7 Support 도메인
+
+```sql
+-- reports
+CREATE UNIQUE INDEX uk_reports_reporter_target ON reports(reporter_id, target_type, target_id);
+```
+
+### 4.8 Notification 인프라
 
 ```sql
 -- user_notifications

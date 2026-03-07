@@ -548,6 +548,8 @@ SSE 운영 제약:
 `Report` 기준 enum:
 - `targetType`: `POST`, `COMMENT`, `MEMBER`
 - `status`: `PENDING`, `REVIEWING`, `ACTIONED`, `REJECTED`
+- duplicate policy: `reporterId + targetType + targetId` 전 상태 기준 재신고 금지
+- `GET /v1/app-versions/{platform}`는 저장 데이터가 없으면 기본 `minimumVersion=1.0.0` 응답
 
 #### 7-2. API
 
