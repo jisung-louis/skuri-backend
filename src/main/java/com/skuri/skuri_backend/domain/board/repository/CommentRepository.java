@@ -1,7 +1,9 @@
 package com.skuri.skuri_backend.domain.board.repository;
 
 import com.skuri.skuri_backend.domain.board.entity.Comment;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -34,6 +36,15 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
               and c.post.deleted = false
             """)
     Optional<Comment> findActiveById(@Param("commentId") String commentId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select c
+            from Comment c
+            where c.id = :commentId
+              and c.post.deleted = false
+            """)
+    Optional<Comment> findByIdForUpdate(@Param("commentId") String commentId);
 
     Optional<Comment> findFirstByPost_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(String postId, String anonId);
 
