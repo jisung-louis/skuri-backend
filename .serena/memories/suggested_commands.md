@@ -40,6 +40,7 @@ SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
 ```
 - 호스트 실행 시 `.env`를 먼저 로드하거나 IDE 환경변수로 주입
 - Docker Compose 실행은 `.env`를 자동으로 읽음
+- Firebase Auth Emulator를 Docker 컨테이너에서 사용할 때는 보통 `FIREBASE_AUTH_EMULATOR_HOST=host.docker.internal:9099`를 사용
 
 ## 문서/계약 확인
 ```bash
