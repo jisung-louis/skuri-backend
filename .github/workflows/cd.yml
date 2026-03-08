@@ -47,7 +47,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ steps.image.outputs.image_uri }}
             ${{ steps.image.outputs.latest_tag }}
