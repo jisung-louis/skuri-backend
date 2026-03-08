@@ -694,14 +694,15 @@ SSE 운영 제약:
 | 6 | OpenAPI 운영 정책 | `local/local-emulator` 노출, `prod` 기본 비노출 | [x] |
 | 7 | 프로필 / `.env` 전략 정리 | `application/local/local-emulator/prod/test` 체계 + env 기반 local 정리 | [x] |
 | 8 | 배포 가이드 / 체크리스트 | 배포 전/후 점검, smoke check, rollback 문서화 | [x] |
-| 9 | OCI 실제 리소스 생성 및 최초 배포 | 서버/네트워크/운영 파일 실 배포 | [ ] |
+| 9 | OCI 실제 리소스 생성 및 최초 배포 | 서버/네트워크/운영 파일 실 배포 | [x] |
 
 #### 9-2. 완료 기준
 
 - [x] `docker compose up` 기준의 로컬 환경 파일/문서 준비
 - [x] CI/CD 파이프라인 초안 반영
-- [ ] OCI 배포 및 정상 동작
-- [ ] 운영 smoke check / rollback 실제 수행 확인
+- [x] OCI 배포 및 정상 동작
+- [x] 운영 smoke check 수행 확인
+- [ ] rollback 실제 수행 확인
 
 ---
 

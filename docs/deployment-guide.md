@@ -86,12 +86,21 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 - OCI 인스턴스 안의 Docker 영속 볼륨
   - `mysql-prod-data`
   - `redis-prod-data`
+- 공개 도메인용 reverse proxy
+  - 예: Nginx `80/443` -> 앱 `127.0.0.1:8080`
+- Cloudflare를 쓰는 경우 SSL/TLS 모드
+  - 권장: `Full (strict)`
 
 운영 서버에 두는 파일:
 
 - `/opt/skuri/app/.env`
 - `/opt/skuri/app/docker-compose.prod.yml`
 - `/opt/skuri/secrets/firebase-admin.json`
+
+운영 공개 권장:
+
+- `api.<domain>`은 Cloudflare DNS에 연결하고, Nginx가 `80/443`을 받아 앱 `8080`으로 프록시한다.
+- HTTPS가 정상화되면 OCI 보안 규칙에서 `8080` 외부 공개는 닫고 `22/80/443`만 유지한다.
 
 ## 5. GitHub Actions CD 흐름
 
