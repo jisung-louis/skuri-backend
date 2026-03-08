@@ -43,9 +43,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
 
 @Slf4j
 @Service
@@ -92,11 +90,7 @@ public class NotificationEventHandler {
             return;
         }
 
-        List<String> recipients = memberRepository.findAll().stream()
-                .filter(member -> !party.getLeaderId().equals(member.getId()))
-                .filter(this::isPartyNotificationAllowed)
-                .map(Member::getId)
-                .toList();
+        List<String> recipients = memberRepository.findPartyNotificationRecipientIdsExcluding(party.getLeaderId());
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.PARTY_CREATED,
@@ -117,7 +111,7 @@ public class NotificationEventHandler {
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.PARTY_JOIN_REQUEST,
-                filterRecipients(List.of(request.getLeaderId()), this::isPartyNotificationAllowed),
+                findPartyRecipients(List.of(request.getLeaderId())),
                 "동승 요청이 도착했어요",
                 "앱에서 확인하고 수락/거절을 선택해주세요.",
                 NotificationData.ofPartyRequest(request.getParty().getId(), request.getId()),
@@ -135,7 +129,7 @@ public class NotificationEventHandler {
         if (event.status() == JoinRequestStatus.ACCEPTED) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_JOIN_ACCEPTED,
-                    filterRecipients(List.of(request.getRequesterId()), this::isPartyNotificationAllowed),
+                    findPartyRecipients(List.of(request.getRequesterId())),
                     "동승 요청이 승인되었어요",
                     "파티에 합류하세요!",
                     NotificationData.ofPartyRequest(request.getParty().getId(), request.getId()),
@@ -148,7 +142,7 @@ public class NotificationEventHandler {
         if (event.status() == JoinRequestStatus.DECLINED) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_JOIN_DECLINED,
-                    filterRecipients(List.of(request.getRequesterId()), this::isPartyNotificationAllowed),
+                    findPartyRecipients(List.of(request.getRequesterId())),
                     "동승 요청이 거절되었어요",
                     "다른 파티를 찾아보세요.",
                     NotificationData.ofPartyRequest(request.getParty().getId(), request.getId()),
@@ -167,7 +161,7 @@ public class NotificationEventHandler {
         if (event.afterStatus() == PartyStatus.CLOSED && event.beforeStatus() == PartyStatus.OPEN) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_CLOSED,
-                    filterRecipients(party.getNonLeaderMemberIds(), this::isPartyNotificationAllowed),
+                    findPartyRecipients(party.getNonLeaderMemberIds()),
                     "파티 모집이 마감되었어요",
                     "리더가 파티 모집을 마감했습니다.",
                     NotificationData.ofParty(party.getId()),
@@ -180,7 +174,7 @@ public class NotificationEventHandler {
         if (event.afterStatus() == PartyStatus.ARRIVED && event.beforeStatus() != PartyStatus.ARRIVED) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_ARRIVED,
-                    filterRecipients(party.getNonLeaderMemberIds(), this::isPartyNotificationAllowed),
+                    findPartyRecipients(party.getNonLeaderMemberIds()),
                     "택시가 목적지에 도착했어요",
                     "정산을 진행해주세요.",
                     NotificationData.ofParty(party.getId()),
@@ -196,7 +190,7 @@ public class NotificationEventHandler {
 
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_ENDED,
-                    filterRecipients(party.getNonLeaderMemberIds(), this::isPartyNotificationAllowed),
+                    findPartyRecipients(party.getNonLeaderMemberIds()),
                     "파티가 해체되었어요",
                     "리더가 파티를 해체했습니다.",
                     NotificationData.ofParty(party.getId()),
@@ -214,7 +208,7 @@ public class NotificationEventHandler {
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.SETTLEMENT_COMPLETED,
-                filterRecipients(party.getMemberIds(), this::isPartyNotificationAllowed),
+                findPartyRecipients(party.getMemberIds()),
                 "모든 정산이 완료되었어요",
                 "동승 파티 종료 준비가 되었습니다.",
                 NotificationData.ofParty(party.getId()),
@@ -232,7 +226,7 @@ public class NotificationEventHandler {
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.MEMBER_KICKED,
-                filterRecipients(List.of(event.memberId()), this::isPartyNotificationAllowed),
+                findPartyRecipients(List.of(event.memberId())),
                 "파티에서 강퇴되었어요",
                 "리더가 당신을 파티에서 나가게 했습니다.",
                 NotificationData.ofParty(event.partyId()),
@@ -425,7 +419,7 @@ public class NotificationEventHandler {
         }
 
         String categoryKey = mapNoticeCategoryKey(notice.getCategory());
-        List<String> recipients = memberRepository.findAll().stream()
+        List<String> recipients = memberRepository.findMembersWithNoticeNotificationsEnabled().stream()
                 .filter(member -> isNoticeNotificationAllowed(member, categoryKey))
                 .map(Member::getId)
                 .toList();
@@ -448,10 +442,9 @@ public class NotificationEventHandler {
         }
 
         boolean urgent = appNotice.getPriority() == AppNoticePriority.HIGH;
-        List<String> recipients = memberRepository.findAll().stream()
-                .filter(member -> urgent || isSystemNotificationAllowed(member))
-                .map(Member::getId)
-                .toList();
+        List<String> recipients = urgent
+                ? memberRepository.findAllMemberIds()
+                : memberRepository.findSystemNotificationRecipientIds();
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.APP_NOTICE,
@@ -470,10 +463,10 @@ public class NotificationEventHandler {
             return;
         }
 
-        List<String> recipients = memberRepository.findAll().stream()
-                .filter(member -> isAcademicScheduleAllowed(member, schedule, event.timing()))
-                .map(Member::getId)
-                .toList();
+        List<String> recipients = memberRepository.findAcademicScheduleReminderRecipientIds(
+                event.timing() == NotificationDomainEvent.ReminderTiming.DAY_BEFORE,
+                !schedule.isPrimary()
+        );
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.ACADEMIC_SCHEDULE,
@@ -507,14 +500,11 @@ public class NotificationEventHandler {
         return memberRepository.findById(memberId).orElse(null);
     }
 
-    private List<String> filterRecipients(Collection<String> recipientIds, Predicate<Member> predicate) {
-        return recipientIds.stream()
-                .map(this::findMember)
-                .filter(Objects::nonNull)
-                .filter(predicate)
-                .map(Member::getId)
-                .distinct()
-                .toList();
+    private List<String> findPartyRecipients(Collection<String> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return List.of();
+        }
+        return memberRepository.findPartyNotificationRecipientIds(memberIds);
     }
 
     private NotificationSetting settingOf(Member member) {
@@ -575,30 +565,6 @@ public class NotificationEventHandler {
                 ? null
                 : setting.getNoticeNotificationsDetail().get(categoryKey);
         return allowed == null || allowed;
-    }
-
-    private boolean isSystemNotificationAllowed(Member member) {
-        NotificationSetting setting = settingOf(member);
-        return setting.isAllNotifications() && setting.isSystemNotifications();
-    }
-
-    private boolean isAcademicScheduleAllowed(
-            Member member,
-            AcademicSchedule schedule,
-            NotificationDomainEvent.ReminderTiming timing
-    ) {
-        NotificationSetting setting = settingOf(member);
-        if (!setting.isAllNotifications() || !setting.isAcademicScheduleNotifications()) {
-            return false;
-        }
-        if (timing == NotificationDomainEvent.ReminderTiming.DAY_BEFORE
-                && !setting.isAcademicScheduleDayBeforeEnabled()) {
-            return false;
-        }
-        if (!schedule.isPrimary() && !setting.isAcademicScheduleAllEventsEnabled()) {
-            return false;
-        }
-        return true;
     }
 
     private String buildAcademicScheduleMessage(

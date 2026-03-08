@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, String>, MemberRepositoryCustom {
@@ -14,4 +16,56 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from Member m where m.id = :memberId")
     Optional<Member> findByIdForUpdate(@Param("memberId") String memberId);
+
+    @Query("""
+            select m.id
+            from Member m
+            where m.id <> :excludedId
+              and m.notificationSetting.allNotifications = true
+              and m.notificationSetting.partyNotifications = true
+            """)
+    List<String> findPartyNotificationRecipientIdsExcluding(@Param("excludedId") String excludedId);
+
+    @Query("""
+            select m.id
+            from Member m
+            where m.id in :memberIds
+              and m.notificationSetting.allNotifications = true
+              and m.notificationSetting.partyNotifications = true
+            """)
+    List<String> findPartyNotificationRecipientIds(@Param("memberIds") Collection<String> memberIds);
+
+    @Query("""
+            select m
+            from Member m
+            where m.notificationSetting.allNotifications = true
+              and m.notificationSetting.noticeNotifications = true
+            """)
+    List<Member> findMembersWithNoticeNotificationsEnabled();
+
+    @Query("select m.id from Member m")
+    List<String> findAllMemberIds();
+
+    @Query("""
+            select m.id
+            from Member m
+            where m.notificationSetting.allNotifications = true
+              and m.notificationSetting.systemNotifications = true
+            """)
+    List<String> findSystemNotificationRecipientIds();
+
+    @Query("""
+            select m.id
+            from Member m
+            where m.notificationSetting.allNotifications = true
+              and coalesce(m.notificationSetting.academicScheduleNotifications, true) = true
+              and (:requireDayBefore = false
+                   or coalesce(m.notificationSetting.academicScheduleDayBeforeEnabled, true) = true)
+              and (:requireAllEvents = false
+                   or coalesce(m.notificationSetting.academicScheduleAllEventsEnabled, false) = true)
+            """)
+    List<String> findAcademicScheduleReminderRecipientIds(
+            @Param("requireDayBefore") boolean requireDayBefore,
+            @Param("requireAllEvents") boolean requireAllEvents
+    );
 }
