@@ -1,7 +1,7 @@
 # 작업 완료 시 체크리스트
 
 ## 머지 전 필수 검증
-1. `SPRING_PROFILES_ACTIVE=local ./gradlew build` 성공
+1. `./gradlew build` 성공
 2. 변경된 기능 관련 Contract/Service/Event/Security 테스트 수행
 3. API 정상/예외 케이스 최소 1개 이상 확인
 4. `ApiResponse` 에러 포맷 일관성 확인

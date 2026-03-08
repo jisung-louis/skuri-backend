@@ -29,6 +29,8 @@
 - 문서 기준은 `/v3/api-docs`이며 `docs/api-specification.md`와 같은 PR에서 동기화한다.
 
 ## 운영/환경변수
+- 프로필 파일은 정책, `.env`/Secrets는 실제 값을 담당한다.
+- 로컬 기본 프로필은 `local`, Firebase Emulator 검증은 `local-emulator`, 공유 개발 서버는 `dev`, 운영은 `prod`, 자동 테스트는 `test`를 사용한다.
 - 로컬/운영 런타임 값은 `.env`로 관리하고, CI/CD 저장소는 GitHub Secrets를 유지한다.
 - Firebase 서비스 계정 JSON은 서버 파일로 보관하고 `GOOGLE_APPLICATION_CREDENTIALS` 경로만 주입한다.
 - `prod`에서는 OpenAPI UI/JSON을 기본 비노출로 운영하고, health/info만 최소 공개한다.

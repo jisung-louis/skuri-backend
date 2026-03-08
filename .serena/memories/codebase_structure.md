@@ -2,6 +2,7 @@
 
 ## 핵심 엔트리포인트
 - 루트 인프라 파일: `Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml`, `.env.example`
+- 프로필 파일: `src/main/resources/application.yaml`, `application-local.yaml`, `application-local-emulator.yaml`, `application-dev.yaml`, `application-prod.yaml`, `src/test/resources/application-test.yaml`
 - 배포 문서: `docs/deployment-guide.md`
 - GitHub Actions: `.github/workflows/ci.yml`, `.github/workflows/cd.yml`
 - `SkuriBackendApplication.java`

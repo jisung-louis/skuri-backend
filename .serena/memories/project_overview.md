@@ -23,7 +23,7 @@
 - notification: 인앱 인박스, FCM 토큰, SSE, 리마인더 스케줄링, 이벤트 기반 알림 처리
 
 ## 인프라/공통
-- Phase 9 기준 실행/배포는 `.env` + Docker 중심으로 정리되었다. 로컬은 `docker compose`(`app + MySQL + Redis`), 운영은 `EC2(app 컨테이너) + RDS MySQL` 전략을 사용한다.
+- Phase 9 기준 실행/배포는 6개 프로필(`application`, `local`, `local-emulator`, `dev`, `prod`, `test`) + `.env` 중심으로 정리되었다. 로컬 기본 실행은 `local` 프로필 + `docker compose`(`app + MySQL + Redis`), 운영은 `prod` 프로필 + `EC2(app 컨테이너) + RDS MySQL`, 공유 개발 서버는 `dev` 프로필을 사용한다.
 - OpenAPI는 `local/dev`에서 노출하고 `prod`에서는 기본 비노출로 운영한다.
 - GitHub Actions CD는 `production` 환경 승인 기반 반자동 배포 초안을 사용한다.
 - `common.event.AfterCommitApplicationEventPublisher`: 성공한 상태 변경 이후에만 `ApplicationEvent`를 발행한다.
