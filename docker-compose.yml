@@ -51,7 +51,7 @@ services:
       SERVER_PORT: 8080
       APP_VERSION: ${APP_VERSION:-local}
       OPENAPI_ENABLED: ${OPENAPI_ENABLED:-true}
-      JAVA_OPTS: '${JAVA_OPTS:--Xms256m -Xmx512m}'
+      JAVA_OPTS: "${JAVA_OPTS:--Xms256m -Xmx512m}"
       DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-skuri}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       DB_USERNAME: ${MYSQL_USER:-skuri}
       DB_PASSWORD: ${MYSQL_PASSWORD:-skuri}

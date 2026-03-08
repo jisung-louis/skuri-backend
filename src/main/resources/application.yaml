@@ -1,6 +1,7 @@
 # 공통 기본 설정 파일입니다.
-# - 모든 프로필(local, local-emulator, 추후 dev/prod)에 공통으로 적용됩니다.
+# - 모든 프로필(local, local-emulator, dev, prod, test)에 공통으로 적용됩니다.
 # - 환경변수(DB_URL, FIREBASE_PROJECT_ID 등)가 있으면 그 값을 우선 사용합니다.
+# - 프로필 파일은 "정책", 환경변수는 "실제 값"을 담당합니다.
 # - 이 파일만으로 실행할 때는 profile-specific 파일의 값이 없으므로, 필수 값은 환경변수로 주입해야 합니다.
 spring:
   application:

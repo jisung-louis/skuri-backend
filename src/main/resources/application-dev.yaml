@@ -1,3 +1,7 @@
+# 팀 공용 개발 서버(dev)용 프로필 설정 파일입니다.
+# - 사용 시점: dev/staging 성격의 공유 개발 서버
+# - 실행 방법: SPRING_PROFILES_ACTIVE=dev
+# - 원칙: 실제 값(DB/Firebase/OpenAPI)은 환경변수 또는 서버 `.env`에서 주입합니다.
 spring:
   config:
     activate:

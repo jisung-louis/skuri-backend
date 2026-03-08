@@ -1,0 +1,39 @@
+# 로컬 개발용 프로필 설정 파일입니다.
+# - 사용 시점: 개인 개발 환경(Docker Compose 또는 호스트 실행)
+# - 실행 방법: SPRING_PROFILES_ACTIVE=local
+# - 원칙: 실제 값(DB/Firebase 등)은 `.env`, IDE 환경변수, 쉘 export로 주입합니다.
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  jpa:
+    show-sql: ${JPA_SHOW_SQL:true}
+    properties:
+      hibernate:
+        format_sql: ${JPA_FORMAT_SQL:true}
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.skuri.skuri_backend: ${LOG_LEVEL_APP:INFO}
+
+app:
+  openapi:
+    enabled: ${OPENAPI_ENABLED:true}
+
+springdoc:
+  api-docs:
+    enabled: ${OPENAPI_ENABLED:true}
+  swagger-ui:
+    enabled: ${OPENAPI_ENABLED:true}
+
+scalar:
+  enabled: ${OPENAPI_ENABLED:true}
+
+security:
+  allowed-email-domain: sungkyul.ac.kr
+
+chat:
+  websocket:
+    allowed-origin-patterns: ${CHAT_WS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
