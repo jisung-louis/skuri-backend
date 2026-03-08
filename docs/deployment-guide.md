@@ -5,11 +5,11 @@
 | 항목 | 결정 |
 |------|------|
 | 로컬 실행 | `docker-compose.yml`로 `app + MySQL + Redis` 기동 |
-| 운영 구조 | `EC2 1대(app 컨테이너) + RDS MySQL` |
-| Redis 운영 반영 | 이번 Phase에서는 미도입. 로컬 컨테이너와 환경변수만 준비 |
-| 프로필 | `application / local / local-emulator / dev / prod / test` |
+| 운영 구조 | `OCI Compute 1대`에서 `docker-compose.prod.yml`로 `app + MySQL + Redis` 기동 |
+| Redis 운영 반영 | 현재 앱 로직에는 미연결이지만 단일 인스턴스 운영 compose에 포함 |
+| 프로필 | `application / local / local-emulator / prod / test` |
 | CD 방식 | 반자동. `main` 반영 후 GitHub `production` 환경 승인 시 배포 |
-| OpenAPI 노출 | `local/dev` 노출, `prod` 기본 비노출 |
+| OpenAPI 노출 | `local/local-emulator` 노출, `prod` 기본 비노출 |
 | Firebase 자격증명 | 서버 파일 + `GOOGLE_APPLICATION_CREDENTIALS` 경로 주입 |
 
 ## 2. 환경변수 원칙
@@ -25,14 +25,16 @@
 
 ```env
 SPRING_PROFILES_ACTIVE=prod
-DB_URL=jdbc:mysql://<rds-endpoint>:3306/skuri?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-DB_USERNAME=<db-user>
-DB_PASSWORD=<db-password>
 APP_HOST_PORT=8080
 OPENAPI_ENABLED=false
 CHAT_WS_ALLOWED_ORIGIN_PATTERNS=https://api.skuri.example
+MYSQL_DATABASE=skuri
+MYSQL_USER=skuri
+MYSQL_PASSWORD=<db-user-password>
+MYSQL_ROOT_PASSWORD=<db-root-password>
 FIREBASE_CREDENTIALS_FILE=/opt/skuri/secrets/firebase-admin.json
-GOOGLE_APPLICATION_CREDENTIALS=/opt/skuri/secrets/firebase-admin.json
+GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
+FIREBASE_CREDENTIALS_PATH=/app/secrets/firebase-admin.json
 ```
 
 ## 3. 로컬 실행
@@ -64,8 +66,8 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 - 인증이 필요한 API까지 테스트하려면 실제 Firebase 자격증명 또는 `local-emulator` 설정이 추가로 필요하다.
 - 현재 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않는다. Docker에서 실제 Firebase 인증까지 검증하려면 자격증명 파일 volume mount를 별도로 추가하거나, 앱은 호스트에서 `bootRun`으로 실행한다.
-- Redis는 지금 단계에서 앱 로직에 연결되지 않으므로 컨테이너 준비 수준이다.
-- `dev` 프로필은 팀 공유 개발 서버용으로 남겨두고, 로컬 개발은 `local`을 기준으로 사용한다.
+- Redis는 아직 앱 로직에 연결되지 않았지만, 운영 compose에서는 향후 캐시 도입 자리를 미리 확보하기 위해 함께 기동한다.
+- 로컬 개발/검증은 `local`과 `local-emulator` 두 프로필로만 운영한다.
 
 ## 4. 운영 서버 준비
 
@@ -79,6 +81,9 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
   - 기본 위치: `/opt/skuri/app/.env`
 - Firebase 서비스 계정 JSON
   - 예: `/opt/skuri/secrets/firebase-admin.json`
+- OCI 인스턴스 안의 Docker 영속 볼륨
+  - `mysql-prod-data`
+  - `redis-prod-data`
 
 운영 서버에 두는 파일:
 
@@ -96,7 +101,7 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 4. `Deploy To Production` job이 `production` 환경 승인 대기 상태로 멈춤
 5. GitHub에서 `Review deployments`
 6. `Approve and deploy`
-7. EC2에 접속해서 최신 이미지 pull 및 재기동
+7. OCI 서버에 접속해서 최신 이미지 pull 및 재기동
 8. 서버 내부에서 `/actuator/health` smoke check
 
 중요:
@@ -108,10 +113,10 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 `production` Environment 기준으로 아래 Secrets를 준비한다.
 
-- `PROD_EC2_HOST`
-- `PROD_EC2_USERNAME`
-- `PROD_EC2_SSH_KEY`
-- `PROD_EC2_SSH_PORT` (선택, 기본값 `22`)
+- `PROD_HOST`
+- `PROD_SSH_USERNAME`
+- `PROD_SSH_KEY`
+- `PROD_SSH_PORT` (선택, 기본값 `22`)
 - `PROD_DEPLOY_DIR` (선택, 기본값 `/opt/skuri/app`)
 - `PROD_GHCR_USERNAME`
 - `PROD_GHCR_READ_TOKEN`
@@ -123,7 +128,7 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 ## 7. OpenAPI 운영 정책
 
-- `local`, `dev`: `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar` 사용 가능
+- `local`, `local-emulator`: `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar` 사용 가능
 - `prod`: 기본 비노출
 - 운영에서 임시로 열어야 하면 `.env`의 `OPENAPI_ENABLED=true`로 조정할 수 있다.
 
@@ -139,7 +144,7 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 - `@Cacheable` 적용
 - 캐시 무효화 정책 설계
-- ElastiCache 실제 연결
+- 외부 관리형 Redis 연결
 
 후속 후보:
 
@@ -153,7 +158,7 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 - Docker 이미지 빌드 성공
 - 운영 `.env` 값 최신화 확인
 - Firebase 자격증명 파일 존재 확인
-- RDS 연결 정보 확인
+- `MYSQL_*` 값과 Docker 영속 볼륨 상태 확인
 - OpenAPI 노출 정책(`OPENAPI_ENABLED`) 확인
 - GitHub `production` Environment 보호 규칙 확인
 
@@ -189,6 +194,7 @@ IMAGE_URI=ghcr.io/<owner>/<repo>:<previous-sha> docker compose -f docker-compose
 - 공개 API 1개
 - 인증 API 1개
 - 최근 에러 로그
+- MySQL 컨테이너와 볼륨이 유지됐는지 확인
 
 ## 12. 향후 외부 AI 서비스 메모
 

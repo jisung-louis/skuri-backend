@@ -53,15 +53,15 @@
 
 ---
 
-## 3. 환경 분리 정책 확정 (local/dev/prod)
+## 3. 환경 분리 정책 확정 (local/local-emulator/prod)
 
-- [ ] `local`, `dev`, `prod` 프로필 역할을 정의했다.
+- [ ] `local`, `local-emulator`, `prod` 프로필 역할을 정의했다.
 - [ ] 비밀값(DB 비밀번호, 토큰)을 코드에서 제거했다.
 - [ ] 환경변수/Secrets로만 비밀값을 주입한다는 규칙을 문서화했다.
 
 쉬운 설명:
-- `local`: 내 노트북 개발용
-- `dev`: 팀 테스트용
+- `local`: 프론트+백엔드 통합 개발용
+- `local-emulator`: Firebase Auth Emulator 기반 백엔드 단독 인증 테스트용
 - `prod`: 실제 서비스용
 - 환경마다 설정이 다르기 때문에 섞이면 사고 납니다.
 
