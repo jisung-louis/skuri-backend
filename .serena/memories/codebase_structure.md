@@ -31,7 +31,7 @@
   - Controller: `NotificationController`, `FcmTokenController`, `NotificationSseController`
   - Event: 도메인 이벤트를 수신해 inbox 저장, SSE fan-out, push delegation 수행
   - `NotificationEventHandler`는 broad `findAll()` 대신 repository-level recipient query로 파티/공지/시스템/학사 일정 수신 대상을 1차 축소한다.
-- `NotificationService`는 after-commit 콜백에서 다시 count query를 치지 않고, 트랜잭션 안에서 unread count를 미리 계산해 SSE에 전달한다.
+- `NotificationService`는 unread count SSE를 after-commit 시점의 committed DB 상태 기준으로 다시 조회해 발행한다. 단건 변경은 single count query, inbox fan-out은 bulk unread count query를 사용한다.
 - `FcmTokenService.register()`는 unique token 충돌 시 재조회로 복구해 멱등 등록을 보장한다.
 - academic
   - Entity: `AcademicSchedule`, `Course`, `CourseSchedule`, `UserTimetable`, `UserTimetableCourse`
