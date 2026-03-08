@@ -22,8 +22,6 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -76,7 +74,7 @@ public class NotificationService {
         UserNotification notification = getOwnedNotification(memberId, notificationId);
         boolean unreadChanged = notification.markRead(LocalDateTime.now());
         if (unreadChanged) {
-            publishUnreadCountChangedAfterCommit(memberId, resolveUnreadCountAfterRemoval(memberId, 1));
+            publishUnreadCountChangedAfterCommit(memberId);
         }
         return toResponse(notification);
     }
@@ -90,7 +88,7 @@ public class NotificationService {
 
         LocalDateTime now = LocalDateTime.now();
         unreadNotifications.forEach(notification -> notification.markRead(now));
-        publishUnreadCountChangedAfterCommit(memberId, 0);
+        publishUnreadCountChangedAfterCommit(memberId);
 
         return new NotificationReadAllResponse(unreadNotifications.size(), 0);
     }
@@ -99,10 +97,9 @@ public class NotificationService {
     public void delete(String memberId, String notificationId) {
         UserNotification notification = getOwnedNotification(memberId, notificationId);
         boolean unreadRemoved = !notification.isRead();
-        long unreadCountAfterDelete = unreadRemoved ? resolveUnreadCountAfterRemoval(memberId, 1) : 0;
         userNotificationRepository.delete(notification);
         if (unreadRemoved) {
-            publishUnreadCountChangedAfterCommit(memberId, unreadCountAfterDelete);
+            publishUnreadCountChangedAfterCommit(memberId);
         }
     }
 
@@ -111,9 +108,6 @@ public class NotificationService {
         if (!request.inboxEnabled() || request.recipientIds().isEmpty()) {
             return;
         }
-
-        Map<String, Long> unreadCounts = resolveUnreadCounts(request.recipientIds());
-        request.recipientIds().forEach(recipientId -> unreadCounts.merge(recipientId, 1L, Long::sum));
 
         List<UserNotification> saved = userNotificationRepository.saveAll(
                 request.recipientIds().stream()
@@ -126,7 +120,7 @@ public class NotificationService {
                         ))
                         .toList()
         );
-        publishCreatedNotificationsAfterCommit(saved, unreadCounts);
+        publishCreatedNotificationsAfterCommit(saved);
     }
 
     @Transactional
@@ -144,12 +138,9 @@ public class NotificationService {
         }
 
         long unreadRemovedCount = targets.stream().filter(notification -> !notification.isRead()).count();
-        long unreadCountAfterDelete = unreadRemovedCount > 0
-                ? resolveUnreadCountAfterRemoval(memberId, unreadRemovedCount)
-                : 0;
         userNotificationRepository.deleteAllInBatch(targets);
         if (unreadRemovedCount > 0) {
-            publishUnreadCountChangedAfterCommit(memberId, unreadCountAfterDelete);
+            publishUnreadCountChangedAfterCommit(memberId);
         }
     }
 
@@ -175,7 +166,7 @@ public class NotificationService {
         );
     }
 
-    private void publishCreatedNotificationsAfterCommit(List<UserNotification> notifications, Map<String, Long> unreadCounts) {
+    private void publishCreatedNotificationsAfterCommit(List<UserNotification> notifications) {
         if (notifications == null || notifications.isEmpty()) {
             return;
         }
@@ -185,12 +176,15 @@ public class NotificationService {
                     notification.getUserId(),
                     toResponse(notification)
             ));
-            unreadCounts.forEach(notificationSseService::publishUnreadCountChanged);
+            publishUnreadCounts(resolveRecipientIds(notifications));
         });
     }
 
-    private void publishUnreadCountChangedAfterCommit(String memberId, long unreadCount) {
-        runAfterCommit(() -> notificationSseService.publishUnreadCountChanged(memberId, unreadCount));
+    private void publishUnreadCountChangedAfterCommit(String memberId) {
+        runAfterCommit(() -> notificationSseService.publishUnreadCountChanged(
+                memberId,
+                userNotificationRepository.countByUserIdAndReadFalse(memberId)
+        ));
     }
 
     private void runAfterCommit(Runnable task) {
@@ -221,18 +215,26 @@ public class NotificationService {
         return Math.min(size, MAX_SIZE);
     }
 
-    private long resolveUnreadCountAfterRemoval(String memberId, long removedCount) {
-        long currentUnreadCount = userNotificationRepository.countByUserIdAndReadFalse(memberId);
-        return Math.max(currentUnreadCount - removedCount, 0);
+    private Map<String, Long> resolveUnreadCounts(Collection<String> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, Long> unreadCounts = new java.util.LinkedHashMap<>();
+        memberIds.forEach(memberId -> unreadCounts.put(memberId, 0L));
+        userNotificationRepository.countUnreadByUserIds(memberIds)
+                .forEach(count -> unreadCounts.put(count.getUserId(), count.getUnreadCount()));
+        return unreadCounts;
     }
 
-    private Map<String, Long> resolveUnreadCounts(Collection<String> memberIds) {
-        Map<String, Long> unreadCounts = memberIds.stream()
-                .collect(Collectors.toMap(Function.identity(), ignored -> 0L));
+    private void publishUnreadCounts(Collection<String> memberIds) {
+        resolveUnreadCounts(memberIds).forEach(notificationSseService::publishUnreadCountChanged);
+    }
 
-        userNotificationRepository.countUnreadByUserIds(memberIds).forEach(count ->
-                unreadCounts.put(count.getUserId(), count.getUnreadCount())
-        );
-        return unreadCounts;
+    private List<String> resolveRecipientIds(List<UserNotification> notifications) {
+        return notifications.stream()
+                .map(UserNotification::getUserId)
+                .distinct()
+                .toList();
     }
 }
