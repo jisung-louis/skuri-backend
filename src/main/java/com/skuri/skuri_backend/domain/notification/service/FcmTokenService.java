@@ -2,30 +2,38 @@ package com.skuri.skuri_backend.domain.notification.service;
 
 import com.skuri.skuri_backend.domain.notification.entity.FcmToken;
 import com.skuri.skuri_backend.domain.notification.repository.FcmTokenRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Collection;
 
 @Service
-@RequiredArgsConstructor
 public class FcmTokenService {
 
     private final FcmTokenRepository fcmTokenRepository;
+    private final TransactionTemplate transactionTemplate;
 
-    @Transactional
+    public FcmTokenService(FcmTokenRepository fcmTokenRepository, PlatformTransactionManager transactionManager) {
+        this.fcmTokenRepository = fcmTokenRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+    }
+
     public void register(String memberId, String token, String platform) {
         String normalizedToken = normalizeToken(token);
         String normalizedPlatform = normalizePlatform(platform);
 
-        FcmToken existing = fcmTokenRepository.findByToken(normalizedToken).orElse(null);
-        if (existing == null) {
-            fcmTokenRepository.save(FcmToken.create(memberId, normalizedToken, normalizedPlatform));
-            return;
+        try {
+            transactionTemplate.executeWithoutResult(status -> upsert(memberId, normalizedToken, normalizedPlatform));
+        } catch (DataIntegrityViolationException e) {
+            transactionTemplate.executeWithoutResult(status -> {
+                FcmToken existing = fcmTokenRepository.findByToken(normalizedToken)
+                        .orElseThrow(() -> e);
+                existing.registerTo(memberId, normalizedPlatform);
+            });
         }
-
-        existing.registerTo(memberId, normalizedPlatform);
     }
 
     @Transactional
@@ -64,5 +72,15 @@ public class FcmTokenService {
 
     private String normalizePlatform(String platform) {
         return platform == null ? "android" : platform.trim().toLowerCase();
+    }
+
+    private void upsert(String memberId, String token, String platform) {
+        FcmToken existing = fcmTokenRepository.findByToken(token).orElse(null);
+        if (existing == null) {
+            fcmTokenRepository.saveAndFlush(FcmToken.create(memberId, token, platform));
+            return;
+        }
+
+        existing.registerTo(memberId, platform);
     }
 }

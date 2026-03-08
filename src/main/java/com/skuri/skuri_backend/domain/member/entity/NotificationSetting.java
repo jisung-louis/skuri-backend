@@ -38,13 +38,13 @@ public class NotificationSetting {
     private boolean systemNotifications;
 
     @Column(name = "academic_schedule_notifications")
-    private boolean academicScheduleNotifications;
+    private Boolean academicScheduleNotifications;
 
     @Column(name = "academic_schedule_day_before_enabled")
-    private boolean academicScheduleDayBeforeEnabled;
+    private Boolean academicScheduleDayBeforeEnabled;
 
     @Column(name = "academic_schedule_all_events_enabled")
-    private boolean academicScheduleAllEventsEnabled;
+    private Boolean academicScheduleAllEventsEnabled;
 
     @Convert(converter = BooleanMapJsonConverter.class)
     @Column(name = "notice_notifications_detail", columnDefinition = "json")
@@ -58,9 +58,9 @@ public class NotificationSetting {
             boolean commentNotifications,
             boolean bookmarkedPostCommentNotifications,
             boolean systemNotifications,
-            boolean academicScheduleNotifications,
-            boolean academicScheduleDayBeforeEnabled,
-            boolean academicScheduleAllEventsEnabled,
+            Boolean academicScheduleNotifications,
+            Boolean academicScheduleDayBeforeEnabled,
+            Boolean academicScheduleAllEventsEnabled,
             Map<String, Boolean> noticeNotificationsDetail
     ) {
         this.allNotifications = allNotifications;
@@ -97,6 +97,18 @@ public class NotificationSetting {
                 false,
                 defaults
         );
+    }
+
+    public boolean isAcademicScheduleNotifications() {
+        return academicScheduleNotifications == null || academicScheduleNotifications;
+    }
+
+    public boolean isAcademicScheduleDayBeforeEnabled() {
+        return academicScheduleDayBeforeEnabled == null || academicScheduleDayBeforeEnabled;
+    }
+
+    public boolean isAcademicScheduleAllEventsEnabled() {
+        return academicScheduleAllEventsEnabled != null && academicScheduleAllEventsEnabled;
     }
 
     public void apply(
@@ -147,6 +159,24 @@ public class NotificationSetting {
         }
         if (this.noticeNotificationsDetail == null) {
             this.noticeNotificationsDetail = new HashMap<>();
+        }
+    }
+
+    public boolean hasUnsetAcademicScheduleDefaults() {
+        return academicScheduleNotifications == null
+                || academicScheduleDayBeforeEnabled == null
+                || academicScheduleAllEventsEnabled == null;
+    }
+
+    public void backfillAcademicScheduleDefaults() {
+        if (academicScheduleNotifications == null) {
+            academicScheduleNotifications = Boolean.TRUE;
+        }
+        if (academicScheduleDayBeforeEnabled == null) {
+            academicScheduleDayBeforeEnabled = Boolean.TRUE;
+        }
+        if (academicScheduleAllEventsEnabled == null) {
+            academicScheduleAllEventsEnabled = Boolean.FALSE;
         }
     }
 }

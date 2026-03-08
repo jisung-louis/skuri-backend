@@ -43,7 +43,9 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 
 @Slf4j
 @Service
@@ -92,7 +94,7 @@ public class NotificationEventHandler {
 
         List<String> recipients = memberRepository.findAll().stream()
                 .filter(member -> !party.getLeaderId().equals(member.getId()))
-                .filter(member -> settingOf(member).isPartyNotifications())
+                .filter(this::isPartyNotificationAllowed)
                 .map(Member::getId)
                 .toList();
 
@@ -115,7 +117,7 @@ public class NotificationEventHandler {
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.PARTY_JOIN_REQUEST,
-                List.of(request.getLeaderId()),
+                filterRecipients(List.of(request.getLeaderId()), this::isPartyNotificationAllowed),
                 "동승 요청이 도착했어요",
                 "앱에서 확인하고 수락/거절을 선택해주세요.",
                 NotificationData.ofPartyRequest(request.getParty().getId(), request.getId()),
@@ -133,7 +135,7 @@ public class NotificationEventHandler {
         if (event.status() == JoinRequestStatus.ACCEPTED) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_JOIN_ACCEPTED,
-                    List.of(request.getRequesterId()),
+                    filterRecipients(List.of(request.getRequesterId()), this::isPartyNotificationAllowed),
                     "동승 요청이 승인되었어요",
                     "파티에 합류하세요!",
                     NotificationData.ofPartyRequest(request.getParty().getId(), request.getId()),
@@ -146,7 +148,7 @@ public class NotificationEventHandler {
         if (event.status() == JoinRequestStatus.DECLINED) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_JOIN_DECLINED,
-                    List.of(request.getRequesterId()),
+                    filterRecipients(List.of(request.getRequesterId()), this::isPartyNotificationAllowed),
                     "동승 요청이 거절되었어요",
                     "다른 파티를 찾아보세요.",
                     NotificationData.ofPartyRequest(request.getParty().getId(), request.getId()),
@@ -165,7 +167,7 @@ public class NotificationEventHandler {
         if (event.afterStatus() == PartyStatus.CLOSED && event.beforeStatus() == PartyStatus.OPEN) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_CLOSED,
-                    party.getNonLeaderMemberIds(),
+                    filterRecipients(party.getNonLeaderMemberIds(), this::isPartyNotificationAllowed),
                     "파티 모집이 마감되었어요",
                     "리더가 파티 모집을 마감했습니다.",
                     NotificationData.ofParty(party.getId()),
@@ -178,7 +180,7 @@ public class NotificationEventHandler {
         if (event.afterStatus() == PartyStatus.ARRIVED && event.beforeStatus() != PartyStatus.ARRIVED) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_ARRIVED,
-                    party.getNonLeaderMemberIds(),
+                    filterRecipients(party.getNonLeaderMemberIds(), this::isPartyNotificationAllowed),
                     "택시가 목적지에 도착했어요",
                     "정산을 진행해주세요.",
                     NotificationData.ofParty(party.getId()),
@@ -194,7 +196,7 @@ public class NotificationEventHandler {
 
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_ENDED,
-                    party.getNonLeaderMemberIds(),
+                    filterRecipients(party.getNonLeaderMemberIds(), this::isPartyNotificationAllowed),
                     "파티가 해체되었어요",
                     "리더가 파티를 해체했습니다.",
                     NotificationData.ofParty(party.getId()),
@@ -212,7 +214,7 @@ public class NotificationEventHandler {
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.SETTLEMENT_COMPLETED,
-                party.getMemberIds(),
+                filterRecipients(party.getMemberIds(), this::isPartyNotificationAllowed),
                 "모든 정산이 완료되었어요",
                 "동승 파티 종료 준비가 되었습니다.",
                 NotificationData.ofParty(party.getId()),
@@ -230,7 +232,7 @@ public class NotificationEventHandler {
 
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.MEMBER_KICKED,
-                List.of(event.memberId()),
+                filterRecipients(List.of(event.memberId()), this::isPartyNotificationAllowed),
                 "파티에서 강퇴되었어요",
                 "리더가 당신을 파티에서 나가게 했습니다.",
                 NotificationData.ofParty(event.partyId()),
@@ -310,7 +312,7 @@ public class NotificationEventHandler {
         }
 
         Member author = findMember(post.getAuthorId());
-        if (author == null || !settingOf(author).isBoardLikeNotifications()) {
+        if (!isBoardLikeNotificationAllowed(author)) {
             return;
         }
 
@@ -338,7 +340,7 @@ public class NotificationEventHandler {
         String parentAuthorId = comment.getParent() != null ? comment.getParent().getAuthorId() : null;
         if (parentAuthorId != null && !parentAuthorId.equals(actorId)) {
             Member parentAuthor = findMember(parentAuthorId);
-            if (parentAuthor != null && settingOf(parentAuthor).isCommentNotifications()) {
+            if (isCommentNotificationAllowed(parentAuthor)) {
                 dispatch(NotificationDispatchRequest.of(
                         NotificationType.COMMENT_CREATED,
                         List.of(parentAuthorId),
@@ -355,7 +357,7 @@ public class NotificationEventHandler {
         String postAuthorId = post.getAuthorId();
         if (!postAuthorId.equals(actorId) && !consumed.contains(postAuthorId)) {
             Member postAuthor = findMember(postAuthorId);
-            if (postAuthor != null && settingOf(postAuthor).isCommentNotifications()) {
+            if (isCommentNotificationAllowed(postAuthor)) {
                 dispatch(NotificationDispatchRequest.of(
                         NotificationType.COMMENT_CREATED,
                         List.of(postAuthorId),
@@ -374,9 +376,7 @@ public class NotificationEventHandler {
                 .filter(memberId -> !consumed.contains(memberId))
                 .filter(memberId -> {
                     Member member = findMember(memberId);
-                    return member != null
-                            && settingOf(member).isCommentNotifications()
-                            && settingOf(member).isBookmarkedPostCommentNotifications();
+                    return isBookmarkedCommentNotificationAllowed(member);
                 })
                 .toList();
 
@@ -403,7 +403,7 @@ public class NotificationEventHandler {
         }
 
         Member parentAuthor = findMember(parentAuthorId);
-        if (parentAuthor == null || !settingOf(parentAuthor).isCommentNotifications()) {
+        if (!isCommentNotificationAllowed(parentAuthor)) {
             return;
         }
 
@@ -507,10 +507,58 @@ public class NotificationEventHandler {
         return memberRepository.findById(memberId).orElse(null);
     }
 
+    private List<String> filterRecipients(Collection<String> recipientIds, Predicate<Member> predicate) {
+        return recipientIds.stream()
+                .map(this::findMember)
+                .filter(Objects::nonNull)
+                .filter(predicate)
+                .map(Member::getId)
+                .distinct()
+                .toList();
+    }
+
     private NotificationSetting settingOf(Member member) {
         return member.getNotificationSetting() == null
                 ? NotificationSetting.defaultSetting()
                 : member.getNotificationSetting();
+    }
+
+    private boolean isPartyNotificationAllowed(Member member) {
+        if (member == null) {
+            return false;
+        }
+
+        NotificationSetting setting = settingOf(member);
+        return setting.isAllNotifications() && setting.isPartyNotifications();
+    }
+
+    private boolean isBoardLikeNotificationAllowed(Member member) {
+        if (member == null) {
+            return false;
+        }
+
+        NotificationSetting setting = settingOf(member);
+        return setting.isAllNotifications() && setting.isBoardLikeNotifications();
+    }
+
+    private boolean isCommentNotificationAllowed(Member member) {
+        if (member == null) {
+            return false;
+        }
+
+        NotificationSetting setting = settingOf(member);
+        return setting.isAllNotifications() && setting.isCommentNotifications();
+    }
+
+    private boolean isBookmarkedCommentNotificationAllowed(Member member) {
+        if (member == null) {
+            return false;
+        }
+
+        NotificationSetting setting = settingOf(member);
+        return setting.isAllNotifications()
+                && setting.isCommentNotifications()
+                && setting.isBookmarkedPostCommentNotifications();
     }
 
     private boolean isNoticeNotificationAllowed(Member member, String categoryKey) {

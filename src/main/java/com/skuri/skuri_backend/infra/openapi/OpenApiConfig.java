@@ -40,7 +40,11 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("member")
                 .pathsToMatch("/v1/members/**")
-                .pathsToExclude("/v1/members/me/posts", "/v1/members/me/bookmarks")
+                .pathsToExclude(
+                        "/v1/members/me/posts",
+                        "/v1/members/me/bookmarks",
+                        "/v1/members/me/fcm-tokens"
+                )
                 .build();
     }
 
