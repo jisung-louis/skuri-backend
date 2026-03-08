@@ -31,6 +31,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -44,6 +47,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/arm64
           tags: |
             ${{ steps.image.outputs.image_uri }}
             ${{ steps.image.outputs.latest_tag }}
@@ -62,47 +66,47 @@ jobs:
 
       - name: Validate deployment secrets
         env:
-          EC2_HOST: ${{ secrets.PROD_EC2_HOST }}
-          EC2_USERNAME: ${{ secrets.PROD_EC2_USERNAME }}
-          EC2_SSH_KEY: ${{ secrets.PROD_EC2_SSH_KEY }}
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_SSH_USERNAME: ${{ secrets.PROD_SSH_USERNAME }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
           GHCR_USERNAME: ${{ secrets.PROD_GHCR_USERNAME }}
           GHCR_READ_TOKEN: ${{ secrets.PROD_GHCR_READ_TOKEN }}
         run: |
-          test -n "$EC2_HOST"
-          test -n "$EC2_USERNAME"
-          test -n "$EC2_SSH_KEY"
+          test -n "$PROD_HOST"
+          test -n "$PROD_SSH_USERNAME"
+          test -n "$PROD_SSH_KEY"
           test -n "$GHCR_USERNAME"
           test -n "$GHCR_READ_TOKEN"
 
       - name: Install SSH key
         env:
-          EC2_HOST: ${{ secrets.PROD_EC2_HOST }}
-          EC2_SSH_KEY: ${{ secrets.PROD_EC2_SSH_KEY }}
-          EC2_SSH_PORT: ${{ secrets.PROD_EC2_SSH_PORT }}
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          PROD_SSH_PORT: ${{ secrets.PROD_SSH_PORT }}
         run: |
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
-          printf '%s' "$EC2_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s' "$PROD_SSH_KEY" > "$HOME/.ssh/id_ed25519"
           chmod 600 "$HOME/.ssh/id_ed25519"
-          ssh-keyscan -p "${EC2_SSH_PORT:-22}" "$EC2_HOST" >> "$HOME/.ssh/known_hosts"
+          ssh-keyscan -p "${PROD_SSH_PORT:-22}" "$PROD_HOST" >> "$HOME/.ssh/known_hosts"
 
       - name: Upload production compose file
         env:
-          EC2_HOST: ${{ secrets.PROD_EC2_HOST }}
-          EC2_USERNAME: ${{ secrets.PROD_EC2_USERNAME }}
-          EC2_SSH_PORT: ${{ secrets.PROD_EC2_SSH_PORT }}
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_SSH_USERNAME: ${{ secrets.PROD_SSH_USERNAME }}
+          PROD_SSH_PORT: ${{ secrets.PROD_SSH_PORT }}
           DEPLOY_DIR: ${{ secrets.PROD_DEPLOY_DIR }}
         run: |
           TARGET_DIR="${DEPLOY_DIR:-/opt/skuri/app}"
-          ssh -p "${EC2_SSH_PORT:-22}" -i "$HOME/.ssh/id_ed25519" "${EC2_USERNAME}@${EC2_HOST}" "mkdir -p '${TARGET_DIR}'"
-          scp -P "${EC2_SSH_PORT:-22}" -i "$HOME/.ssh/id_ed25519" docker-compose.prod.yml "${EC2_USERNAME}@${EC2_HOST}:${TARGET_DIR}/docker-compose.prod.yml"
+          ssh -p "${PROD_SSH_PORT:-22}" -i "$HOME/.ssh/id_ed25519" "${PROD_SSH_USERNAME}@${PROD_HOST}" "mkdir -p '${TARGET_DIR}'"
+          scp -P "${PROD_SSH_PORT:-22}" -i "$HOME/.ssh/id_ed25519" docker-compose.prod.yml "${PROD_SSH_USERNAME}@${PROD_HOST}:${TARGET_DIR}/docker-compose.prod.yml"
 
       - name: Deploy latest image and smoke check
         env:
           IMAGE_URI: ${{ needs.build-image.outputs.image_uri }}
-          EC2_HOST: ${{ secrets.PROD_EC2_HOST }}
-          EC2_USERNAME: ${{ secrets.PROD_EC2_USERNAME }}
-          EC2_SSH_PORT: ${{ secrets.PROD_EC2_SSH_PORT }}
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_SSH_USERNAME: ${{ secrets.PROD_SSH_USERNAME }}
+          PROD_SSH_PORT: ${{ secrets.PROD_SSH_PORT }}
           DEPLOY_DIR: ${{ secrets.PROD_DEPLOY_DIR }}
           GHCR_USERNAME: ${{ secrets.PROD_GHCR_USERNAME }}
           GHCR_READ_TOKEN: ${{ secrets.PROD_GHCR_READ_TOKEN }}
@@ -112,7 +116,7 @@ jobs:
           GHCR_READ_TOKEN_ESCAPED="$(printf '%q' "$GHCR_READ_TOKEN")"
           TARGET_DIR_ESCAPED="$(printf '%q' "${DEPLOY_DIR:-/opt/skuri/app}")"
 
-          ssh -p "${EC2_SSH_PORT:-22}" -i "$HOME/.ssh/id_ed25519" "${EC2_USERNAME}@${EC2_HOST}" \
+          ssh -p "${PROD_SSH_PORT:-22}" -i "$HOME/.ssh/id_ed25519" "${PROD_SSH_USERNAME}@${PROD_HOST}" \
             "IMAGE_URI=${IMAGE_URI_ESCAPED} GHCR_USERNAME=${GHCR_USERNAME_ESCAPED} GHCR_READ_TOKEN=${GHCR_READ_TOKEN_ESCAPED} DEPLOY_DIR=${TARGET_DIR_ESCAPED} bash -s" <<'EOF'
           set -euo pipefail
 
@@ -128,7 +132,7 @@ jobs:
           set +a
 
           APP_PORT="${APP_HOST_PORT:-8080}"
-          for attempt in $(seq 1 12); do
+          for attempt in $(seq 1 24); do
             if curl -fsS "http://127.0.0.1:${APP_PORT}/actuator/health" >/dev/null; then
               exit 0
             fi
