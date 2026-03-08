@@ -26,8 +26,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -132,6 +130,29 @@ class NotificationControllerContractTest {
     }
 
     @Test
+    void markRead_정상처리_200() throws Exception {
+        mockValidToken();
+        when(notificationService.markRead("firebase-uid", "notification-1"))
+                .thenReturn(new NotificationResponse(
+                        "notification-1",
+                        NotificationType.PARTY_JOIN_ACCEPTED,
+                        "동승 요청이 승인되었어요",
+                        "파티에 합류하세요!",
+                        NotificationData.ofPartyRequest("party-1", "request-1"),
+                        true,
+                        LocalDateTime.of(2026, 3, 8, 9, 0)
+                ));
+
+        mockMvc.perform(
+                        post("/v1/notifications/notification-1/read")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("notification-1"))
+                .andExpect(jsonPath("$.data.isRead").value(true));
+    }
+
+    @Test
     void markAllRead_정상처리_200() throws Exception {
         mockValidToken();
         when(notificationService.markAllRead("firebase-uid"))
@@ -158,6 +179,20 @@ class NotificationControllerContractTest {
                 )
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("NOTIFICATION_NOT_FOUND"));
+    }
+
+    @Test
+    void deleteNotification_정상처리_200() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        delete("/v1/notifications/notification-1")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(notificationService).delete("firebase-uid", "notification-1");
     }
 
     @Test
@@ -213,6 +248,26 @@ class NotificationControllerContractTest {
                 )
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void deleteFcmToken_정상처리_200() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        delete("/v1/members/me/fcm-tokens")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType("application/json")
+                                .content("""
+                                        {
+                                          "token": "dXZlbnQ6ZmNtLXRva2Vu"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(fcmTokenService).delete("firebase-uid", "dXZlbnQ6ZmNtLXRva2Vu");
     }
 
     private void mockValidToken() {

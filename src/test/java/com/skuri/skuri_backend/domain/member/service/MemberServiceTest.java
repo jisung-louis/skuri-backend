@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -292,6 +293,22 @@ class MemberServiceTest {
         assertNotNull(response.lastLogin());
         assertTrue(response.lastLogin().isAfter(oldLastLogin));
         assertTrue(!response.lastLogin().isBefore(callStartedAt));
+    }
+
+    @Test
+    void getMyProfile_기존회원의학사일정알림기본값을보존한다() {
+        Member member = memberEntity("firebase-uid", "user@sungkyul.ac.kr");
+        ReflectionTestUtils.setField(member.getNotificationSetting(), "academicScheduleNotifications", null);
+        ReflectionTestUtils.setField(member.getNotificationSetting(), "academicScheduleDayBeforeEnabled", null);
+        ReflectionTestUtils.setField(member.getNotificationSetting(), "academicScheduleAllEventsEnabled", null);
+        when(memberRepository.findById("firebase-uid")).thenReturn(Optional.of(member));
+
+        MemberMeResponse response = memberService.getMyProfile("firebase-uid");
+
+        assertNotNull(response.notificationSetting());
+        assertTrue(response.notificationSetting().academicScheduleNotifications());
+        assertTrue(response.notificationSetting().academicScheduleDayBeforeEnabled());
+        assertFalse(response.notificationSetting().academicScheduleAllEventsEnabled());
     }
 
     @Test

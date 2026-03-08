@@ -97,9 +97,11 @@ class NotificationEventHandlerTest {
         Member allowed = Member.create("member-1", "member-1@sungkyul.ac.kr", "수신", LocalDateTime.now());
         Member blocked = Member.create("member-2", "member-2@sungkyul.ac.kr", "차단", LocalDateTime.now());
         blocked.updateNotificationSetting(null, false, null, null, null, null, null, null, null, null, null);
+        Member globalOptOut = Member.create("member-3", "member-3@sungkyul.ac.kr", "전체차단", LocalDateTime.now());
+        globalOptOut.updateNotificationSetting(false, true, null, null, null, null, null, null, null, null, null);
 
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
-        when(memberRepository.findAll()).thenReturn(List.of(leader, allowed, blocked));
+        when(memberRepository.findAll()).thenReturn(List.of(leader, allowed, blocked, globalOptOut));
 
         notificationEventHandler.handle(new NotificationDomainEvent.PartyCreated("party-1"));
 
@@ -176,5 +178,25 @@ class NotificationEventHandlerTest {
         verify(notificationService).createInboxNotifications(captor.capture());
         assertEquals(NotificationType.ACADEMIC_SCHEDULE, captor.getValue().type());
         assertEquals(List.of("member-1"), captor.getValue().recipientIds().stream().toList());
+    }
+
+    @Test
+    void handleBoardCommentCreated_allNotifications가꺼져있으면댓글알림을받지않는다() {
+        Post post = Post.create("게시글", "내용", "target-1", "작성자", null, false, PostCategory.GENERAL);
+        ReflectionTestUtils.setField(post, "id", "post-1");
+        Comment created = Comment.create(post, "새 댓글", "actor-1", "작성자", null, false, null, null, null);
+        ReflectionTestUtils.setField(created, "id", "comment-new");
+
+        Member postAuthor = Member.create("target-1", "target-1@sungkyul.ac.kr", "작성자", LocalDateTime.now());
+        postAuthor.updateNotificationSetting(false, null, null, null, true, null, null, null, null, null, null);
+
+        when(commentRepository.findActiveById("comment-new")).thenReturn(Optional.of(created));
+        when(memberRepository.findById("target-1")).thenReturn(Optional.of(postAuthor));
+        when(postInteractionRepository.findBookmarkedUserIdsByPostId("post-1")).thenReturn(List.of());
+
+        notificationEventHandler.handle(new NotificationDomainEvent.BoardCommentCreated("comment-new"));
+
+        verify(notificationService, times(0)).createInboxNotifications(org.mockito.ArgumentMatchers.any());
+        verify(pushNotificationService, times(0)).send(org.mockito.ArgumentMatchers.any());
     }
 }
