@@ -21,6 +21,8 @@ logging:
 app:
   openapi:
     enabled: ${OPENAPI_ENABLED:true}
+  api:
+    allowed-origin-patterns: ${API_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
 
 springdoc:
   api-docs:

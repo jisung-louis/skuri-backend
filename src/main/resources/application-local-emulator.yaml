@@ -27,6 +27,10 @@ firebase:
 security:
   allowed-email-domain: sungkyul.ac.kr
 
+app:
+  api:
+    allowed-origin-patterns: ${API_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
+
 chat:
   websocket:
     allowed-origin-patterns: >

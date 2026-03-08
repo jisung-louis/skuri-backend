@@ -77,6 +77,8 @@ info:
 app:
   openapi:
     enabled: ${OPENAPI_ENABLED:true}
+  api:
+    allowed-origin-patterns: ${API_ALLOWED_ORIGIN_PATTERNS:}
 
 springdoc:
   api-docs:
