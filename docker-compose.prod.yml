@@ -1,0 +1,22 @@
+services:
+  app:
+    image: ${IMAGE_URI:?set IMAGE_URI before deployment}
+    container_name: skuri-backend
+    restart: unless-stopped
+    pull_policy: always
+    env_file:
+      - ${APP_ENV_FILE:-.env}
+    ports:
+      - "${APP_HOST_PORT:-8080}:8080"
+    volumes:
+      - ${FIREBASE_CREDENTIALS_FILE:?set FIREBASE_CREDENTIALS_FILE in .env}:${GOOGLE_APPLICATION_CREDENTIALS:?set GOOGLE_APPLICATION_CREDENTIALS in .env}:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"

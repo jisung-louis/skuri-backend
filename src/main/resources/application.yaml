@@ -14,11 +14,29 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${JPA_FORMAT_SQL:true}
+
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT:2000ms}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.skuri.skuri_backend: ${LOG_LEVEL_APP:INFO}
 
 firebase:
   auth:
@@ -35,3 +53,35 @@ security:
 chat:
   websocket:
     allowed-origin-patterns: ${CHAT_WS_ALLOWED_ORIGIN_PATTERNS:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    env:
+      enabled: false
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: ${APP_VERSION:local}
+
+app:
+  openapi:
+    enabled: ${OPENAPI_ENABLED:true}
+
+springdoc:
+  api-docs:
+    enabled: ${OPENAPI_ENABLED:true}
+  swagger-ui:
+    enabled: ${OPENAPI_ENABLED:true}
+
+scalar:
+  enabled: ${OPENAPI_ENABLED:true}
