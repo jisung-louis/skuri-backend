@@ -138,6 +138,8 @@ cd skuri-backend
 - Firebase 인증이 필요한 경우에만 `FIREBASE_PROJECT_ID`, `FIREBASE_CREDENTIALS_PATH` 또는 `GOOGLE_APPLICATION_CREDENTIALS`를 채웁니다.
 - 현재 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않습니다. Docker에서 실제 Firebase 인증까지 검증하려면 자격증명 파일 volume mount를 추가하거나, 앱은 호스트에서 `bootRun`으로 실행해야 합니다.
 - `.env`는 "실제 값", `application-*.yaml`은 "환경별 정책"을 담당합니다.
+- 브라우저에서 REST API를 호출하는 관리자 페이지가 있으면 `API_ALLOWED_ORIGIN_PATTERNS`에 허용 Origin을 넣어야 합니다.
+- WebSocket `/ws` 허용 Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`로 별도 관리합니다.
 
 ### 5-3. 전체 환경 기동
 
@@ -238,7 +240,7 @@ CD용 Secrets와 서버 준비 항목은 [deployment-guide.md](docs/deployment-g
 - 운영(`prod`)에서는 기본적으로 OpenAPI UI/JSON을 비노출로 운영
 - 사람이 읽는 명세 문서(`docs/api-specification.md`)는 코드 변경과 같은 PR에서 동기화
 - WebSocket은 CONNECT 인증 + 목적지별 인가를 모두 적용
-- WebSocket CORS 허용 Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS` 또는 프로필 설정으로 관리 (`*` 금지)
+- 브라우저 REST API CORS 허용 Origin은 `API_ALLOWED_ORIGIN_PATTERNS`, WebSocket CORS 허용 Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS` 또는 프로필 설정으로 관리 (`*` 금지)
 
 ### Serena Memory 동기화 규칙 (Codex + Serena)
 

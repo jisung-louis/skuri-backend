@@ -20,6 +20,7 @@
 - 프로필 파일(`application-*.yaml`)은 환경별 정책을 공유하고, `.env`는 실제 값을 주입한다.
 - 실제 비밀값은 Git 저장소에 넣지 않는다.
 - Firebase 서비스 계정 JSON은 `.env`에 본문을 넣지 않고 파일로 두고 경로만 `.env`에 넣는다.
+- 브라우저 관리자 페이지가 REST API를 호출하면 `API_ALLOWED_ORIGIN_PATTERNS`를, WebSocket을 사용하면 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`를 각각 설정한다.
 
 예시:
 
@@ -27,7 +28,8 @@
 SPRING_PROFILES_ACTIVE=prod
 APP_HOST_PORT=8080
 OPENAPI_ENABLED=false
-CHAT_WS_ALLOWED_ORIGIN_PATTERNS=https://api.skuri.example
+API_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
+CHAT_WS_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
 MYSQL_DATABASE=skuri
 MYSQL_USER=skuri
 MYSQL_PASSWORD=<db-user-password>

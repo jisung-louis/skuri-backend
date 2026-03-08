@@ -130,7 +130,7 @@ com.skuri.skuri_backend
 
 - API 계약의 런타임 기준은 `/v3/api-docs`로 고정하고, `docs/api-specification.md`는 같은 PR에서 반드시 동기화한다.
 - WebSocket은 CONNECT 인증만으로 종료하지 않고 목적지(`SEND /app/chat/{chatRoomId}`, `SUBSCRIBE /topic/chat/{chatRoomId}`)별 인가를 서버에서 강제한다.
-- WebSocket CORS는 `*`를 금지하고, 프로필/환경별 허용 Origin(`CHAT_WS_ALLOWED_ORIGIN_PATTERNS`)을 명시한다.
+- 브라우저 REST API CORS와 WebSocket CORS는 `*`를 금지하고, 프로필/환경별 허용 Origin(`API_ALLOWED_ORIGIN_PATTERNS`, `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`)을 명시한다.
 - 요청 범위 외 수정은 별도 PR 분리를 원칙으로 하며, 불가피하게 포함할 경우 PR에 근거와 영향 범위를 명시한다.
 
 ---
@@ -304,7 +304,7 @@ SSE 운영 제약:
 |------|------|
 | WebSocket 설정 | STOMP + SockJS, Firebase ID Token 인증 |
 | WebSocket 인가 | CONNECT 이후 SEND/SUBSCRIBE 목적지별 멤버십 검증 |
-| WebSocket CORS | 프로필/환경별 허용 Origin 설정 (`CHAT_WS_ALLOWED_ORIGIN_PATTERNS`) |
+| 브라우저/실시간 CORS | 프로필/환경별 허용 Origin 설정 (`API_ALLOWED_ORIGIN_PATTERNS`, `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`) |
 | ChatService | 공통 채팅 엔진 (메시지 저장, 전송, 읽음 처리) |
 | PartyMessageService | 파티 채팅 규칙 (계좌 공유, 도착 메시지, 종료 메시지) — Chat 엔진 사용 |
 | 채팅방 목록 요약 스트림 | 목록 화면은 `/user/queue/chat-rooms` 단일 구독으로 카드 요약(이름/인원/마지막 메시지/미읽음) 수신 |
