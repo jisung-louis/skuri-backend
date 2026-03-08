@@ -13,5 +13,3 @@ bin
 !.env.example
 firebase-debug.log
 serviceAccountKey.json
-src/main/resources/application-local.yaml
-src/main/resources/application-local-emulator.yaml
