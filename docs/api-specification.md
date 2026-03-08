@@ -2244,18 +2244,18 @@ Authorization:Bearer <firebase_id_token>
 
 | 알림 타입 | 기준 트리거 | 수신 대상 | 설정 반영 | 인앱 인박스 |
 |----------|-------------|-----------|-----------|-------------|
-| `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | `partyNotifications` | X |
-| `PARTY_JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | 현재 개별 토글 미반영 | O |
-| `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED` | 요청 상태 변경 | 요청자 | 현재 개별 토글 미반영 | O |
-| `PARTY_CLOSED` / `PARTY_ARRIVED` | 파티 상태 변경 | 리더 제외 파티 멤버 | 현재 개별 토글 미반영 | `PARTY_CLOSED`: X / `PARTY_ARRIVED`: O |
-| `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | 현재 개별 토글 미반영 | O |
-| `MEMBER_KICKED` | 강퇴 감지 | 강퇴된 멤버 | 현재 개별 토글 미반영 | O |
-| `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | 현재 개별 토글 미반영 | O |
+| `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | `allNotifications` + `partyNotifications` | X |
+| `PARTY_JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | `allNotifications` + `partyNotifications` | O |
+| `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED` | 요청 상태 변경 | 요청자 | `allNotifications` + `partyNotifications` | O |
+| `PARTY_CLOSED` / `PARTY_ARRIVED` | 파티 상태 변경 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | `PARTY_CLOSED`: X / `PARTY_ARRIVED`: O |
+| `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | `allNotifications` + `partyNotifications` | O |
+| `MEMBER_KICKED` | 강퇴 감지 | 강퇴된 멤버 | `allNotifications` + `partyNotifications` | O |
+| `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | O |
 | `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 | 채팅방 멤버(송신자 제외) | `allNotifications` + 채팅방 mute | X |
 | `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 | 파티 멤버(송신자 제외) | 채팅 mute 중심 parity 우선, 전역 토글은 현재 미반영 | X |
-| `POST_LIKED` | 게시글 좋아요 | 게시글 작성자 | `boardLikeNotifications` | O |
-| `COMMENT_CREATED` (게시글) | 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | `commentNotifications` + `bookmarkedPostCommentNotifications` (중복 수신자는 1회 dedupe) | O |
-| `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `commentNotifications` | O |
+| `POST_LIKED` | 게시글 좋아요 | 게시글 작성자 | `allNotifications` + `boardLikeNotifications` | O |
+| `COMMENT_CREATED` (게시글) | 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` (중복 수신자는 1회 dedupe) | O |
+| `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `allNotifications` + `commentNotifications` | O |
 | `NOTICE` | 새 학교 공지 | 공지 허용 사용자 | `allNotifications` + `noticeNotifications` + `noticeNotificationsDetail` | O |
 | `APP_NOTICE` | 앱 공지 생성 | 일반: 시스템 알림 허용 사용자 / `HIGH`: 전체 사용자 | 일반: `allNotifications` + `systemNotifications`, `HIGH`는 설정 무시 | O |
 | `ACADEMIC_SCHEDULE` | 학사 일정 리마인더 | 학사 일정 알림 허용 사용자 | `allNotifications` + `academicScheduleNotifications` | O |

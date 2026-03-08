@@ -631,22 +631,22 @@ UserNotification 엔티티:
   - 저장 모델은 Firestore가 아니라 MySQL `user_notifications`, `fcm_tokens`를 사용한다.
   - 상태 변경 성공 이후 `after-commit`으로 이벤트를 발행한다.
   - 인앱 저장 실패/푸시 실패는 핵심 비즈니스 트랜잭션을 롤백시키지 않는다.
-  - 다만 `allNotifications` 및 도메인 토글 반영이 현재 이벤트마다 일관되지 않으므로, Phase 8 구현 시 "현재 동작 유지"와 "설정 일관성 정규화" 중 무엇을 택하는지 이벤트별로 명시한다.
+  - Phase 8 런타임은 `allNotifications`를 마스터 토글로 정규화해 적용한다. 단, `AppNoticePriority.HIGH`와 파티 채팅 알림은 문서화된 예외 정책을 따른다.
 
 현행 운영 정책 기준:
-  - `PARTY_CREATED`: 생성자 제외 전체 사용자 대상, `partyNotifications` 반영, 인앱 인박스 미생성
-  - `PARTY_JOIN_REQUEST`: 파티 리더 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
-  - `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED`: 요청자 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
-  - `PARTY_CLOSED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 미생성
-  - `PARTY_ARRIVED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
-  - `SETTLEMENT_COMPLETED`: 파티 전체 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
-  - `MEMBER_KICKED`: 강퇴된 멤버 대상, 자진 이탈과 리더 제외, 현재 개별 토글 미반영, 인앱 인박스 생성
-  - `PARTY_ENDED`: 리더 제외 파티 멤버 대상, 현재 개별 토글 미반영, 인앱 인박스 생성
+  - `PARTY_CREATED`: 생성자 제외 전체 사용자 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 미생성
+  - `PARTY_JOIN_REQUEST`: 파티 리더 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
+  - `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED`: 요청자 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
+  - `PARTY_CLOSED`: 리더 제외 파티 멤버 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 미생성
+  - `PARTY_ARRIVED`: 리더 제외 파티 멤버 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
+  - `SETTLEMENT_COMPLETED`: 파티 전체 멤버 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
+  - `MEMBER_KICKED`: 강퇴된 멤버 대상, 자진 이탈과 리더 제외, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
+  - `PARTY_ENDED`: 리더 제외 파티 멤버 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
   - `CHAT_MESSAGE`(공개 채팅): 채팅방 멤버 대상, `allNotifications` + 채팅방 mute 반영, 인앱 인박스 미생성
   - `CHAT_MESSAGE`(파티 채팅): 파티 멤버 대상, 채팅 mute 중심 parity를 유지하고 전역 토글은 현재 미반영, 인앱 인박스 미생성
-  - `POST_LIKED`: 게시글 작성자 대상, 자기 좋아요 제외, `boardLikeNotifications` 반영, 인앱 인박스 생성
-  - `COMMENT_CREATED`(게시글): 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 대상, 자기 자신 제외, `commentNotifications` + `bookmarkedPostCommentNotifications` 반영, 중복 대상자는 1회 dedupe 후 인앱 인박스 생성
-  - `COMMENT_CREATED`(공지): 현재 `Notice.author`는 문자열 필드만 있어 공지 작성자 식별이 불가능하므로, 부모 댓글 작성자 대상 답글 알림만 발송
+  - `POST_LIKED`: 게시글 작성자 대상, 자기 좋아요 제외, `allNotifications` + `boardLikeNotifications` 반영, 인앱 인박스 생성
+  - `COMMENT_CREATED`(게시글): 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 대상, 자기 자신 제외, `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` 반영, 중복 대상자는 1회 dedupe 후 인앱 인박스 생성
+  - `COMMENT_CREATED`(공지): 현재 `Notice.author`는 문자열 필드만 있어 공지 작성자 식별이 불가능하므로, 부모 댓글 작성자 대상 답글 알림만 발송하며 `allNotifications` + `commentNotifications`를 반영
   - `NOTICE`: `allNotifications` + `noticeNotifications` + `noticeNotificationsDetail` 반영
   - `APP_NOTICE`: 일반 공지는 `allNotifications` + `systemNotifications` 반영, `AppNoticePriority.HIGH`는 설정 무시 강제 발송
   - `ACADEMIC_SCHEDULE`: `allNotifications` + `academicScheduleNotifications` 반영, 기본은 중요 일정(`isPrimary=true`)만 대상
