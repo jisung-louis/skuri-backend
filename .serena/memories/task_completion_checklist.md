@@ -17,6 +17,13 @@
 6. 학사 일정 리마인더 기본값과 09:00 Asia/Seoul 스케줄 확인
 7. Firebase credentials가 없어도 앱 기동/테스트가 되는지 no-op fallback 확인
 
+## 운영/배포 변경 시 추가 검증
+1. `./gradlew build` 성공
+2. `docker compose` 설정 파일 문법/기동 절차 확인
+3. `/actuator/health` 응답 확인
+4. `prod`에서 OpenAPI가 기본 비노출인지 확인
+5. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
+
 ## 문서 동기화
 - API 계약 변경 -> `docs/api-specification.md`
 - 엔티티/관계/인덱스 변경 -> `docs/erd.md`

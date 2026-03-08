@@ -28,6 +28,11 @@
 - SSE 200 응답은 `stream_full`과 이벤트별 예시(`SNAPSHOT`, `NOTIFICATION`, `UNREAD_COUNT_CHANGED`, `HEARTBEAT`)를 함께 둔다.
 - 문서 기준은 `/v3/api-docs`이며 `docs/api-specification.md`와 같은 PR에서 동기화한다.
 
+## 운영/환경변수
+- 로컬/운영 런타임 값은 `.env`로 관리하고, CI/CD 저장소는 GitHub Secrets를 유지한다.
+- Firebase 서비스 계정 JSON은 서버 파일로 보관하고 `GOOGLE_APPLICATION_CREDENTIALS` 경로만 주입한다.
+- `prod`에서는 OpenAPI UI/JSON을 기본 비노출로 운영하고, health/info만 최소 공개한다.
+
 ## Git/리뷰
 - 브랜치는 목적 단위로 유지한다.
 - 커밋은 Conventional Commits, 타입은 영어, 메시지는 한국어로 작성한다.

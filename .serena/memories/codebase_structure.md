@@ -1,6 +1,9 @@
 # 코드베이스 구조 상세
 
 ## 핵심 엔트리포인트
+- 루트 인프라 파일: `Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml`, `.env.example`
+- 배포 문서: `docs/deployment-guide.md`
+- GitHub Actions: `.github/workflows/ci.yml`, `.github/workflows/cd.yml`
 - `SkuriBackendApplication.java`
 
 ## 공통/인프라

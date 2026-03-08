@@ -22,6 +22,13 @@ SPRING_PROFILES_ACTIVE=local ./gradlew test --tests "com.skuri.skuri_backend.dom
 
 ## 서버 실행
 ```bash
+docker compose up -d --build
+docker compose logs -f app
+docker compose down
+curl http://localhost:8080/actuator/health
+```
+
+```bash
 SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
 CHAT_WS_ALLOWED_ORIGIN_PATTERNS="http://localhost:3000,http://localhost:8081" SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
