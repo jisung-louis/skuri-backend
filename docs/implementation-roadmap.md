@@ -639,6 +639,8 @@ SSE 운영 제약:
 - 저장 구조는 Firestore가 아니라 RDB 테이블(`user_notifications`, `fcm_tokens`)을 사용한다.
 - FCM 전송은 `sendEachForMulticast` 500개 배치와 invalid token 정리 정책을 유지한다.
 - 로컬/테스트에서 Firebase Messaging bean이 없으면 no-op sender로 기동/테스트를 허용한다.
+- FCM raw push payload는 canonical `NotificationType` + 리소스 식별자(`partyId`, `noticeId`, `chatRoomId` 등)를 사용하며, 특정 RN legacy payload에 맞추지 않는다.
+- 플랫폼별 sound/channel은 `PushPresentationProfile`로 관리한다. `PARTY`, `CHAT`, `NOTICE`, `DEFAULT` 프로필을 사용하고, `DEFAULT`는 현재 Android channel override를 두지 않는다.
 
 #### 8-2-2. 학사 일정 알림 사용자 옵션 (계획)
 
@@ -829,3 +831,4 @@ Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리(`commentNotifications`, `bookmarkedPostCommentNotifications`)
 > - 2026-03-08: Phase 7 완료 기준으로 현재 상태를 갱신하고, Support 운영 API/기본 앱 버전 fallback/Postman 수동 검증 컬렉션 경로를 반영
 > - 2026-03-08: Phase 8 Notification 구현 반영 — `PARTY_*` canonical enum, RDB 저장 구조, FCM token/no-op sender, 학사 일정 리마인더, Notification SSE/인박스/정책 parity 동기화
+> - 2026-03-08: Phase 8 Push payload 계약 보강 — canonical `type + data`, `contractVersion`, platform별 sound/channel presentation profile 문서화

@@ -632,6 +632,9 @@ UserNotification 엔티티:
   - 상태 변경 성공 이후 `after-commit`으로 이벤트를 발행한다.
   - 인앱 저장 실패/푸시 실패는 핵심 비즈니스 트랜잭션을 롤백시키지 않는다.
   - Phase 8 런타임은 `allNotifications`를 마스터 토글로 정규화해 적용한다. 단, `AppNoticePriority.HIGH`와 파티 채팅 알림은 문서화된 예외 정책을 따른다.
+  - FCM push payload는 특정 RN legacy type에 종속되지 않고, canonical `NotificationType` + 리소스 식별자(`partyId`, `noticeId` 등)를 사용한다.
+  - 플랫폼별 알림 표현(sound/channel)은 `PushPresentationProfile`로 분리한다. 현재 `PARTY`, `CHAT`, `NOTICE`, `DEFAULT` 프로필을 사용한다.
+  - 서버는 클라이언트 route/screen 이름을 payload에 넣지 않으며, 클라이언트가 `type + data`를 기준으로 이동 대상을 결정한다.
 
 현행 운영 정책 기준:
   - `PARTY_CREATED`: 생성자 제외 전체 사용자 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 미생성

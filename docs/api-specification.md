@@ -438,6 +438,146 @@ FCM 토큰 삭제
 }
 ```
 
+#### FCM Raw Push Payload Contract
+
+> Spring 서버는 특정 RN legacy payload에 맞추지 않습니다. 푸시 payload의 `data.type`은 서버 canonical enum을 그대로 사용하고,
+> 클라이언트는 명세 기준으로 `type + data`를 해석해 화면 이동을 결정해야 합니다.
+
+- 공통 원칙:
+  - `notification.title` / `notification.body`: OS 알림 UI에 표시할 텍스트
+  - `data.contractVersion`: 현재 `"1"`
+  - `data.type`: canonical `NotificationType` enum (`PARTY_*`, `CHAT_MESSAGE`, `NOTICE`, `APP_NOTICE`, `ACADEMIC_SCHEDULE` 등)
+  - `data.*Id`: 클라이언트가 상세 화면 이동 대상을 식별하기 위한 리소스 ID
+  - 서버는 RN route/screen 이름을 payload에 넣지 않습니다.
+
+**공통 형태:**
+```json
+{
+  "notification": {
+    "title": "새 성결대 학사 공지",
+    "body": "2026학년도 1학기 수강신청 정정 안내"
+  },
+  "data": {
+    "contractVersion": "1",
+    "type": "NOTICE",
+    "noticeId": "notice-uuid"
+  },
+  "android": {
+    "priority": "high",
+    "notification": {
+      "channelId": "notice_channel",
+      "sound": "new_notice"
+    }
+  },
+  "apns": {
+    "payload": {
+      "aps": {
+        "sound": "new_notice.wav"
+      }
+    }
+  }
+}
+```
+
+**`data` 필드 키:**
+
+| 키 | 설명 | nullable |
+|---|---|---|
+| `contractVersion` | push payload 계약 버전. 현재 `"1"` | X |
+| `type` | canonical 알림 타입 enum | X |
+| `partyId` | 파티 상세/파티 채팅 이동 식별자 | O |
+| `requestId` | 동승 요청 식별자 | O |
+| `chatRoomId` | 채팅방 식별자 | O |
+| `postId` | 게시글 식별자 | O |
+| `commentId` | 댓글 식별자 | O |
+| `noticeId` | 학교 공지 식별자 | O |
+| `appNoticeId` | 앱 공지 식별자 | O |
+| `academicScheduleId` | 학사 일정 식별자 | O |
+
+**프레젠테이션 프로필 (sound/channel):**
+
+| 알림 그룹 | canonical type | Android | iOS |
+|---|---|---|---|
+| Party | `PARTY_CREATED`, `PARTY_JOIN_REQUEST`, `PARTY_JOIN_ACCEPTED`, `PARTY_JOIN_DECLINED`, `PARTY_CLOSED`, `PARTY_ARRIVED`, `PARTY_ENDED`, `MEMBER_KICKED`, `SETTLEMENT_COMPLETED` | `channelId=party_channel`, `sound=new_taxi_party` | `aps.sound=new_taxi_party.wav` |
+| Chat | `CHAT_MESSAGE` | `channelId=chat_channel`, `sound=new_chat_notification` | `aps.sound=new_chat_notification.wav` |
+| Notice | `NOTICE`, `APP_NOTICE`, `ACADEMIC_SCHEDULE` | `channelId=notice_channel`, `sound=new_notice` | `aps.sound=new_notice.wav` |
+| Default | `POST_LIKED`, `COMMENT_CREATED` | 별도 channel/sound override 없음 (`priority=high`만 지정) | `aps.sound=default` |
+
+- Android `party_channel`, `chat_channel`, `notice_channel`은 클라이언트가 미리 생성해둔 채널과 이름을 맞춰야 합니다.
+- `Default` 그룹은 현재 서버가 별도 `channelId`를 강제하지 않습니다. 전용 기본 채널을 도입하려면 클라이언트와 채널 ID 계약을 함께 추가해야 합니다.
+
+**논리적 이동 대상:**
+
+| `type` | 필수 식별자 | 클라이언트가 여는 논리적 화면 |
+|---|---|---|
+| `PARTY_CREATED` | `partyId` | 파티 상세 또는 택시 탭 루트 |
+| `PARTY_JOIN_REQUEST` | `partyId`, `requestId` | 동승 요청 확인 화면 |
+| `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED` | `partyId`, `requestId` | 파티 상세/요청 결과 화면 |
+| `PARTY_CLOSED` / `PARTY_ARRIVED` / `PARTY_ENDED` / `MEMBER_KICKED` / `SETTLEMENT_COMPLETED` | `partyId` | 파티 상세 또는 파티 채팅 |
+| `CHAT_MESSAGE` | `chatRoomId` | 채팅방 상세 |
+| `POST_LIKED` | `postId` | 게시글 상세 |
+| `COMMENT_CREATED` (게시글) | `postId`, `commentId` | 게시글 상세 + 댓글 포커스 |
+| `COMMENT_CREATED` (공지) | `noticeId`, `commentId` | 공지 상세 + 댓글 포커스 |
+| `NOTICE` | `noticeId` | 학교 공지 상세 |
+| `APP_NOTICE` | `appNoticeId` | 앱 공지 상세 |
+| `ACADEMIC_SCHEDULE` | `academicScheduleId` | 학사 일정 상세 |
+
+**예시: `PARTY_JOIN_ACCEPTED`**
+```json
+{
+  "notification": {
+    "title": "동승 요청이 승인되었어요",
+    "body": "파티에 합류하세요!"
+  },
+  "data": {
+    "contractVersion": "1",
+    "type": "PARTY_JOIN_ACCEPTED",
+    "partyId": "party-uuid",
+    "requestId": "request-uuid"
+  },
+  "android": {
+    "priority": "high",
+    "notification": {
+      "channelId": "party_channel",
+      "sound": "new_taxi_party"
+    }
+  },
+  "apns": {
+    "payload": {
+      "aps": {
+        "sound": "new_taxi_party.wav"
+      }
+    }
+  }
+}
+```
+
+**예시: `COMMENT_CREATED`**
+```json
+{
+  "notification": {
+    "title": "내 게시글에 댓글이 달렸어요",
+    "body": "새 댓글"
+  },
+  "data": {
+    "contractVersion": "1",
+    "type": "COMMENT_CREATED",
+    "postId": "post-uuid",
+    "commentId": "comment-uuid"
+  },
+  "android": {
+    "priority": "high"
+  },
+  "apns": {
+    "payload": {
+      "aps": {
+        "sound": "default"
+      }
+    }
+  }
+}
+```
+
 ### 2.5 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
