@@ -3,10 +3,8 @@ package com.skuri.skuri_backend.infra.notification;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.MulticastMessage;
-import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
 import com.skuri.skuri_backend.domain.notification.service.NotificationDispatchRequest;
 import lombok.RequiredArgsConstructor;
@@ -15,9 +13,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Component
@@ -28,6 +24,7 @@ public class FirebaseMessagingPushSender implements PushSender {
     private static final int BATCH_SIZE = 500;
 
     private final FirebaseMessaging firebaseMessaging;
+    private final FirebasePushPayloadMapper payloadMapper;
 
     @Override
     public PushSendResult send(NotificationDispatchRequest request, List<String> tokens) {
@@ -38,20 +35,10 @@ public class FirebaseMessagingPushSender implements PushSender {
         List<String> successfulTokens = new ArrayList<>();
         List<String> invalidTokens = new ArrayList<>();
 
-        Map<String, String> pushData = new LinkedHashMap<>(request.data().toPushData());
-        pushData.put("type", request.type().name());
-
         for (int index = 0; index < tokens.size(); index += BATCH_SIZE) {
             List<String> chunk = tokens.subList(index, Math.min(index + BATCH_SIZE, tokens.size()));
 
-            MulticastMessage message = MulticastMessage.builder()
-                    .addAllTokens(chunk)
-                    .setNotification(Notification.builder()
-                            .setTitle(request.title())
-                            .setBody(request.message())
-                            .build())
-                    .putAllData(pushData)
-                    .build();
+            MulticastMessage message = payloadMapper.toMulticastMessage(request, chunk);
 
             try {
                 BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
