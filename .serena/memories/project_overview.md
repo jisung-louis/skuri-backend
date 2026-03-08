@@ -32,14 +32,17 @@
 - 알림은 after-commit 이후 처리하고, 실패해도 핵심 트랜잭션을 롤백하지 않는다.
 - Notification 저장소 모델은 Firestore가 아니라 RDB(`user_notifications`, `fcm_tokens`)를 사용한다.
 - Notification canonical enum은 API 계약 기준으로 `PARTY_JOIN_REQUEST`, `PARTY_JOIN_ACCEPTED`, `PARTY_JOIN_DECLINED`를 사용한다.
+- `allNotifications`는 마스터 토글이며, 문서화된 예외(`AppNoticePriority.HIGH`, 파티 채팅)를 제외한 알림에 공통 적용한다.
 - Notification SSE는 `/v1/sse/notifications`에서 `SNAPSHOT`, `NOTIFICATION`, `UNREAD_COUNT_CHANGED`, `HEARTBEAT` 이벤트를 발행한다.
 - 학사 일정 리마인더는 `Asia/Seoul` 기준 오전 09:00, 기본 대상 `isPrimary=true`, 멀티데이는 `startDate` 기준이다.
 - 기본 알림 설정은 `academicScheduleNotifications=true`, `academicScheduleDayBeforeEnabled=true`, `academicScheduleAllEventsEnabled=false`다.
+- 기존 회원의 학사 일정 알림 nullable 필드는 런타임 기본값으로 해석하고, 애플리케이션 시작 시 backfill 한다. 단, `test` 프로필에서는 비활성화한다.
 - 댓글 알림은 게시글 작성자/부모 댓글 작성자/북마크 사용자를 dedupe해서 1회만 생성한다.
 - `PARTY_CREATED`, `PARTY_CLOSED`는 inbox를 남기지 않는 parity를 유지한다.
 - 파티 채팅 푸시는 mute parity를 우선 반영하고, 전역 토글은 현재 런타임에서 적용하지 않는다.
 - 공지 댓글 알림은 `Notice.author`가 문자열이라 원글 작성자 알림은 미지원이며 부모 댓글 작성자 reply 알림만 지원한다.
 - AppNotice 강제 발송은 문서의 legacy `urgent` 대신 런타임 `AppNoticePriority.HIGH`를 기준으로 본다.
+- FCM 토큰 등록은 재시도/동시 등록 상황에서도 멱등적으로 처리한다.
 
 ## 이메일/인증
 - Firebase ID Token 기반 인증

@@ -15,9 +15,9 @@
 ## 도메인별 주요 클래스
 - member
   - Entity: `Member`, `NotificationSetting`, `LinkedAccount`, `BankAccount`
-  - Service: `MemberService`
+  - Service: `MemberService`, `NotificationSettingBackfillService`
   - Controller: `MemberController`
-  - Phase 8부터 알림 설정에 `academicScheduleNotifications`, `academicScheduleDayBeforeEnabled`, `academicScheduleAllEventsEnabled` 포함
+  - 학사 일정 알림 3개 필드는 nullable legacy row를 기본값으로 해석하고 startup backfill 한다 (`test` 프로필 제외)
 - taxiparty
   - Entity: `Party`, `JoinRequest`, `MemberSettlement`, `PartyMember`, `PartyTag`
   - Service: `TaxiPartyService`, `PartyTimeoutCommandService`, `PartyTimeoutBatchService`, `PartySseService`, `JoinRequestSseService`
@@ -30,6 +30,7 @@
   - Service: `NotificationService`, `FcmTokenService`, `NotificationEventHandler`, `NotificationSseService`, `AcademicScheduleReminderScheduler`
   - Controller: `NotificationController`, `FcmTokenController`, `NotificationSseController`
   - Event: 도메인 이벤트를 수신해 inbox 저장, SSE fan-out, push delegation 수행
+  - `FcmTokenService.register()`는 unique token 충돌 시 재조회로 복구해 멱등 등록을 보장한다.
 - academic
   - Entity: `AcademicSchedule`, `Course`, `CourseSchedule`, `UserTimetable`, `UserTimetableCourse`
   - Scheduler/Notification과 연계되어 학사 일정 리마인더를 발행
