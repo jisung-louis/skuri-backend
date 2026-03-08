@@ -70,6 +70,7 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 - 현재 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않는다. Docker에서 실제 Firebase 인증까지 검증하려면 자격증명 파일 volume mount를 별도로 추가하거나, 앱은 호스트에서 `bootRun`으로 실행한다.
 - Redis는 아직 앱 로직에 연결되지 않았지만, 운영 compose에서는 향후 캐시 도입 자리를 미리 확보하기 위해 함께 기동한다.
 - 로컬 개발/검증은 `local`과 `local-emulator` 두 프로필로만 운영한다.
+- `local-emulator`는 기본적으로 로컬 DB 스키마를 재생성하지 않는다. 초기화가 필요하면 emulator 전용 DB를 별도로 사용한다.
 
 ## 4. 운영 서버 준비
 

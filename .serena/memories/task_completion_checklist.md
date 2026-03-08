@@ -20,6 +20,7 @@
 ## 운영/배포 변경 시 추가 검증
 1. `./gradlew build` 성공
 2. `docker compose` 설정 파일 문법/기동 절차 확인
+2-1. 로컬 Docker 이미지 빌드 컨텍스트에 `application-local.yaml`, `application-local-emulator.yaml`이 포함되는지 확인
 3. `/actuator/health` 응답 확인
 4. `docker-compose.prod.yml` 렌더링과 MySQL/Redis 영속 볼륨 정책 확인
 5. `prod`에서 OpenAPI가 기본 비노출인지 확인

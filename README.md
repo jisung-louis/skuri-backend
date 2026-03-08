@@ -167,6 +167,7 @@ SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
 
 - 위 예시는 호스트에서 앱을 직접 실행할 때 기준입니다.
 - Docker 컨테이너에서 emulator를 바라볼 때는 보통 `FIREBASE_AUTH_EMULATOR_HOST=host.docker.internal:9099` 처럼 호스트 주소를 사용해야 합니다.
+- `local-emulator`의 기본 스키마 정책은 `update`이며, 로컬 개발 DB를 재생성하지 않습니다. 스키마 초기화가 필요하면 emulator 전용 DB를 따로 사용하세요.
 
 ### 5-5. 실행 확인
 
