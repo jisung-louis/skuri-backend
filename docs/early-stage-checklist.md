@@ -122,7 +122,7 @@
 권장 산출물:
 - `README.md`의 "로컬 실행" 섹션
 - 예시 명령:
-  - `./gradlew bootRun --args='--spring.profiles.active=local'`
+  - `set -a && source .env && set +a && SPRING_PROFILES_ACTIVE=local ./gradlew bootRun`
 
 완료 기준:
 - 문서만 따라하면 다른 사람도 동일하게 서버를 띄울 수 있다.

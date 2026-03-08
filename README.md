@@ -136,6 +136,7 @@ cd skuri-backend
 - `local`은 개인 로컬 개발, `local-emulator`는 Firebase Emulator, `dev`는 팀 공유 개발 서버, `prod`는 운영 서버, `test`는 자동 테스트 전용입니다.
 - 로컬 Docker MySQL/Redis용 값은 기본값 그대로 사용 가능
 - Firebase 인증이 필요한 경우에만 `FIREBASE_PROJECT_ID`, `FIREBASE_CREDENTIALS_PATH` 또는 `GOOGLE_APPLICATION_CREDENTIALS`를 채웁니다.
+- 현재 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않습니다. Docker에서 실제 Firebase 인증까지 검증하려면 자격증명 파일 volume mount를 추가하거나, 앱은 호스트에서 `bootRun`으로 실행해야 합니다.
 - `.env`는 "실제 값", `application-*.yaml`은 "환경별 정책"을 담당합니다.
 
 ### 5-3. 전체 환경 기동
@@ -161,6 +162,9 @@ export FIREBASE_PROJECT_ID=sktaxi-acb4c
 ./bin/start-firebase-auth-emulator.sh
 SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
 ```
+
+- 위 예시는 호스트에서 앱을 직접 실행할 때 기준입니다.
+- Docker 컨테이너에서 emulator를 바라볼 때는 보통 `FIREBASE_AUTH_EMULATOR_HOST=host.docker.internal:9099` 처럼 호스트 주소를 사용해야 합니다.
 
 ### 5-5. 실행 확인
 
