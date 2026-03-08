@@ -239,7 +239,7 @@ OCI Compute (Spring Boot)
   → Firebase Admin SDK (FCM 발송 + ID Token 검증)
 ```
 
-GitHub Actions로 ARM64 Docker 이미지를 빌드한 뒤, `production` 환경 승인 후 OCI 서버에 반영하는 반자동 배포 파이프라인을 추가하면 운영 안전성과 CI/CD 경험을 함께 설명할 수 있다.
+GitHub Actions로 멀티플랫폼 Docker 이미지(`amd64`, `arm64`)를 빌드한 뒤, `production` 환경 승인 후 OCI 서버에 반영하는 반자동 배포 파이프라인을 추가하면 운영 안전성과 이식성을 함께 설명할 수 있다.
 
 | 항목 | 내용 |
 |------|------|

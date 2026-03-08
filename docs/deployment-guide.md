@@ -8,7 +8,7 @@
 | 운영 구조 | `OCI Compute 1대`에서 `docker-compose.prod.yml`로 `app + MySQL + Redis` 기동 |
 | Redis 운영 반영 | 현재 앱 로직에는 미연결이지만 단일 인스턴스 운영 compose에 포함 |
 | 프로필 | `application / local / local-emulator / prod / test` |
-| CD 방식 | 반자동. `main` 반영 후 GitHub `production` 환경 승인 시 배포 |
+| CD 방식 | 반자동. `main` 반영 후 GitHub `production` 환경 승인 시 멀티플랫폼 이미지로 배포 |
 | OpenAPI 노출 | `local/local-emulator` 노출, `prod` 기본 비노출 |
 | Firebase 자격증명 | 서버 파일 + `GOOGLE_APPLICATION_CREDENTIALS` 경로 주입 |
 
@@ -125,6 +125,7 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 - GitHub Actions는 `.env` 자체를 저장하지 않는다.
 - CI/CD에서는 Secrets를 사용하고, 운영 서버는 자신의 `.env`를 유지한다.
+- CD는 `linux/amd64,linux/arm64` 멀티플랫폼 이미지를 push하므로, 나중에 AWS x86 서버로 옮겨도 compose 파일을 크게 바꾸지 않아도 된다.
 
 ## 7. OpenAPI 운영 정책
 
