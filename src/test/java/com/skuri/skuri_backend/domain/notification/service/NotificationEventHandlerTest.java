@@ -93,15 +93,9 @@ class NotificationEventHandlerTest {
         );
         ReflectionTestUtils.setField(party, "id", "party-1");
 
-        Member leader = Member.create("leader-1", "leader@sungkyul.ac.kr", "리더", LocalDateTime.now());
-        Member allowed = Member.create("member-1", "member-1@sungkyul.ac.kr", "수신", LocalDateTime.now());
-        Member blocked = Member.create("member-2", "member-2@sungkyul.ac.kr", "차단", LocalDateTime.now());
-        blocked.updateNotificationSetting(null, false, null, null, null, null, null, null, null, null, null);
-        Member globalOptOut = Member.create("member-3", "member-3@sungkyul.ac.kr", "전체차단", LocalDateTime.now());
-        globalOptOut.updateNotificationSetting(false, true, null, null, null, null, null, null, null, null, null);
-
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
-        when(memberRepository.findAll()).thenReturn(List.of(leader, allowed, blocked, globalOptOut));
+        when(memberRepository.findPartyNotificationRecipientIdsExcluding("leader-1"))
+                .thenReturn(List.of("member-1"));
 
         notificationEventHandler.handle(new NotificationDomainEvent.PartyCreated("party-1"));
 
@@ -157,17 +151,9 @@ class NotificationEventHandlerTest {
         );
         ReflectionTestUtils.setField(schedule, "id", "schedule-1");
 
-        Member allowed = Member.create("member-1", "member-1@sungkyul.ac.kr", "허용", LocalDateTime.now());
-        allowed.updateNotificationSetting(null, null, null, null, null, null, null, true, true, true, null);
-
-        Member noAllEvents = Member.create("member-2", "member-2@sungkyul.ac.kr", "비허용1", LocalDateTime.now());
-        noAllEvents.updateNotificationSetting(null, null, null, null, null, null, null, true, true, false, null);
-
-        Member noDayBefore = Member.create("member-3", "member-3@sungkyul.ac.kr", "비허용2", LocalDateTime.now());
-        noDayBefore.updateNotificationSetting(null, null, null, null, null, null, null, true, false, true, null);
-
         when(academicScheduleRepository.findById("schedule-1")).thenReturn(Optional.of(schedule));
-        when(memberRepository.findAll()).thenReturn(List.of(allowed, noAllEvents, noDayBefore));
+        when(memberRepository.findAcademicScheduleReminderRecipientIds(true, true))
+                .thenReturn(List.of("member-1"));
 
         notificationEventHandler.handle(new NotificationDomainEvent.AcademicScheduleReminder(
                 "schedule-1",
