@@ -275,7 +275,7 @@ SSE 운영 제약:
   - 최소: 성공 1, 실패 1
 - 응답 스키마 변경 시 필드 존재/미노출 조건을 Contract 테스트로 검증한다.
 - OpenAPI 응답 예시를 수정한 경우, 상태코드별 `errorCode/message` 정합성(명세/실응답/문서)을 함께 검증한다.
-- 머지 전 검증 명령은 `SPRING_PROFILES_ACTIVE=local ./gradlew build`를 기준으로 한다.
+- 머지 전 검증 명령은 `./gradlew build`를 기준으로 한다. (테스트는 `application-test.yaml` 사용)
 
 #### 2-7. 후속 확장 구현 완료 내역 (동승 요청 SSE)
 
@@ -692,8 +692,9 @@ SSE 운영 제약:
 | 4 | AWS 배포 설계 | `EC2 + RDS MySQL`, 운영 `.env`, Firebase 파일 주입 전략 | [x] |
 | 5 | GitHub Actions CD | `main` 반영 후 `production` 환경 승인 기반 EC2 배포 초안 | [x] |
 | 6 | OpenAPI 운영 정책 | `local/dev` 노출, `prod` 기본 비노출 | [x] |
-| 7 | 배포 가이드 / 체크리스트 | 배포 전/후 점검, smoke check, rollback 문서화 | [x] |
-| 8 | AWS 실제 리소스 생성 및 최초 배포 | 서버/DB/네트워크 실 배포 | [ ] |
+| 7 | 프로필 / `.env` 전략 정리 | `application/local/local-emulator/dev/prod/test` 체계 + env 기반 local 정리 | [x] |
+| 8 | 배포 가이드 / 체크리스트 | 배포 전/후 점검, smoke check, rollback 문서화 | [x] |
+| 9 | AWS 실제 리소스 생성 및 최초 배포 | 서버/DB/네트워크 실 배포 | [ ] |
 
 #### 9-2. 완료 기준
 

@@ -7,7 +7,7 @@
 | 로컬 실행 | `docker-compose.yml`로 `app + MySQL + Redis` 기동 |
 | 운영 구조 | `EC2 1대(app 컨테이너) + RDS MySQL` |
 | Redis 운영 반영 | 이번 Phase에서는 미도입. 로컬 컨테이너와 환경변수만 준비 |
-| 프로필 | `local / dev / prod` + 보조 테스트용 `local-emulator` |
+| 프로필 | `application / local / local-emulator / dev / prod / test` |
 | CD 방식 | 반자동. `main` 반영 후 GitHub `production` 환경 승인 시 배포 |
 | OpenAPI 노출 | `local/dev` 노출, `prod` 기본 비노출 |
 | Firebase 자격증명 | 서버 파일 + `GOOGLE_APPLICATION_CREDENTIALS` 경로 주입 |
@@ -17,6 +17,7 @@
 - 로컬 개발: `.env`
 - 운영 서버: 서버 안의 `.env`
 - GitHub Actions: GitHub Secrets
+- 프로필 파일(`application-*.yaml`)은 환경별 정책을 공유하고, `.env`는 실제 값을 주입한다.
 - 실제 비밀값은 Git 저장소에 넣지 않는다.
 - Firebase 서비스 계정 JSON은 `.env`에 본문을 넣지 않고 파일로 두고 경로만 `.env`에 넣는다.
 
@@ -38,10 +39,19 @@ GOOGLE_APPLICATION_CREDENTIALS=/opt/skuri/secrets/firebase-admin.json
 
 1. 루트의 `.env.example`를 기준으로 `.env`를 준비한다.
 2. 필요하면 Firebase 관련 값을 채운다.
-3. 아래 명령으로 전체 환경을 올린다.
+3. 아래 명령으로 전체 환경을 올린다. (`docker compose`는 `.env`를 자동으로 읽는다.)
 
 ```bash
 docker compose up -d --build
+```
+
+호스트에서 앱만 직접 실행하려면 `.env`를 먼저 쉘 환경변수로 로드한다.
+
+```bash
+set -a
+source .env
+set +a
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 ```
 
 확인 포인트:
@@ -54,6 +64,7 @@ docker compose up -d --build
 
 - 인증이 필요한 API까지 테스트하려면 실제 Firebase 자격증명 또는 `local-emulator` 설정이 추가로 필요하다.
 - Redis는 지금 단계에서 앱 로직에 연결되지 않으므로 컨테이너 준비 수준이다.
+- `dev` 프로필은 팀 공유 개발 서버용으로 남겨두고, 로컬 개발은 `local`을 기준으로 사용한다.
 
 ## 4. 운영 서버 준비
 

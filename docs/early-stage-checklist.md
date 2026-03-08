@@ -67,7 +67,8 @@
 
 현재 프로젝트 권장:
 - 공용 파일 `application.yaml`에는 환경변수 참조만 유지
-- 로컬 전용 파일은 커밋 금지 (`application-local.yaml`)
+- 프로필 파일(`application-local.yaml` 등)은 정책만 담고 Git으로 추적
+- 실제 값(DB 비밀번호, Firebase 경로 등)은 `.env` 또는 Secrets로만 주입
 
 완료 기준:
 - 저장소 코드만 봐도 비밀번호/토큰 같은 민감 정보가 없다.
