@@ -218,13 +218,13 @@ services:
     ports: ["8080:8080"]
     depends_on: [db, redis]
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/sktaxi
+      DB_URL: jdbc:mysql://db:3306/skuri?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
 
   db:
-    image: postgres:16
+    image: mysql:8.4
     environment:
-      POSTGRES_DB: sktaxi
-      POSTGRES_PASSWORD: password
+      MYSQL_DATABASE: skuri
+      MYSQL_PASSWORD: password
 
   redis:
     image: redis:7-alpine
@@ -234,12 +234,12 @@ services:
 
 ```
 EC2 (Spring Boot)
-  → RDS PostgreSQL
+  → RDS MySQL
   → ElastiCache Redis
   → Firebase Admin SDK (FCM 발송 + ID Token 검증)
 ```
 
-GitHub Actions로 `main` 브랜치 push 시 EC2 자동 배포 파이프라인을 추가하면 CI/CD 경험까지 어필할 수 있다.
+GitHub Actions로 Docker 이미지를 빌드한 뒤, `production` 환경 승인 후 EC2에 반영하는 반자동 배포 파이프라인을 추가하면 운영 안전성과 CI/CD 경험을 함께 설명할 수 있다.
 
 | 항목 | 내용 |
 |------|------|

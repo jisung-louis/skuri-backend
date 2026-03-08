@@ -680,23 +680,27 @@ SSE 운영 제약:
 ### Phase 9: 인프라 및 배포
 
 > Docker, AWS, CI/CD.
+> 확정 전략: `EC2(app 컨테이너) + RDS MySQL`, Redis 운영 반영은 후속, GitHub `production` 환경 승인 기반 반자동 배포.
 
 #### 9-1. 구현 항목
 
-| # | 항목 | 설명 |
-|---|------|------|
-| 1 | Dockerfile | Spring Boot 멀티스테이지 빌드 |
-| 2 | docker-compose.yml | app + MySQL + Redis 로컬 개발 환경 |
-| 3 | Redis 캐시 | 파티 목록, 공지 목록, FCM 토큰 캐시 |
-| 4 | AWS 배포 | EC2 + RDS (MySQL) + ElastiCache (Redis) |
-| 5 | GitHub Actions | main 브랜치 push → EC2 자동 배포 |
-| 6 | OpenAPI 배포 자동화 | API 문서(UI/JSON) 접근 경로 및 배포 환경 가이드 자동화 |
+| # | 항목 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | Dockerfile | Spring Boot 멀티스테이지 빌드 | [x] |
+| 2 | docker-compose.yml | app + MySQL + Redis 로컬 개발 환경 | [x] |
+| 3 | Redis 범위 정리 | 이번 Phase는 컨테이너/환경변수/문서화까지만 반영 | [x] |
+| 4 | AWS 배포 설계 | `EC2 + RDS MySQL`, 운영 `.env`, Firebase 파일 주입 전략 | [x] |
+| 5 | GitHub Actions CD | `main` 반영 후 `production` 환경 승인 기반 EC2 배포 초안 | [x] |
+| 6 | OpenAPI 운영 정책 | `local/dev` 노출, `prod` 기본 비노출 | [x] |
+| 7 | 배포 가이드 / 체크리스트 | 배포 전/후 점검, smoke check, rollback 문서화 | [x] |
+| 8 | AWS 실제 리소스 생성 및 최초 배포 | 서버/DB/네트워크 실 배포 | [ ] |
 
 #### 9-2. 완료 기준
 
-- [ ] `docker-compose up` 으로 로컬 전체 환경 기동
+- [x] `docker compose up` 기준의 로컬 환경 파일/문서 준비
+- [x] CI/CD 파이프라인 초안 반영
 - [ ] AWS 배포 및 정상 동작
-- [ ] CI/CD 파이프라인 동작
+- [ ] 운영 smoke check / rollback 실제 수행 확인
 
 ---
 
