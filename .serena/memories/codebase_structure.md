@@ -33,6 +33,7 @@
   - `NotificationEventHandler`는 broad `findAll()` 대신 repository-level recipient query로 파티/공지/시스템/학사 일정 수신 대상을 1차 축소한다.
 - `NotificationService`는 unread count SSE를 after-commit 시점의 committed DB 상태 기준으로 다시 조회해 발행한다. 단건 변경은 single count query, inbox fan-out은 bulk unread count query를 사용한다.
 - `FcmTokenService.register()`는 unique token 충돌 시 재조회로 복구해 멱등 등록을 보장한다.
+- push payload는 `FirebasePushPayloadMapper`가 canonical `NotificationType` + `NotificationData` + `contractVersion=1`로 조립하고, `PushPresentationProfile`로 Android channel/sound와 iOS `aps.sound`를 분리한다.
 - academic
   - Entity: `AcademicSchedule`, `Course`, `CourseSchedule`, `UserTimetable`, `UserTimetableCourse`
   - Scheduler/Notification과 연계되어 학사 일정 리마인더를 발행

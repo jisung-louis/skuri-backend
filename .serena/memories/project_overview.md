@@ -43,6 +43,8 @@
 - 공지 댓글 알림은 `Notice.author`가 문자열이라 원글 작성자 알림은 미지원이며 부모 댓글 작성자 reply 알림만 지원한다.
 - AppNotice 강제 발송은 문서의 legacy `urgent` 대신 런타임 `AppNoticePriority.HIGH`를 기준으로 본다.
 - FCM 토큰 등록은 재시도/동시 등록 상황에서도 멱등적으로 처리한다.
+- FCM raw push payload는 특정 RN legacy type에 종속되지 않고 canonical `NotificationType` + 리소스 식별자 + `contractVersion`을 사용한다.
+- 플랫폼별 알림 표현은 `PushPresentationProfile`(`PARTY`, `CHAT`, `NOTICE`, `DEFAULT`)로 분리하며, Android는 channel/sound override, iOS는 `aps.sound`를 사용한다.
 
 ## 이메일/인증
 - Firebase ID Token 기반 인증
