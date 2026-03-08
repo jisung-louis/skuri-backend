@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.board.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.board.dto.request.CreateCommentRequest;
@@ -54,6 +55,9 @@ class BoardServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private AfterCommitApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private BoardService boardService;

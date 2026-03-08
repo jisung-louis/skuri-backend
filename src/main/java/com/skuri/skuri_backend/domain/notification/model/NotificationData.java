@@ -1,0 +1,90 @@
+package com.skuri.skuri_backend.domain.notification.model;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+@Schema(description = "알림 추가 데이터")
+public record NotificationData(
+        @Schema(description = "파티 ID", example = "party-uuid", nullable = true)
+        String partyId,
+        @Schema(description = "동승 요청 ID", example = "request-uuid", nullable = true)
+        String requestId,
+        @Schema(description = "채팅방 ID", example = "room:university", nullable = true)
+        String chatRoomId,
+        @Schema(description = "게시글 ID", example = "post-uuid", nullable = true)
+        String postId,
+        @Schema(description = "댓글 ID", example = "comment-uuid", nullable = true)
+        String commentId,
+        @Schema(description = "공지 ID", example = "notice-uuid", nullable = true)
+        String noticeId,
+        @Schema(description = "앱 공지 ID", example = "app-notice-uuid", nullable = true)
+        String appNoticeId,
+        @Schema(description = "학사 일정 ID", example = "academic-schedule-uuid", nullable = true)
+        String academicScheduleId
+) {
+
+    public static NotificationData empty() {
+        return new NotificationData(null, null, null, null, null, null, null, null);
+    }
+
+    public static NotificationData ofParty(String partyId) {
+        return new NotificationData(partyId, null, null, null, null, null, null, null);
+    }
+
+    public static NotificationData ofPartyRequest(String partyId, String requestId) {
+        return new NotificationData(partyId, requestId, null, null, null, null, null, null);
+    }
+
+    public static NotificationData ofChatRoom(String chatRoomId) {
+        return new NotificationData(null, null, chatRoomId, null, null, null, null, null);
+    }
+
+    public static NotificationData ofPost(String postId) {
+        return new NotificationData(null, null, null, postId, null, null, null, null);
+    }
+
+    public static NotificationData ofPostComment(String postId, String commentId) {
+        return new NotificationData(null, null, null, postId, commentId, null, null, null);
+    }
+
+    public static NotificationData ofNotice(String noticeId) {
+        return new NotificationData(null, null, null, null, null, noticeId, null, null);
+    }
+
+    public static NotificationData ofNoticeComment(String noticeId, String commentId) {
+        return new NotificationData(null, null, null, null, commentId, noticeId, null, null);
+    }
+
+    public static NotificationData ofAppNotice(String appNoticeId) {
+        return new NotificationData(null, null, null, null, null, null, appNoticeId, null);
+    }
+
+    public static NotificationData ofAcademicSchedule(String academicScheduleId) {
+        return new NotificationData(null, null, null, null, null, null, null, academicScheduleId);
+    }
+
+    public Map<String, String> toPushData() {
+        Map<String, String> data = new LinkedHashMap<>();
+        putIfPresent(data, "partyId", partyId);
+        putIfPresent(data, "requestId", requestId);
+        putIfPresent(data, "chatRoomId", chatRoomId);
+        putIfPresent(data, "postId", postId);
+        putIfPresent(data, "commentId", commentId);
+        putIfPresent(data, "noticeId", noticeId);
+        putIfPresent(data, "appNoticeId", appNoticeId);
+        putIfPresent(data, "academicScheduleId", academicScheduleId);
+        return data;
+    }
+
+    public boolean matchesParty(String targetPartyId) {
+        return targetPartyId != null && targetPartyId.equals(partyId);
+    }
+
+    private static void putIfPresent(Map<String, String> data, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            data.put(key, value);
+        }
+    }
+}

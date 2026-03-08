@@ -1,7 +1,9 @@
 package com.skuri.skuri_backend.domain.taxiparty.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
@@ -18,6 +20,7 @@ public class PartyTimeoutCommandService {
 
     private final PartyRepository partyRepository;
     private final PartySseService partySseService;
+    private final AfterCommitApplicationEventPublisher eventPublisher;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean endExpiredParty(String partyId) {
@@ -28,11 +31,13 @@ public class PartyTimeoutCommandService {
             return false;
         }
 
+        PartyStatus beforeStatus = party.getStatus();
         party.timeoutEnd();
 
         try {
             partyRepository.saveAndFlush(party);
             partySseService.publishPartyStatusChanged(party);
+            eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
             return true;
         } catch (ObjectOptimisticLockingFailureException | OptimisticLockException e) {
             throw new BusinessException(ErrorCode.PARTY_CONCURRENT_MODIFICATION);

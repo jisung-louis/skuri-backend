@@ -595,16 +595,16 @@ SSE 운영 제약:
 | `FcmToken` 엔티티 | FCM 토큰 관리 |
 | `PushNotificationService` | Firebase Admin SDK로 FCM 발송 |
 | `NotificationService` | 인박스 저장 + 조회 |
-| `DomainEventNotificationListener` | `@EventListener` + `@Async` 비동기 처리 |
+| `DomainEventNotificationListener` | `@EventListener` 기반 수신 + 실패 격리 처리 |
 
 #### 8-2. 도메인 이벤트 → 알림 매핑
 
 | 이벤트 | 알림 타입 | FCM | 인박스 |
 |--------|-----------|-----|--------|
 | PartyCreatedEvent | PARTY_CREATED | O | X |
-| JoinRequestCreatedEvent | JOIN_REQUEST | O | O |
-| JoinRequestAcceptedEvent | JOIN_ACCEPTED | O | O |
-| JoinRequestDeclinedEvent | JOIN_DECLINED | O | O |
+| JoinRequestCreatedEvent | PARTY_JOIN_REQUEST | O | O |
+| JoinRequestAcceptedEvent | PARTY_JOIN_ACCEPTED | O | O |
+| JoinRequestDeclinedEvent | PARTY_JOIN_DECLINED | O | O |
 | PartyStatusChangedEvent | PARTY_CLOSED / PARTY_ARRIVED | O | O |
 | SettlementCompletedEvent | SETTLEMENT_COMPLETED | O | O |
 | MemberKickedEvent | MEMBER_KICKED | O | O |
@@ -619,22 +619,28 @@ SSE 운영 제약:
 
 | 알림 타입 | 기본 트리거 | 기본 수신 대상 | 제외/예외 | 설정 반영 | 인앱 인박스 |
 |-----------|-------------|----------------|-----------|-----------|-------------|
-| `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | 생성자 제외 | `partyNotifications` | X |
-| `JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | 토큰 없음 시 푸시 없음 | 현재 개별 토글 미반영 | O |
-| `JOIN_ACCEPTED` / `JOIN_DECLINED` | 동승 요청 상태 변경 | 요청자 | `accepted` / `declined` 외 상태 미발송 | 현재 개별 토글 미반영 | O |
-| `PARTY_CLOSED` | 파티 상태 `open -> closed` | 리더 제외 파티 멤버 | 해당 상태 전이 외 미발송 | 현재 개별 토글 미반영 | X |
-| `PARTY_ARRIVED` | 파티 상태 `* -> arrived` | 리더 제외 파티 멤버 | 해당 상태 전이 외 미발송 | 현재 개별 토글 미반영 | O |
-| `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | 이미 정산 완료 상태였으면 미발송 | 현재 개별 토글 미반영 | O |
-| `MEMBER_KICKED` | 파티 멤버 강퇴 | 강퇴된 멤버 | 자진 이탈(`_selfLeaveMemberId`)과 리더 제외 | 현재 개별 토글 미반영 | O |
-| `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | 리더만 남은 파티는 제외 | 현재 개별 토글 미반영 | O |
+| `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | 생성자 제외 | `allNotifications` + `partyNotifications` | X |
+| `PARTY_JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | 토큰 없음 시 푸시 없음 | `allNotifications` + `partyNotifications` | O |
+| `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED` | 동승 요청 상태 변경 | 요청자 | `accepted` / `declined` 외 상태 미발송 | `allNotifications` + `partyNotifications` | O |
+| `PARTY_CLOSED` | 파티 상태 `open -> closed` | 리더 제외 파티 멤버 | 해당 상태 전이 외 미발송 | `allNotifications` + `partyNotifications` | X |
+| `PARTY_ARRIVED` | 파티 상태 `* -> arrived` | 리더 제외 파티 멤버 | 해당 상태 전이 외 미발송 | `allNotifications` + `partyNotifications` | O |
+| `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | 이미 정산 완료 상태였으면 미발송 | `allNotifications` + `partyNotifications` | O |
+| `MEMBER_KICKED` | 파티 멤버 강퇴 | 강퇴된 멤버 | 자진 이탈(`_selfLeaveMemberId`)과 리더 제외 | `allNotifications` + `partyNotifications` | O |
+| `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | 리더만 남은 파티는 제외 | `allNotifications` + `partyNotifications` | O |
 | `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 생성 | 채팅방 멤버(송신자 제외) | 채팅방 mute 대상 제외 | `allNotifications` + 채팅방 mute | X |
-| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 생성 | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외 | 채팅 mute 중심, 전역 토글 반영은 현행 비일관 | X |
-| `POST_LIKED` | 게시글 좋아요 생성 | 게시글 작성자 | 자기 글 좋아요 제외 | `boardLikeNotifications` | O |
-| `COMMENT_CREATED` (게시글) | 게시글 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | 자기 자신 대상 제외, 동일 사용자 중복 수신은 1회로 dedupe | `commentNotifications` + `bookmarkedPostCommentNotifications` | O |
-| `COMMENT_CREATED` (공지) | 공지 댓글/답글 생성 | 공지 작성자 또는 부모 댓글 작성자 | 자기 자신 대상 제외 | `commentNotifications` | O |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 생성 | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외 | 채팅 mute 중심 parity 우선, 전역 토글은 현재 미반영 | X |
+| `POST_LIKED` | 게시글 좋아요 생성 | 게시글 작성자 | 자기 글 좋아요 제외 | `allNotifications` + `boardLikeNotifications` | O |
+| `COMMENT_CREATED` (게시글) | 게시글 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | 자기 자신 대상 제외, 동일 사용자 중복 수신은 1회로 dedupe | `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` | O |
+| `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `Notice.author`가 회원 식별자가 아니어서 루트 공지 작성자 알림은 현재 미지원 | `allNotifications` + `commentNotifications` | O |
 | `NOTICE` | 새 학교 공지 생성 | 공지 허용 사용자 | 카테고리 상세 토글 비활성 사용자 제외 | `allNotifications` + `noticeNotifications` + `noticeNotificationsDetail` | O |
-| `APP_NOTICE` | 앱 공지 생성 | 일반: 시스템 알림 허용 사용자 / 긴급: 전체 사용자 | `urgent`는 설정 무시 강제 발송 | 일반: `allNotifications` + `systemNotifications` / 긴급: 설정 무시 | O |
+| `APP_NOTICE` | 앱 공지 생성 | 일반: 시스템 알림 허용 사용자 / `HIGH`: 전체 사용자 | `HIGH`는 설정 무시 강제 발송 | 일반: `allNotifications` + `systemNotifications` / `HIGH`: 설정 무시 | O |
 | `ACADEMIC_SCHEDULE` | 학사 일정 리마인더 시각 도달 | 학사 일정 알림 허용 사용자 | 기본은 중요 일정만 대상 | `allNotifications` + `academicScheduleNotifications` | O |
+
+- 저장 구조는 Firestore가 아니라 RDB 테이블(`user_notifications`, `fcm_tokens`)을 사용한다.
+- FCM 전송은 `sendEachForMulticast` 500개 배치와 invalid token 정리 정책을 유지한다.
+- 로컬/테스트에서 Firebase Messaging bean이 없으면 no-op sender로 기동/테스트를 허용한다.
+- FCM raw push payload는 canonical `NotificationType` + 리소스 식별자(`partyId`, `noticeId`, `chatRoomId` 등)를 사용하며, 특정 RN legacy payload에 맞추지 않는다.
+- 플랫폼별 sound/channel은 `PushPresentationProfile`로 관리한다. `PARTY`, `CHAT`, `NOTICE`, `DEFAULT` 프로필을 사용하고, `DEFAULT`는 현재 Android channel override를 두지 않는다.
 
 #### 8-2-2. 학사 일정 알림 사용자 옵션 (계획)
 
@@ -661,13 +667,13 @@ SSE 운영 제약:
 
 #### 8-4. 완료 기준
 
-- [ ] 도메인 이벤트 발행 → 비동기 리스너 수신 동작
-- [ ] FCM 푸시 발송 동작
-- [ ] 알림 인박스 CRUD 동작
-- [ ] 알림 설정 반영 (mute, 카테고리별 on/off)
-- [ ] 학사 일정 리마인더 정책 반영 (기본: 중요 일정 당일 09:00, 옵션: 전날 추가 / 모든 일정)
-- [ ] 기존 Cloud Functions 운영 정책과의 parity 검증 (수신 대상, 예외 조건, 인앱 생성 여부)
-- [ ] `/v1/sse/notifications`로 인앱 실시간 알림/미읽음 수 반영 동작
+- [x] 도메인 이벤트 발행 → after-commit 리스너 수신 동작
+- [x] FCM 푸시 발송 동작
+- [x] 알림 인박스 CRUD 동작
+- [x] 알림 설정 반영 (mute, 카테고리별 on/off)
+- [x] 학사 일정 리마인더 정책 반영 (기본: 중요 일정 당일 09:00, 옵션: 전날 추가 / 모든 일정)
+- [x] 기존 Cloud Functions 운영 정책과의 parity 검증 (수신 대상, 예외 조건, 인앱 생성 여부)
+- [x] `/v1/sse/notifications`로 인앱 실시간 알림/미읽음 수 반영 동작
 
 ---
 
@@ -824,3 +830,5 @@ Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 > - 2026-03-06: README/로드맵 현재 상태를 Phase 4 완료 기준으로 동기화하고, Board API 경로 변수명을 코드 기준(`postId/commentId`)으로 정렬
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리(`commentNotifications`, `bookmarkedPostCommentNotifications`)
 > - 2026-03-08: Phase 7 완료 기준으로 현재 상태를 갱신하고, Support 운영 API/기본 앱 버전 fallback/Postman 수동 검증 컬렉션 경로를 반영
+> - 2026-03-08: Phase 8 Notification 구현 반영 — `PARTY_*` canonical enum, RDB 저장 구조, FCM token/no-op sender, 학사 일정 리마인더, Notification SSE/인박스/정책 parity 동기화
+> - 2026-03-08: Phase 8 Push payload 계약 보강 — canonical `type + data`, `contractVersion`, platform별 sound/channel presentation profile 문서화

@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.taxiparty.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
@@ -34,6 +35,9 @@ class PartyTimeoutCommandServiceTest {
 
     @Mock
     private PartySseService partySseService;
+
+    @Mock
+    private AfterCommitApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PartyTimeoutCommandService partyTimeoutCommandService;

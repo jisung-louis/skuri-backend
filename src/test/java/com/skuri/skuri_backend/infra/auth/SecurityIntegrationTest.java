@@ -19,6 +19,12 @@ import com.skuri.skuri_backend.domain.member.dto.response.MemberMeResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberNotificationSettingResponse;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.member.service.MemberService;
+import com.skuri.skuri_backend.domain.notification.controller.FcmTokenController;
+import com.skuri.skuri_backend.domain.notification.controller.NotificationController;
+import com.skuri.skuri_backend.domain.notification.controller.NotificationSseController;
+import com.skuri.skuri_backend.domain.notification.service.FcmTokenService;
+import com.skuri.skuri_backend.domain.notification.service.NotificationService;
+import com.skuri.skuri_backend.domain.notification.service.NotificationSseService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
 import com.skuri.skuri_backend.infra.auth.config.SecurityConfig;
@@ -51,7 +57,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AppVersionController.class,
         AppVersionAdminController.class,
         AppNoticeController.class,
-        ChatAdminRoomController.class
+        ChatAdminRoomController.class,
+        NotificationController.class,
+        FcmTokenController.class,
+        NotificationSseController.class
 })
 @Import({
         SecurityConfig.class,
@@ -77,6 +86,15 @@ class SecurityIntegrationTest {
     private ChatAdminService chatAdminService;
 
     @MockitoBean
+    private NotificationService notificationService;
+
+    @MockitoBean
+    private FcmTokenService fcmTokenService;
+
+    @MockitoBean
+    private NotificationSseService notificationSseService;
+
+    @MockitoBean
     private FirebaseTokenVerifier firebaseTokenVerifier;
 
     @MockitoBean
@@ -93,6 +111,39 @@ class SecurityIntegrationTest {
     @Test
     void 보호Api_membersById_토큰없음_401() throws Exception {
         mockMvc.perform(get("/v1/members/target-uid"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void 보호Api_notifications_토큰없음_401() throws Exception {
+        mockMvc.perform(get("/v1/notifications"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void 보호Api_fcmTokens_토큰없음_401() throws Exception {
+        mockMvc.perform(
+                        post("/v1/members/me/fcm-tokens")
+                                .contentType("application/json")
+                                .content("""
+                                        {
+                                          "token": "dXZlbnQ6ZmNtLXRva2Vu",
+                                          "platform": "ios"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void 보호Api_notificationSse_토큰없음_401() throws Exception {
+        mockMvc.perform(get("/v1/sse/notifications"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
@@ -149,6 +200,9 @@ class SecurityIntegrationTest {
                                 true,
                                 true,
                                 true,
+                                true,
+                                true,
+                                false,
                                 Map.of("news", true)
                         ),
                         LocalDateTime.now(),

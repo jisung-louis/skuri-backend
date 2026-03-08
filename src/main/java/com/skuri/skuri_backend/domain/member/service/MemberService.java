@@ -105,6 +105,9 @@ public class MemberService {
                 request.commentNotifications(),
                 request.bookmarkedPostCommentNotifications(),
                 request.systemNotifications(),
+                request.academicScheduleNotifications(),
+                request.academicScheduleDayBeforeEnabled(),
+                request.academicScheduleAllEventsEnabled(),
                 request.noticeNotificationsDetail()
         );
         return toMemberMeResponse(member);
@@ -209,6 +212,9 @@ public class MemberService {
                 notificationSetting.isCommentNotifications(),
                 notificationSetting.isBookmarkedPostCommentNotifications(),
                 notificationSetting.isSystemNotifications(),
+                notificationSetting.isAcademicScheduleNotifications(),
+                notificationSetting.isAcademicScheduleDayBeforeEnabled(),
+                notificationSetting.isAcademicScheduleAllEventsEnabled(),
                 detail
         );
     }

@@ -40,7 +40,11 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("member")
                 .pathsToMatch("/v1/members/**")
-                .pathsToExclude("/v1/members/me/posts", "/v1/members/me/bookmarks")
+                .pathsToExclude(
+                        "/v1/members/me/posts",
+                        "/v1/members/me/bookmarks",
+                        "/v1/members/me/fcm-tokens"
+                )
                 .build();
     }
 
@@ -122,6 +126,18 @@ public class OpenApiConfig {
                         "/v1/admin/academic-schedules/**",
                         "/v1/admin/courses",
                         "/v1/admin/courses/**"
+                )
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi notificationApi() {
+        return GroupedOpenApi.builder()
+                .group("notification")
+                .pathsToMatch(
+                        "/v1/notifications/**",
+                        "/v1/members/me/fcm-tokens",
+                        "/v1/sse/notifications"
                 )
                 .build();
     }

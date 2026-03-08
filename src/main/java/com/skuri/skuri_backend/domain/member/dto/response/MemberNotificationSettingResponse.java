@@ -20,6 +20,12 @@ public record MemberNotificationSettingResponse(
         boolean bookmarkedPostCommentNotifications,
         @Schema(description = "시스템 알림 on/off", example = "true")
         boolean systemNotifications,
+        @Schema(description = "학사 일정 알림 on/off", example = "true")
+        boolean academicScheduleNotifications,
+        @Schema(description = "학사 일정 전날 알림 on/off", example = "true")
+        boolean academicScheduleDayBeforeEnabled,
+        @Schema(description = "모든 학사 일정 알림 on/off", example = "false")
+        boolean academicScheduleAllEventsEnabled,
         @Schema(description = "공지 상세 알림 설정 맵", example = "{\"academic\":true,\"event\":false}")
         Map<String, Boolean> noticeNotificationsDetail
 ) {

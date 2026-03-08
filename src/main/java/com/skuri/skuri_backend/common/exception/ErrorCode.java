@@ -19,6 +19,8 @@ public enum ErrorCode {
     CONFLICT(HttpStatus.CONFLICT, "CONFLICT", "리소스 충돌이 발생했습니다."),
     RESOURCE_CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "RESOURCE_CONCURRENT_MODIFICATION", "동시 수정 충돌이 발생했습니다. 다시 시도해주세요."),
     VALIDATION_ERROR(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_ERROR", "입력값 검증에 실패했습니다."),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "알림을 찾을 수 없습니다."),
+    NOT_NOTIFICATION_OWNER(HttpStatus.FORBIDDEN, "NOT_NOTIFICATION_OWNER", "본인 알림만 접근할 수 있습니다."),
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE_NOT_FOUND", "강의를 찾을 수 없습니다."),
     ACADEMIC_SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "ACADEMIC_SCHEDULE_NOT_FOUND", "학사 일정을 찾을 수 없습니다."),
     TIMETABLE_CONFLICT(HttpStatus.CONFLICT, "TIMETABLE_CONFLICT", "시간이 겹치는 강의가 이미 시간표에 있습니다."),

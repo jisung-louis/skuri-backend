@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.chat.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.dto.request.SendChatMessageRequest;
@@ -27,6 +28,7 @@ import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -59,6 +61,7 @@ public class ChatService {
     private final MemberRepository memberRepository;
     private final PartyMessageService partyMessageService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AfterCommitApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void createPartyChatRoom(Party party) {
@@ -241,6 +244,7 @@ public class ChatService {
             messagingTemplate.convertAndSend("/topic/chat/" + chatRoomId, response);
             publishChatRoomSummaryEvent(room);
         });
+        eventPublisher.publish(new NotificationDomainEvent.ChatMessageCreated(chatRoomId, saved.getId()));
 
         return response;
     }

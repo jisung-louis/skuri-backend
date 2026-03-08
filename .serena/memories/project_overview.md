@@ -1,80 +1,51 @@
 # SKURI Backend - 프로젝트 개요
 
 ## 목적
-성결대학교(Sungkyul University) 학생들을 위한 택시 합승 매칭 서비스 백엔드.
-사용자는 택시 파티를 생성하거나 참여하고, 실시간 채팅과 정산 기능을 사용할 수 있다.
+성결대학교 학생 대상 택시 합승/커뮤니티/공지/학사 서비스 백엔드다. 핵심 도메인은 TaxiParty이며, 알림은 핵심 트랜잭션의 부가효과로 분리한다.
 
 ## 기술 스택
-- **Language**: Java 21
-- **Framework**: Spring Boot 4.0.3
-- **Build Tool**: Gradle (Groovy DSL)
-- **Database**: MySQL 8.4 (production), H2 (test)
-- **ORM**: Spring Data JPA + Hibernate
-- **Authentication**: Firebase Admin SDK (ID Token 검증)
-- **Real-time**: WebSocket (STOMP - 채팅), SSE (파티 이벤트)
-- **API Documentation**: springdoc-openapi (Swagger UI + Scalar)
-- **Testing**: JUnit 5, Spring Boot Test
-- **CI/CD**: GitHub Actions
+- Java 21, Spring Boot 4.0.3, Gradle
+- MySQL 8.4 (prod), H2 (test)
+- Spring Data JPA + Hibernate
+- Firebase Admin SDK (ID Token 검증, FCM sender 구현)
+- 실시간: WebSocket(STOMP, 채팅), SSE(파티/알림)
+- OpenAPI: springdoc Swagger UI + Scalar
 
 ## 도메인 구조
-```
-domain/
-├── member/       # 회원 (Firebase 인증, 프로필, 알림 설정, 은행 계좌)
-├── taxiparty/    # 택시 파티 (핵심 도메인 - 생성/참여/정산/상태관리)
-├── chat/         # 채팅 (WebSocket STOMP, 채팅방, 메시지)
-├── board/        # 커뮤니티 게시판 (게시글/댓글/좋아요/북마크)
-├── notice/       # 학교 공지 (RSS 수집, 상세 크롤링, 읽음/좋아요/댓글)
-├── academic/     # 학사 정보 (강의 검색, 시간표, 학사 일정, 관리자 강의/학사일정 관리)
-├── app/          # 앱 공지
-└── support/      # 문의/신고, 앱 버전, 학식 메뉴
-```
+- member: 회원, 프로필, 알림 설정, FCM 토큰 API
+- taxiparty: 생성/참여/정산/상태 전이, SSE
+- chat: 채팅방/메시지/WebSocket
+- board: 게시글/댓글/북마크
+- notice: 학교 공지 수집/상세/댓글/읽음
+- academic: 강의/시간표/학사 일정
+- app: 앱 공지
+- support: 문의/신고/버전/학식
+- notification: 인앱 인박스, FCM 토큰, SSE, 리마인더 스케줄링, 이벤트 기반 알림 처리
 
-## 인프라 구조
-```
-infra/
-├── auth/         # Firebase 인증 + Spring Security
-│   ├── config/   # SecurityConfig, FirebaseConfig
-│   └── firebase/ # Token 검증, 인증 필터
-└── openapi/      # OpenAPI 설정 및 도메인별 예시 상수
-```
-
-## 공통 모듈
-```
-common/
-├── dto/          # ApiResponse<T>, PageResponse
-├── config/       # JPA Auditing, ObjectMapper
-├── entity/       # BaseTimeEntity
-└── exception/    # ErrorCode, GlobalExceptionHandler, BusinessException
-```
+## 인프라/공통
+- `common.event.AfterCommitApplicationEventPublisher`: 성공한 상태 변경 이후에만 `ApplicationEvent`를 발행한다.
+- `infra.auth.config.FirebaseConfig`를 재사용하고 Firebase Admin 중복 초기화는 금지한다.
+- `infra.notification`에는 `PushSender` 추상화, Firebase 기반 sender, credentials 부재 시 `NoOpPushSender`가 있다.
+- 공통 응답은 `ApiResponse`, 예외는 `GlobalExceptionHandler`, ErrorCode 중심으로 처리한다.
 
 ## 운영 정책
-- NoticeScheduler: 평일 08:00~19:50 (Asia/Seoul), 10분 주기
-- 성결대학교 공지 수집은 사이트 TLS 체인 이슈로 인해 Notice 전용 클라이언트에서만 인증서 검증을 비활성화
-- Notice sync 응답은 `created/updated/skipped/failed`를 반환하고, 개별 공지 저장 실패가 나도 다음 항목을 계속 처리
-- Notice 엔티티는 `rssPreview`(RSS 미리보기), `summary`(향후 AI 요약 예약), `bodyText`(정규화 plain text), `bodyHtml`(RN 렌더링용 원문 HTML), `attachments`로 구분한다.
-- Notice RSS `postedAt`은 offset-aware 파싱을 사용하고, 상세 크롤링 실패 시 기존 상세 본문/첨부/해시를 보존한다.
-- TaxiParty는 생성/참여 요청/참여 승인 시 `Member` row lock으로 동일 사용자의 활성 파티 참여를 직렬화한다.
-- 같은 사용자의 동승 요청은 `Member` row lock과 `PENDING` 존재 여부 확인으로 중복 live request를 차단하고, 취소/거절 이후 재요청 이력은 허용한다.
-- 파티 멤버 변동(승인/탈퇴/강퇴)은 `chat_room_members`와 `chat_rooms.member_count`를 즉시 동기화한다.
-- 채팅 읽음 시각(`lastReadAt`)은 서버 현재 시각과 마지막 메시지 시각을 상한으로 clamp한다.
-- AppNotice 관리자 수정 API: `PATCH /v1/admin/app-notices/{appNoticeId}`
-- AppNotice PATCH는 전달한 필드만 반영하고, 누락되거나 `null`인 필드는 유지
-- Support 도메인은 `Inquiry`, `Report`, `AppVersion`, `CafeteriaMenu` 엔티티와 관리자 운영 API를 포함한다.
-- `GET /v1/app-versions/{platform}`는 공개 API이며, 저장 데이터가 없으면 기본 `minimumVersion=1.0.0`, `forceUpdate=false`, `showButton=false` 응답을 반환한다.
-- Support `Report`는 `reporterId + targetType + targetId` 기준으로 전 상태에서 중복 신고를 허용하지 않는다.
-- Support `Report` enum 기준은 API 계약 우선으로 `targetType=POST|COMMENT|MEMBER`, `status=PENDING|REVIEWING|ACTIONED|REJECTED`를 사용한다.
-- 학사 일정 알림은 Phase 8 Notification 인프라에서 구현 예정이며, 기본 정책은 중요 일정(`isPrimary=true`) `startDate` 당일 오전 09:00 발송, 사용자 옵션은 전날 추가/모든 일정 확장이다.
-- Phase 8 Notification 설계는 현행 RN + Firebase Cloud Functions 푸시 정책을 기본으로 이관하며, `allNotifications`/도메인 토글 반영이 불일치한 이벤트는 구현 시 정규화 여부를 명시한다.
-- 댓글 알림 정책은 `commentNotifications`(Board/Notice 공통 댓글 알림)와 `bookmarkedPostCommentNotifications`(북마크 게시글 댓글 알림)로 분리된다.
-- `COMMENT_CREATED`(게시글)은 게시글 작성자/부모 댓글 작성자/해당 게시글 북마크 사용자를 수신 대상으로 하며, 동일 사용자 중복 수신은 1회로 dedupe한다.
-- Comment 도메인은 Board/Notice 공통 정책으로 운영하며, 무제한 depth 저장 + flat list 조회 + placeholder soft delete를 사용한다.
-- Academic 도메인은 `Course`, `CourseSchedule`, `UserTimetable`, `UserTimetableCourse`, `AcademicSchedule` 엔티티로 구성된다.
-- `Course`는 `semester + code + division` unique 제약을 가지며, 관리자 강의 bulk 등록 계약은 같은 키 기준 업서트 + 누락 강의 삭제 방식이다.
-- 시간표는 `userId + semester` unique 규칙을 가지며, 같은 시간표 내 동일 강의 중복 추가와 시간 겹침(dayOfWeek/startPeriod/endPeriod overlap)을 서버에서 차단한다.
-- `GET /v1/timetables/my`는 semester 미지정 시 현재 날짜 기준 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙으로 현재 학기를 해석한다.
-- 실제 학교 학기 시작은 3월/9월이지만, 스쿠리는 수강신청/시간표 준비 수요를 반영해 한 달 앞선 2월/8월부터 새 학기 기준을 적용한다.
-- 관리자 강의 bulk 등록 계약은 필드명 `credits`와 강의 단위 `location`으로 통일한다.
-- 학사 일정 알림 구현 시 `NotificationSetting` 확장 후보는 `academicScheduleNotifications`, `academicScheduleDayBeforeEnabled`, `academicScheduleAllEventsEnabled`다.
+- 알림은 after-commit 이후 처리하고, 실패해도 핵심 트랜잭션을 롤백하지 않는다.
+- Notification 저장소 모델은 Firestore가 아니라 RDB(`user_notifications`, `fcm_tokens`)를 사용한다.
+- Notification canonical enum은 API 계약 기준으로 `PARTY_JOIN_REQUEST`, `PARTY_JOIN_ACCEPTED`, `PARTY_JOIN_DECLINED`를 사용한다.
+- `allNotifications`는 마스터 토글이며, 문서화된 예외(`AppNoticePriority.HIGH`, 파티 채팅)를 제외한 알림에 공통 적용한다.
+- Notification SSE는 `/v1/sse/notifications`에서 `SNAPSHOT`, `NOTIFICATION`, `UNREAD_COUNT_CHANGED`, `HEARTBEAT` 이벤트를 발행한다.
+- 학사 일정 리마인더는 `Asia/Seoul` 기준 오전 09:00, 기본 대상 `isPrimary=true`, 멀티데이는 `startDate` 기준이다.
+- 기본 알림 설정은 `academicScheduleNotifications=true`, `academicScheduleDayBeforeEnabled=true`, `academicScheduleAllEventsEnabled=false`다.
+- 기존 회원의 학사 일정 알림 nullable 필드는 런타임 기본값으로 해석하고, 애플리케이션 시작 시 backfill 한다. 단, `test` 프로필에서는 비활성화한다.
+- 댓글 알림은 게시글 작성자/부모 댓글 작성자/북마크 사용자를 dedupe해서 1회만 생성한다.
+- `PARTY_CREATED`, `PARTY_CLOSED`는 inbox를 남기지 않는 parity를 유지한다.
+- 파티 채팅 푸시는 mute parity를 우선 반영하고, 전역 토글은 현재 런타임에서 적용하지 않는다.
+- 공지 댓글 알림은 `Notice.author`가 문자열이라 원글 작성자 알림은 미지원이며 부모 댓글 작성자 reply 알림만 지원한다.
+- AppNotice 강제 발송은 문서의 legacy `urgent` 대신 런타임 `AppNoticePriority.HIGH`를 기준으로 본다.
+- FCM 토큰 등록은 재시도/동시 등록 상황에서도 멱등적으로 처리한다.
+- FCM raw push payload는 특정 RN legacy type에 종속되지 않고 canonical `NotificationType` + 리소스 식별자 + `contractVersion`을 사용한다.
+- 플랫폼별 알림 표현은 `PushPresentationProfile`(`PARTY`, `CHAT`, `NOTICE`, `DEFAULT`)로 분리하며, Android는 channel/sound override, iOS는 `aps.sound`를 사용한다.
 
-## 이메일 도메인 제한
+## 이메일/인증
+- Firebase ID Token 기반 인증
 - `sungkyul.ac.kr` 도메인 이메일만 허용

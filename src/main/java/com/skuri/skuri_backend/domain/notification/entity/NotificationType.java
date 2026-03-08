@@ -1,0 +1,19 @@
+package com.skuri.skuri_backend.domain.notification.entity;
+
+public enum NotificationType {
+    PARTY_CREATED,
+    PARTY_JOIN_REQUEST,
+    PARTY_JOIN_ACCEPTED,
+    PARTY_JOIN_DECLINED,
+    PARTY_CLOSED,
+    PARTY_ARRIVED,
+    PARTY_ENDED,
+    MEMBER_KICKED,
+    SETTLEMENT_COMPLETED,
+    CHAT_MESSAGE,
+    POST_LIKED,
+    COMMENT_CREATED,
+    NOTICE,
+    APP_NOTICE,
+    ACADEMIC_SCHEDULE
+}

@@ -1,86 +1,53 @@
 # 코드베이스 구조 상세
 
 ## 핵심 엔트리포인트
-- `SkuriBackendApplication.java` - Spring Boot main class
+- `SkuriBackendApplication.java`
+
+## 공통/인프라
+- `common/dto`: `ApiResponse`, `PageResponse`
+- `common/exception`: `ErrorCode`, `BusinessException`, `GlobalExceptionHandler`
+- `common/config`: JPA Auditing, ObjectMapper
+- `common/event`: `AfterCommitApplicationEventPublisher`
+- `infra/auth`: Firebase 인증/보안 설정
+- `infra/openapi`: 도메인별 예시 상수, `OpenApiConfig` 그룹 설정
+- `infra/notification`: `PushSender`, `FirebasePushSender`, `NoOpPushSender`
 
 ## 도메인별 주요 클래스
-
-### TaxiParty (핵심 도메인)
-- **Entity**: Party, PartyMember, JoinRequest, MemberSettlement, Location, PartyTag
-- **Enum**: PartyStatus, JoinRequestStatus, SettlementStatus, PartyEndReason
-- **Service**: TaxiPartyService (생성/조회/수정/상태전이/정산 핵심 로직 담당)
-- **동시성 정책**: 활성 파티 참여 검사는 `Member` row lock으로 직렬화하고, 동승 요청은 같은 lock 범위에서 `PENDING` 존재 여부를 검사해 live request 중복만 차단한다.
-- **Controller**: PartyController, JoinRequestController, PartySseController
-- **기타 Service**: PartySseService, JoinRequestSseService, PartyTimeoutBatchService, PartyTimeoutCommandService
-- **Scheduler**: PartyTimeoutScheduler, PartySseHeartbeatScheduler
-
-### Member
-- **Entity**: Member, LinkedAccount, BankAccount, NotificationSetting
-- **Service**: MemberService
-- **Controller**: MemberController
-
-### Chat
-- **Entity**: ChatRoom, ChatRoomMember, ChatMessage, ChatAccountData, ChatArrivalData
-- **Enum**: ChatRoomType, ChatMessageType, ChatMessageDirection
-- **Service**: ChatService, PartyMessageService, ChatAdminService
-- **Controller**: ChatRoomController (REST), ChatStompController (WebSocket)
-- **멤버십 정책**: 파티 채팅방은 파티 멤버 목록과 `chat_room_members`를 동기화하고, 관리자 공개 채팅방 생성 시 생성자를 초기 멤버로 등록한다.
-- **읽음 처리 정책**: `lastReadAt`는 서버 현재 시각과 마지막 메시지 시각을 상한으로 clamp한 뒤 저장한다.
-- **WebSocket**: ChatWebSocketConfig, FirebaseStompAuthChannelInterceptor
-
-### Board
-- **Entity**: Post, PostImage, Comment, PostInteraction
-- **Enum**: PostCategory
-- **Service**: BoardService
-- **Controller**: PostController, CommentController, MemberBoardController
-- **댓글 정책**: Board/Notice 공통으로 무제한 depth 댓글을 저장하고, 조회 API는 `parentId`와 `depth`를 포함한 flat list를 반환한다.
-
-### Notice
-- **Entity**: Notice, NoticeComment, NoticeReadStatus, NoticeLike
-- **Service**: NoticeService, NoticeSyncService
-- **Controller**: NoticeController, NoticeCommentController, NoticeAdminController
-- **외부 연동**: SungkyulNoticeRssClient, SungkyulNoticeDetailCrawler, SungkyulNoticeTlsSupport
-- **필드 의미**: Notice는 `rssPreview`를 목록/상세 API에 노출하고, `summary`는 향후 AI 요약용 예약 필드로 유지한다. `bodyHtml`은 RN 렌더링용 원문 HTML, `bodyText`는 검색/AI/RAG용 정규화 plain text다.
-- **운영 메모**: 성결대학교 사이트 TLS 체인 이슈로 인해 Notice 크롤링 경로에서만 trust-all SSL socket factory 사용
-- **안정성 정책**: RSS `postedAt`은 offset-aware 파싱을 사용하고, 상세 크롤링 실패 시 기존 상세 본문/첨부를 보존한다.
-- **동기화 정책**: `body_html`은 LONGTEXT로 저장하고, 개별 공지 저장 실패는 `failed` 집계 후 다음 공지를 계속 처리
-- **Scheduler**: NoticeScheduler (평일 08:00~19:50, Asia/Seoul, 10분 주기)
-
-### Academic
-- **Entity**: Course, CourseSchedule, UserTimetable, UserTimetableCourse, AcademicSchedule
-- **Service**: CourseService, TimetableService, AcademicScheduleService
-- **Controller**: CourseController, TimetableController, AcademicScheduleController, AcademicScheduleAdminController, CourseAdminController
-- **Repository**: CourseRepository, CourseScheduleRepository, UserTimetableRepository, UserTimetableCourseRepository, AcademicScheduleRepository
-- **운영 정책**: `Course`는 `semester + code + division` unique, 시간표는 `user_id + semester` unique이며 동일 강의 중복 추가 및 시간 충돌을 차단한다.
-- **응답 정책**: 시간표 응답은 `courses[] + slots[]` 구조를 반환하고, `GET /v1/timetables/my`는 semester 미지정 시 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙을 사용한다.
-- **학기 기준 배경**: 실제 학교 학기 시작은 3월/9월이지만, 수강신청/시간표 준비 수요를 반영해 스쿠리는 한 달 앞선 2월/8월부터 새 학기 기준을 적용한다.
-
-### App
-- **Entity**: AppNotice
-- **Service**: AppNoticeService
-- **Controller**: AppNoticeController, AppNoticeAdminController
-- **관리 정책**: AppNotice 관리자 수정은 `PATCH /v1/admin/app-notices/{appNoticeId}` partial update 계약 사용
-
-### Support
-- **Entity**: Inquiry, Report, AppVersion, CafeteriaMenu
-- **Service**: InquiryService, ReportService, AppVersionService, CafeteriaMenuService
-- **Controller**: AppVersionController, InquiryController, ReportController, CafeteriaMenuController, InquiryAdminController, ReportAdminController, AppVersionAdminController, CafeteriaMenuAdminController
-- **운영 정책**: `GET /v1/app-versions/{platform}`는 공개 API이고, 저장 데이터가 없으면 기본 `minimumVersion=1.0.0`, `forceUpdate=false`, `showButton=false` 응답을 반환한다. Support Admin API는 모두 `ROLE_ADMIN` + `403 ADMIN_REQUIRED` 정책을 따른다.
-- **중복 신고 정책**: `Report`는 `reporterId + targetType + targetId` 기준으로 전 상태에서 중복 신고를 허용하지 않는다.
-- **enum 기준**: Report는 `targetType=POST|COMMENT|MEMBER`, `status=PENDING|REVIEWING|ACTIONED|REJECTED`를 사용한다.
-
-## 인증 흐름
-1. Firebase ID Token → FirebaseAuthenticationFilter
-2. Token 검증 → FirebaseTokenVerifier (prod) / DisabledFirebaseTokenVerifier (test)
-3. 이메일 도메인 검증 → sungkyul.ac.kr만 허용
-4. SecurityConfig → 인증 필요 경로 설정
+- member
+  - Entity: `Member`, `NotificationSetting`, `LinkedAccount`, `BankAccount`
+  - Service: `MemberService`, `NotificationSettingBackfillService`
+  - Controller: `MemberController`
+  - 학사 일정 알림 3개 필드는 nullable legacy row를 기본값으로 해석하고 startup backfill 한다 (`test` 프로필 제외)
+- taxiparty
+  - Entity: `Party`, `JoinRequest`, `MemberSettlement`, `PartyMember`, `PartyTag`
+  - Service: `TaxiPartyService`, `PartyTimeoutCommandService`, `PartyTimeoutBatchService`, `PartySseService`, `JoinRequestSseService`
+  - Controller: `PartyController`, `JoinRequestController`, `PartySseController`
+  - 상태 변경 성공 지점에서 notification event publish 추가
+- notification
+  - Entity: `UserNotification`, `FcmToken`
+  - Enum/Model: `NotificationType`, notification payload/data DTO
+  - Repository: `UserNotificationRepository`, `FcmTokenRepository`
+  - Service: `NotificationService`, `FcmTokenService`, `NotificationEventHandler`, `NotificationSseService`, `AcademicScheduleReminderScheduler`
+  - Controller: `NotificationController`, `FcmTokenController`, `NotificationSseController`
+  - Event: 도메인 이벤트를 수신해 inbox 저장, SSE fan-out, push delegation 수행
+  - `NotificationEventHandler`는 broad `findAll()` 대신 repository-level recipient query로 파티/공지/시스템/학사 일정 수신 대상을 1차 축소한다.
+- `NotificationService`는 unread count SSE를 after-commit 시점의 committed DB 상태 기준으로 다시 조회해 발행한다. 단건 변경은 single count query, inbox fan-out은 bulk unread count query를 사용한다.
+- `FcmTokenService.register()`는 unique token 충돌 시 재조회로 복구해 멱등 등록을 보장한다.
+- push payload는 `FirebasePushPayloadMapper`가 canonical `NotificationType` + `NotificationData` + `contractVersion=1`로 조립하고, `PushPresentationProfile`로 Android channel/sound와 iOS `aps.sound`를 분리한다.
+- academic
+  - Entity: `AcademicSchedule`, `Course`, `CourseSchedule`, `UserTimetable`, `UserTimetableCourse`
+  - Scheduler/Notification과 연계되어 학사 일정 리마인더를 발행
+- board / notice / app / chat / support
+  - 기존 구조 유지, 필요한 알림 이벤트만 최소 침습적으로 연결
 
 ## 테스트 구조
-- test 프로필: H2 인메모리 DB (application-test.yaml)
-- Contract 테스트: Controller 단위 (MockMvc)
-- Service 테스트: 비즈니스 로직 단위
-- Integration 테스트: ChatWebSocketIntegrationTest
+- Contract 테스트: controller별 MockMvc
+- Service 테스트: 권한/상태전이/알림 dedupe/unread count/recipient resolution
+- Event 테스트: event publish -> listener -> inbox 저장 / push delegation
+- Security 회귀: notifications, fcm-tokens, notification SSE 인증 필수 검증
+- 플래키 DataJpa 테스트는 auditing listener 경로를 피하기 위해 조회 전용 fixture를 native insert로 시드한다.
 
-## CI
-- GitHub Actions: PR → main 시 `./gradlew clean build`
-- MySQL 8.4 서비스 컨테이너 사용
+## 주요 저장 모델
+- `user_notifications`: 인앱 인박스 + 읽음/삭제 관리
+- `fcm_tokens`: 사용자별 멀티 디바이스 토큰 저장, invalid token cleanup 대상
+- `members.notification_setting`: 알림 토글 집합

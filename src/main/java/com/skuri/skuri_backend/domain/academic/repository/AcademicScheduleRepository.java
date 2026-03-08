@@ -10,6 +10,8 @@ import java.util.List;
 
 public interface AcademicScheduleRepository extends JpaRepository<AcademicSchedule, String> {
 
+    List<AcademicSchedule> findByStartDateOrderByCreatedAtAsc(LocalDate startDate);
+
     @Query("""
             select s
             from AcademicSchedule s

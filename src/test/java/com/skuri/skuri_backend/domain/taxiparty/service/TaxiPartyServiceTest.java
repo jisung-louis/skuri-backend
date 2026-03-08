@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.taxiparty.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
@@ -68,6 +69,9 @@ class TaxiPartyServiceTest {
 
     @Mock
     private ChatService chatService;
+
+    @Mock
+    private AfterCommitApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TaxiPartyService taxiPartyService;

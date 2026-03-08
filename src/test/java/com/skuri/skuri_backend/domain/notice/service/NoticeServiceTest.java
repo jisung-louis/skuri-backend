@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.notice.service;
 
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.member.entity.Member;
@@ -54,6 +55,9 @@ class NoticeServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private AfterCommitApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private NoticeService noticeService;

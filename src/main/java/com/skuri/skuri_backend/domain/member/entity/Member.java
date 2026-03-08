@@ -75,6 +75,8 @@ public class Member extends BaseTimeEntity {
     public void prePersist() {
         if (notificationSetting == null) {
             notificationSetting = NotificationSetting.defaultSetting();
+        } else {
+            notificationSetting.backfillAcademicScheduleDefaults();
         }
         if (joinedAt == null) {
             joinedAt = LocalDateTime.now();
@@ -115,10 +117,15 @@ public class Member extends BaseTimeEntity {
             Boolean commentNotifications,
             Boolean bookmarkedPostCommentNotifications,
             Boolean systemNotifications,
+            Boolean academicScheduleNotifications,
+            Boolean academicScheduleDayBeforeEnabled,
+            Boolean academicScheduleAllEventsEnabled,
             java.util.Map<String, Boolean> noticeNotificationsDetail
     ) {
         if (this.notificationSetting == null) {
             this.notificationSetting = NotificationSetting.defaultSetting();
+        } else {
+            this.notificationSetting.backfillAcademicScheduleDefaults();
         }
         this.notificationSetting.apply(
                 allNotifications,
@@ -128,7 +135,23 @@ public class Member extends BaseTimeEntity {
                 commentNotifications,
                 bookmarkedPostCommentNotifications,
                 systemNotifications,
+                academicScheduleNotifications,
+                academicScheduleDayBeforeEnabled,
+                academicScheduleAllEventsEnabled,
                 noticeNotificationsDetail
         );
+    }
+
+    public boolean hasUnsetNotificationSettingDefaults() {
+        return notificationSetting == null || notificationSetting.hasUnsetAcademicScheduleDefaults();
+    }
+
+    public void backfillNotificationSettingDefaults() {
+        if (notificationSetting == null) {
+            notificationSetting = NotificationSetting.defaultSetting();
+            return;
+        }
+
+        notificationSetting.backfillAcademicScheduleDefaults();
     }
 }

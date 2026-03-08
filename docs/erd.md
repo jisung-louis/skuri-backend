@@ -1,6 +1,6 @@
 # Spring 백엔드 ERD (Entity Relationship Diagram)
 
-> 최종 수정일: 2026-03-07
+> 최종 수정일: 2026-03-08
 > 관련 문서: [도메인 분석](./domain-analysis.md)
 
 ---
@@ -41,6 +41,9 @@ erDiagram
         boolean comment_notifications "DEFAULT true"
         boolean bookmarked_post_comment_notifications "DEFAULT true"
         boolean system_notifications "DEFAULT true"
+        boolean academic_schedule_notifications "DEFAULT true"
+        boolean academic_schedule_day_before_enabled "DEFAULT true"
+        boolean academic_schedule_all_events_enabled "DEFAULT false"
         json notice_notifications_detail
         datetime joined_at
         datetime last_login
@@ -437,7 +440,7 @@ erDiagram
     user_notifications {
         varchar(36) id PK "UUID"
         varchar(36) user_id FK "NOT NULL"
-        enum type "PARTY_CREATED,JOIN_REQUEST,..."
+        enum type "PARTY_CREATED,PARTY_JOIN_REQUEST,PARTY_JOIN_ACCEPTED,PARTY_JOIN_DECLINED,PARTY_CLOSED,PARTY_ARRIVED,PARTY_ENDED,MEMBER_KICKED,SETTLEMENT_COMPLETED,CHAT_MESSAGE,POST_LIKED,COMMENT_CREATED,NOTICE,APP_NOTICE,ACADEMIC_SCHEDULE"
         varchar(200) title "NOT NULL"
         varchar(500) message
         json data "추가 데이터"
@@ -501,13 +504,16 @@ erDiagram
 | comment_notifications | BOOLEAN | DEFAULT true | Board/Notice 공통 댓글 알림 |
 | bookmarked_post_comment_notifications | BOOLEAN | DEFAULT true | 북마크한 게시글의 새 댓글 알림 |
 | system_notifications | BOOLEAN | DEFAULT true | 시스템 알림 |
+| academic_schedule_notifications | BOOLEAN | DEFAULT true | 학사 일정 알림 마스터 |
+| academic_schedule_day_before_enabled | BOOLEAN | DEFAULT true | 학사 일정 전날 리마인더 허용 |
+| academic_schedule_all_events_enabled | BOOLEAN | DEFAULT false | 중요 일정 외 일반 일정 알림 허용 |
 | notice_notifications_detail | JSON | | 공지 카테고리별 설정 |
 | joined_at | DATETIME | | 가입일 |
 | last_login | DATETIME | | 마지막 로그인 |
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |
 
-> 학사 일정 알림용 `academic_schedule_notifications`, `academic_schedule_day_before_enabled`, `academic_schedule_all_events_enabled` 컬럼은 Phase 8에서 추가 예정이다.
+> Phase 8부터 학사 일정 알림용 `academic_schedule_notifications`, `academic_schedule_day_before_enabled`, `academic_schedule_all_events_enabled` 컬럼을 사용한다.
 
 **linked_accounts 테이블 상세:**
 
@@ -639,6 +645,31 @@ erDiagram
 | `user_notifications` | 알림 인박스 | ~500,000/년 |
 | `fcm_tokens` | FCM 토큰 | ~10,000 |
 | `admin_audit_logs` | 감사 로그 | ~10,000/년 |
+
+**user_notifications 주요 컬럼**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| id | VARCHAR(36) | PK | 알림 ID |
+| user_id | VARCHAR(36) | FK, NOT NULL | 수신 회원 ID |
+| type | VARCHAR(40) | NOT NULL | 알림 타입 (`PARTY_*`, `CHAT_MESSAGE`, `ACADEMIC_SCHEDULE` 등 canonical enum) |
+| title | VARCHAR(200) | NOT NULL | 알림 제목 |
+| message | VARCHAR(500) | NOT NULL | 알림 메시지 |
+| data | JSON | | 이동/연결용 payload (`partyId`, `requestId`, `chatRoomId`, `postId`, `commentId`, `noticeId`, `appNoticeId`, `academicScheduleId`) |
+| is_read | BOOLEAN | DEFAULT false | 읽음 여부 |
+| read_at | DATETIME | | 읽음 시각 |
+| created_at | DATETIME | NOT NULL | 생성 시각 |
+
+**fcm_tokens 주요 컬럼**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| id | BIGINT | PK, AUTO_INCREMENT | 토큰 식별자 |
+| user_id | VARCHAR(36) | FK, NOT NULL | 소유 회원 ID |
+| token | VARCHAR(500) | UK, NOT NULL | FCM 디바이스 토큰 |
+| platform | VARCHAR(10) | NOT NULL | `ios` 또는 `android` |
+| created_at | DATETIME | NOT NULL | 최초 등록 시각 |
+| last_used_at | DATETIME | | 마지막 성공 사용 시각 |
 
 ---
 
@@ -874,3 +905,4 @@ CREATE INDEX idx_audit_logs_timestamp ON admin_audit_logs(timestamp DESC);
 > - 2026-02-03: 초안 작성
 > - 2026-03-05: Board 댓글 정책 동기화 — `comments.parent_id` 관계를 부모 보존 정책(B)에 맞게 정정(`ON DELETE SET NULL`), depth 1 제약/placeholder soft delete 설명 반영
 > - 2026-03-07: Board/Notice 댓글 정책 구현 반영 — 무제한 self-reference, 댓글 알림 설정 컬럼(`comment_notifications`, `bookmarked_post_comment_notifications`) 반영
+> - 2026-03-08: Phase 8 Notification 인프라 반영 — members 학사 일정 알림 컬럼, `user_notifications`/`fcm_tokens` 상세, notification type canonical enum 동기화

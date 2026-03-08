@@ -5,6 +5,7 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.messaging.FirebaseMessaging;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -54,6 +55,12 @@ public class FirebaseConfig {
     @ConditionalOnBean(FirebaseApp.class)
     public FirebaseAuth firebaseAuth(FirebaseApp firebaseApp) {
         return FirebaseAuth.getInstance(firebaseApp);
+    }
+
+    @Bean
+    @ConditionalOnBean(FirebaseApp.class)
+    public FirebaseMessaging firebaseMessaging(FirebaseApp firebaseApp) {
+        return FirebaseMessaging.getInstance(firebaseApp);
     }
 
     private GoogleCredentials loadCredentials(String credentialsPath, boolean useEmulator) throws IOException {

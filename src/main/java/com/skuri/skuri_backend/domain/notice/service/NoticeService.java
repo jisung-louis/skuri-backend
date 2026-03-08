@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.domain.notice.service;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.member.entity.Member;
@@ -22,6 +23,7 @@ import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeLikeRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeReadStatusRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
+import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -51,6 +53,7 @@ public class NoticeService {
     private final NoticeReadStatusRepository noticeReadStatusRepository;
     private final NoticeLikeRepository noticeLikeRepository;
     private final MemberRepository memberRepository;
+    private final AfterCommitApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public PageResponse<NoticeSummaryResponse> getNotices(
@@ -133,6 +136,7 @@ public class NoticeService {
         );
         NoticeComment saved = noticeCommentRepository.save(comment);
         notice.increaseCommentCount(1);
+        eventPublisher.publish(new NotificationDomainEvent.NoticeCommentCreated(saved.getId()));
 
         return toCommentResponse(saved, memberId, resolveDepth(saved));
     }
