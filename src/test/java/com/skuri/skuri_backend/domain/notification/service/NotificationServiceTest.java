@@ -11,6 +11,7 @@ import com.skuri.skuri_backend.domain.notification.repository.projection.UnreadC
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,11 +59,24 @@ class NotificationServiceTest {
     }
 
     @Test
+    void markRead_실제미읽음수를기준으로이벤트를발행한다() {
+        UserNotification notification = unreadNotification("notification-1", "member-1");
+        when(userNotificationRepository.findById("notification-1")).thenReturn(Optional.of(notification));
+        when(userNotificationRepository.countByUserIdAndReadFalse("member-1")).thenReturn(2L);
+
+        notificationService.markRead("member-1", "notification-1");
+
+        assertTrue(notification.isRead());
+        verify(notificationSseService).publishUnreadCountChanged("member-1", 2L);
+    }
+
+    @Test
     void markAllRead_전체읽음처리후_미읽음수이벤트발행() {
         UserNotification first = unreadNotification("notification-1", "member-1");
         UserNotification second = unreadNotification("notification-2", "member-1");
         when(userNotificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc("member-1"))
                 .thenReturn(List.of(first, second));
+        when(userNotificationRepository.countByUserIdAndReadFalse("member-1")).thenReturn(0L);
 
         NotificationReadAllResponse response = notificationService.markAllRead("member-1");
 
@@ -76,7 +91,7 @@ class NotificationServiceTest {
     void delete_미읽음알림삭제시_미읽음수이벤트발행() {
         UserNotification notification = unreadNotification("notification-1", "member-1");
         when(userNotificationRepository.findById("notification-1")).thenReturn(Optional.of(notification));
-        when(userNotificationRepository.countByUserIdAndReadFalse("member-1")).thenReturn(1L);
+        when(userNotificationRepository.countByUserIdAndReadFalse("member-1")).thenReturn(0L);
 
         notificationService.delete("member-1", "notification-1");
 
@@ -106,12 +121,15 @@ class NotificationServiceTest {
         });
         when(userNotificationRepository.countUnreadByUserIds(anyCollection()))
                 .thenReturn(List.of(
-                        unreadCount("member-1", 0L),
-                        unreadCount("member-2", 1L)
+                        unreadCount("member-1", 1L),
+                        unreadCount("member-2", 2L)
                 ));
 
         notificationService.createInboxNotifications(request);
 
+        InOrder inOrder = inOrder(userNotificationRepository, notificationSseService);
+        inOrder.verify(userNotificationRepository).saveAll(anyList());
+        inOrder.verify(userNotificationRepository).countUnreadByUserIds(anyCollection());
         verify(notificationSseService, times(2)).publishNotification(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
         verify(notificationSseService).publishUnreadCountChanged("member-1", 1L);
         verify(notificationSseService).publishUnreadCountChanged("member-2", 2L);
@@ -125,7 +143,7 @@ class NotificationServiceTest {
 
         when(userNotificationRepository.findByUserIdAndTypeInOrderByCreatedAtDesc(eq("member-1"), anyList()))
                 .thenReturn(List.of(partyUnread, partyRead, unrelated));
-        when(userNotificationRepository.countByUserIdAndReadFalse("member-1")).thenReturn(2L);
+        when(userNotificationRepository.countByUserIdAndReadFalse("member-1")).thenReturn(1L);
 
         notificationService.deletePartyRelatedNotifications("member-1", "party-1");
 
