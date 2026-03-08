@@ -130,7 +130,7 @@ com.skuri.skuri_backend
 
 - API 계약의 런타임 기준은 `/v3/api-docs`로 고정하고, `docs/api-specification.md`는 같은 PR에서 반드시 동기화한다.
 - WebSocket은 CONNECT 인증만으로 종료하지 않고 목적지(`SEND /app/chat/{chatRoomId}`, `SUBSCRIBE /topic/chat/{chatRoomId}`)별 인가를 서버에서 강제한다.
-- WebSocket CORS는 `*`를 금지하고, 프로필/환경별 허용 Origin(`CHAT_WS_ALLOWED_ORIGIN_PATTERNS`)을 명시한다.
+- 브라우저 REST API CORS와 WebSocket CORS는 `*`를 금지하고, 프로필/환경별 허용 Origin(`API_ALLOWED_ORIGIN_PATTERNS`, `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`)을 명시한다.
 - 요청 범위 외 수정은 별도 PR 분리를 원칙으로 하며, 불가피하게 포함할 경우 PR에 근거와 영향 범위를 명시한다.
 
 ---
@@ -275,7 +275,7 @@ SSE 운영 제약:
   - 최소: 성공 1, 실패 1
 - 응답 스키마 변경 시 필드 존재/미노출 조건을 Contract 테스트로 검증한다.
 - OpenAPI 응답 예시를 수정한 경우, 상태코드별 `errorCode/message` 정합성(명세/실응답/문서)을 함께 검증한다.
-- 머지 전 검증 명령은 `SPRING_PROFILES_ACTIVE=local ./gradlew build`를 기준으로 한다.
+- 머지 전 검증 명령은 `./gradlew build`를 기준으로 한다. (테스트는 `application-test.yaml` 사용)
 
 #### 2-7. 후속 확장 구현 완료 내역 (동승 요청 SSE)
 
@@ -304,7 +304,7 @@ SSE 운영 제약:
 |------|------|
 | WebSocket 설정 | STOMP + SockJS, Firebase ID Token 인증 |
 | WebSocket 인가 | CONNECT 이후 SEND/SUBSCRIBE 목적지별 멤버십 검증 |
-| WebSocket CORS | 프로필/환경별 허용 Origin 설정 (`CHAT_WS_ALLOWED_ORIGIN_PATTERNS`) |
+| 브라우저/실시간 CORS | 프로필/환경별 허용 Origin 설정 (`API_ALLOWED_ORIGIN_PATTERNS`, `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`) |
 | ChatService | 공통 채팅 엔진 (메시지 저장, 전송, 읽음 처리) |
 | PartyMessageService | 파티 채팅 규칙 (계좌 공유, 도착 메시지, 종료 메시지) — Chat 엔진 사용 |
 | 채팅방 목록 요약 스트림 | 목록 화면은 `/user/queue/chat-rooms` 단일 구독으로 카드 요약(이름/인원/마지막 메시지/미읽음) 수신 |
@@ -679,24 +679,30 @@ SSE 운영 제약:
 
 ### Phase 9: 인프라 및 배포
 
-> Docker, AWS, CI/CD.
+> Docker, OCI, CI/CD.
+> 확정 전략: `OCI 1대 + docker-compose.prod.yml(app + MySQL + Redis)`, GitHub `production` 환경 승인 기반 반자동 배포.
 
 #### 9-1. 구현 항목
 
-| # | 항목 | 설명 |
-|---|------|------|
-| 1 | Dockerfile | Spring Boot 멀티스테이지 빌드 |
-| 2 | docker-compose.yml | app + MySQL + Redis 로컬 개발 환경 |
-| 3 | Redis 캐시 | 파티 목록, 공지 목록, FCM 토큰 캐시 |
-| 4 | AWS 배포 | EC2 + RDS (MySQL) + ElastiCache (Redis) |
-| 5 | GitHub Actions | main 브랜치 push → EC2 자동 배포 |
-| 6 | OpenAPI 배포 자동화 | API 문서(UI/JSON) 접근 경로 및 배포 환경 가이드 자동화 |
+| # | 항목 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | Dockerfile | Spring Boot 멀티스테이지 빌드 | [x] |
+| 2 | docker-compose.yml | app + MySQL + Redis 로컬 개발 환경 | [x] |
+| 3 | Redis 범위 정리 | 이번 Phase는 컨테이너/환경변수/문서화까지만 반영 | [x] |
+| 4 | OCI 배포 설계 | `OCI 단일 인스턴스 + docker-compose.prod.yml(app + MySQL + Redis)`, 운영 `.env`, Firebase 파일 주입 전략 | [x] |
+| 5 | GitHub Actions CD | `main` 반영 후 `production` 환경 승인 기반 OCI/AWS 멀티플랫폼 배포 초안 | [x] |
+| 6 | OpenAPI 운영 정책 | `local/local-emulator` 노출, `prod` 기본 비노출 | [x] |
+| 7 | 프로필 / `.env` 전략 정리 | `application/local/local-emulator/prod/test` 체계 + env 기반 local 정리 | [x] |
+| 8 | 배포 가이드 / 체크리스트 | 배포 전/후 점검, smoke check, rollback 문서화 | [x] |
+| 9 | OCI 실제 리소스 생성 및 최초 배포 | 서버/네트워크/운영 파일 실 배포 | [x] |
 
 #### 9-2. 완료 기준
 
-- [ ] `docker-compose up` 으로 로컬 전체 환경 기동
-- [ ] AWS 배포 및 정상 동작
-- [ ] CI/CD 파이프라인 동작
+- [x] `docker compose up` 기준의 로컬 환경 파일/문서 준비
+- [x] CI/CD 파이프라인 초안 반영
+- [x] OCI 배포 및 정상 동작
+- [x] 운영 smoke check 수행 확인
+- [ ] rollback 실제 수행 확인
 
 ---
 

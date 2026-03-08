@@ -202,7 +202,7 @@ public void handleChatMessage(ChatMessageCreatedEvent event) {
 
 ---
 
-### 2-5. Docker + AWS 배포
+### 2-5. Docker + OCI 배포
 
 #### 취업 어필 이유
 "로컬에서만 돌아가는 프로젝트"와 "실제로 서비스 중인 프로젝트"의 차이다. 운영 경험은 신입에게 큰 가산점이다.
@@ -218,33 +218,33 @@ services:
     ports: ["8080:8080"]
     depends_on: [db, redis]
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/sktaxi
+      DB_URL: jdbc:mysql://db:3306/skuri?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
 
   db:
-    image: postgres:16
+    image: mysql:8.4
     environment:
-      POSTGRES_DB: sktaxi
-      POSTGRES_PASSWORD: password
+      MYSQL_DATABASE: skuri
+      MYSQL_PASSWORD: password
 
   redis:
     image: redis:7-alpine
 ```
 
-**AWS 운영 환경**
+**OCI 단일 인스턴스 운영 환경**
 
 ```
-EC2 (Spring Boot)
-  → RDS PostgreSQL
-  → ElastiCache Redis
+OCI Compute (Spring Boot)
+  → Docker Compose MySQL
+  → Docker Compose Redis
   → Firebase Admin SDK (FCM 발송 + ID Token 검증)
 ```
 
-GitHub Actions로 `main` 브랜치 push 시 EC2 자동 배포 파이프라인을 추가하면 CI/CD 경험까지 어필할 수 있다.
+GitHub Actions로 멀티플랫폼 Docker 이미지(`amd64`, `arm64`)를 빌드한 뒤, `production` 환경 승인 후 OCI 서버에 반영하는 반자동 배포 파이프라인을 추가하면 운영 안전성과 이식성을 함께 설명할 수 있다.
 
 | 항목 | 내용 |
 |------|------|
 | 구현 난이도 | Medium |
-| 신입 판단 | 적절. EC2 + RDS 수준은 사실상 필수 |
+| 신입 판단 | 적절. Docker + 단일 서버 배포만으로도 운영 경험을 설명하기 충분 |
 
 ---
 
@@ -337,7 +337,7 @@ POST /api/chat/find-party
 | **1** | Spring Boot + RESTful API<br>(Party 상태머신 + 권한설계) | Low | ★★★★★ | 필수. 없으면 서류 통과 불가 |
 | **2** | 동시성 처리<br>(Optimistic Lock + @Async) | Medium | ★★★★★ | 면접 킬러카드. 스토리 명확 |
 | **3** | Redis 캐시<br>(파티목록 + FCM토큰 캐시) | Low | ★★★★☆ | 구현 쉽고 설명도 쉬움 |
-| **4** | Docker + AWS 배포<br>(EC2 + RDS + GitHub Actions) | Medium | ★★★★☆ | 운영 경험 어필 |
+| **4** | Docker + OCI 배포<br>(단일 인스턴스 + GitHub Actions) | Medium | ★★★★☆ | 운영 경험 어필 |
 | **5** | LLM 연동<br>(공지 요약 + 파티 챗봇) | Low | ★★★★☆ | 차별화. AI 트렌드 선도 |
 
 **보류 기술:**
@@ -367,7 +367,7 @@ Phase 2 — 성능 레이어 (1~2주)
 
 Phase 3 — 인프라 (1주)
   - Dockerfile + docker-compose
-  - AWS EC2 / RDS 배포
+  - OCI 단일 인스턴스 배포
   - GitHub Actions CI/CD 파이프라인
 
 Phase 4 — 차별화 (1주)

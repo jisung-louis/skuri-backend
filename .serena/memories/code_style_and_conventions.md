@@ -28,6 +28,17 @@
 - SSE 200 응답은 `stream_full`과 이벤트별 예시(`SNAPSHOT`, `NOTIFICATION`, `UNREAD_COUNT_CHANGED`, `HEARTBEAT`)를 함께 둔다.
 - 문서 기준은 `/v3/api-docs`이며 `docs/api-specification.md`와 같은 PR에서 동기화한다.
 
+## 운영/환경변수
+- 프로필 파일은 정책, `.env`/Secrets는 실제 값을 담당한다.
+- `application-local.yaml`, `application-local-emulator.yaml`은 민감값 없이 정책만 담고 Git으로 추적한다.
+- `local-emulator`는 기본적으로 로컬 DB 스키마를 재생성하지 않도록 유지하고, 초기화가 필요하면 별도 DB를 사용한다.
+- 로컬 기본 프로필은 `local`, Firebase Emulator 검증은 `local-emulator`, 운영은 `prod`, 자동 테스트는 `test`를 사용한다. `application.yaml`은 공통 기본 정책 파일이다.
+- 로컬/운영 런타임 값은 `.env`로 관리하고, CI/CD 저장소는 GitHub Secrets를 유지한다.
+- 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않으므로, Docker에서 실제 Firebase 인증까지 검증하려면 별도 volume mount 또는 호스트 `bootRun`이 필요하다.
+- Firebase 서비스 계정 JSON은 서버 파일로 보관하고 `GOOGLE_APPLICATION_CREDENTIALS` 경로만 주입한다.
+- `prod`에서는 OpenAPI UI/JSON을 기본 비노출로 운영하고, health/info만 최소 공개한다.
+- 브라우저 기반 관리자 페이지의 REST API CORS 허용 Origin은 `API_ALLOWED_ORIGIN_PATTERNS`로, WebSocket `/ws` Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`로 분리 관리한다.
+
 ## Git/리뷰
 - 브랜치는 목적 단위로 유지한다.
 - 커밋은 Conventional Commits, 타입은 영어, 메시지는 한국어로 작성한다.

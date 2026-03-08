@@ -189,6 +189,9 @@ FIREBASE_PROJECT_ID=sktaxi-acb4c \
 SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
 ```
 
+- 위 예시는 호스트에서 서버를 직접 실행할 때 기준이다.
+- Docker 컨테이너에서 emulator를 사용할 경우 `127.0.0.1` 대신 `host.docker.internal:9099` 같은 호스트 접근 주소를 사용해야 한다.
+
 ---
 
 ### 2.2 회원 가입

@@ -142,7 +142,8 @@
    - CI는 `CI_DB_*` GitHub Secrets 사용
    - 로컬 DB 계정/비밀번호를 CI 값으로 재사용하지 않음
 6. 민감 정보는 코드/문서/커밋에 직접 작성하지 않는다.
-   - `application-local.yaml`은 로컬 전용으로 유지하고 커밋하지 않는다.
+   - `application-local.yaml`, `application-local-emulator.yaml`은 실행 정책만 담고 Git으로 추적한다.
+   - 실제 비밀값은 `.env`, 서버 환경변수, 로컬 파일로 분리하고 커밋하지 않는다.
 
 ## 검증 기준 (머지 전 최소)
 1. `./gradlew build` 성공

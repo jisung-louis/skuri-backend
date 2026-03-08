@@ -1,0 +1,38 @@
+# 로컬 통합 테스트(Firebase Auth Emulator) 전용 프로필 설정 파일입니다.
+# - 사용 시점: Postman/수동 API 테스트에서 실제 Firebase 대신 Auth Emulator 토큰을 검증할 때
+# - 실행 방법: SPRING_PROFILES_ACTIVE=local-emulator
+# - 필수: 서버 실행 전에 FIREBASE_AUTH_EMULATOR_HOST를 설정하고,
+#         호스트 실행은 127.0.0.1:9099, Docker 컨테이너 실행은 host.docker.internal:9099 같은 값을 사용합니다.
+#         Firebase Auth Emulator 프로세스를 별도로 먼저 실행해야 합니다.
+# - 실제 값(DB/Firebase project id 등)은 환경변수에서 주입합니다.
+# - 이 프로필은 서버 종료 시 PID 파일(/tmp/firebase-auth-emulator.pid)에 기록된 Emulator 프로세스를 함께 종료합니다.
+spring:
+  config:
+    activate:
+      on-profile: local-emulator
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+firebase:
+  auth:
+    use-emulator: true
+    emulator-host: ${FIREBASE_AUTH_EMULATOR_HOST:}
+    project-id: ${FIREBASE_PROJECT_ID:sktaxi-acb4c}
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+    auto-stop-on-shutdown: true
+    emulator-pid-file: ${FIREBASE_AUTH_EMULATOR_PID_FILE:/tmp/firebase-auth-emulator.pid}
+
+security:
+  allowed-email-domain: sungkyul.ac.kr
+
+app:
+  api:
+    allowed-origin-patterns: ${API_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
+
+chat:
+  websocket:
+    allowed-origin-patterns: >
+      http://localhost:*,
+      http://127.0.0.1:*,

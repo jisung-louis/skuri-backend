@@ -1,7 +1,7 @@
 # 작업 완료 시 체크리스트
 
 ## 머지 전 필수 검증
-1. `SPRING_PROFILES_ACTIVE=local ./gradlew build` 성공
+1. `./gradlew build` 성공
 2. 변경된 기능 관련 Contract/Service/Event/Security 테스트 수행
 3. API 정상/예외 케이스 최소 1개 이상 확인
 4. `ApiResponse` 에러 포맷 일관성 확인
@@ -16,6 +16,16 @@
 5. recipient dedupe, unread count 갱신, invalid token cleanup 정책 테스트 확인
 6. 학사 일정 리마인더 기본값과 09:00 Asia/Seoul 스케줄 확인
 7. Firebase credentials가 없어도 앱 기동/테스트가 되는지 no-op fallback 확인
+
+## 운영/배포 변경 시 추가 검증
+1. `./gradlew build` 성공
+2. `docker compose` 설정 파일 문법/기동 절차 확인
+2-1. 로컬 Docker 이미지 빌드 컨텍스트에 `application-local.yaml`, `application-local-emulator.yaml`이 포함되는지 확인
+3. `/actuator/health` 응답 확인
+4. `docker-compose.prod.yml` 렌더링과 MySQL/Redis 영속 볼륨 정책 확인
+5. `prod`에서 OpenAPI가 기본 비노출인지 확인
+6. 브라우저 관리자 페이지가 있으면 허용 Origin의 REST CORS preflight와 WebSocket Origin 설정을 함께 확인
+7. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
 
 ## 문서 동기화
 - API 계약 변경 -> `docs/api-specification.md`

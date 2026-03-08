@@ -1,0 +1,78 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: skuri-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-skuri}
+      MYSQL_USER: ${MYSQL_USER:-skuri}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-skuri}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-skuri-root}
+      TZ: Asia/Seoul
+    ports:
+      - "${MYSQL_LOCAL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER:-skuri} -p${MYSQL_PASSWORD:-skuri} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: skuri-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_LOCAL_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    container_name: skuri-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      SERVER_PORT: 8080
+      APP_VERSION: ${APP_VERSION:-local}
+      OPENAPI_ENABLED: ${OPENAPI_ENABLED:-true}
+      JAVA_OPTS: "${JAVA_OPTS:--Xms256m -Xmx512m}"
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-skuri}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      DB_USERNAME: ${MYSQL_USER:-skuri}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-skuri}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_SHOW_SQL: ${JPA_SHOW_SQL:-true}
+      JPA_FORMAT_SQL: ${JPA_FORMAT_SQL:-true}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_TIMEOUT: ${REDIS_TIMEOUT:-2000ms}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+      FIREBASE_AUTH_USE_EMULATOR: ${FIREBASE_AUTH_USE_EMULATOR:-false}
+      FIREBASE_AUTH_EMULATOR_HOST: ${FIREBASE_AUTH_EMULATOR_HOST:-}
+      API_ALLOWED_ORIGIN_PATTERNS: ${API_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
+      CHAT_WS_ALLOWED_ORIGIN_PATTERNS: ${CHAT_WS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
+      LOG_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-INFO}
+      LOG_LEVEL_APP: ${LOG_LEVEL_APP:-INFO}
+    ports:
+      - "${APP_HOST_PORT:-8080}:8080"
+
+volumes:
+  mysql-data:
+  redis-data:

@@ -51,8 +51,6 @@ firebase-debug.log
 !.env.example
 
 ### Spring local config ###
-src/main/resources/application-local.yaml
-src/main/resources/application-local-emulator.yaml
 serviceAccountKey.json
 
 ### Postman ###

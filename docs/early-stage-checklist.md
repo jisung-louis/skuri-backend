@@ -53,21 +53,23 @@
 
 ---
 
-## 3. 환경 분리 정책 확정 (local/dev/prod)
+## 3. 환경 분리 정책 확정 (local/local-emulator/prod)
 
-- [ ] `local`, `dev`, `prod` 프로필 역할을 정의했다.
+- [ ] `local`, `local-emulator`, `prod` 프로필 역할을 정의했다.
 - [ ] 비밀값(DB 비밀번호, 토큰)을 코드에서 제거했다.
 - [ ] 환경변수/Secrets로만 비밀값을 주입한다는 규칙을 문서화했다.
 
 쉬운 설명:
-- `local`: 내 노트북 개발용
-- `dev`: 팀 테스트용
+- `local`: 프론트+백엔드 통합 개발용
+- `local-emulator`: Firebase Auth Emulator 기반 백엔드 단독 인증 테스트용
 - `prod`: 실제 서비스용
 - 환경마다 설정이 다르기 때문에 섞이면 사고 납니다.
 
 현재 프로젝트 권장:
 - 공용 파일 `application.yaml`에는 환경변수 참조만 유지
-- 로컬 전용 파일은 커밋 금지 (`application-local.yaml`)
+- 프로필 파일(`application-local.yaml` 등)은 정책만 담고 Git으로 추적
+- 실제 값(DB 비밀번호, Firebase 경로 등)은 `.env` 또는 Secrets로만 주입
+- `local-emulator`는 기본적으로 로컬 DB 스키마를 재생성하지 않도록 유지
 
 완료 기준:
 - 저장소 코드만 봐도 비밀번호/토큰 같은 민감 정보가 없다.
@@ -121,7 +123,7 @@
 권장 산출물:
 - `README.md`의 "로컬 실행" 섹션
 - 예시 명령:
-  - `./gradlew bootRun --args='--spring.profiles.active=local'`
+  - `set -a && source .env && set +a && SPRING_PROFILES_ACTIVE=local ./gradlew bootRun`
 
 완료 기준:
 - 문서만 따라하면 다른 사람도 동일하게 서버를 띄울 수 있다.

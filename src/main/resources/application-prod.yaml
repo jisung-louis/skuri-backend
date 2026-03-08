@@ -1,0 +1,29 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: INFO
+    com.skuri.skuri_backend: INFO
+    org.hibernate.SQL: WARN
+
+app:
+  openapi:
+    enabled: ${OPENAPI_ENABLED:false}
+
+springdoc:
+  api-docs:
+    enabled: ${OPENAPI_ENABLED:false}
+  swagger-ui:
+    enabled: ${OPENAPI_ENABLED:false}
+
+scalar:
+  enabled: ${OPENAPI_ENABLED:false}
