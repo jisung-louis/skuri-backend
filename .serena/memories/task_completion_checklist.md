@@ -21,8 +21,9 @@
 1. `./gradlew build` 성공
 2. `docker compose` 설정 파일 문법/기동 절차 확인
 3. `/actuator/health` 응답 확인
-4. `prod`에서 OpenAPI가 기본 비노출인지 확인
-5. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
+4. `docker-compose.prod.yml` 렌더링과 MySQL/Redis 영속 볼륨 정책 확인
+5. `prod`에서 OpenAPI가 기본 비노출인지 확인
+6. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
 
 ## 문서 동기화
 - API 계약 변경 -> `docs/api-specification.md`

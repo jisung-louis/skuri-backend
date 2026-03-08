@@ -24,6 +24,7 @@ docker compose up -d --build
 docker compose logs -f app
 docker compose down
 curl http://localhost:8080/actuator/health
+IMAGE_URI=ghcr.io/example/skuri:test FIREBASE_CREDENTIALS_FILE=/tmp/firebase-admin.json GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json docker compose -f docker-compose.prod.yml config
 ```
 
 ```bash
