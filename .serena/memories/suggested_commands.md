@@ -15,6 +15,7 @@
 ./gradlew test --tests "com.skuri.skuri_backend.domain.notification.service.NotificationEventHandlerTest"
 ./gradlew test --tests "com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisherTest"
 ./gradlew test --tests "com.skuri.skuri_backend.infra.auth.SecurityIntegrationTest"
+./gradlew test --tests "com.skuri.skuri_backend.infra.auth.SecurityInfraCorsIntegrationTest"
 SPRING_PROFILES_ACTIVE=local ./gradlew test --tests "com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepositoryDataJpaTest"
 ```
 

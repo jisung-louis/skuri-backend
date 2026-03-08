@@ -23,7 +23,8 @@
 3. `/actuator/health` 응답 확인
 4. `docker-compose.prod.yml` 렌더링과 MySQL/Redis 영속 볼륨 정책 확인
 5. `prod`에서 OpenAPI가 기본 비노출인지 확인
-6. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
+6. 브라우저 관리자 페이지가 있으면 허용 Origin의 REST CORS preflight와 WebSocket Origin 설정을 함께 확인
+7. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
 
 ## 문서 동기화
 - API 계약 변경 -> `docs/api-specification.md`
