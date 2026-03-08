@@ -30,7 +30,9 @@
   - Service: `NotificationService`, `FcmTokenService`, `NotificationEventHandler`, `NotificationSseService`, `AcademicScheduleReminderScheduler`
   - Controller: `NotificationController`, `FcmTokenController`, `NotificationSseController`
   - Event: 도메인 이벤트를 수신해 inbox 저장, SSE fan-out, push delegation 수행
-  - `FcmTokenService.register()`는 unique token 충돌 시 재조회로 복구해 멱등 등록을 보장한다.
+  - `NotificationEventHandler`는 broad `findAll()` 대신 repository-level recipient query로 파티/공지/시스템/학사 일정 수신 대상을 1차 축소한다.
+- `NotificationService`는 after-commit 콜백에서 다시 count query를 치지 않고, 트랜잭션 안에서 unread count를 미리 계산해 SSE에 전달한다.
+- `FcmTokenService.register()`는 unique token 충돌 시 재조회로 복구해 멱등 등록을 보장한다.
 - academic
   - Entity: `AcademicSchedule`, `Course`, `CourseSchedule`, `UserTimetable`, `UserTimetableCourse`
   - Scheduler/Notification과 연계되어 학사 일정 리마인더를 발행
