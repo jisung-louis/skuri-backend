@@ -28,7 +28,10 @@ docker compose down
 curl http://localhost:8080/actuator/health
 IMAGE_URI=ghcr.io/example/skuri:test FIREBASE_CREDENTIALS_FILE=/tmp/firebase-admin.json GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json docker compose -f docker-compose.prod.yml config
 docker compose -f docker-compose.prod.yml ps
+ss -ltnp | grep 8080
 ss -ltnp | grep 3307
+curl -i -X OPTIONS 'http://127.0.0.1:8080/v1/app-versions/android' -H 'Origin: https://admin.skuri.kr' -H 'Access-Control-Request-Method: GET'
+curl -o /dev/null -s -w '%{http_code}\n' http://127.0.0.1:8080/v3/api-docs
 ```
 
 ```bash
