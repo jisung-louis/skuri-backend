@@ -1,7 +1,7 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-08
-> 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md)
+> 최종 수정일: 2026-03-09
+> 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
 
@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영), Phase 8 완료 (Notification 인프라), Phase 9 완료 (인프라/배포 기준 정리), Phase 10 완료 (Member 탈퇴/계정 라이프사이클) |
 
 ---
 
@@ -40,7 +40,7 @@ Phase 8: Notification 인프라 (이벤트 기반 알림)
     ↓
 Phase 9: 인프라 및 배포
     ↓
-Phase 10: Member 탈퇴/계정 라이프사이클 (정책 확정 후)
+Phase 10: Member 탈퇴/계정 라이프사이클
     ↓
 Phase 11: 운영 공통 인프라 (Admin 공통)
 ```
@@ -706,31 +706,31 @@ SSE 운영 제약:
 
 ---
 
-### Phase 10: Member 탈퇴/계정 라이프사이클 (정책 확정 후)
+### Phase 10: Member 탈퇴/계정 라이프사이클
 
-> 회원 탈퇴 정책(하드/소프트 삭제, 데이터 보존/익명화, 연관 도메인 정합성) 확정 이후 최종 구현.
+> 회원 탈퇴 정책 문서화, lifecycle 모델 반영, `DELETE /v1/members/me`, 연관 도메인 정합성 처리 구현 완료.
 
 #### 10-1. 구현 항목
 
 | # | 항목 | 설명 |
 |---|------|------|
-| 1 | 탈퇴 정책 문서화 | 하드/소프트 삭제, 유예 기간, 재가입 정책 정의 |
-| 2 | 도메인 영향 분석 | TaxiParty/Chat/Board/Notice/Support 연관 데이터 처리 규칙 확정 |
-| 3 | `DELETE /v1/members/me` API | 정책에 따른 탈퇴 처리 (인증 사용자 본인) |
-| 4 | 개인정보 처리 | 익명화/마스킹/삭제 범위 및 감사 로그 처리 |
-| 5 | 회귀 검증 | 탈퇴 후 인증/조회/참여 제한 및 기존 데이터 정합성 검증 |
+| 1 | 탈퇴 정책 문서화 | [Member 탈퇴 정책](./member-withdrawal-policy.md)로 soft delete, 재가입, 개인정보 처리, Firebase 후처리 정책 확정 |
+| 2 | 도메인 영향 반영 | TaxiParty/Chat/Board/Notice/Support/Notification/Academic 정합성 처리 구현 |
+| 3 | `DELETE /v1/members/me` API | 인증 사용자 본인 탈퇴 처리 및 정책 기반 예외 응답 구현 |
+| 4 | 개인정보 처리 | Member PII 스크럽, linked_accounts/알림/FCM/시간표 삭제, 콘텐츠 익명화 반영 |
+| 5 | 회귀 검증 | Contract/Service/도메인 정합성 테스트 추가 및 빌드 검증 |
 
 #### 10-2. API
 
 | Method | Path | 설명 |
 |--------|------|------|
-| `DELETE` | `/v1/members/me` | 회원 탈퇴 (정책 확정 후) |
+| `DELETE` | `/v1/members/me` | 회원 탈퇴 (즉시 탈퇴, soft delete tombstone + 도메인 후처리) |
 
 #### 10-3. 완료 기준
 
-- [ ] 탈퇴 정책이 문서로 확정됨
-- [ ] `DELETE /v1/members/me` 동작 및 예외 케이스 검증 완료
-- [ ] 연관 도메인 데이터 정합성/개인정보 처리 규칙 검증 완료
+- [x] 탈퇴 정책이 문서로 확정됨
+- [x] `DELETE /v1/members/me` 동작 및 예외 케이스 검증 완료
+- [x] 연관 도메인 데이터 정합성/개인정보 처리 규칙 검증 완료
 
 ---
 
@@ -777,7 +777,7 @@ Phase 1 ─── 필수 선행 ──→ Phase 6 (Academic)
 Phase 1 ─── 필수 선행 ──→ Phase 7 (Support)
 Phase 2~7 ── 연동 ──→ Phase 8 (Notification)
 전체 ───────────────→ Phase 9 (인프라/배포)
-Phase 1~9 + 정책 확정 ─→ Phase 10 (Member 탈퇴)
+Phase 1~9 ─────────────→ Phase 10 (Member 탈퇴)
 Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 ```
 

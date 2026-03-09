@@ -6,7 +6,9 @@
 3. API 정상/예외 케이스 최소 1개 이상 확인
 4. `ApiResponse` 에러 포맷 일관성 확인
 5. OpenAPI example과 실제 `errorCode/message` 일치 확인
-6. Serena Memory 동기화 확인
+6. OpenAPI/문서 동기화 확인 (`/v3/api-docs` 기준, `docs/api-specification.md`, lifecycle 정책 문서 포함)
+7. 회원 라이프사이클 변경이면 탈퇴 후 접근 차단, 동일 UID 재가입 차단, 연관 도메인 정합성 회귀 확인
+8. Serena Memory 동기화 확인
 
 ## 운영/배포 변경 시 추가 검증
 1. `./gradlew build` 성공

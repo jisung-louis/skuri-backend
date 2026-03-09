@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-08
+> 최종 수정일: 2026-03-09
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -109,12 +109,16 @@ Hooks:
   - 모든 도메인에서 참조하는 핵심 엔티티
   - FCM 토큰 관리는 인프라(Notification)로 이동
   - 인증 필터에서 `email` 도메인(`@sungkyul.ac.kr`)을 강제 검증
+  - 보호 API는 활성 회원(`members.status = ACTIVE`)만 접근 가능하며, 탈퇴 회원은 `403 MEMBER_WITHDRAWN`으로 차단
   - 회원 생성 시 `nickname`은 기본값 `스쿠리 유저`로 저장
   - 회원 생성 시 `realname`은 provider 프로필 이름(`linked_accounts.provider_display_name`)으로 초기화
   - 회원 생성 시 `members.photo_url`은 `null`, 소셜 프로필 이미지(`picture`)는 `linked_accounts.photo_url`에만 저장
   - `linked_accounts.provider`는 `GOOGLE`, `PASSWORD`, `UNKNOWN`을 사용
   - 소셜 로그인(`GOOGLE`)이 아닌 경우 `linked_accounts`는 `provider`를 제외한 provider 부가 컬럼을 `null`로 저장
   - `linked_accounts.providerId`는 provider 계정 식별자(예: `firebase.identities[<sign_in_provider>][0]`)를 저장하며, 비소셜 로그인에서는 `null`
+  - 회원 탈퇴는 hard delete 대신 soft delete tombstone(`status`, `withdrawnAt`)으로 관리
+  - 탈퇴 시 `members` row는 보존하되 개인정보를 스크럽하고, `linked_accounts`는 전량 삭제
+  - 탈퇴한 동일 Firebase UID는 `POST /v1/members`에서 재활성화하지 않고 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환
 ```
 
 ### 3.2 TaxiParty (택시 파티)
@@ -219,6 +223,13 @@ endReason 종류:
   - TIMEOUT: 자동 종료 (12시간 초과)
   - WITHDRAWED: 리더 탈퇴로 인한 종료
 
+회원 탈퇴 연계 정책:
+  - 리더 탈퇴 시 active party는 `ENDED + WITHDRAWED`로 종료
+  - 리더 탈퇴와 동시에 해당 파티의 `PENDING` join request는 `DECLINED`로 정리
+  - 일반 멤버 탈퇴는 `OPEN`, `CLOSED` 상태에서만 자동 이탈 허용
+  - 일반 멤버가 `ARRIVED` 파티에 속해 있으면 정산 회피 방지를 위해 회원 탈퇴를 거부
+  - 탈퇴 회원이 요청자인 `PENDING` join request는 `CANCELED`로 정리
+
 파티 채팅 특수 메시지:
   - ACCOUNT: 계좌 정보 공유
   - ARRIVED: 도착 알림 (요금, 1인당 금액)
@@ -279,6 +290,8 @@ Hooks:
   - 미읽음 계산: `message.createdAt > lastReadAt` 기준 (동일 시각은 읽음)
   - `lastReadAt`는 서버 현재 시각과 마지막 메시지 시각을 상한으로 clamp하여 미래 시각 입력으로 인한 unread 왜곡을 방지
   - 방별 다중 구독(모든 방 topic 동시 구독)은 연결 수/브로드캐스트 비용 증가로 사용하지 않음
+  - 회원 탈퇴 시 `chat_room_members`는 전부 정리하고 `chat_rooms.member_count`를 즉시 동기화
+  - 과거 `chat_messages.senderName`은 Phase 10에서 일괄 수정하지 않고 이력 보존을 우선
 ```
 
 ### 3.4 Board (게시판)
@@ -332,6 +345,11 @@ Hooks:
   - QUESTION (질문)
   - REVIEW (후기)
   - ANNOUNCEMENT (공지)
+
+회원 탈퇴 연계 정책:
+  - 게시글/댓글 본문은 보존
+  - `authorId`, `authorName`, `authorProfileImage`는 탈퇴 사용자 익명화 값으로 치환
+  - 탈퇴 회원의 좋아요/북마크 기록은 삭제하고 `likeCount`, `bookmarkCount`를 보정
 ```
 
 ### 3.5 Notice (공지사항)
@@ -405,6 +423,11 @@ Hooks:
     - 마지막 상세 검증 시점이 24시간 초과
   - 관리자 수동 sync는 상세 재크롤링을 강제로 수행한다.
 
+회원 탈퇴 연계 정책:
+  - 공지 본문은 회원과 독립적인 외부 데이터이므로 영향 없음
+  - `NoticeComment`는 본문을 유지하고 `userId`, `userDisplayName`만 익명화
+  - `NoticeLike`, `NoticeReadStatus`는 탈퇴 회원 기준으로 정리
+
 향후 확장 준비:
   - AI 요약은 `summary` 컬럼에 저장하고, `contentHash`가 바뀌면 기존 AI 요약을 무효화한다.
   - RAG/공지 챗봇은 `bodyText`를 기준으로 chunking/embedding을 수행하고, `title/category/postedAt/link`를 citation 메타데이터로 사용한다.
@@ -461,6 +484,9 @@ Hooks:
   - 기본 대상은 중요 일정(`isPrimary = true`)이다.
   - 사용자 옵션으로 전날 오전 09:00 추가 발송과 모든 일정 대상 확장을 허용한다.
   - 실제 발송은 Notification 인프라(FCM + 인앱 인박스) Phase에서 처리한다.
+
+회원 탈퇴 연계 정책:
+  - `user_timetables`는 탈퇴 회원 기준으로 전량 삭제
 ```
 
 ### 3.7 Support (지원/운영)
@@ -504,6 +530,11 @@ Hooks:
     - id, adminId, action, targetType, targetId
     - detail (JSON), createdAt
     (Spring AOP로 Admin API 호출 시 자동 기록)
+
+회원 탈퇴 연계 정책:
+  - inquiry/report record는 운영 추적 목적상 보존
+  - inquiry의 구조화 개인정보(`userEmail`, `userName`, `userRealname`, `userStudentId`)만 마스킹
+  - 자유서술 `content` 전체 자동 마스킹은 Phase 10 범위에서 제외
 ```
 
 ---
@@ -631,6 +662,7 @@ UserNotification 엔티티:
   - 저장 모델은 Firestore가 아니라 MySQL `user_notifications`, `fcm_tokens`를 사용한다.
   - 상태 변경 성공 이후 `after-commit`으로 이벤트를 발행한다.
   - 인앱 저장 실패/푸시 실패는 핵심 비즈니스 트랜잭션을 롤백시키지 않는다.
+  - 회원 탈퇴 시 `user_notifications`, `fcm_tokens`는 전량 삭제하고 회원 개인 SSE 연결도 종료한다.
   - Phase 8 런타임은 `allNotifications`를 마스터 토글로 정규화해 적용한다. 단, `AppNoticePriority.HIGH`와 파티 채팅 알림은 문서화된 예외 정책을 따른다.
   - FCM push payload는 특정 RN legacy type에 종속되지 않고, canonical `NotificationType` + 리소스 식별자(`partyId`, `noticeId` 등)를 사용한다.
   - 플랫폼별 알림 표현(sound/channel)은 `PushPresentationProfile`로 분리한다. 현재 `PARTY`, `CHAT`, `NOTICE`, `DEFAULT` 프로필을 사용한다.
@@ -819,6 +851,9 @@ public class Member extends BaseTimeEntity {
     private String realname;
     private boolean isAdmin;
 
+    @Enumerated(EnumType.STRING)
+    private MemberStatus status; // ACTIVE, WITHDRAWN
+
     @Embedded
     private BankAccount bankAccount;
 
@@ -830,6 +865,9 @@ public class Member extends BaseTimeEntity {
 
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
+
+    @Column(name = "withdrawn_at")
+    private LocalDateTime withdrawnAt;
 }
 
 @Embeddable
@@ -1366,3 +1404,4 @@ public class PartyMessageService {
 > - 2026-03-05: Board 도메인 구현 반영 — 댓글 depth 1 제한, 부모 placeholder soft delete 정책(B), 내 게시글/북마크 조회 책임 추가
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리
 > - 2026-03-08: Phase 8 Notification 인프라 반영 — RDB 저장 모델(`user_notifications`, `fcm_tokens`), after-commit 이벤트, 학사 일정 알림 설정, `PARTY_*` canonical enum 동기화
+> - 2026-03-09: Phase 10 Member 라이프사이클 반영 — soft delete tombstone, 동일 UID 재가입 차단, TaxiParty/Chat/Board/Notice/Support/Notification/Academic 탈퇴 정합성 정책 추가

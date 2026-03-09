@@ -1,7 +1,7 @@
 # Spring 백엔드 ERD (Entity Relationship Diagram)
 
-> 최종 수정일: 2026-03-08
-> 관련 문서: [도메인 분석](./domain-analysis.md)
+> 최종 수정일: 2026-03-09
+> 관련 문서: [도메인 분석](./domain-analysis.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
 
@@ -30,6 +30,7 @@ erDiagram
         varchar(500) photo_url "nullable, 가입 시 null"
         varchar(50) realname
         boolean is_admin "DEFAULT false"
+        enum status "ACTIVE,WITHDRAWN"
         varchar(20) bank_name
         varchar(30) account_number
         varchar(50) account_holder
@@ -47,6 +48,7 @@ erDiagram
         json notice_notifications_detail
         datetime joined_at
         datetime last_login
+        datetime withdrawn_at
         datetime created_at
         datetime updated_at
     }
@@ -493,6 +495,7 @@ erDiagram
 | photo_url | VARCHAR(500) | | 프로필 이미지 URL (가입 시 기본 null) |
 | realname | VARCHAR(50) | | 실명 (계좌 예금주) |
 | is_admin | BOOLEAN | DEFAULT false | 관리자 여부 |
+| status | ENUM | NOT NULL | 회원 상태 (`ACTIVE`, `WITHDRAWN`) |
 | bank_name | VARCHAR(20) | | 은행명 |
 | account_number | VARCHAR(30) | | 계좌번호 |
 | account_holder | VARCHAR(50) | | 예금주 |
@@ -510,10 +513,13 @@ erDiagram
 | notice_notifications_detail | JSON | | 공지 카테고리별 설정 |
 | joined_at | DATETIME | | 가입일 |
 | last_login | DATETIME | | 마지막 로그인 |
+| withdrawn_at | DATETIME | | 탈퇴 시각 (soft delete tombstone) |
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |
 
 > Phase 8부터 학사 일정 알림용 `academic_schedule_notifications`, `academic_schedule_day_before_enabled`, `academic_schedule_all_events_enabled` 컬럼을 사용한다.
+
+> Phase 10부터 회원 탈퇴는 hard delete 대신 `status`, `withdrawn_at` 기반 soft delete tombstone으로 관리한다.
 
 **linked_accounts 테이블 상세:**
 
