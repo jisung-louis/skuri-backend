@@ -131,14 +131,40 @@ jobs:
           . ./.env
           set +a
 
+          APP_HOST_BIND="${APP_HOST_BIND:-127.0.0.1}"
           APP_PORT="${APP_HOST_PORT:-8080}"
+
+          if [ "$APP_HOST_BIND" != "127.0.0.1" ]; then
+            echo "Production app host bind must stay 127.0.0.1, got: $APP_HOST_BIND" >&2
+            exit 1
+          fi
+
+          APP_URL="http://${APP_HOST_BIND}:${APP_PORT}"
           for attempt in $(seq 1 24); do
-            if curl -fsS "http://127.0.0.1:${APP_PORT}/actuator/health" >/dev/null; then
-              exit 0
+            if curl -fsS "${APP_URL}/actuator/health" >/dev/null; then
+              break
             fi
             sleep 5
           done
 
-          echo "Production smoke check failed." >&2
-          exit 1
+          curl -fsS "${APP_URL}/actuator/health" >/dev/null
+
+          APP_VERSIONS_RESPONSE="$(curl -fsS "${APP_URL}/v1/app-versions/android")"
+          printf '%s' "$APP_VERSIONS_RESPONSE" | grep -q '"success":true'
+          printf '%s' "$APP_VERSIONS_RESPONSE" | grep -q '"platform":"android"'
+
+          CORS_HEADERS="$(mktemp)"
+          curl -fsS -o /dev/null -D "$CORS_HEADERS" -X OPTIONS \
+            "${APP_URL}/v1/app-versions/android" \
+            -H 'Origin: https://admin.skuri.kr' \
+            -H 'Access-Control-Request-Method: GET'
+          tr -d '\r' < "$CORS_HEADERS" | grep -qi '^access-control-allow-origin: https://admin.skuri.kr$'
+          tr -d '\r' < "$CORS_HEADERS" | grep -qi '^access-control-allow-methods: .*GET'
+          rm -f "$CORS_HEADERS"
+
+          OPENAPI_STATUS="$(curl -o /dev/null -s -w '%{http_code}' "${APP_URL}/v3/api-docs")"
+          if [ "$OPENAPI_STATUS" = "200" ]; then
+            echo "Production OpenAPI endpoint must stay hidden." >&2
+            exit 1
+          fi
           EOF
