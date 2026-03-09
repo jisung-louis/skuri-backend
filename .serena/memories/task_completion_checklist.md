@@ -14,8 +14,10 @@
 2-1. 로컬 Docker 이미지 빌드 컨텍스트에 `application-local.yaml`, `application-local-emulator.yaml`이 포함되는지 확인
 3. `/actuator/health` 응답 확인
 4. `docker-compose.prod.yml` 렌더링과 MySQL/Redis 영속 볼륨 정책 확인
-5. `prod`에서 OpenAPI가 기본 비노출인지 확인
-6. 브라우저 관리자 페이지가 있으면 허용 Origin의 REST CORS preflight와 WebSocket Origin 설정을 함께 확인
+5. 운영 app host 바인딩이 `127.0.0.1:<APP_HOST_PORT>` loopback 으로만 열리는지 확인
+6. `GET /v1/app-versions/android` 같은 공개 API smoke check 확인
+7. `prod`에서 OpenAPI가 기본 비노출인지 확인
+8. 브라우저 관리자 페이지가 있으면 허용 Origin의 REST CORS preflight와 WebSocket Origin 설정을 함께 확인
 7. 로컬 프로필 변경 시 `local`은 실제 Firebase 자격증명 경로가 필요한지, `local-emulator`는 자격증명 경로 없이도 실행되는지 함께 확인
 8. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
 9. 운영 MySQL 접근 정책을 바꿨다면 host 바인딩이 `127.0.0.1` loopback 으로만 열리는지 확인
