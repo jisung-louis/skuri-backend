@@ -710,6 +710,8 @@ SSE 운영 제약:
 
 > 회원 탈퇴 정책 문서화, lifecycle 모델 반영, `DELETE /v1/members/me`, 연관 도메인 정합성 처리 구현 완료.
 
+> 운영 rollout 주의: Phase 10 이전 운영 DB는 앱 기동 전에 `members.status`를 수동 SQL로 `ACTIVE` 백필해야 한다. 상세 절차는 [배포 가이드](./deployment-guide.md#10-phase-10-회원-lifecycle-마이그레이션)를 참조한다.
+
 #### 10-1. 구현 항목
 
 | # | 항목 | 설명 |

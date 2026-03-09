@@ -23,3 +23,4 @@
 7. 로컬 프로필 변경 시 `local`은 실제 Firebase 자격증명 경로가 필요한지, `local-emulator`는 자격증명 경로 없이도 실행되는지 함께 확인
 8. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
 9. 운영 MySQL 접근 정책을 바꿨다면 host 바인딩이 `127.0.0.1` loopback 으로만 열리는지 확인
+10. Phase 10 이전 운영 DB 업그레이드면 앱 기동 전에 `members.status` 수동 마이그레이션 SQL을 먼저 적용했는지 확인

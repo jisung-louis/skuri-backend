@@ -37,7 +37,7 @@
 - 탈퇴 회원은 보호 API에서 `403 MEMBER_WITHDRAWN`으로 차단되며, 동일 Firebase UID는 재활성화하지 않고 `POST /v1/members`에서 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환한다.
 - Firebase user 삭제, SSE 연결 종료 같은 외부 후처리는 after-commit 리스너에서 best-effort로 수행한다.
 - 채팅 WebSocket은 탈퇴 시 세션을 best-effort로 종료하고, 남은 `/topic/chat/**` delivery도 outbound interceptor로 차단한다.
-- legacy 회원 데이터는 `status is null`을 임시로 active로 해석하고, startup backfill로 `ACTIVE`를 채운다.
+- Phase 10 이전 운영 DB 업그레이드 시에는 앱 기동 전에 `members.status`를 수동 SQL로 `ACTIVE` 백필한 뒤 새 버전을 실행한다.
 - `infra.auth.config.FirebaseConfig`를 재사용하고 Firebase Admin 중복 초기화는 금지한다.
 - `infra.notification`에는 `PushSender` 추상화, Firebase 기반 sender, credentials 부재 시 `NoOpPushSender`가 있다.
 - 공통 응답은 `ApiResponse`, 예외는 `GlobalExceptionHandler`, ErrorCode 중심으로 처리한다.

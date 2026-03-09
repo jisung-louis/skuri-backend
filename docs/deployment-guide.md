@@ -218,7 +218,49 @@ docker compose up -d --build
 - OpenAPI 노출 정책(`OPENAPI_ENABLED`) 확인
 - GitHub `production` Environment 보호 규칙 확인
 
-## 10. 배포 후 체크리스트
+## 10. Phase 10 회원 lifecycle 마이그레이션
+
+Phase 10 이전 버전에서 운영 중이던 DB를 업그레이드할 때는 `members.status`를 앱 기동 전에 수동으로 채워야 한다.
+
+- 배경:
+  - `Member.status`는 엔티티 기준 `nullable = false`다.
+  - 현재 앱은 `spring.jpa.hibernate.ddl-auto=update`를 사용한다.
+  - 따라서 legacy `members` row가 있는 상태에서 선행 SQL 없이 새 버전을 먼저 띄우면 schema update가 실패할 수 있다.
+- 적용 시점:
+  - Phase 10 코드가 포함된 버전을 서버에 올리기 전에 MySQL에서 먼저 실행한다.
+- 권장 순서:
+  1. 앱을 내린다.
+  2. 아래 SQL을 운영 DB에 적용한다.
+  3. 결과를 검증한다.
+  4. 새 앱 버전을 기동한다.
+
+```sql
+ALTER TABLE members
+    ADD COLUMN status VARCHAR(20) NULL AFTER is_admin;
+
+UPDATE members
+SET status = 'ACTIVE'
+WHERE status IS NULL;
+
+ALTER TABLE members
+    MODIFY COLUMN status VARCHAR(20) NOT NULL;
+```
+
+검증 SQL:
+
+```sql
+SELECT status, COUNT(*) AS count
+FROM members
+GROUP BY status;
+```
+
+추가 메모:
+
+- 이미 `status` 컬럼이 있는 환경이면 `UPDATE ... WHERE status IS NULL`과 `MODIFY COLUMN ... NOT NULL`만 적용하면 된다.
+- `withdrawn_at`은 nullable 컬럼이라 기존 운영 DB에서는 Hibernate update에 맡겨도 되지만, 운영 표준 절차상 상태 컬럼 선행 마이그레이션은 필수로 본다.
+- 관련 정책 설명은 [`member-withdrawal-policy.md`](./member-withdrawal-policy.md)를 함께 참조한다.
+
+## 11. 배포 후 체크리스트
 
 - `docker ps`에서 `skuri-backend` 정상 실행 확인
 - `docker compose -f docker-compose.prod.yml ps`에서 app가 `127.0.0.1:<APP_HOST_PORT>->8080/tcp` 로만 열렸는지 확인
@@ -235,7 +277,7 @@ docker compose up -d --build
 - `ss -ltnp | grep <APP_HOST_PORT>` 결과가 `127.0.0.1:<APP_HOST_PORT>`만 가리키는지 확인
 - MySQL 운영자 접속이 필요하면 `docker compose -f docker-compose.prod.yml ps`로 `127.0.0.1:3307->3306/tcp` 같은 loopback 바인딩만 노출되는지 확인
 
-## 11. MySQL Workbench 접속
+## 12. MySQL Workbench 접속
 
 현재 운영 compose는 MySQL을 인터넷에 직접 공개하지 않고, 서버 자신의 loopback 포트로만 바인딩한다.
 권장 방식은 `Standard TCP/IP over SSH`다.
@@ -286,7 +328,7 @@ ss -ltnp | grep 3307
 - Workbench 연결을 위해 MySQL을 `0.0.0.0:3306` 으로 공개하지 않는다.
 - 컨테이너 내부 DB 주소는 계속 `mysql:3306` 이며, Workbench용 loopback 포트와는 용도가 다르다.
 
-## 12. 롤백
+## 13. 롤백
 
 롤백은 “이전 이미지 태그로 다시 기동” 방식으로 진행한다.
 
@@ -308,7 +350,7 @@ IMAGE_URI=ghcr.io/<owner>/<repo>:<previous-sha> docker compose -f docker-compose
 - 최근 에러 로그
 - MySQL 컨테이너와 볼륨이 유지됐는지 확인
 
-## 12. 향후 외부 AI 서비스 메모
+## 14. 향후 외부 AI 서비스 메모
 
 향후 Python 기반 AI 서버를 붙일 가능성이 있다면 지금 단계에서 최소한 아래 환경변수 네이밍만 확보해두면 충분하다.
 
