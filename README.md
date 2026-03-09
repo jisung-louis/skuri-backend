@@ -222,6 +222,7 @@ CD 워크플로: `.github/workflows/cd.yml`
 - 트리거: `main` push, 수동 실행
 - 흐름: Docker 이미지 빌드/GHCR push (`linux/amd64,linux/arm64`) → `production` 환경 승인 대기 → 승인 후 OCI 서버 배포
 - 배포 후 smoke check: `health`, `GET /v1/app-versions/android`, admin REST CORS preflight, prod OpenAPI 비노출
+- 새 `main` push가 오면 이전 CD run은 자동 취소되고 최신 run만 남깁니다.
 - 반자동 배포를 원하면 GitHub `production` Environment의 `Required reviewers`를 반드시 설정해야 합니다.
 
 필수 Secrets:
