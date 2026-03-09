@@ -26,6 +26,7 @@
 
 ```env
 SPRING_PROFILES_ACTIVE=prod
+APP_HOST_BIND=127.0.0.1
 APP_HOST_PORT=8080
 OPENAPI_ENABLED=false
 API_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
@@ -42,6 +43,7 @@ FIREBASE_CREDENTIALS_PATH=/app/secrets/firebase-admin.json
 ```
 
 - 운영 MySQL은 앱 컨테이너가 내부 네트워크 `mysql:3306`으로 사용한다.
+- 운영 app 포트도 `${APP_HOST_BIND:-127.0.0.1}:${APP_HOST_PORT:-8080}` loopback 바인딩을 유지해 Nginx만 접근하게 한다.
 - Workbench 같은 운영자 접속은 호스트 loopback `${MYSQL_HOST_BIND:-127.0.0.1}:${MYSQL_HOST_PORT:-3307}` 로만 열고 SSH를 통해 접근한다.
 - `0.0.0.0:3306` 같은 공용 바인딩은 사용하지 않는다.
 
@@ -133,6 +135,7 @@ docker compose up -d --build
 운영 공개 권장:
 
 - `api.<domain>`은 Cloudflare DNS에 연결하고, Nginx가 `80/443`을 받아 앱 `8080`으로 프록시한다.
+- 앱 컨테이너 자체도 `${APP_HOST_BIND:-127.0.0.1}:${APP_HOST_PORT:-8080}` loopback 으로만 bind해 외부 인터페이스 `0.0.0.0:8080` 노출을 방지한다.
 - HTTPS가 정상화되면 OCI 보안 규칙에서 `8080` 외부 공개는 닫고 `22/80/443`만 유지한다.
 - Workbench 접속용 MySQL 포트는 `127.0.0.1:3307` 같은 loopback 바인딩만 허용하고, SSH 터널 없이 직접 공개하지 않는다.
 
@@ -147,7 +150,7 @@ docker compose up -d --build
 5. GitHub에서 `Review deployments`
 6. `Approve and deploy`
 7. OCI 서버에 접속해서 최신 이미지 pull 및 재기동
-8. 서버 내부에서 `/actuator/health` smoke check
+8. 서버 내부에서 `health + 공개 API + admin CORS preflight + prod OpenAPI 비노출` smoke check
 
 중요:
 
@@ -211,14 +214,18 @@ docker compose up -d --build
 ## 10. 배포 후 체크리스트
 
 - `docker ps`에서 `skuri-backend` 정상 실행 확인
+- `docker compose -f docker-compose.prod.yml ps`에서 app가 `127.0.0.1:<APP_HOST_PORT>->8080/tcp` 로만 열렸는지 확인
 - `curl http://127.0.0.1:<APP_HOST_PORT>/actuator/health`
 - 공개 API smoke check
   - `GET /v1/app-versions/{platform}`
+- admin REST CORS preflight
+  - `OPTIONS /v1/app-versions/{platform}` with `Origin: https://admin.<domain>`
 - 인증 API smoke check
   - 토큰이 있으면 `GET /v1/members/me`
 - 컨테이너 로그 확인
   - `docker logs --tail 200 skuri-backend`
 - OpenAPI가 prod에서 의도대로 닫혀 있는지 확인
+- `ss -ltnp | grep <APP_HOST_PORT>` 결과가 `127.0.0.1:<APP_HOST_PORT>`만 가리키는지 확인
 - MySQL 운영자 접속이 필요하면 `docker compose -f docker-compose.prod.yml ps`로 `127.0.0.1:3307->3306/tcp` 같은 loopback 바인딩만 노출되는지 확인
 
 ## 11. MySQL Workbench 접속

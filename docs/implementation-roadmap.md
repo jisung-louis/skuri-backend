@@ -690,7 +690,7 @@ SSE 운영 제약:
 | 2 | docker-compose.yml | app + MySQL + Redis 로컬 개발 환경 | [x] |
 | 3 | Redis 범위 정리 | 이번 Phase는 컨테이너/환경변수/문서화까지만 반영 | [x] |
 | 4 | OCI 배포 설계 | `OCI 단일 인스턴스 + docker-compose.prod.yml(app + MySQL + Redis)`, 운영 `.env`, Firebase 파일 주입 전략 | [x] |
-| 5 | GitHub Actions CD | `main` 반영 후 `production` 환경 승인 기반 OCI/AWS 멀티플랫폼 배포 초안 | [x] |
+| 5 | GitHub Actions CD | `main` 반영 후 `production` 환경 승인 기반 OCI/AWS 멀티플랫폼 배포 + `health/public API/CORS/OpenAPI` smoke check | [x] |
 | 6 | OpenAPI 운영 정책 | `local/local-emulator` 노출, `prod` 기본 비노출 | [x] |
 | 7 | 프로필 / `.env` 전략 정리 | `application/local/local-emulator/prod/test` 체계 + env 기반 local 정리 | [x] |
 | 8 | 배포 가이드 / 체크리스트 | 배포 전/후 점검, smoke check, rollback 문서화 | [x] |
@@ -701,7 +701,7 @@ SSE 운영 제약:
 - [x] `docker compose up` 기준의 로컬 환경 파일/문서 준비
 - [x] CI/CD 파이프라인 초안 반영
 - [x] OCI 배포 및 정상 동작
-- [x] 운영 smoke check 수행 확인
+- [x] 운영 smoke check 수행 확인 (`/actuator/health`, `GET /v1/app-versions/android`, admin REST CORS preflight, prod OpenAPI 비노출)
 - [ ] rollback 실제 수행 확인
 
 ---
