@@ -12,6 +12,8 @@
 - `domain/member/entity/Member.java`: `status`, `withdrawnAt`를 포함한 회원 lifecycle 원장
 - `domain/member/service/MemberLifecycleService.java`: 회원 탈퇴 오케스트레이션과 도메인 후처리 진입점
 - `domain/member/service/MemberLifecycleEventListener.java`: after-commit 기반 Firebase 삭제/SSE 종료 처리
+- `domain/member/service/MemberStatusBackfillService.java`: legacy `members.status` startup backfill
+- `domain/chat/websocket/ChatWebSocketSessionRegistry.java`, `ChatSubscriptionAccessInterceptor.java`: 탈퇴 회원 WebSocket 세션 추적/차단
 
 ## 프로필 역할
 - `application.yaml`: 모든 환경이 공유하는 기본 정책과 공통 datasource 인증정보

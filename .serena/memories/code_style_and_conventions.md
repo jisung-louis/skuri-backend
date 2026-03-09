@@ -8,6 +8,7 @@
 - 회원 탈퇴는 hard delete 대신 tombstone(`status=WITHDRAWN`, `withdrawnAt`) + 개인정보 스크럽을 기본으로 한다.
 - 탈퇴로 인한 외부 후처리(Firebase 삭제, SSE 연결 종료)는 핵심 트랜잭션 안에서 직접 처리하지 않고 after-commit 리스너로 분리한다.
 - 같은 Firebase UID의 탈퇴 회원은 재활성화하지 않는다. `POST /v1/members`는 활성 회원에만 멱등이고, withdrawn UID에는 `WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환한다.
+- lifecycle 컬럼 신규 도입 시 운영 DB의 legacy row를 고려해 rollout 초기에는 null 호환 조회 + startup backfill을 함께 적용한다.
 
 ## 응답/예외
 - 모든 REST 응답은 `ApiResponse<T>`를 사용한다.

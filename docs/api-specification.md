@@ -273,7 +273,7 @@ Spring 서버 처리:
 ```json
 {
   "success": false,
-  "message": "탈퇴한 계정은 동일한 Firebase UID로 다시 가입할 수 없습니다.",
+  "message": "탈퇴한 계정은 같은 인증 계정으로 재가입할 수 없습니다.",
   "errorCode": "WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED",
   "timestamp": "2026-03-09T12:00:00"
 }
