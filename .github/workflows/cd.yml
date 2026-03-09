@@ -133,9 +133,26 @@ jobs:
 
           APP_HOST_BIND="${APP_HOST_BIND:-127.0.0.1}"
           APP_PORT="${APP_HOST_PORT:-8080}"
+          CORS_SMOKE_ORIGIN="${CD_SMOKE_CORS_ORIGIN:-}"
 
           if [ "$APP_HOST_BIND" != "127.0.0.1" ]; then
             echo "Production app host bind must stay 127.0.0.1, got: $APP_HOST_BIND" >&2
+            exit 1
+          fi
+
+          if [ -z "$CORS_SMOKE_ORIGIN" ]; then
+            IFS=',' read -r -a CORS_ORIGIN_CANDIDATES <<< "${API_ALLOWED_ORIGIN_PATTERNS:-}"
+            for candidate in "${CORS_ORIGIN_CANDIDATES[@]}"; do
+              candidate="$(printf '%s' "$candidate" | xargs)"
+              if [ -n "$candidate" ] && [[ "$candidate" != *'*'* ]]; then
+                CORS_SMOKE_ORIGIN="$candidate"
+                break
+              fi
+            done
+          fi
+
+          if [ -z "$CORS_SMOKE_ORIGIN" ]; then
+            echo "Cannot determine smoke-check CORS origin. Set CD_SMOKE_CORS_ORIGIN or include at least one exact origin in API_ALLOWED_ORIGIN_PATTERNS." >&2
             exit 1
           fi
 
@@ -156,9 +173,9 @@ jobs:
           CORS_HEADERS="$(mktemp)"
           curl -fsS -o /dev/null -D "$CORS_HEADERS" -X OPTIONS \
             "${APP_URL}/v1/app-versions/android" \
-            -H 'Origin: https://admin.skuri.kr' \
+            -H "Origin: ${CORS_SMOKE_ORIGIN}" \
             -H 'Access-Control-Request-Method: GET'
-          tr -d '\r' < "$CORS_HEADERS" | grep -qi '^access-control-allow-origin: https://admin.skuri.kr$'
+          tr -d '\r' < "$CORS_HEADERS" | grep -qi "^access-control-allow-origin: ${CORS_SMOKE_ORIGIN}$"
           tr -d '\r' < "$CORS_HEADERS" | grep -qi '^access-control-allow-methods: .*GET'
           rm -f "$CORS_HEADERS"
 
