@@ -17,6 +17,8 @@ public interface JoinRequestRepository extends JpaRepository<JoinRequest, String
 
     List<JoinRequest> findByParty_IdOrderByCreatedAtDesc(String partyId);
 
+    List<JoinRequest> findByParty_IdAndStatusOrderByCreatedAtDesc(String partyId, JoinRequestStatus status);
+
     List<JoinRequest> findByRequesterIdOrderByCreatedAtDesc(String requesterId);
 
     List<JoinRequest> findByRequesterIdAndStatusOrderByCreatedAtDesc(String requesterId, JoinRequestStatus status);

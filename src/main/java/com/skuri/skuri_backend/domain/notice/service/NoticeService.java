@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
@@ -178,6 +179,24 @@ public class NoticeService {
         return new NoticeLikeResponse(false, notice.getLikeCount());
     }
 
+    @Transactional
+    public void handleMemberWithdrawal(String memberId) {
+        noticeCommentRepository.findByUserId(memberId)
+                .forEach(NoticeComment::anonymizeAuthor);
+
+        List<NoticeLike> likes = noticeLikeRepository.findById_UserId(memberId);
+        if (!likes.isEmpty()) {
+            Map<String, Integer> likeCounts = new LinkedHashMap<>();
+            likes.forEach(like -> likeCounts.merge(like.getId().getNoticeId(), 1, Integer::sum));
+            noticeRepository.findAllById(likeCounts.keySet()).forEach(notice ->
+                    notice.increaseLikeCount(-likeCounts.getOrDefault(notice.getId(), 0))
+            );
+            noticeLikeRepository.deleteAllInBatch(likes);
+        }
+
+        noticeReadStatusRepository.deleteById_UserId(memberId);
+    }
+
     private NoticeSummaryResponse toSummaryResponse(Notice notice, boolean isRead, boolean isLiked) {
         return new NoticeSummaryResponse(
                 notice.getId(),
@@ -293,6 +312,9 @@ public class NoticeService {
         if (deleted) {
             return new AuthorView(null, null);
         }
+        if (MemberWithdrawalSanitizer.isWithdrawnAuthorId(authorId)) {
+            return new AuthorView(null, authorName);
+        }
         if (!anonymous) {
             return new AuthorView(authorId, authorName);
         }
@@ -335,7 +357,7 @@ public class NoticeService {
     }
 
     private Member findMemberOrThrow(String memberId) {
-        return memberRepository.findById(memberId)
+        return memberRepository.findActiveById(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
     }
 

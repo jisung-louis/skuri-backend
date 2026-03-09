@@ -188,11 +188,15 @@ public class NotificationEventHandler {
             List<String> allMembers = party.getMemberIds();
             allMembers.forEach(memberId -> notificationService.deletePartyRelatedNotifications(memberId, party.getId()));
 
+            String message = party.getEndReason() == com.skuri.skuri_backend.domain.taxiparty.entity.PartyEndReason.WITHDRAWED
+                    ? "리더 탈퇴로 파티가 종료되었습니다."
+                    : "리더가 파티를 해체했습니다.";
+
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_ENDED,
                     findPartyRecipients(party.getNonLeaderMemberIds()),
                     "파티가 해체되었어요",
-                    "리더가 파티를 해체했습니다.",
+                    message,
                     NotificationData.ofParty(party.getId()),
                     true,
                     true

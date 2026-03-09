@@ -34,4 +34,6 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
             group by n.userId
             """)
     List<UnreadCountProjection> countUnreadByUserIds(@Param("userIds") Collection<String> userIds);
+
+    long deleteByUserId(String userId);
 }

@@ -76,6 +76,12 @@ public class InquiryService {
         return toAdminResponse(inquiry);
     }
 
+    @Transactional
+    public void anonymizeWithdrawnMemberInquiries(String memberId) {
+        inquiryRepository.findAllByUserId(memberId)
+                .forEach(Inquiry::anonymizeUserProfile);
+    }
+
     private InquiryResponse toResponse(Inquiry inquiry) {
         return new InquiryResponse(
                 inquiry.getId(),

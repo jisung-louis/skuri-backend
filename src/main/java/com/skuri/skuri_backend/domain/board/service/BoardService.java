@@ -27,6 +27,7 @@ import com.skuri.skuri_backend.domain.board.repository.PostInteractionRepository
 import com.skuri.skuri_backend.domain.board.repository.PostRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostSummaryProjection;
 import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
@@ -40,9 +41,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -298,6 +301,44 @@ public class BoardService {
         return getBookmarkedPosts(memberId, page, size);
     }
 
+    @Transactional
+    public void handleMemberWithdrawal(String memberId) {
+        postRepository.findByAuthorId(memberId).forEach(Post::anonymizeAuthor);
+        commentRepository.findByAuthorId(memberId).forEach(Comment::anonymizeAuthor);
+
+        List<PostInteraction> interactions = postInteractionRepository.findById_UserId(memberId);
+        if (interactions.isEmpty()) {
+            return;
+        }
+
+        Map<String, int[]> deltasByPostId = new LinkedHashMap<>();
+        for (PostInteraction interaction : interactions) {
+            String postId = interaction.getPost() != null ? interaction.getPost().getId() : interaction.getPostId();
+            int[] delta = deltasByPostId.computeIfAbsent(postId, key -> new int[2]);
+            if (interaction.isLiked()) {
+                delta[0]++;
+            }
+            if (interaction.isBookmarked()) {
+                delta[1]++;
+            }
+        }
+
+        Set<String> postIds = new HashSet<>(deltasByPostId.keySet());
+        postRepository.findAllById(postIds).forEach(post -> {
+            int[] delta = deltasByPostId.get(post.getId());
+            if (delta == null) {
+                return;
+            }
+            if (delta[0] > 0) {
+                post.increaseLikeCount(-delta[0]);
+            }
+            if (delta[1] > 0) {
+                post.increaseBookmarkCount(-delta[1]);
+            }
+        });
+        postInteractionRepository.deleteAllInBatch(interactions);
+    }
+
     private Pageable resolvePageable(Integer page, Integer size, String sort) {
         int resolvedPage = page == null ? 0 : page;
         int resolvedSize = size == null ? DEFAULT_PAGE_SIZE : size;
@@ -480,6 +521,10 @@ public class BoardService {
             return new AuthorView(null, null, null);
         }
 
+        if (MemberWithdrawalSanitizer.isWithdrawnAuthorId(authorId)) {
+            return new AuthorView(null, authorName, null);
+        }
+
         if (!anonymous) {
             return new AuthorView(authorId, authorName, authorProfileImage);
         }
@@ -509,7 +554,7 @@ public class BoardService {
     }
 
     private Member findMemberOrThrow(String memberId) {
-        return memberRepository.findById(memberId)
+        return memberRepository.findActiveById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
     }
 

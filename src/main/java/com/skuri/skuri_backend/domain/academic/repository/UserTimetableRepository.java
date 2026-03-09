@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface UserTimetableRepository extends JpaRepository<UserTimetable, String> {
 
@@ -37,4 +38,6 @@ public interface UserTimetableRepository extends JpaRepository<UserTimetable, St
             @Param("userId") String userId,
             @Param("semester") String semester
     );
+
+    List<UserTimetable> findAllByUserId(String userId);
 }

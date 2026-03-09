@@ -68,6 +68,20 @@ public class NotificationSseService {
         broadcast("HEARTBEAT", Map.of("timestamp", LocalDateTime.now()));
     }
 
+    public void closeSubscriptionsForMember(String memberId) {
+        subscribers.forEach((emitterId, subscriber) -> {
+            if (!memberId.equals(subscriber.memberId())) {
+                return;
+            }
+            subscribers.remove(emitterId);
+            try {
+                subscriber.emitter().complete();
+            } catch (Exception ignored) {
+                // no-op
+            }
+        });
+    }
+
     private void broadcast(String eventType, Object payload) {
         subscribers.keySet().forEach(emitterId -> sendToOne(emitterId, eventType, payload));
     }

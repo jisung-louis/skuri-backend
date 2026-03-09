@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.domain.notice.entity;
 
 import com.skuri.skuri_backend.common.entity.BaseTimeEntity;
+import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -114,5 +115,11 @@ public class NoticeComment extends BaseTimeEntity {
     public void softDelete() {
         this.deleted = true;
         this.content = DELETED_PLACEHOLDER;
+    }
+
+    public void anonymizeAuthor() {
+        this.userId = MemberWithdrawalSanitizer.WITHDRAWN_AUTHOR_ID;
+        this.userDisplayName = MemberWithdrawalSanitizer.WITHDRAWN_DISPLAY_NAME;
+        this.anonId = null;
     }
 }

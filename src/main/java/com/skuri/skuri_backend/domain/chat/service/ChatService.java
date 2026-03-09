@@ -249,6 +249,18 @@ public class ChatService {
         return response;
     }
 
+    @Transactional
+    public void removeMemberFromAllChatRooms(String memberId) {
+        List<ChatRoomMember> memberships = chatRoomMemberRepository.findById_MemberId(memberId);
+        for (ChatRoomMember membership : memberships) {
+            ChatRoom room = membership.getChatRoom();
+            chatRoomMemberRepository.delete(membership);
+            room.updateMemberCount(Math.max(0, room.getMemberCount() - 1));
+            chatRoomRepository.save(room);
+            publishAfterCommit(() -> publishChatRoomSummaryEvent(room));
+        }
+    }
+
     private void publishChatRoomSummaryEvent(ChatRoom room) {
         List<ChatRoomMember> members = chatRoomMemberRepository.findById_ChatRoomId(room.getId());
         for (ChatRoomMember member : members) {

@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.support.entity;
 import com.skuri.skuri_backend.common.entity.BaseTimeEntity;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -98,5 +99,12 @@ public class Inquiry extends BaseTimeEntity {
         }
         this.status = status;
         this.adminMemo = adminMemo;
+    }
+
+    public void anonymizeUserProfile() {
+        this.userEmail = null;
+        this.userName = MemberWithdrawalSanitizer.WITHDRAWN_DISPLAY_NAME;
+        this.userRealname = null;
+        this.userStudentId = null;
     }
 }

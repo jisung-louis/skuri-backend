@@ -215,6 +215,13 @@ public class Party extends BaseTimeEntity {
         end(PartyEndReason.TIMEOUT);
     }
 
+    public void withdrawLeader() {
+        if (this.status == PartyStatus.ENDED) {
+            throw new BusinessException(ErrorCode.PARTY_ENDED);
+        }
+        end(PartyEndReason.WITHDRAWED);
+    }
+
     public void updateDepartureTime(LocalDateTime departureTime) {
         this.departureTime = departureTime;
     }

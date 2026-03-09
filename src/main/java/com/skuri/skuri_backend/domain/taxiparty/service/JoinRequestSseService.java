@@ -155,6 +155,24 @@ public class JoinRequestSseService {
         logEventPublish("HEARTBEAT", partyRecipients + myRecipients);
     }
 
+    public void closeSubscriptionsForMember(String memberId) {
+        partyJoinRequestSubscribers.forEach((emitterId, subscriber) -> {
+            if (!memberId.equals(subscriber.leaderId())) {
+                return;
+            }
+            partyJoinRequestSubscribers.remove(emitterId);
+            safeComplete(subscriber.emitter());
+        });
+
+        myJoinRequestSubscribers.forEach((emitterId, subscriber) -> {
+            if (!memberId.equals(subscriber.memberId())) {
+                return;
+            }
+            myJoinRequestSubscribers.remove(emitterId);
+            safeComplete(subscriber.emitter());
+        });
+    }
+
     private void publishAfterCommit(Runnable publisher) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

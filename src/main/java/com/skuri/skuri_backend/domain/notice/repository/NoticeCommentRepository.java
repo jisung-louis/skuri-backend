@@ -36,4 +36,6 @@ public interface NoticeCommentRepository extends JpaRepository<NoticeComment, St
             where c.notice.id = :noticeId
             """)
     int findMaxAnonymousOrderByNoticeId(@Param("noticeId") String noticeId);
+
+    List<NoticeComment> findByUserId(String userId);
 }

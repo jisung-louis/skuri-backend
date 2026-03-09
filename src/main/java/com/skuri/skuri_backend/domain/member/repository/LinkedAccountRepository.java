@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface LinkedAccountRepository extends JpaRepository<LinkedAccount, Long> {
 
     boolean existsByMemberIdAndProvider(String memberId, LinkedAccountProvider provider);
+
+    long deleteByMemberId(String memberId);
 }

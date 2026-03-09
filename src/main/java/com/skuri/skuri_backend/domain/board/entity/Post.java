@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.domain.board.entity;
 
 import com.skuri.skuri_backend.common.entity.BaseTimeEntity;
+import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -153,6 +154,13 @@ public class Post extends BaseTimeEntity {
         if (this.anonymous && this.id != null) {
             this.anonId = this.id + ":" + this.authorId;
         }
+    }
+
+    public void anonymizeAuthor() {
+        this.authorId = MemberWithdrawalSanitizer.WITHDRAWN_AUTHOR_ID;
+        this.authorName = MemberWithdrawalSanitizer.WITHDRAWN_DISPLAY_NAME;
+        this.authorProfileImage = null;
+        this.anonId = null;
     }
 
     public void incrementViewCount() {
