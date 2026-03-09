@@ -231,4 +231,25 @@ class ChatServiceTest {
         verify(chatRoomRepository).save(room);
         assertEquals(1, room.getMemberCount());
     }
+
+    @Test
+    void removeMemberFromAllChatRooms_참여중인모든채팅방에서제거하고인원수를갱신한다() {
+        ChatRoom room = ChatRoom.create("room-1", "테스트", ChatRoomType.CUSTOM, null, null, null, false, null);
+        ReflectionTestUtils.setField(room, "memberCount", 2);
+        ChatRoomMember membership = ChatRoomMember.create(room, "member-1", LocalDateTime.now().minusHours(1));
+        ReflectionTestUtils.setField(membership, "id", ChatRoomMemberId.of("room-1", "member-1"));
+        ChatRoomMember remainingMember = ChatRoomMember.create(room, "member-2", LocalDateTime.now().minusHours(1));
+        ReflectionTestUtils.setField(remainingMember, "id", ChatRoomMemberId.of("room-1", "member-2"));
+
+        when(chatRoomMemberRepository.findById_MemberId("member-1")).thenReturn(List.of(membership));
+        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMemberRepository.findById_ChatRoomId("room-1")).thenReturn(List.of(remainingMember));
+
+        chatService.removeMemberFromAllChatRooms("member-1");
+
+        assertEquals(1, room.getMemberCount());
+        verify(chatRoomMemberRepository).delete(membership);
+        verify(chatRoomRepository).save(room);
+        verify(messagingTemplate).convertAndSendToUser(eq("member-2"), eq("/queue/chat-rooms"), any());
+    }
 }

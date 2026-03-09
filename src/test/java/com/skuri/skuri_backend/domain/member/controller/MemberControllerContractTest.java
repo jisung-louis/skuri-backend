@@ -7,7 +7,14 @@ import com.skuri.skuri_backend.domain.member.dto.response.MemberMeResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberNotificationSettingResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberPublicProfileResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberUpsertResult;
+import com.skuri.skuri_backend.domain.member.dto.response.MemberWithdrawResponse;
+import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
+import com.skuri.skuri_backend.domain.member.exception.MemberWithdrawalNotAllowedException;
+import com.skuri.skuri_backend.domain.member.exception.WithdrawnMemberRejoinNotAllowedException;
+import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.member.service.MemberLifecycleService;
 import com.skuri.skuri_backend.domain.member.service.MemberService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
@@ -21,9 +28,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,6 +47,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -55,6 +65,12 @@ class MemberControllerContractTest {
 
     @MockitoBean
     private MemberService memberService;
+
+    @MockitoBean
+    private MemberLifecycleService memberLifecycleService;
+
+    @MockitoBean
+    private MemberRepository memberRepository;
 
     @MockitoBean
     private FirebaseTokenVerifier firebaseTokenVerifier;
@@ -89,6 +105,20 @@ class MemberControllerContractTest {
                 .andExpect(jsonPath("$.data.id").value("firebase-uid"))
                 .andExpect(jsonPath("$.data.notificationSetting").doesNotExist())
                 .andExpect(jsonPath("$.data.lastLogin").doesNotExist());
+    }
+
+    @Test
+    void postMembers_탈퇴한동일UID재가입요청_409() throws Exception {
+        mockValidToken();
+        when(memberService.createMember(any()))
+                .thenThrow(new WithdrawnMemberRejoinNotAllowedException());
+
+        mockMvc.perform(
+                        post("/v1/members")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED"));
     }
 
     @Test
@@ -275,6 +305,62 @@ class MemberControllerContractTest {
         verifyNoInteractions(memberService);
     }
 
+    @Test
+    void deleteMembersMe_정상요청_200() throws Exception {
+        mockValidToken();
+        when(memberLifecycleService.withdrawMyAccount("firebase-uid"))
+                .thenReturn(new MemberWithdrawResponse("회원 탈퇴가 완료되었습니다."));
+
+        mockMvc.perform(
+                        delete("/v1/members/me")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.message").value("회원 탈퇴가 완료되었습니다."));
+    }
+
+    @Test
+    void deleteMembersMe_토큰없음_401() throws Exception {
+        mockMvc.perform(delete("/v1/members/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void deleteMembersMe_정산중파티참여중이면_409() throws Exception {
+        mockValidToken();
+        when(memberLifecycleService.withdrawMyAccount("firebase-uid"))
+                .thenThrow(new MemberWithdrawalNotAllowedException("정산이 진행 중인 ARRIVED 파티에 참여 중인 멤버는 탈퇴할 수 없습니다."));
+
+        mockMvc.perform(
+                        delete("/v1/members/me")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("MEMBER_WITHDRAWAL_NOT_ALLOWED"));
+    }
+
+    @Test
+    void getMembersMe_탈퇴회원토큰이면_403() throws Exception {
+        when(firebaseTokenVerifier.verify("withdrawn-token"))
+                .thenReturn(new FirebaseTokenClaims(
+                        "withdrawn-uid",
+                        "user@sungkyul.ac.kr",
+                        "google.com",
+                        "google-provider-id",
+                        "홍길동",
+                        "https://example.com/profile.jpg"
+                ));
+        when(memberRepository.findById("withdrawn-uid")).thenReturn(Optional.of(withdrawnMember("withdrawn-uid")));
+
+        mockMvc.perform(
+                        get("/v1/members/me")
+                                .header(AUTHORIZATION, "Bearer withdrawn-token")
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("MEMBER_WITHDRAWN"));
+    }
+
     private void mockValidToken() {
         when(firebaseTokenVerifier.verify("valid-token"))
                 .thenReturn(new FirebaseTokenClaims(
@@ -285,6 +371,7 @@ class MemberControllerContractTest {
                         "홍길동",
                         "https://example.com/profile.jpg"
                 ));
+        when(memberRepository.findById("firebase-uid")).thenReturn(Optional.empty());
     }
 
     private MemberCreateResponse memberCreateResponse() {
@@ -329,5 +416,12 @@ class MemberControllerContractTest {
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
+    }
+
+    private Member withdrawnMember(String memberId) {
+        Member member = Member.create(memberId, "user@sungkyul.ac.kr", "홍길동", LocalDateTime.now().minusDays(1));
+        ReflectionTestUtils.setField(member, "status", MemberStatus.WITHDRAWN);
+        ReflectionTestUtils.setField(member, "withdrawnAt", LocalDateTime.now().minusHours(1));
+        return member;
     }
 }

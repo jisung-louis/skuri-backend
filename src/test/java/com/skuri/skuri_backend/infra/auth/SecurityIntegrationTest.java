@@ -18,6 +18,7 @@ import com.skuri.skuri_backend.domain.member.controller.MemberController;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberMeResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberNotificationSettingResponse;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.member.service.MemberLifecycleService;
 import com.skuri.skuri_backend.domain.member.service.MemberService;
 import com.skuri.skuri_backend.domain.notification.controller.FcmTokenController;
 import com.skuri.skuri_backend.domain.notification.controller.NotificationController;
@@ -75,6 +76,9 @@ class SecurityIntegrationTest {
 
     @MockitoBean
     private MemberService memberService;
+
+    @MockitoBean
+    private MemberLifecycleService memberLifecycleService;
 
     @MockitoBean
     private AppNoticeService appNoticeService;

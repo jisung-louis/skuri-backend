@@ -153,6 +153,13 @@ class NotificationServiceTest {
         verify(notificationSseService).publishUnreadCountChanged("member-1", 1L);
     }
 
+    @Test
+    void deleteAllByUserId_회원탈퇴시_인앱알림을전부삭제한다() {
+        notificationService.deleteAllByUserId("member-1");
+
+        verify(userNotificationRepository).deleteByUserId("member-1");
+    }
+
     private UserNotification unreadNotification(String id, String userId) {
         UserNotification notification = UserNotification.create(
                 userId,
