@@ -21,6 +21,7 @@
 - 실제 비밀값은 Git 저장소에 넣지 않는다.
 - Firebase 서비스 계정 JSON은 `.env`에 본문을 넣지 않고 파일로 두고 경로만 `.env`에 넣는다.
 - 브라우저 관리자 페이지가 REST API를 호출하면 `API_ALLOWED_ORIGIN_PATTERNS`를, WebSocket을 사용하면 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`를 각각 설정한다.
+- CD의 admin REST CORS smoke check는 `CD_SMOKE_CORS_ORIGIN`을 우선 사용하고, 비어 있으면 `API_ALLOWED_ORIGIN_PATTERNS`의 첫 번째 exact origin을 재사용한다.
 
 예시:
 
@@ -31,6 +32,7 @@ APP_HOST_PORT=8080
 OPENAPI_ENABLED=false
 API_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
 CHAT_WS_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
+CD_SMOKE_CORS_ORIGIN=https://admin.skuri.example
 MYSQL_DATABASE=skuri
 MYSQL_USER=skuri
 MYSQL_PASSWORD=<db-user-password>
@@ -219,7 +221,7 @@ docker compose up -d --build
 - 공개 API smoke check
   - `GET /v1/app-versions/{platform}`
 - admin REST CORS preflight
-  - `OPTIONS /v1/app-versions/{platform}` with `Origin: https://admin.<domain>`
+  - `OPTIONS /v1/app-versions/{platform}` with `Origin: ${CD_SMOKE_CORS_ORIGIN}` 또는 `API_ALLOWED_ORIGIN_PATTERNS`의 첫 번째 exact origin
 - 인증 API smoke check
   - 토큰이 있으면 `GET /v1/members/me`
 - 컨테이너 로그 확인
