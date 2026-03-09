@@ -36,14 +36,17 @@ class FirebaseStompAuthChannelInterceptorTest {
     @Mock
     private ChatRoomMemberRepository chatRoomMemberRepository;
 
+    private ChatWebSocketSessionRegistry sessionRegistry;
     private FirebaseStompAuthChannelInterceptor interceptor;
 
     @BeforeEach
     void setUp() {
+        sessionRegistry = new ChatWebSocketSessionRegistry();
         interceptor = new FirebaseStompAuthChannelInterceptor(
                 firebaseTokenVerifier,
                 chatRoomRepository,
-                chatRoomMemberRepository
+                chatRoomMemberRepository,
+                sessionRegistry
         );
         ReflectionTestUtils.setField(interceptor, "allowedEmailDomain", "sungkyul.ac.kr");
     }
@@ -61,6 +64,7 @@ class FirebaseStompAuthChannelInterceptorTest {
                 ));
 
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.setSessionId("session-1");
         accessor.setNativeHeader("Authorization", "Bearer valid-token");
         accessor.setLeaveMutable(true);
         Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
@@ -70,6 +74,7 @@ class FirebaseStompAuthChannelInterceptorTest {
 
         assertNotNull(resultAccessor.getUser());
         assertEquals("firebase-uid", resultAccessor.getUser().getName());
+        assertEquals("firebase-uid", sessionRegistry.findMemberId(resultAccessor.getSessionId()).orElse(null));
     }
 
     @Test
