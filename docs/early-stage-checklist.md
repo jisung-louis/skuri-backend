@@ -69,6 +69,9 @@
 - 공용 파일 `application.yaml`에는 환경변수 참조만 유지
 - 프로필 파일(`application-local.yaml` 등)은 정책만 담고 Git으로 추적
 - 실제 값(DB 비밀번호, Firebase 경로 등)은 `.env` 또는 Secrets로만 주입
+- `local`은 실제 Firebase 기반 통합 테스트이므로 `FIREBASE_PROJECT_ID`와 서비스 계정 파일 경로가 필요
+- `local-emulator`는 Firebase Auth Emulator 기반 백엔드 단독 테스트이므로 `FIREBASE_AUTH_EMULATOR_HOST`, `FIREBASE_PROJECT_ID`만 주로 사용하고, 자격증명 파일 경로는 비워 두는 것을 기본으로 함
+- 두 로컬 프로필의 기본 DB는 `localhost:3306`으로 두고, 필요하면 `DB_URL`로 Docker MySQL(`3307`) 같은 다른 포트를 덮어쓴다
 - `local-emulator`는 기본적으로 로컬 DB 스키마를 재생성하지 않도록 유지
 
 완료 기준:
@@ -124,6 +127,9 @@
 - `README.md`의 "로컬 실행" 섹션
 - 예시 명령:
   - `set -a && source .env && set +a && SPRING_PROFILES_ACTIVE=local ./gradlew bootRun`
+- 실무 추천:
+  - MySQL/Redis만 Docker로 올리고 앱은 IntelliJ/`bootRun`으로 실행
+  - 앱까지 Docker로 올릴 때는 코드 변경 후 `docker compose up -d --build`로 재빌드
 
 완료 기준:
 - 문서만 따라하면 다른 사람도 동일하게 서버를 띄울 수 있다.

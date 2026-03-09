@@ -128,20 +128,25 @@
 
 ## 로컬 실행/테스트 환경 규칙
 1. 에이전트가 로컬에서 서버/테스트를 실행할 때 기본 프로필은 `local`로 간주한다.
-2. `src/main/resources/application-local.yaml`을 사용한다면 아래 명령으로 실행한다.
+2. `local` 프로필은 "프론트 + 백엔드"를 함께 붙여 실제 Firebase ID Token 흐름을 확인하는 로컬 통합 테스트용이다.
+3. `local-emulator` 프로필은 "백엔드만" 실행하고 Firebase Auth Emulator가 발급한 토큰으로 인증 흐름을 빠르게 검증하는 용도다.
+4. `src/main/resources/application-local.yaml`을 사용한다면 아래 명령으로 실행한다.
    - 서버 실행: `SPRING_PROFILES_ACTIVE=local ./gradlew bootRun`
    - 테스트 실행: `SPRING_PROFILES_ACTIVE=local ./gradlew test`
-3. `application-local.yaml` 없이 실행해야 하는 경우, 아래 환경변수를 먼저 설정한다.
+5. `application-local.yaml` 없이 실행해야 하는 경우, 아래 환경변수를 먼저 설정한다.
    - `DB_URL`
    - `DB_USERNAME`
    - `DB_PASSWORD`
-4. 로컬 실행 전제 조건:
-   - 로컬 MySQL 서버가 기동 중일 것
+6. `local` 프로필은 실제 Firebase를 사용하므로 `FIREBASE_PROJECT_ID`, `FIREBASE_CREDENTIALS_PATH`(또는 `GOOGLE_APPLICATION_CREDENTIALS`)가 필요하다.
+7. `local-emulator` 프로필은 `FIREBASE_AUTH_EMULATOR_HOST`, `FIREBASE_PROJECT_ID`가 필요하며, `FIREBASE_CREDENTIALS_PATH`, `GOOGLE_APPLICATION_CREDENTIALS`는 비워 두는 것을 기본으로 한다.
+8. 로컬 DB 기본값은 `localhost:3306`이다. 다만 Docker MySQL을 다른 포트(예: `3307`)로 띄웠다면 `DB_URL` 환경변수로 덮어쓴다.
+9. 로컬 실행 전제 조건:
+   - 로컬 MySQL 서버가 기동 중이거나, Docker MySQL/Redis가 기동 중일 것
    - 대상 DB(예: `skuri`)가 생성되어 있을 것
-5. CI와 로컬 환경은 분리한다.
+10. CI와 로컬 환경은 분리한다.
    - CI는 `CI_DB_*` GitHub Secrets 사용
    - 로컬 DB 계정/비밀번호를 CI 값으로 재사용하지 않음
-6. 민감 정보는 코드/문서/커밋에 직접 작성하지 않는다.
+11. 민감 정보는 코드/문서/커밋에 직접 작성하지 않는다.
    - `application-local.yaml`, `application-local-emulator.yaml`은 실행 정책만 담고 Git으로 추적한다.
    - 실제 비밀값은 `.env`, 서버 환경변수, 로컬 파일로 분리하고 커밋하지 않는다.
 

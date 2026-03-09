@@ -132,11 +132,11 @@ cd skuri-backend
 
 권장 방식은 루트의 `.env.example`를 기준으로 `.env`를 준비하는 것입니다.
 
-- `SPRING_PROFILES_ACTIVE=local`
-- `application`은 공통 기본 설정, `local`은 프론트+백 통합 로컬 개발, `local-emulator`는 백엔드 단독 인증 테스트, `prod`는 운영 서버, `test`는 자동 테스트 전용입니다.
-- 로컬 Docker MySQL/Redis용 값은 기본값 그대로 사용 가능
-- Firebase 인증이 필요한 경우에만 `FIREBASE_PROJECT_ID`, `FIREBASE_CREDENTIALS_PATH` 또는 `GOOGLE_APPLICATION_CREDENTIALS`를 채웁니다.
-- 현재 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않습니다. Docker에서 실제 Firebase 인증까지 검증하려면 자격증명 파일 volume mount를 추가하거나, 앱은 호스트에서 `bootRun`으로 실행해야 합니다.
+- `application.yaml`은 공통 기본값, `local`은 실제 Firebase 기반 로컬 통합 테스트, `local-emulator`는 Firebase Auth Emulator 기반 백엔드 단독 테스트, `prod`는 운영 서버, `test`는 자동 테스트 전용입니다.
+- 로컬 기본 DB는 `localhost:3306`입니다. 다만 Docker MySQL을 `3307` 같은 다른 포트로 띄웠다면 `DB_URL` 환경변수로 덮어쓸 수 있습니다.
+- `local`은 실제 Firebase를 사용하므로 `FIREBASE_PROJECT_ID`와 `FIREBASE_CREDENTIALS_PATH`(또는 `GOOGLE_APPLICATION_CREDENTIALS`)가 필요합니다.
+- `local-emulator`는 실제 Firebase 서비스 계정 파일이 없어도 동작해야 하므로 `FIREBASE_CREDENTIALS_PATH`, `GOOGLE_APPLICATION_CREDENTIALS`는 비워 두는 것을 권장합니다.
+- 현재 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않습니다. 실제 Firebase 인증까지 검증하려면 앱은 호스트에서 `bootRun`으로 실행하는 편이 더 쉽습니다.
 - `.env`는 "실제 값", `application-*.yaml`은 "환경별 정책"을 담당합니다.
 - 브라우저에서 REST API를 호출하는 관리자 페이지가 있으면 `API_ALLOWED_ORIGIN_PATTERNS`에 허용 Origin을 넣어야 합니다.
 - WebSocket `/ws` 허용 Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`로 별도 관리합니다.
@@ -145,6 +145,12 @@ cd skuri-backend
 
 ```bash
 docker compose up -d --build
+```
+
+평소 개발은 아래처럼 DB/Redis만 Docker로 띄우고, 앱은 IntelliJ 또는 `bootRun`으로 호스트에서 직접 실행하는 방식을 가장 권장합니다.
+
+```bash
+docker compose up -d mysql redis
 ```
 
 ### 5-4. 호스트에서 앱만 실행하고 싶을 때
@@ -156,16 +162,35 @@ set +a
 SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 ```
 
+- `local`은 프론트가 실제 Firebase 로그인 후 받은 ID Token으로 API를 호출하는 흐름을 재현합니다.
+- `local`은 실제 Firebase 자격증명 파일이 필요합니다.
+- IntelliJ 실행 설정에서는 `.env` 파일 경로를 환경 변수 칸에 넣지 말고, 필요한 값을 `KEY=value` 형식으로 직접 입력해야 합니다.
+- 예시:
+
+```bash
+DB_URL=jdbc:mysql://localhost:3306/skuri?serverTimezone=Asia/Seoul&characterEncoding=UTF-8 \
+DB_USERNAME=root \
+DB_PASSWORD=1234 \
+FIREBASE_PROJECT_ID=sktaxi-acb4c \
+FIREBASE_CREDENTIALS_PATH=/Users/<user>/skuri-backend/serviceAccountKey.json \
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+```
+
 `local-emulator`를 사용하려면:
 
 ```bash
 export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
 export FIREBASE_PROJECT_ID=sktaxi-acb4c
+export FIREBASE_CREDENTIALS_PATH=
+export GOOGLE_APPLICATION_CREDENTIALS=
 ./bin/start-firebase-auth-emulator.sh
 SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
 ```
 
 - 위 예시는 호스트에서 앱을 직접 실행할 때 기준입니다.
+- `local-emulator`는 Firebase Auth Emulator가 발급한 토큰으로 백엔드만 빠르게 검증하는 프로필입니다.
+- 이 프로필은 실제 Firebase 자격증명 파일이 없어도 동작해야 하므로 `FIREBASE_CREDENTIALS_PATH`, `GOOGLE_APPLICATION_CREDENTIALS`는 비워 두는 것이 안전합니다.
+- `local-emulator`에서는 전체 `.env`를 그대로 로드하지 말고, emulator에 필요한 값만 별도로 주입하는 편이 안전합니다.
 - Docker 컨테이너에서 emulator를 바라볼 때는 보통 `FIREBASE_AUTH_EMULATOR_HOST=host.docker.internal:9099` 처럼 호스트 주소를 사용해야 합니다.
 - `local-emulator`의 기본 스키마 정책은 `update`이며, 로컬 개발 DB를 재생성하지 않습니다. 스키마 초기화가 필요하면 emulator 전용 DB를 따로 사용하세요.
 
