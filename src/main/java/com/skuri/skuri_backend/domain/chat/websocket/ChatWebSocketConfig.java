@@ -9,6 +9,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.config.annotation.StompWebSocketEndpointRegistration;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 import java.util.Arrays;
 
@@ -18,6 +19,8 @@ import java.util.Arrays;
 public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final FirebaseStompAuthChannelInterceptor firebaseStompAuthChannelInterceptor;
+    private final ChatSubscriptionAccessInterceptor chatSubscriptionAccessInterceptor;
+    private final TrackingWebSocketHandlerDecoratorFactory trackingWebSocketHandlerDecoratorFactory;
     @Value("${chat.websocket.allowed-origin-patterns:}")
     private String[] allowedOriginPatterns;
 
@@ -40,5 +43,15 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(firebaseStompAuthChannelInterceptor);
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration.interceptors(chatSubscriptionAccessInterceptor);
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
+        registry.addDecoratorFactory(trackingWebSocketHandlerDecoratorFactory);
     }
 }

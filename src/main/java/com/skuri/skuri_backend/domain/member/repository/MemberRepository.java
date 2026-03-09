@@ -1,9 +1,11 @@
 package com.skuri.skuri_backend.domain.member.repository;
 
 import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,7 +19,8 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
             select m
             from Member m
             where m.id = :memberId
-              and m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+              and (m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+                   or m.status is null)
             """)
     Optional<Member> findActiveById(@Param("memberId") String memberId);
 
@@ -30,7 +33,8 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
             select m
             from Member m
             where m.id = :memberId
-              and m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+              and (m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+                   or m.status is null)
             """)
     Optional<Member> findActiveByIdForUpdate(@Param("memberId") String memberId);
 
@@ -38,7 +42,8 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
             select m.id
             from Member m
             where m.id <> :excludedId
-              and m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+              and (m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+                   or m.status is null)
               and m.notificationSetting.allNotifications = true
               and m.notificationSetting.partyNotifications = true
             """)
@@ -48,7 +53,8 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
             select m.id
             from Member m
             where m.id in :memberIds
-              and m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+              and (m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+                   or m.status is null)
               and m.notificationSetting.allNotifications = true
               and m.notificationSetting.partyNotifications = true
             """)
@@ -57,7 +63,8 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
     @Query("""
             select m
             from Member m
-            where m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+            where (m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+                   or m.status is null)
               and m.notificationSetting.allNotifications = true
               and m.notificationSetting.noticeNotifications = true
             """)
@@ -66,14 +73,16 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
     @Query("""
             select m.id
             from Member m
-            where m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+            where (m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+                   or m.status is null)
             """)
     List<String> findAllMemberIds();
 
     @Query("""
             select m.id
             from Member m
-            where m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+            where (m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+                   or m.status is null)
               and m.notificationSetting.allNotifications = true
               and m.notificationSetting.systemNotifications = true
             """)
@@ -82,7 +91,8 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
     @Query("""
             select m.id
             from Member m
-            where m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+            where (m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+                   or m.status is null)
               and m.notificationSetting.allNotifications = true
               and coalesce(m.notificationSetting.academicScheduleNotifications, true) = true
               and (:requireDayBefore = false
@@ -94,4 +104,12 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
             @Param("requireDayBefore") boolean requireDayBefore,
             @Param("requireAllEvents") boolean requireAllEvents
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Member m
+            set m.status = :activeStatus
+            where m.status is null
+            """)
+    int backfillLegacyMembersAsActive(@Param("activeStatus") MemberStatus activeStatus);
 }

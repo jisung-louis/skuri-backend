@@ -169,7 +169,7 @@ public class Member extends BaseTimeEntity {
     }
 
     public boolean isActive() {
-        return status == MemberStatus.ACTIVE;
+        return status != MemberStatus.WITHDRAWN;
     }
 
     public boolean isWithdrawn() {

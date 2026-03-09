@@ -72,8 +72,9 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             validateEmailDomain(claims.email());
 
             AuthenticatedMember principal = AuthenticatedMember.from(claims);
-            ensureMemberAccessAllowed(request, principal.uid());
-            Collection<? extends GrantedAuthority> authorities = resolveAuthorities(principal.uid());
+            Member persistedMember = resolvePersistedMember(principal.uid());
+            ensureMemberAccessAllowed(request, persistedMember);
+            Collection<? extends GrantedAuthority> authorities = resolveAuthorities(persistedMember);
             UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.authenticated(
                     principal,
                     null,
@@ -115,35 +116,32 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
-    private void ensureMemberAccessAllowed(HttpServletRequest request, String uid) {
+    private void ensureMemberAccessAllowed(HttpServletRequest request, Member persistedMember) {
         if (isMemberBootstrapRequest(request)) {
             return;
         }
 
-        MemberRepository memberRepository = memberRepositoryProvider.getIfAvailable();
-        if (memberRepository == null) {
-            return;
+        if (persistedMember != null && persistedMember.isWithdrawn()) {
+            throw new WithdrawnMemberAccessDeniedException();
         }
-
-        memberRepository.findById(uid)
-                .filter(Member::isWithdrawn)
-                .ifPresent(member -> {
-                    throw new WithdrawnMemberAccessDeniedException();
-                });
     }
 
     private boolean isMemberBootstrapRequest(HttpServletRequest request) {
         return HttpMethod.POST.matches(request.getMethod()) && "/v1/members".equals(request.getRequestURI());
     }
 
-    private Collection<? extends GrantedAuthority> resolveAuthorities(String uid) {
-        MemberRepository memberRepository = memberRepositoryProvider.getIfAvailable();
-        if (memberRepository == null) {
-            return Collections.emptyList();
-        }
-        return memberRepository.findById(uid)
+    private Collection<? extends GrantedAuthority> resolveAuthorities(Member persistedMember) {
+        return java.util.Optional.ofNullable(persistedMember)
                 .filter(Member::isAdmin)
                 .map(value -> List.of(new SimpleGrantedAuthority(ROLE_ADMIN)))
                 .orElse(Collections.emptyList());
+    }
+
+    private Member resolvePersistedMember(String uid) {
+        MemberRepository memberRepository = memberRepositoryProvider.getIfAvailable();
+        if (memberRepository == null) {
+            return null;
+        }
+        return memberRepository.findById(uid).orElse(null);
     }
 }

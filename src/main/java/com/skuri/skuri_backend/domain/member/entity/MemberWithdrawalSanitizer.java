@@ -1,6 +1,9 @@
 package com.skuri.skuri_backend.domain.member.entity;
 
-import java.util.Locale;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 public final class MemberWithdrawalSanitizer {
 
@@ -13,8 +16,7 @@ public final class MemberWithdrawalSanitizer {
     }
 
     public static String redactEmail(String memberId) {
-        String normalizedId = memberId == null ? "unknown" : memberId.trim().toLowerCase(Locale.ROOT);
-        String localPart = "withdrawn+" + normalizedId.replaceAll("[^a-z0-9]", "");
+        String localPart = "withdrawn+" + hashMemberId(memberId);
         if (localPart.length() > MAX_EMAIL_LOCAL_PART_LENGTH) {
             localPart = localPart.substring(0, MAX_EMAIL_LOCAL_PART_LENGTH);
         }
@@ -23,5 +25,16 @@ public final class MemberWithdrawalSanitizer {
 
     public static boolean isWithdrawnAuthorId(String authorId) {
         return WITHDRAWN_AUTHOR_ID.equals(authorId);
+    }
+
+    private static String hashMemberId(String memberId) {
+        String source = memberId == null ? "unknown" : memberId;
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(source.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hashed);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 해시 알고리즘을 사용할 수 없습니다.", e);
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.member.service;
 
+import com.skuri.skuri_backend.domain.chat.websocket.ChatWebSocketSessionRegistry;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.skuri.skuri_backend.domain.member.event.MemberLifecycleEvent;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class MemberLifecycleEventListener {
 
     private final ObjectProvider<FirebaseAuth> firebaseAuthProvider;
+    private final ChatWebSocketSessionRegistry chatWebSocketSessionRegistry;
     private final NotificationSseService notificationSseService;
     private final PartySseService partySseService;
     private final JoinRequestSseService joinRequestSseService;
@@ -29,6 +31,8 @@ public class MemberLifecycleEventListener {
     }
 
     private void closeLiveConnections(String memberId) {
+        chatWebSocketSessionRegistry.revokeMember(memberId);
+        chatWebSocketSessionRegistry.closeSessionsForMember(memberId);
         notificationSseService.closeSubscriptionsForMember(memberId);
         partySseService.closeSubscriptionsForMember(memberId);
         joinRequestSseService.closeSubscriptionsForMember(memberId);
