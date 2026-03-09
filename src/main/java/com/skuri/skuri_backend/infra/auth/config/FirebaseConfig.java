@@ -9,6 +9,7 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
@@ -29,11 +30,13 @@ public class FirebaseConfig {
 
     @Bean
     @Conditional(FirebaseCredentialsCondition.class)
-    public FirebaseApp firebaseApp(FirebaseAuthProperties properties) throws IOException {
+    public FirebaseApp firebaseApp(FirebaseAuthProperties properties, Environment environment) throws IOException {
         List<FirebaseApp> apps = FirebaseApp.getApps();
         if (!apps.isEmpty()) {
             return apps.getFirst();
         }
+
+        FirebaseAuthRuntimeValidator.validate(environment, properties);
 
         GoogleCredentials credentials = loadCredentials(
                 properties.getCredentialsPath(),
@@ -64,18 +67,20 @@ public class FirebaseConfig {
     }
 
     private GoogleCredentials loadCredentials(String credentialsPath, boolean useEmulator) throws IOException {
-        if (StringUtils.hasText(credentialsPath)) {
-            try (InputStream inputStream = new FileInputStream(credentialsPath)) {
-                return GoogleCredentials.fromStream(inputStream);
-            }
-        }
         if (useEmulator) {
             // Emulator mode does not require a real service account credential.
+            // Even if the developer accidentally leaves a Docker-only path in an environment variable,
+            // local emulator execution should still prefer the emulator credential.
             AccessToken accessToken = new AccessToken(
                     "firebase-emulator",
                     Date.from(Instant.now().plus(3650, ChronoUnit.DAYS))
             );
             return GoogleCredentials.create(accessToken);
+        }
+        if (StringUtils.hasText(credentialsPath)) {
+            try (InputStream inputStream = new FileInputStream(credentialsPath)) {
+                return GoogleCredentials.fromStream(inputStream);
+            }
         }
         return GoogleCredentials.getApplicationDefault();
     }

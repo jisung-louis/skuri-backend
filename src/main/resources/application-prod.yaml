@@ -1,7 +1,12 @@
+# 운영 프로필입니다.
+# - OCI에서는 app 컨테이너가 compose 네트워크의 `mysql:3306`으로 접속합니다.
+# - 호스트에 열어 둔 포트(예: 3307)는 외부 접속용일 뿐, 컨테이너 간 통신에는 사용하지 않습니다.
 spring:
   config:
     activate:
       on-profile: prod
+  datasource:
+    url: ${DB_URL:jdbc:mysql://mysql:3306/skuri?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
 
   jpa:
     show-sql: false
