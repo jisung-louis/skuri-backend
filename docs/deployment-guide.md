@@ -4,7 +4,7 @@
 
 | 항목 | 결정 |
 |------|------|
-| 로컬 실행 | `docker-compose.yml`로 `app + MySQL + Redis` 기동 |
+| 로컬 실행 | 평소 개발은 호스트 앱(`bootRun`/IDE) + `docker-compose.yml`의 `MySQL + Redis` 조합을 기본으로 사용 |
 | 운영 구조 | `OCI Compute 1대`에서 `docker-compose.prod.yml`로 `app + MySQL + Redis` 기동 |
 | Redis 운영 반영 | 현재 앱 로직에는 미연결이지만 단일 인스턴스 운영 compose에 포함 |
 | 프로필 | `application / local / local-emulator / prod / test` |
@@ -42,20 +42,43 @@ FIREBASE_CREDENTIALS_PATH=/app/secrets/firebase-admin.json
 ## 3. 로컬 실행
 
 1. 루트의 `.env.example`를 기준으로 `.env`를 준비한다.
-2. 필요하면 Firebase 관련 값을 채운다.
-3. 아래 명령으로 전체 환경을 올린다. (`docker compose`는 `.env`를 자동으로 읽는다.)
+2. 평소 개발은 아래처럼 MySQL/Redis만 Docker로 올리고, 앱은 IDE 또는 `bootRun`으로 실행하는 방식을 권장한다.
+
+```bash
+docker compose up -d mysql redis
+```
+
+3. 앱을 호스트에서 직접 실행할 때는 필요한 값만 쉘 환경변수나 IDE 실행 설정에 주입한다.
+   IntelliJ 환경 변수 칸에는 `.env` 파일 경로를 넣지 말고 `KEY=value` 형식으로 직접 입력한다.
+
+`local` 프로필 예시:
+
+```bash
+DB_URL=jdbc:mysql://localhost:3306/skuri?serverTimezone=Asia/Seoul&characterEncoding=UTF-8 \
+DB_USERNAME=root \
+DB_PASSWORD=1234 \
+FIREBASE_PROJECT_ID=sktaxi-acb4c \
+FIREBASE_CREDENTIALS_PATH=/Users/<user>/skuri-backend/serviceAccountKey.json \
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+```
+
+`local-emulator` 프로필 예시:
+
+```bash
+DB_URL=jdbc:mysql://localhost:3306/skuri?serverTimezone=Asia/Seoul&characterEncoding=UTF-8 \
+DB_USERNAME=root \
+DB_PASSWORD=1234 \
+FIREBASE_PROJECT_ID=sktaxi-acb4c \
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+FIREBASE_CREDENTIALS_PATH= \
+GOOGLE_APPLICATION_CREDENTIALS= \
+SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
+```
+
+4. 로컬에서도 app까지 Docker로 띄워서 "배포와 비슷한 방식"을 확인하고 싶다면 아래처럼 전체 compose를 올린다.
 
 ```bash
 docker compose up -d --build
-```
-
-호스트에서 앱만 직접 실행하려면 `.env`를 먼저 쉘 환경변수로 로드한다.
-
-```bash
-set -a
-source .env
-set +a
-SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 ```
 
 확인 포인트:
@@ -66,7 +89,10 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 참고:
 
-- 인증이 필요한 API까지 테스트하려면 실제 Firebase 자격증명 또는 `local-emulator` 설정이 추가로 필요하다.
+- `local`은 프론트와 함께 실제 Firebase ID Token 흐름을 검증하는 통합 테스트용이다. 이때는 실제 서비스 계정 파일 경로가 필요하다.
+- `local-emulator`는 백엔드 단독 인증 테스트용이다. 이 프로필에서는 `FIREBASE_CREDENTIALS_PATH`와 `GOOGLE_APPLICATION_CREDENTIALS`를 비워 두는 것이 안전하다.
+- `local-emulator`에서는 전체 `.env`를 그대로 로드하지 말고 emulator에 필요한 값만 별도로 주입하는 편이 안전하다.
+- 두 로컬 프로필 모두 기본 DB는 `localhost:3306`을 바라보지만, 필요하면 `DB_URL`로 다른 포트(예: Docker MySQL `3307`)를 덮어쓸 수 있다.
 - 현재 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않는다. Docker에서 실제 Firebase 인증까지 검증하려면 자격증명 파일 volume mount를 별도로 추가하거나, 앱은 호스트에서 `bootRun`으로 실행한다.
 - Redis는 아직 앱 로직에 연결되지 않았지만, 운영 compose에서는 향후 캐시 도입 자리를 미리 확보하기 위해 함께 기동한다.
 - 로컬 개발/검증은 `local`과 `local-emulator` 두 프로필로만 운영한다.

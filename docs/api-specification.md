@@ -178,6 +178,7 @@ Authorization: Bearer <firebase_id_token>
 **로컬 Auth Emulator 정책:**
 - `local-emulator` 프로필에서만 Auth Emulator 사용을 허용합니다.
 - 필수 환경변수: `FIREBASE_AUTH_EMULATOR_HOST`, `FIREBASE_PROJECT_ID`
+- `local-emulator`에서는 `FIREBASE_CREDENTIALS_PATH`, `GOOGLE_APPLICATION_CREDENTIALS`를 비워 두는 것을 기본값으로 봅니다. 실제 서비스 계정 파일은 필요하지 않습니다.
 - `firebase.auth.use-emulator=false` 상태에서 emulator host가 설정되면 서버는 기동 실패합니다. (운영 오염 방지)
 - IntelliJ `실행 전` 작업은 `/Users/jisung/skuri-backend/bin/start-firebase-auth-emulator.sh` 사용을 권장합니다.
   - 이 스크립트는 PID를 `/tmp/firebase-auth-emulator.pid`에 기록하고,
@@ -190,6 +191,7 @@ SPRING_PROFILES_ACTIVE=local-emulator ./gradlew bootRun
 ```
 
 - 위 예시는 호스트에서 서버를 직접 실행할 때 기준이다.
+- 기본 DB는 `localhost:3306`을 사용하며, 필요하면 `DB_URL` 환경변수로 Docker MySQL(`localhost:3307`) 같은 다른 포트를 덮어쓸 수 있다.
 - Docker 컨테이너에서 emulator를 사용할 경우 `127.0.0.1` 대신 `host.docker.internal:9099` 같은 호스트 접근 주소를 사용해야 한다.
 
 ---
