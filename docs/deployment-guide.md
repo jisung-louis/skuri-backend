@@ -8,7 +8,7 @@
 | 운영 구조 | `OCI Compute 1대`에서 `docker-compose.prod.yml`로 `app + MySQL + Redis` 기동 |
 | Redis 운영 반영 | 현재 앱 로직에는 미연결이지만 단일 인스턴스 운영 compose에 포함 |
 | 프로필 | `application / local / local-emulator / prod / test` |
-| CD 방식 | 반자동. `main` 반영 후 GitHub `production` 환경 승인 시 멀티플랫폼 이미지로 배포 |
+| CD 방식 | 반자동. `main` 반영 후 GitHub `production` 환경 승인 시 멀티플랫폼 이미지로 배포하고, 새 run이 시작되면 이전 run은 자동 취소 |
 | OpenAPI 노출 | `local/local-emulator` 노출, `prod` 기본 비노출 |
 | Firebase 자격증명 | 서버 파일 + `GOOGLE_APPLICATION_CREDENTIALS` 경로 주입 |
 
@@ -21,6 +21,7 @@
 - 실제 비밀값은 Git 저장소에 넣지 않는다.
 - Firebase 서비스 계정 JSON은 `.env`에 본문을 넣지 않고 파일로 두고 경로만 `.env`에 넣는다.
 - 브라우저 관리자 페이지가 REST API를 호출하면 `API_ALLOWED_ORIGIN_PATTERNS`를, WebSocket을 사용하면 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`를 각각 설정한다.
+- CD의 admin REST CORS smoke check는 `CD_SMOKE_CORS_ORIGIN`을 우선 사용하고, 비어 있으면 `API_ALLOWED_ORIGIN_PATTERNS`의 첫 번째 exact origin을 재사용한다.
 
 예시:
 
@@ -31,6 +32,7 @@ APP_HOST_PORT=8080
 OPENAPI_ENABLED=false
 API_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
 CHAT_WS_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
+CD_SMOKE_CORS_ORIGIN=https://admin.skuri.example
 MYSQL_DATABASE=skuri
 MYSQL_USER=skuri
 MYSQL_PASSWORD=<db-user-password>
@@ -152,6 +154,11 @@ docker compose up -d --build
 7. OCI 서버에 접속해서 최신 이미지 pull 및 재기동
 8. 서버 내부에서 `health + 공개 API + admin CORS preflight + prod OpenAPI 비노출` smoke check
 
+추가 정책:
+
+- `concurrency.group = production-deploy`, `cancel-in-progress = true`로 설정해 새 `main` push가 오면 이전 CD run은 자동 취소한다.
+- 승인할 때는 항상 가장 최신 commit의 run만 남아 있는지 확인한다.
+
 중요:
 
 - 이 흐름이 진짜 반자동이 되려면 GitHub Repository Settings에서 `production` Environment에 `Required reviewers`를 설정해야 한다.
@@ -219,7 +226,7 @@ docker compose up -d --build
 - 공개 API smoke check
   - `GET /v1/app-versions/{platform}`
 - admin REST CORS preflight
-  - `OPTIONS /v1/app-versions/{platform}` with `Origin: https://admin.<domain>`
+  - `OPTIONS /v1/app-versions/{platform}` with `Origin: ${CD_SMOKE_CORS_ORIGIN}` 또는 `API_ALLOWED_ORIGIN_PATTERNS`의 첫 번째 exact origin
 - 인증 API smoke check
   - 토큰이 있으면 `GET /v1/members/me`
 - 컨테이너 로그 확인

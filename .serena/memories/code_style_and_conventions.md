@@ -27,3 +27,5 @@
 - 운영 app는 `docker-compose.prod.yml`에서 `${APP_HOST_BIND:-127.0.0.1}:${APP_HOST_PORT:-8080}:8080` loopback 바인딩을 유지하고, Nginx만 `127.0.0.1:8080` 으로 프록시하도록 운영한다.
 - 운영 MySQL에 관리자 도구로 접근해야 하면 `docker-compose.prod.yml`에서 `127.0.0.1:3307:3306` 같은 loopback 바인딩만 허용하고 SSH 터널을 통해 접속한다. 공용 바인딩은 사용하지 않는다.
 - 브라우저 기반 관리자 페이지의 REST API CORS 허용 Origin은 `API_ALLOWED_ORIGIN_PATTERNS`로, WebSocket `/ws` Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`로 분리 관리한다.
+- CD의 admin REST CORS smoke check는 `CD_SMOKE_CORS_ORIGIN`을 우선 사용하고, 비어 있으면 `API_ALLOWED_ORIGIN_PATTERNS`의 첫 번째 exact origin을 재사용한다.
+- CD workflow는 `production-deploy` concurrency 그룹으로 최신 run만 유지하고 이전 run은 자동 취소한다.
