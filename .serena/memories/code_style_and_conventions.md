@@ -24,4 +24,5 @@
 - 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않으므로, Docker에서 실제 Firebase 인증까지 검증하려면 별도 volume mount 또는 호스트 `bootRun`이 필요하다.
 - Firebase 서비스 계정 JSON은 서버 파일로 보관하고 `GOOGLE_APPLICATION_CREDENTIALS` 경로만 주입한다.
 - `prod`에서는 OpenAPI UI/JSON을 기본 비노출로 운영하고, health/info만 최소 공개한다.
+- 운영 MySQL에 관리자 도구로 접근해야 하면 `docker-compose.prod.yml`에서 `127.0.0.1:3307:3306` 같은 loopback 바인딩만 허용하고 SSH 터널을 통해 접속한다. 공용 바인딩은 사용하지 않는다.
 - 브라우저 기반 관리자 페이지의 REST API CORS 허용 Origin은 `API_ALLOWED_ORIGIN_PATTERNS`로, WebSocket `/ws` Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`로 분리 관리한다.

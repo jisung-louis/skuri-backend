@@ -27,6 +27,8 @@ docker compose logs -f redis
 docker compose down
 curl http://localhost:8080/actuator/health
 IMAGE_URI=ghcr.io/example/skuri:test FIREBASE_CREDENTIALS_FILE=/tmp/firebase-admin.json GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json docker compose -f docker-compose.prod.yml config
+docker compose -f docker-compose.prod.yml ps
+ss -ltnp | grep 3307
 ```
 
 ```bash
@@ -37,3 +39,4 @@ DB_URL=jdbc:mysql://localhost:3306/skuri?serverTimezone=Asia/Seoul&characterEnco
 - 평소 개발은 MySQL/Redis만 Docker로 올리고 앱은 호스트에서 실행하는 방식을 권장한다.
 - Docker Compose 실행은 `.env`를 자동으로 읽지만, IDE 실행 설정은 `.env` 파일 경로를 직접 읽지 않으므로 필요한 값을 환경변수 칸에 `KEY=value` 형식으로 넣어야 한다.
 - Docker 컨테이너에서 Firebase Auth Emulator를 사용할 때는 보통 `FIREBASE_AUTH_EMULATOR_HOST=host.docker.internal:9099`를 사용한다.
+- 운영 MySQL Workbench 접속은 `127.0.0.1:3307` loopback 바인딩 + SSH 방식만 사용한다.

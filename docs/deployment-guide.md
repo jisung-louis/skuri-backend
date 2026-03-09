@@ -34,10 +34,16 @@ MYSQL_DATABASE=skuri
 MYSQL_USER=skuri
 MYSQL_PASSWORD=<db-user-password>
 MYSQL_ROOT_PASSWORD=<db-root-password>
+MYSQL_HOST_BIND=127.0.0.1
+MYSQL_HOST_PORT=3307
 FIREBASE_CREDENTIALS_FILE=/opt/skuri/secrets/firebase-admin.json
 GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
 FIREBASE_CREDENTIALS_PATH=/app/secrets/firebase-admin.json
 ```
+
+- 운영 MySQL은 앱 컨테이너가 내부 네트워크 `mysql:3306`으로 사용한다.
+- Workbench 같은 운영자 접속은 호스트 loopback `${MYSQL_HOST_BIND:-127.0.0.1}:${MYSQL_HOST_PORT:-3307}` 로만 열고 SSH를 통해 접근한다.
+- `0.0.0.0:3306` 같은 공용 바인딩은 사용하지 않는다.
 
 ## 3. 로컬 실행
 
@@ -128,6 +134,7 @@ docker compose up -d --build
 
 - `api.<domain>`은 Cloudflare DNS에 연결하고, Nginx가 `80/443`을 받아 앱 `8080`으로 프록시한다.
 - HTTPS가 정상화되면 OCI 보안 규칙에서 `8080` 외부 공개는 닫고 `22/80/443`만 유지한다.
+- Workbench 접속용 MySQL 포트는 `127.0.0.1:3307` 같은 loopback 바인딩만 허용하고, SSH 터널 없이 직접 공개하지 않는다.
 
 ## 5. GitHub Actions CD 흐름
 
@@ -212,8 +219,60 @@ docker compose up -d --build
 - 컨테이너 로그 확인
   - `docker logs --tail 200 skuri-backend`
 - OpenAPI가 prod에서 의도대로 닫혀 있는지 확인
+- MySQL 운영자 접속이 필요하면 `docker compose -f docker-compose.prod.yml ps`로 `127.0.0.1:3307->3306/tcp` 같은 loopback 바인딩만 노출되는지 확인
 
-## 11. 롤백
+## 11. MySQL Workbench 접속
+
+현재 운영 compose는 MySQL을 인터넷에 직접 공개하지 않고, 서버 자신의 loopback 포트로만 바인딩한다.
+권장 방식은 `Standard TCP/IP over SSH`다.
+
+1. OCI 서버에서 MySQL 포트가 loopback으로만 열렸는지 확인한다.
+
+```bash
+cd /opt/skuri/app
+docker compose -f docker-compose.prod.yml ps
+ss -ltnp | grep 3307
+```
+
+기대 결과:
+- `127.0.0.1:3307->3306/tcp` 처럼 loopback만 노출
+- `0.0.0.0:3307` 이 아니어야 함
+
+2. 운영 `.env`에서 접속 정보를 확인한다.
+
+```bash
+cd /opt/skuri/app
+grep -E '^(MYSQL_USER|MYSQL_PASSWORD|MYSQL_HOST_PORT|MYSQL_HOST_BIND)=' .env
+```
+
+3. MySQL Workbench에서 새 연결을 만든다.
+
+- Connection Name: `SKURI Production DB`
+- Connection Method: `Standard TCP/IP over SSH`
+- SSH Hostname: `<운영서버도메인또는IP>:22`
+- SSH Username: `<운영서버 SSH 계정>`
+- SSH Key File: `<로컬 개인키 경로>`
+- MySQL Hostname: `127.0.0.1`
+- MySQL Server Port: `3307`
+- Username: `.env`의 `MYSQL_USER`
+- Password: `.env`의 `MYSQL_PASSWORD`
+
+4. `Test Connection`을 누른다.
+
+5. 접속이 안 되면 아래 순서로 확인한다.
+
+```bash
+cd /opt/skuri/app
+docker compose -f docker-compose.prod.yml ps
+docker logs --tail 100 skuri-mysql
+ss -ltnp | grep 3307
+```
+
+주의:
+- Workbench 연결을 위해 MySQL을 `0.0.0.0:3306` 으로 공개하지 않는다.
+- 컨테이너 내부 DB 주소는 계속 `mysql:3306` 이며, Workbench용 loopback 포트와는 용도가 다르다.
+
+## 12. 롤백
 
 롤백은 “이전 이미지 태그로 다시 기동” 방식으로 진행한다.
 
