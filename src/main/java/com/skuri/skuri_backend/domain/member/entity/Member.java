@@ -4,6 +4,8 @@ import com.skuri.skuri_backend.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -45,6 +47,10 @@ public class Member extends BaseTimeEntity {
     @Column(name = "is_admin")
     private boolean isAdmin;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private MemberStatus status;
+
     @Embedded
     private BankAccount bankAccount;
 
@@ -57,11 +63,15 @@ public class Member extends BaseTimeEntity {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
+    @Column(name = "withdrawn_at")
+    private LocalDateTime withdrawnAt;
+
     private Member(String id, String email, String realname, LocalDateTime joinedAt) {
         this.id = id;
         this.email = email;
         this.nickname = DEFAULT_NICKNAME;
         this.realname = realname;
+        this.status = MemberStatus.ACTIVE;
         this.joinedAt = joinedAt;
         this.lastLogin = joinedAt;
         this.notificationSetting = NotificationSetting.defaultSetting();
@@ -83,6 +93,9 @@ public class Member extends BaseTimeEntity {
         }
         if (lastLogin == null) {
             lastLogin = joinedAt;
+        }
+        if (status == null) {
+            status = MemberStatus.ACTIVE;
         }
     }
 
@@ -153,5 +166,28 @@ public class Member extends BaseTimeEntity {
         }
 
         notificationSetting.backfillAcademicScheduleDefaults();
+    }
+
+    public boolean isActive() {
+        return status == MemberStatus.ACTIVE;
+    }
+
+    public boolean isWithdrawn() {
+        return status == MemberStatus.WITHDRAWN;
+    }
+
+    public void withdraw(LocalDateTime withdrawnAt) {
+        this.status = MemberStatus.WITHDRAWN;
+        this.withdrawnAt = withdrawnAt;
+        this.email = MemberWithdrawalSanitizer.redactEmail(id);
+        this.nickname = MemberWithdrawalSanitizer.WITHDRAWN_DISPLAY_NAME;
+        this.studentId = null;
+        this.department = null;
+        this.photoUrl = null;
+        this.realname = null;
+        this.isAdmin = false;
+        this.bankAccount = null;
+        this.notificationSetting = NotificationSetting.disabledSetting();
+        this.lastLogin = withdrawnAt;
     }
 }

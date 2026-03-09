@@ -13,14 +13,32 @@ import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, String>, MemberRepositoryCustom {
 
+    @Query("""
+            select m
+            from Member m
+            where m.id = :memberId
+              and m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+            """)
+    Optional<Member> findActiveById(@Param("memberId") String memberId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from Member m where m.id = :memberId")
     Optional<Member> findByIdForUpdate(@Param("memberId") String memberId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select m
+            from Member m
+            where m.id = :memberId
+              and m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+            """)
+    Optional<Member> findActiveByIdForUpdate(@Param("memberId") String memberId);
 
     @Query("""
             select m.id
             from Member m
             where m.id <> :excludedId
+              and m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
               and m.notificationSetting.allNotifications = true
               and m.notificationSetting.partyNotifications = true
             """)
@@ -30,6 +48,7 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
             select m.id
             from Member m
             where m.id in :memberIds
+              and m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
               and m.notificationSetting.allNotifications = true
               and m.notificationSetting.partyNotifications = true
             """)
@@ -38,18 +57,24 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
     @Query("""
             select m
             from Member m
-            where m.notificationSetting.allNotifications = true
+            where m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+              and m.notificationSetting.allNotifications = true
               and m.notificationSetting.noticeNotifications = true
             """)
     List<Member> findMembersWithNoticeNotificationsEnabled();
 
-    @Query("select m.id from Member m")
+    @Query("""
+            select m.id
+            from Member m
+            where m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+            """)
     List<String> findAllMemberIds();
 
     @Query("""
             select m.id
             from Member m
-            where m.notificationSetting.allNotifications = true
+            where m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+              and m.notificationSetting.allNotifications = true
               and m.notificationSetting.systemNotifications = true
             """)
     List<String> findSystemNotificationRecipientIds();
@@ -57,7 +82,8 @@ public interface MemberRepository extends JpaRepository<Member, String>, MemberR
     @Query("""
             select m.id
             from Member m
-            where m.notificationSetting.allNotifications = true
+            where m.status = com.skuri.skuri_backend.domain.member.entity.MemberStatus.ACTIVE
+              and m.notificationSetting.allNotifications = true
               and coalesce(m.notificationSetting.academicScheduleNotifications, true) = true
               and (:requireDayBefore = false
                    or coalesce(m.notificationSetting.academicScheduleDayBeforeEnabled, true) = true)

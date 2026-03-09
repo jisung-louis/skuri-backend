@@ -99,6 +99,22 @@ public class NotificationSetting {
         );
     }
 
+    public static NotificationSetting disabledSetting() {
+        return new NotificationSetting(
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                Map.of()
+        );
+    }
+
     public boolean isAcademicScheduleNotifications() {
         return academicScheduleNotifications == null || academicScheduleNotifications;
     }

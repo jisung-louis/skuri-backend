@@ -72,6 +72,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             validateEmailDomain(claims.email());
 
             AuthenticatedMember principal = AuthenticatedMember.from(claims);
+            ensureMemberAccessAllowed(request, principal.uid());
             Collection<? extends GrantedAuthority> authorities = resolveAuthorities(principal.uid());
             UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.authenticated(
                     principal,
@@ -85,6 +86,9 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } catch (EmailDomainRestrictedException e) {
+            SecurityContextHolder.clearContext();
+            accessDeniedHandler.handle(request, response, e);
+        } catch (WithdrawnMemberAccessDeniedException e) {
             SecurityContextHolder.clearContext();
             accessDeniedHandler.handle(request, response, e);
         } catch (BusinessException e) {
@@ -109,6 +113,27 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
         if (!email.toLowerCase(Locale.ROOT).endsWith(normalizedAllowedDomain)) {
             throw new EmailDomainRestrictedException();
         }
+    }
+
+    private void ensureMemberAccessAllowed(HttpServletRequest request, String uid) {
+        if (isMemberBootstrapRequest(request)) {
+            return;
+        }
+
+        MemberRepository memberRepository = memberRepositoryProvider.getIfAvailable();
+        if (memberRepository == null) {
+            return;
+        }
+
+        memberRepository.findById(uid)
+                .filter(Member::isWithdrawn)
+                .ifPresent(member -> {
+                    throw new WithdrawnMemberAccessDeniedException();
+                });
+    }
+
+    private boolean isMemberBootstrapRequest(HttpServletRequest request) {
+        return HttpMethod.POST.matches(request.getMethod()) && "/v1/members".equals(request.getRequestURI());
     }
 
     private Collection<? extends GrantedAuthority> resolveAuthorities(String uid) {

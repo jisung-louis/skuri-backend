@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.common.config.ObjectMapperConfig;
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.infra.auth.firebase.EmailDomainRestrictedException;
+import com.skuri.skuri_backend.infra.auth.firebase.WithdrawnMemberAccessDeniedException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
@@ -30,6 +31,8 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
         ErrorCode errorCode;
         if (accessDeniedException instanceof EmailDomainRestrictedException) {
             errorCode = ErrorCode.EMAIL_DOMAIN_RESTRICTED;
+        } else if (accessDeniedException instanceof WithdrawnMemberAccessDeniedException) {
+            errorCode = ErrorCode.MEMBER_WITHDRAWN;
         } else if (isAdminPath(request)) {
             errorCode = ErrorCode.ADMIN_REQUIRED;
         } else {
