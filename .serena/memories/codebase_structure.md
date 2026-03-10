@@ -26,6 +26,9 @@
 - `infra/admin/audit/AdminAuditSnapshotFactory.java`: Academic/Chat/App/Support 도메인 snapshot 생성기
 
 ## 테스트 포인트
+- `src/test/java/com/skuri/skuri_backend/domain/image/controller/ImageControllerContractTest.java`: `/v1/images`의 200/400/401/403/415 contract 검증
+- `src/test/java/com/skuri/skuri_backend/domain/image/service/ImageUploadServiceTest.java`: context 권한, 경로 naming, MIME/size validation, 원본/썸네일 저장 검증
+- `src/test/java/com/skuri/skuri_backend/domain/image/integration/ImageUploadBoardFlowIntegrationTest.java`: 실제 업로드 후 Board 저장 플로우와 공개 업로드 경로 조회 검증
 - `src/test/java/com/skuri/skuri_backend/infra/auth/AdminApiGuardIntegrationTest.java`: 대표 Admin API의 401/403/관리자 성공 guard 검증
 - `src/test/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditIntegrationTest.java`: 상태 변경 Admin API의 감사 로그 row/snapshot 검증
 - `src/test/java/com/skuri/skuri_backend/infra/openapi/AdminOpenApiConventionTest.java`: `@AdminApiAccess`와 `ERROR_ADMIN_REQUIRED` 예시 재사용 강제

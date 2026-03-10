@@ -11,6 +11,9 @@ env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew compileJava compileTestJ
 ## 테스트
 ```bash
 ./gradlew test
+./gradlew test --tests "com.skuri.skuri_backend.domain.image.controller.ImageControllerContractTest"
+./gradlew test --tests "com.skuri.skuri_backend.domain.image.service.ImageUploadServiceTest"
+./gradlew test --tests "com.skuri.skuri_backend.domain.image.integration.ImageUploadBoardFlowIntegrationTest"
 env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew test --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest"
 env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew test --tests "com.skuri.skuri_backend.infra.admin.audit.AdminAuditIntegrationTest"
 env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest"
@@ -27,6 +30,8 @@ SPRING_PROFILES_ACTIVE=local ./gradlew test --tests "com.skuri.skuri_backend.dom
 ## 서버 실행
 ```bash
 docker compose up -d mysql redis
+MEDIA_STORAGE_BASE_DIR=$(pwd)/var/media MEDIA_STORAGE_PUBLIC_BASE_URL=http://localhost:8080/uploads SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+curl -X POST http://localhost:8080/v1/images -H "Authorization: Bearer <token>" -F "context=POST_IMAGE" -F "file=@/absolute/path/to/sample.jpg"
 docker compose logs -f mysql
 docker compose logs -f redis
 docker compose down
