@@ -462,7 +462,7 @@ erDiagram
 
     admin_audit_logs {
         varchar(36) id PK "UUID"
-        varchar(36) actor_id FK "관리자 ID"
+        varchar(36) actor_id "관리자 UID(논리적 참조)"
         varchar(50) action "NOT NULL"
         varchar(36) target_id
         varchar(50) target_type
@@ -682,15 +682,16 @@ erDiagram
 | 컬럼 | 타입 | 제약조건 | 설명 |
 |------|------|---------|------|
 | id | VARCHAR(36) | PK | 감사 로그 ID |
-| actor_id | VARCHAR(36) | FK, NOT NULL | 호출 관리자 UID |
+| actor_id | VARCHAR(36) | NOT NULL | 호출 관리자 UID (members.id에 대한 논리적 참조, 물리 FK 미적용) |
 | action | VARCHAR(50) | NOT NULL | 감사 액션 코드 (`INQUIRY_STATUS_UPDATED`, `ACADEMIC_SCHEDULE_CREATED` 등) |
-| target_id | VARCHAR(36) | | 대상 엔티티 ID 또는 운영 키(semester/platform/weekId) |
+| target_id | VARCHAR(36) | | 대상 엔티티 ID 또는 canonical 운영 키(semester/platform/weekId) |
 | target_type | VARCHAR(50) | | 대상 타입 (`INQUIRY`, `REPORT`, `APP_VERSION` 등) |
 | diff_before | JSON | | 변경 전 스냅샷 |
 | diff_after | JSON | | 변경 후 스냅샷 |
 | timestamp | DATETIME | NOT NULL | 감사 로그 기록 시각 |
 
 - Phase 11 기준 `admin_audit_logs`는 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)만 저장하고 `GET` 조회는 저장하지 않는다.
+- `target_id`는 raw 입력이 아니라 서비스와 동일한 canonical 키를 저장한다. 예: `semester=2026-1`, `platform=ios`
 
 ---
 

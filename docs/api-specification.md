@@ -3356,7 +3356,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 **운영 공통 규약**
 - 공통 인가: Admin Controller는 공통 메타 어노테이션(`@AdminApiAccess`) 기준으로 보호하며, `/v1/admin/**` 접근 거부는 `403 ADMIN_REQUIRED`로 표준화한다.
-- 감사 로그: 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)는 `admin_audit_logs`에 `actor_id(uid)`, `action`, `target_type`, `target_id`, `diff_before`, `diff_after`, `timestamp`를 저장한다. `GET` 조회는 고빈도 운영 조회 로그와 개인정보 중복 적재를 피하기 위해 감사 로그 대상에서 제외한다.
+- 감사 로그: 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)는 `admin_audit_logs`에 `actor_id(uid)`, `action`, `target_type`, `target_id`, `diff_before`, `diff_after`, `timestamp`를 저장한다. `actor_id`는 `members.id`의 논리적 참조이며 물리 FK는 두지 않는다. `target_id`는 raw 입력이 아니라 서비스와 동일한 canonical 키(`semester=2026-1`, `platform=ios`)를 저장한다. `GET` 조회는 고빈도 운영 조회 로그와 개인정보 중복 적재를 피하기 위해 감사 로그 대상에서 제외한다.
 - 목록 조회 규약: 문의/신고 Admin 목록은 `PageResponse`를 사용하고 `page=0`, `size=20`, `size<=100`, 고정 정렬 `createdAt,DESC`를 따른다. 자유 검색/가변 정렬/CSV export는 현 Phase 런타임 API 범위에서 제외한다.
 - 운영 데이터 노출: Inquiry의 구조화 개인정보(`userEmail`, `userName`, `userRealname`, `userStudentId`)는 관리자 응답에서만 노출하며, 회원 탈퇴 후에는 탈퇴 마스킹 정책이 적용된 값만 조회된다. 자유서술 `content`는 별도 자동 마스킹하지 않는다.
 

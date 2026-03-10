@@ -10,7 +10,7 @@
 7. 회원 라이프사이클 변경이면 탈퇴 후 접근 차단, 동일 UID 재가입 차단, 연관 도메인 정합성 회귀 확인
 8. Serena Memory 동기화 확인
 9. Admin 공통 변경이면 대표 Admin API에 대해 `401` / `403 ADMIN_REQUIRED` / 관리자 성공 시나리오를 확인한다.
-10. 상태 변경 Admin API를 건드렸다면 `admin_audit_logs` row 생성과 `actor/target/diff` snapshot을 확인한다.
+10. 상태 변경 Admin API를 건드렸다면 `admin_audit_logs` row 생성과 `actor/target/diff` snapshot을 확인하고, `target_id`가 raw 입력이 아닌 canonical 키로 저장되는지 함께 확인한다.
 11. Support Admin 목록 규약을 바꿨다면 `page/size` validation, `PageResponse`, 고정 정렬 문서 동기화를 함께 확인한다.
 
 ## 운영/배포 변경 시 추가 검증
