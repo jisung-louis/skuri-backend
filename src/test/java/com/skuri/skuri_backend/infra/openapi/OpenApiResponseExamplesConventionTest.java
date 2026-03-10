@@ -9,6 +9,7 @@ import com.skuri.skuri_backend.domain.board.controller.MemberBoardController;
 import com.skuri.skuri_backend.domain.board.controller.PostController;
 import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
 import com.skuri.skuri_backend.domain.chat.controller.ChatRoomController;
+import com.skuri.skuri_backend.domain.image.controller.ImageController;
 import com.skuri.skuri_backend.domain.member.controller.MemberController;
 import com.skuri.skuri_backend.domain.notification.controller.FcmTokenController;
 import com.skuri.skuri_backend.domain.notification.controller.NotificationController;
@@ -56,6 +57,7 @@ class OpenApiResponseExamplesConventionTest {
             MemberBoardController.class,
             ChatRoomController.class,
             ChatAdminRoomController.class,
+            ImageController.class,
             MemberController.class,
             InquiryController.class,
             InquiryAdminController.class,

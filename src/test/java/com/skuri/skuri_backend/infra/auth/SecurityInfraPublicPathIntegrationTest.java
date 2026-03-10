@@ -52,4 +52,10 @@ class SecurityInfraPublicPathIntegrationTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void uploadsPath_인증없이_허용() throws Exception {
+        mockMvc.perform(get("/uploads/test.jpg"))
+                .andExpect(status().isNotFound());
+    }
 }
