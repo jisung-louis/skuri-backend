@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-09
+> 최종 수정일: 2026-03-10
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영), Phase 8 완료 (Notification 인프라), Phase 9 완료 (인프라/배포 기준 정리), Phase 10 완료 (Member 탈퇴/계정 라이프사이클) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영), Phase 8 완료 (Notification 인프라), Phase 9 완료 (인프라/배포 기준 정리), Phase 10 완료 (Member 탈퇴/계정 라이프사이클), Phase 11 완료 (운영 공통 인프라 / Admin 공통) |
 
 ---
 
@@ -756,14 +756,19 @@ SSE 운영 제약:
 - 특정 도메인에 귀속되지 않는 운영 공통 기능/엔드포인트만 Phase 11 대상으로 관리한다.
 - 2안 적용 기준:
   - Firebase 인증 필터에서 `members.isAdmin=true` 사용자에 `ROLE_ADMIN` authority를 부여한다.
-  - Admin 엔드포인트는 `@PreAuthorize("hasRole('ADMIN')")`로 보호한다.
+  - Admin 엔드포인트는 공통 메타 어노테이션(`@AdminApiAccess`, 내부적으로 `@PreAuthorize("hasRole('ADMIN')")`)으로 보호한다.
   - Admin 경로 접근 거부는 `ADMIN_REQUIRED`(`403`)를 반환한다.
+- Phase 11 구현 결정:
+  - `ADMIN_REQUIRED` 판별은 `/v1/admin/**` 경로 기준 공통 resolver로 정리한다.
+  - 감사 로그는 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)만 저장하고, `GET` 조회는 고빈도/저효용 로그와 개인정보 중복 적재를 피하기 위해 제외한다.
+  - Support 운영 목록(`GET /v1/admin/inquiries`, `GET /v1/admin/reports`)은 `PageResponse` + `page=0`/`size=20`/`size<=100` + 고정 정렬 `createdAt,DESC` 규약을 사용한다.
+  - CSV export와 자유 검색은 백오피스 요구사항이 확정될 때까지 문서 규약만 유지하고 런타임 API는 추가하지 않는다.
 
 #### 11-3. 완료 기준
 
-- [ ] Admin 공통 인가/감사 로그가 모든 Admin API에 일관 적용됨
-- [ ] 운영 대상(문의/신고) 조회/처리 API 계약 및 권한 검증 완료
-- [ ] 백오피스 연동 시나리오(검색/필터/처리/재처리) 회귀 검증 완료
+- [x] Admin 공통 인가/감사 로그가 모든 Admin API에 일관 적용됨
+- [x] 운영 대상(문의/신고) 조회/처리 API 계약 및 권한 검증 완료
+- [x] 백오피스 연동 기본 규약(페이지네이션/필터/정렬/CSV 보류)이 문서와 테스트 기준으로 정리됨
 
 ---
 
@@ -840,3 +845,4 @@ Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 > - 2026-03-08: Phase 7 완료 기준으로 현재 상태를 갱신하고, Support 운영 API/기본 앱 버전 fallback/Postman 수동 검증 컬렉션 경로를 반영
 > - 2026-03-08: Phase 8 Notification 구현 반영 — `PARTY_*` canonical enum, RDB 저장 구조, FCM token/no-op sender, 학사 일정 리마인더, Notification SSE/인박스/정책 parity 동기화
 > - 2026-03-08: Phase 8 Push payload 계약 보강 — canonical `type + data`, `contractVersion`, platform별 sound/channel presentation profile 문서화
+> - 2026-03-10: Phase 11 완료 반영 — `@AdminApiAccess` 기반 공통 인가, `admin_audit_logs` 저장 인프라, Support 운영 목록 규약(`PageResponse`, `createdAt,DESC`, `page/size` 검증), Admin guard/OpenAPI convention 테스트 기준 문서화

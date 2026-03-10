@@ -4,11 +4,16 @@
 ```bash
 ./gradlew build
 ./gradlew compileJava compileTestJava
+env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew build
+env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew compileJava compileTestJava
 ```
 
 ## 테스트
 ```bash
 ./gradlew test
+env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew test --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest"
+env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew test --tests "com.skuri.skuri_backend.infra.admin.audit.AdminAuditIntegrationTest"
+env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest"
 ./gradlew test --tests "com.skuri.skuri_backend.domain.notification.controller.NotificationControllerContractTest"
 ./gradlew test --tests "com.skuri.skuri_backend.domain.notification.controller.NotificationSseControllerContractTest"
 ./gradlew test --tests "com.skuri.skuri_backend.domain.notification.service.NotificationServiceTest"

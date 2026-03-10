@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-09
+> 최종 수정일: 2026-03-10
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -528,9 +528,15 @@ Hooks:
     - weekId, weekStart, weekEnd
     - menus: Map<date, Map<restaurant, items[]>>
   - AdminAuditLog
-    - id, adminId, action, targetType, targetId
-    - detail (JSON), createdAt
-    (Spring AOP로 Admin API 호출 시 자동 기록)
+    - id, actorId, action, targetType, targetId
+    - diffBefore (JSON snapshot), diffAfter (JSON snapshot), timestamp
+    - 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)를 공통 interceptor/filter 계층에서 자동 기록
+    - `targetId`는 UUID 외에 semester/platform/weekId 같은 운영 식별자도 허용
+
+운영 공통 규약:
+  - `/v1/admin/**`는 공통 인가 어노테이션(`@AdminApiAccess`)과 `ADMIN_REQUIRED` 표준 응답으로 보호
+  - 문의/신고 목록은 `AdminPageRequestPolicy` 기준 `page=0`, `size=20`, `size<=100`, 정렬 `createdAt DESC`를 사용
+  - CSV export와 자유 검색은 Phase 11에서 문서 규약만 정리하고 런타임 API는 추가하지 않음
 
 회원 탈퇴 연계 정책:
   - inquiry/report record는 운영 추적 목적상 보존
@@ -1406,3 +1412,4 @@ public class PartyMessageService {
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리
 > - 2026-03-08: Phase 8 Notification 인프라 반영 — RDB 저장 모델(`user_notifications`, `fcm_tokens`), after-commit 이벤트, 학사 일정 알림 설정, `PARTY_*` canonical enum 동기화
 > - 2026-03-09: Phase 10 Member 라이프사이클 반영 — soft delete tombstone, 동일 UID 재가입 차단, TaxiParty/Chat/Board/Notice/Support/Notification/Academic 탈퇴 정합성 정책 추가
+> - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `AdminAuditLog` 엔티티를 `actorId/action/targetType/targetId/diffBefore/diffAfter/timestamp` 구조로 구체화하고, Support 운영 목록/인가 공통 규약을 반영

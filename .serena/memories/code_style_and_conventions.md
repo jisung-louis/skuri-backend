@@ -9,10 +9,15 @@
 - 탈퇴로 인한 외부 후처리(Firebase 삭제, SSE 연결 종료)는 핵심 트랜잭션 안에서 직접 처리하지 않고 after-commit 리스너로 분리한다.
 - 같은 Firebase UID의 탈퇴 회원은 재활성화하지 않는다. `POST /v1/members`는 활성 회원에만 멱등이고, withdrawn UID에는 `WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환한다.
 - `NOT NULL` lifecycle 컬럼을 운영 DB에 추가할 때는 앱 기동 전에 수동 마이그레이션으로 legacy row를 먼저 채운다.
+- Admin controller는 class-level `@AdminApiAccess`를 사용하고 raw `@PreAuthorize("hasRole('ADMIN')")`를 반복하지 않는다.
+- 상태 변경 Admin API는 `@AdminAudit`로 감사 대상을 선언하고, 감사 로직은 interceptor/filter 공통 계층에서 처리한다.
+- 감사 로그 실패는 warn 수준으로 남기고 비즈니스 API를 500으로 깨지 않게 best-effort로 처리한다.
+- Support Admin 목록은 `AdminPageRequestPolicy` 기준 `page=0`, `size=20`, `size<=100`, 정렬 `createdAt,DESC` 규약을 유지한다.
 
 ## 응답/예외
 - 모든 REST 응답은 `ApiResponse<T>`를 사용한다.
 - 예외는 `BusinessException + ErrorCode`로 표현하고 `GlobalExceptionHandler`에서 일관 처리한다.
+- Admin 403 판별은 `ApiAccessDeniedErrorResolver`로 공통화하고 `/v1/admin/**`는 `ADMIN_REQUIRED`를 반환한다.
 - Notification 전용 최소 ErrorCode는 `NOTIFICATION_NOT_FOUND`, `NOT_NOTIFICATION_OWNER`를 사용한다.
 
 ## 운영/환경변수

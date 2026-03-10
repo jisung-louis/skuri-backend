@@ -13,6 +13,22 @@
 - `domain/member/service/MemberLifecycleService.java`: 회원 탈퇴 오케스트레이션과 도메인 후처리 진입점
 - `domain/member/service/MemberLifecycleEventListener.java`: after-commit 기반 Firebase 삭제/SSE 종료 처리
 - `domain/chat/websocket/ChatWebSocketSessionRegistry.java`, `ChatSubscriptionAccessInterceptor.java`: 탈퇴 회원 WebSocket 세션 추적/차단
+- `domain/*/controller/*AdminController.java`: Phase 11 기준 공통 `@AdminApiAccess`를 사용하고, 상태 변경 엔드포인트는 `@AdminAudit`로 감사 로그 대상 지정
+
+## Admin 공통 인프라
+- `infra/auth/config/AdminApiAccess.java`: Admin controller class-level 메타 어노테이션 (`@PreAuthorize("hasRole('ADMIN')")`)
+- `infra/auth/config/AdminRequestPaths.java`: `/v1/admin/**` 경로 판별 유틸리티
+- `infra/auth/config/ApiAccessDeniedErrorResolver.java`: `ADMIN_REQUIRED`/기타 403 errorCode 공통 해석
+- `infra/admin/list/AdminPageRequestPolicy.java`: Support Admin 목록의 page/size validation 및 공통 기본값/정렬 규약 상수
+- `infra/admin/audit/AdminAudit.java`: 감사 로그 대상 메서드 선언 어노테이션
+- `infra/admin/audit/AdminAuditHandlerInterceptor.java`, `AdminAuditRequestBodyAdvice.java`, `AdminAuditFilter.java`: 요청/응답 본문과 before/after snapshot을 수집하는 공통 감사 계층
+- `infra/admin/audit/AdminAuditLog.java`, `AdminAuditLogRepository.java`, `AdminAuditLogService.java`: `admin_audit_logs` 저장 모델
+- `infra/admin/audit/AdminAuditSnapshotFactory.java`: Academic/Chat/App/Support 도메인 snapshot 생성기
+
+## 테스트 포인트
+- `src/test/java/com/skuri/skuri_backend/infra/auth/AdminApiGuardIntegrationTest.java`: 대표 Admin API의 401/403/관리자 성공 guard 검증
+- `src/test/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditIntegrationTest.java`: 상태 변경 Admin API의 감사 로그 row/snapshot 검증
+- `src/test/java/com/skuri/skuri_backend/infra/openapi/AdminOpenApiConventionTest.java`: `@AdminApiAccess`와 `ERROR_ADMIN_REQUIRED` 예시 재사용 강제
 
 ## 프로필 역할
 - `application.yaml`: 모든 환경이 공유하는 기본 정책과 공통 datasource 인증정보
