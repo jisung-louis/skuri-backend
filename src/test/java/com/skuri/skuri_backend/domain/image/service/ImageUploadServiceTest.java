@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockMultipartFile;
 
 import javax.imageio.ImageIO;
@@ -53,13 +52,11 @@ class ImageUploadServiceTest {
         imageUploadProperties.setThumbnailWidth(300);
         imageUploadProperties.setThumbnailJpegQuality(0.8d);
 
-        StorageRepository storageRepository = new LocalStorageRepository(mediaStorageProperties);
-        imageUploadService = new ImageUploadService(
-                storageRepository,
-                imageUploadProperties,
+        StorageRepository storageRepository = new LocalStorageRepository(
                 mediaStorageProperties,
-                new MockEnvironment().withProperty("server.port", "8080")
+                new org.springframework.mock.env.MockEnvironment().withProperty("server.port", "8080")
         );
+        imageUploadService = new ImageUploadService(storageRepository, imageUploadProperties);
     }
 
     @Test
@@ -177,13 +174,11 @@ class ImageUploadServiceTest {
         mediaStorageProperties.setUrlPrefix("media-files");
 
         ImageUploadProperties imageUploadProperties = new ImageUploadProperties();
-        StorageRepository storageRepository = new LocalStorageRepository(mediaStorageProperties);
-        ImageUploadService service = new ImageUploadService(
-                storageRepository,
-                imageUploadProperties,
+        StorageRepository storageRepository = new LocalStorageRepository(
                 mediaStorageProperties,
-                new MockEnvironment().withProperty("server.port", "9090")
+                new org.springframework.mock.env.MockEnvironment().withProperty("server.port", "9090")
         );
+        ImageUploadService service = new ImageUploadService(storageRepository, imageUploadProperties);
 
         MockMultipartFile file = new MockMultipartFile(
                 "file",
