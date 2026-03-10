@@ -10,7 +10,6 @@ public final class AdminPageRequestPolicy {
     public static final int DEFAULT_PAGE = 0;
     public static final int DEFAULT_SIZE = 20;
     public static final int MAX_SIZE = 100;
-    public static final String FIXED_SORT = "createdAt,DESC";
 
     private AdminPageRequestPolicy() {
     }

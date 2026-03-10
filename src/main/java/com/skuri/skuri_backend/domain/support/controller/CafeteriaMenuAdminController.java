@@ -126,9 +126,9 @@ public class CafeteriaMenuAdminController {
     @AdminAudit(
             action = AdminAuditActions.CAFETERIA_MENU_CREATED,
             targetType = AdminAuditTargetTypes.CAFETERIA_MENU,
-            targetId = "#requestBody.weekId",
-            before = "@adminAuditSnapshots.cafeteriaMenu(#requestBody.weekId)",
-            after = "@adminAuditSnapshots.cafeteriaMenu(#requestBody.weekId)"
+            targetId = "#requestBody['weekId']",
+            before = "@adminAuditSnapshots.cafeteriaMenu(#requestBody['weekId'])",
+            after = "@adminAuditSnapshots.cafeteriaMenu(#requestBody['weekId'])"
     )
     public ResponseEntity<ApiResponse<CafeteriaMenuResponse>> createMenu(
             @Valid @RequestBody CreateCafeteriaMenuRequest request

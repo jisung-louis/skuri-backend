@@ -120,9 +120,9 @@ public class CourseAdminController {
     @AdminAudit(
             action = AdminAuditActions.COURSE_SEMESTER_BULK_UPSERTED,
             targetType = AdminAuditTargetTypes.COURSE_SEMESTER,
-            targetId = "#requestBody.semester",
-            before = "@adminAuditSnapshots.courseSemester(#requestBody.semester)",
-            after = "@adminAuditSnapshots.courseSemester(#requestBody.semester)"
+            targetId = "@adminAuditTargetKeys.courseSemester(#requestBody['semester'])",
+            before = "@adminAuditSnapshots.courseSemester(@adminAuditTargetKeys.courseSemester(#requestBody['semester']))",
+            after = "@adminAuditSnapshots.courseSemester(@adminAuditTargetKeys.courseSemester(#requestBody['semester']))"
     )
     public ResponseEntity<ApiResponse<AdminBulkCoursesResponse>> bulkUpsertCourses(
             @Valid @RequestBody AdminBulkCoursesRequest request
@@ -182,8 +182,8 @@ public class CourseAdminController {
     @AdminAudit(
             action = AdminAuditActions.COURSE_SEMESTER_DELETED,
             targetType = AdminAuditTargetTypes.COURSE_SEMESTER,
-            targetId = "#semester",
-            before = "@adminAuditSnapshots.courseSemester(#semester)"
+            targetId = "@adminAuditTargetKeys.courseSemester(#semester)",
+            before = "@adminAuditSnapshots.courseSemester(@adminAuditTargetKeys.courseSemester(#semester))"
     )
     public ResponseEntity<ApiResponse<AdminBulkCoursesResponse>> deleteCourses(
             @io.swagger.v3.oas.annotations.Parameter(description = "삭제 대상 학기", example = "2026-1", required = true)

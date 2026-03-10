@@ -1,14 +1,19 @@
 package com.skuri.skuri_backend.infra.admin.audit;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
+import jakarta.servlet.ServletRequestWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
+import com.skuri.skuri_backend.common.config.ObjectMapperConfig;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.method.HandlerMethod;
@@ -20,6 +25,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class AdminAuditHandlerInterceptor implements HandlerInterceptor {
 
     static final String REQUEST_CONTEXT_ATTRIBUTE = AdminAuditHandlerInterceptor.class.getName() + ".REQUEST_CONTEXT";
+    private static final ObjectMapper OBJECT_MAPPER = ObjectMapperConfig.SHARED_OBJECT_MAPPER;
+    private static final TypeReference<java.util.Map<String, Object>> MAP_TYPE = new TypeReference<>() {
+    };
 
     private final BeanFactory beanFactory;
 
@@ -45,6 +53,10 @@ public class AdminAuditHandlerInterceptor implements HandlerInterceptor {
         if (context == null || context.isBeforePrepared()) {
             return;
         }
+        if (!hasAdminAuthority()) {
+            return;
+        }
+        populateRequestBodyFromCache(request, context);
 
         if (!context.hasBeforeExpression()) {
             context.markBeforePrepared(null);
@@ -104,6 +116,54 @@ public class AdminAuditHandlerInterceptor implements HandlerInterceptor {
             return authenticatedMember.uid();
         }
         return null;
+    }
+
+    private void populateRequestBodyFromCache(HttpServletRequest request, AdminAuditRequestContext context) {
+        if (context.getRequestBody() != null) {
+            return;
+        }
+        Object cachedRequestBody = request.getAttribute(AdminAuditFilter.CACHED_REQUEST_BODY_ATTRIBUTE);
+        if (cachedRequestBody != null) {
+            context.setRequestBody(cachedRequestBody);
+            return;
+        }
+
+        AdminAuditCachedBodyHttpServletRequest cachedBodyRequest = unwrapCachedBodyRequest(request);
+        if (cachedBodyRequest == null || cachedBodyRequest.getCachedBody().length == 0) {
+            return;
+        }
+
+        try {
+            Object requestBody = OBJECT_MAPPER.readValue(cachedBodyRequest.getCachedBody(), MAP_TYPE);
+            request.setAttribute(AdminAuditFilter.CACHED_REQUEST_BODY_ATTRIBUTE, requestBody);
+            context.setRequestBody(requestBody);
+        } catch (Exception e) {
+            log.debug("관리자 감사 로그 요청 본문 복원에 실패했습니다. uri={}", request.getRequestURI(), e);
+        }
+    }
+
+    private AdminAuditCachedBodyHttpServletRequest unwrapCachedBodyRequest(HttpServletRequest request) {
+        Object current = request;
+        while (current instanceof ServletRequestWrapper wrapper) {
+            if (current instanceof AdminAuditCachedBodyHttpServletRequest cachedBodyRequest) {
+                return cachedBodyRequest;
+            }
+            current = wrapper.getRequest();
+        }
+        if (current instanceof AdminAuditCachedBodyHttpServletRequest cachedBodyRequest) {
+            return cachedBodyRequest;
+        }
+        return null;
+    }
+
+    private boolean hasAdminAuthority() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
     }
 
     private Object evaluateExpression(

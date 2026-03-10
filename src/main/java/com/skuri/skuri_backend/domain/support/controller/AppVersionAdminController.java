@@ -110,9 +110,9 @@ public class AppVersionAdminController {
     @AdminAudit(
             action = AdminAuditActions.APP_VERSION_UPSERTED,
             targetType = AdminAuditTargetTypes.APP_VERSION,
-            targetId = "#platform",
-            before = "@adminAuditSnapshots.appVersion(#platform)",
-            after = "@adminAuditSnapshots.appVersion(#platform)"
+            targetId = "@adminAuditTargetKeys.appPlatform(#platform)",
+            before = "@adminAuditSnapshots.appVersion(@adminAuditTargetKeys.appPlatform(#platform))",
+            after = "@adminAuditSnapshots.appVersion(@adminAuditTargetKeys.appPlatform(#platform))"
     )
     public ResponseEntity<ApiResponse<AppVersionAdminUpdateResponse>> upsertAppVersion(
             @Parameter(description = "플랫폼", example = "ios")

@@ -26,6 +26,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AdminAuditFilter extends OncePerRequestFilter {
 
+    static final String CACHED_REQUEST_BODY_ATTRIBUTE = AdminAuditFilter.class.getName() + ".CACHED_REQUEST_BODY";
     private static final ObjectMapper OBJECT_MAPPER = ObjectMapperConfig.SHARED_OBJECT_MAPPER;
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {
     };
@@ -47,13 +48,41 @@ public class AdminAuditFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        HttpServletRequest requestToUse = cacheRequestBodyIfNecessary(request);
         ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
         try {
-            filterChain.doFilter(request, responseWrapper);
-            recordAuditIfNecessary(request, responseWrapper);
+            filterChain.doFilter(requestToUse, responseWrapper);
+            recordAuditIfNecessary(requestToUse, responseWrapper);
         } finally {
             responseWrapper.copyBodyToResponse();
         }
+    }
+
+    private HttpServletRequest cacheRequestBodyIfNecessary(HttpServletRequest request) throws IOException {
+        if (!isJsonRequest(request)) {
+            return request;
+        }
+
+        AdminAuditCachedBodyHttpServletRequest wrappedRequest = new AdminAuditCachedBodyHttpServletRequest(request);
+        byte[] cachedBody = wrappedRequest.getCachedBody();
+        if (cachedBody.length == 0) {
+            return wrappedRequest;
+        }
+
+        try {
+            wrappedRequest.setAttribute(
+                    CACHED_REQUEST_BODY_ATTRIBUTE,
+                    OBJECT_MAPPER.readValue(cachedBody, MAP_TYPE)
+            );
+        } catch (Exception e) {
+            log.debug("관리자 감사 로그 요청 본문 캐시에 실패했습니다. uri={}", request.getRequestURI(), e);
+        }
+        return wrappedRequest;
+    }
+
+    private boolean isJsonRequest(HttpServletRequest request) {
+        String contentType = request.getContentType();
+        return contentType != null && contentType.contains("application/json");
     }
 
     private void recordAuditIfNecessary(HttpServletRequest request, ContentCachingResponseWrapper responseWrapper) {
