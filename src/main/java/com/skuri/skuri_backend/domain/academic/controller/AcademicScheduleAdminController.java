@@ -5,6 +5,10 @@ import com.skuri.skuri_backend.domain.academic.dto.request.CreateAcademicSchedul
 import com.skuri.skuri_backend.domain.academic.dto.request.UpdateAcademicScheduleRequest;
 import com.skuri.skuri_backend.domain.academic.dto.response.AcademicScheduleResponse;
 import com.skuri.skuri_backend.domain.academic.service.AcademicScheduleService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
@@ -20,7 +24,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/admin/academic-schedules")
 @Tag(name = "Academic Schedule Admin API", description = "관리자 학사 일정 CRUD API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class AcademicScheduleAdminController {
 
     private final AcademicScheduleService academicScheduleService;
@@ -96,6 +99,12 @@ public class AcademicScheduleAdminController {
                             """)
             )
     )
+    @AdminAudit(
+            action = AdminAuditActions.ACADEMIC_SCHEDULE_CREATED,
+            targetType = AdminAuditTargetTypes.ACADEMIC_SCHEDULE,
+            targetId = "#responseBody['data']['id']",
+            after = "@adminAuditSnapshots.academicSchedule(#responseBody['data']['id'])"
+    )
     public ResponseEntity<ApiResponse<AcademicScheduleResponse>> createAcademicSchedule(
             @Valid @RequestBody CreateAcademicScheduleRequest request
     ) {
@@ -152,6 +161,13 @@ public class AcademicScheduleAdminController {
                     )
             )
     })
+    @AdminAudit(
+            action = AdminAuditActions.ACADEMIC_SCHEDULE_UPDATED,
+            targetType = AdminAuditTargetTypes.ACADEMIC_SCHEDULE,
+            targetId = "#scheduleId",
+            before = "@adminAuditSnapshots.academicSchedule(#scheduleId)",
+            after = "@adminAuditSnapshots.academicSchedule(#scheduleId)"
+    )
     public ResponseEntity<ApiResponse<AcademicScheduleResponse>> updateAcademicSchedule(
             @Parameter(description = "학사 일정 ID", example = "schedule_uuid")
             @PathVariable String scheduleId,
@@ -200,6 +216,12 @@ public class AcademicScheduleAdminController {
                     )
             )
     })
+    @AdminAudit(
+            action = AdminAuditActions.ACADEMIC_SCHEDULE_DELETED,
+            targetType = AdminAuditTargetTypes.ACADEMIC_SCHEDULE,
+            targetId = "#scheduleId",
+            before = "@adminAuditSnapshots.academicSchedule(#scheduleId)"
+    )
     public ResponseEntity<ApiResponse<Void>> deleteAcademicSchedule(
             @Parameter(description = "학사 일정 ID", example = "schedule_uuid")
             @PathVariable String scheduleId

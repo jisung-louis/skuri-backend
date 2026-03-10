@@ -4,6 +4,10 @@ import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.support.dto.request.UpsertAppVersionRequest;
 import com.skuri.skuri_backend.domain.support.dto.response.AppVersionAdminUpdateResponse;
 import com.skuri.skuri_backend.domain.support.service.AppVersionService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportExamples;
@@ -18,7 +22,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/admin/app-versions")
 @Tag(name = "Admin Support App Version API", description = "관리자 앱 버전 관리 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class AppVersionAdminController {
 
     private final AppVersionService appVersionService;
@@ -103,6 +106,13 @@ public class AppVersionAdminController {
                                     """
                     )
             )
+    )
+    @AdminAudit(
+            action = AdminAuditActions.APP_VERSION_UPSERTED,
+            targetType = AdminAuditTargetTypes.APP_VERSION,
+            targetId = "#platform",
+            before = "@adminAuditSnapshots.appVersion(#platform)",
+            after = "@adminAuditSnapshots.appVersion(#platform)"
     )
     public ResponseEntity<ApiResponse<AppVersionAdminUpdateResponse>> upsertAppVersion(
             @Parameter(description = "플랫폼", example = "ios")

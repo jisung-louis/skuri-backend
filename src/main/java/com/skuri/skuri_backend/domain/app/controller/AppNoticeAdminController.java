@@ -6,6 +6,10 @@ import com.skuri.skuri_backend.domain.app.dto.request.UpdateAppNoticeRequest;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeCreateResponse;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeResponse;
 import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAppExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
@@ -21,7 +25,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/admin/app-notices")
 @Tag(name = "App Notice Admin API", description = "관리자 앱 공지 관리 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class AppNoticeAdminController {
 
     private final AppNoticeService appNoticeService;
@@ -99,6 +102,12 @@ public class AppNoticeAdminController {
                                     """
                     )
             )
+    )
+    @AdminAudit(
+            action = AdminAuditActions.APP_NOTICE_CREATED,
+            targetType = AdminAuditTargetTypes.APP_NOTICE,
+            targetId = "#responseBody['data']['id']",
+            after = "@adminAuditSnapshots.appNotice(#responseBody['data']['id'])"
     )
     public ResponseEntity<ApiResponse<AppNoticeCreateResponse>> createAppNotice(
             @Valid @RequestBody CreateAppNoticeRequest request
@@ -172,6 +181,13 @@ public class AppNoticeAdminController {
                     )
             )
     )
+    @AdminAudit(
+            action = AdminAuditActions.APP_NOTICE_UPDATED,
+            targetType = AdminAuditTargetTypes.APP_NOTICE,
+            targetId = "#appNoticeId",
+            before = "@adminAuditSnapshots.appNotice(#appNoticeId)",
+            after = "@adminAuditSnapshots.appNotice(#appNoticeId)"
+    )
     public ResponseEntity<ApiResponse<AppNoticeResponse>> updateAppNotice(
             @Parameter(description = "앱 공지 ID", example = "app_notice_uuid")
             @PathVariable String appNoticeId,
@@ -220,6 +236,12 @@ public class AppNoticeAdminController {
                     )
             )
     })
+    @AdminAudit(
+            action = AdminAuditActions.APP_NOTICE_DELETED,
+            targetType = AdminAuditTargetTypes.APP_NOTICE,
+            targetId = "#appNoticeId",
+            before = "@adminAuditSnapshots.appNotice(#appNoticeId)"
+    )
     public ResponseEntity<ApiResponse<Void>> deleteAppNotice(
             @Parameter(description = "앱 공지 ID", example = "app_notice_uuid")
             @PathVariable String appNoticeId

@@ -4,6 +4,10 @@ import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.academic.dto.request.AdminBulkCoursesRequest;
 import com.skuri.skuri_backend.domain.academic.dto.response.AdminBulkCoursesResponse;
 import com.skuri.skuri_backend.domain.academic.service.CourseService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
@@ -17,7 +21,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/admin/courses")
 @Tag(name = "Academic Course Admin API", description = "관리자 강의 일괄 등록/삭제 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class CourseAdminController {
 
     private final CourseService courseService;
@@ -114,6 +117,13 @@ public class CourseAdminController {
                             """)
             )
     )
+    @AdminAudit(
+            action = AdminAuditActions.COURSE_SEMESTER_BULK_UPSERTED,
+            targetType = AdminAuditTargetTypes.COURSE_SEMESTER,
+            targetId = "#requestBody.semester",
+            before = "@adminAuditSnapshots.courseSemester(#requestBody.semester)",
+            after = "@adminAuditSnapshots.courseSemester(#requestBody.semester)"
+    )
     public ResponseEntity<ApiResponse<AdminBulkCoursesResponse>> bulkUpsertCourses(
             @Valid @RequestBody AdminBulkCoursesRequest request
     ) {
@@ -169,6 +179,12 @@ public class CourseAdminController {
                     )
             )
     })
+    @AdminAudit(
+            action = AdminAuditActions.COURSE_SEMESTER_DELETED,
+            targetType = AdminAuditTargetTypes.COURSE_SEMESTER,
+            targetId = "#semester",
+            before = "@adminAuditSnapshots.courseSemester(#semester)"
+    )
     public ResponseEntity<ApiResponse<AdminBulkCoursesResponse>> deleteCourses(
             @io.swagger.v3.oas.annotations.Parameter(description = "삭제 대상 학기", example = "2026-1", required = true)
             @RequestParam(name = "semester") String semester

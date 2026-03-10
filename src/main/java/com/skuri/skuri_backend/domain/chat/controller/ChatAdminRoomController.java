@@ -4,6 +4,10 @@ import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.chat.dto.request.AdminCreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
 import com.skuri.skuri_backend.domain.chat.service.ChatAdminService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiChatExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
@@ -20,7 +24,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +39,7 @@ import static com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMemberSup
 @RequestMapping("/v1/admin/chat-rooms")
 @Tag(name = "Chat Admin API", description = "관리자 공개 채팅방 관리 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class ChatAdminRoomController {
 
     private final ChatAdminService chatAdminService;
@@ -103,6 +106,12 @@ public class ChatAdminRoomController {
                     )
             )
     )
+    @AdminAudit(
+            action = AdminAuditActions.CHAT_ROOM_CREATED,
+            targetType = AdminAuditTargetTypes.CHAT_ROOM,
+            targetId = "#responseBody['data']['id']",
+            after = "@adminAuditSnapshots.chatRoom(#responseBody['data']['id'])"
+    )
     public ResponseEntity<ApiResponse<AdminCreateChatRoomResponse>> createPublicChatRoom(
             @Parameter(hidden = true)
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
@@ -167,6 +176,12 @@ public class ChatAdminRoomController {
                     )
             )
     })
+    @AdminAudit(
+            action = AdminAuditActions.CHAT_ROOM_DELETED,
+            targetType = AdminAuditTargetTypes.CHAT_ROOM,
+            targetId = "#chatRoomId",
+            before = "@adminAuditSnapshots.chatRoom(#chatRoomId)"
+    )
     public ResponseEntity<ApiResponse<Void>> deletePublicChatRoom(
             @PathVariable String chatRoomId
     ) {
@@ -174,4 +189,3 @@ public class ChatAdminRoomController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
-

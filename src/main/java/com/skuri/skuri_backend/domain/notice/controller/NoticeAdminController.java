@@ -3,6 +3,10 @@ package com.skuri.skuri_backend.domain.notice.controller;
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeSyncResponse;
 import com.skuri.skuri_backend.domain.notice.service.NoticeSyncService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiNoticeExamples;
@@ -15,7 +19,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/admin/notices")
 @Tag(name = "Notice Admin API", description = "관리자 학교 공지 동기화 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class NoticeAdminController {
 
     private final NoticeSyncService noticeSyncService;
@@ -70,6 +73,11 @@ public class NoticeAdminController {
                     )
             )
     })
+    @AdminAudit(
+            action = AdminAuditActions.NOTICE_SYNC_TRIGGERED,
+            targetType = AdminAuditTargetTypes.NOTICE_SYNC,
+            after = "#responseBody['data']"
+    )
     public ResponseEntity<ApiResponse<NoticeSyncResponse>> syncNotices() {
         return ResponseEntity.ok(ApiResponse.success(noticeSyncService.syncManually()));
     }

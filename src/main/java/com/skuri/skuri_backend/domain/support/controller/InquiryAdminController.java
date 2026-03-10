@@ -6,6 +6,10 @@ import com.skuri.skuri_backend.domain.support.dto.request.UpdateInquiryStatusReq
 import com.skuri.skuri_backend.domain.support.dto.response.AdminInquiryResponse;
 import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
 import com.skuri.skuri_backend.domain.support.service.InquiryService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportExamples;
@@ -20,7 +24,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/admin/inquiries")
 @Tag(name = "Admin Support Inquiry API", description = "관리자 문의 운영 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class InquiryAdminController {
 
     private final InquiryService inquiryService;
@@ -170,10 +173,17 @@ public class InquiryAdminController {
                                     {
                                       "status": "RESOLVED",
                                       "memo": "재현 후 수정 배포 완료"
-                                    }
+                                    }                                    
                                     """
                     )
             )
+    )
+    @AdminAudit(
+            action = AdminAuditActions.INQUIRY_STATUS_UPDATED,
+            targetType = AdminAuditTargetTypes.INQUIRY,
+            targetId = "#inquiryId",
+            before = "@adminAuditSnapshots.inquiry(#inquiryId)",
+            after = "@adminAuditSnapshots.inquiry(#inquiryId)"
     )
     public ResponseEntity<ApiResponse<AdminInquiryResponse>> updateInquiryStatus(
             @Parameter(description = "문의 ID", example = "inquiry_uuid")
