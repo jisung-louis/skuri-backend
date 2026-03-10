@@ -33,6 +33,10 @@ OPENAPI_ENABLED=false
 API_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
 CHAT_WS_ALLOWED_ORIGIN_PATTERNS=https://admin.skuri.example
 CD_SMOKE_CORS_ORIGIN=https://admin.skuri.example
+MEDIA_STORAGE_BASE_DIR=/app/var/media
+MEDIA_STORAGE_PROVIDER=LOCAL
+MEDIA_STORAGE_PUBLIC_BASE_URL=https://api.skuri.example/uploads
+MEDIA_STORAGE_FIREBASE_BUCKET=
 MYSQL_DATABASE=skuri
 MYSQL_USER=skuri
 MYSQL_PASSWORD=<db-user-password>
@@ -48,6 +52,8 @@ FIREBASE_CREDENTIALS_PATH=/app/secrets/firebase-admin.json
 - 운영 app 포트도 `${APP_HOST_BIND:-127.0.0.1}:${APP_HOST_PORT:-8080}` loopback 바인딩을 유지해 Nginx만 접근하게 한다.
 - Workbench 같은 운영자 접속은 호스트 loopback `${MYSQL_HOST_BIND:-127.0.0.1}:${MYSQL_HOST_PORT:-3307}` 로만 열고 SSH를 통해 접근한다.
 - `0.0.0.0:3306` 같은 공용 바인딩은 사용하지 않는다.
+- `MEDIA_STORAGE_PROVIDER=LOCAL`이면 이미지 업로드는 `media-prod-data -> /app/var/media` 볼륨에 저장하고, 공개 URL은 `MEDIA_STORAGE_PUBLIC_BASE_URL`로 reverse proxy 도메인을 지정한다.
+- `MEDIA_STORAGE_PROVIDER=FIREBASE`이면 `MEDIA_STORAGE_FIREBASE_BUCKET`에 업로드하고, 응답 URL은 Firebase Storage download URL을 사용한다. compose 설정상 local media volume은 남아 있어도, 현재 런타임에서는 FIREBASE provider의 업로드/공개 경로로 사용하지 않는다.
 
 ## 3. 로컬 실행
 
@@ -123,6 +129,7 @@ docker compose up -d --build
 - OCI 인스턴스 안의 Docker 영속 볼륨
   - `mysql-prod-data`
   - `redis-prod-data`
+  - `media-prod-data`
 - 공개 도메인용 reverse proxy
   - 예: Nginx `80/443` -> 앱 `127.0.0.1:8080`
 - Cloudflare를 쓰는 경우 SSL/TLS 모드

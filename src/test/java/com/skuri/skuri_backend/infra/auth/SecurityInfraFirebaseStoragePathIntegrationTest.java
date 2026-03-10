@@ -1,5 +1,7 @@
 package com.skuri.skuri_backend.infra.auth;
 
+import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.support.service.AppVersionService;
@@ -16,7 +18,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,8 +31,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ApiAuthenticationEntryPoint.class,
         ApiAccessDeniedHandler.class
 })
-@TestPropertySource(properties = "app.openapi.enabled=true")
-class SecurityInfraPublicPathIntegrationTest {
+@TestPropertySource(properties = {
+        "app.openapi.enabled=true",
+        "media.storage.provider=FIREBASE",
+        "media.storage.url-prefix=/uploads"
+})
+class SecurityInfraFirebaseStoragePathIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -44,29 +51,20 @@ class SecurityInfraPublicPathIntegrationTest {
     private MemberRepository memberRepository;
 
     @Test
-    void actuatorHealth_인증없이_허용() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void openApi_활성화시_인증없이_허용() throws Exception {
-        mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void uploadsPath_인증없이_허용() throws Exception {
+    void uploadsPath_FIREBASEprovider에서는_인증없이는허용되지않는다() throws Exception {
         mockMvc.perform(get("/uploads/test.jpg"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void uploadsPath_잘못된Bearer가있어도_토큰검증없이허용() throws Exception {
+    void uploadsPath_FIREBASEprovider에서는_잘못된Bearer면토큰검증후_401() throws Exception {
+        when(firebaseTokenVerifier.verify("invalid-token"))
+                .thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
         mockMvc.perform(get("/uploads/test.jpg")
                         .header(AUTHORIZATION, "Bearer invalid-token"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
 
-        verifyNoInteractions(firebaseTokenVerifier);
+        verify(firebaseTokenVerifier).verify("invalid-token");
     }
 }

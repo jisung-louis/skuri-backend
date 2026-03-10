@@ -335,7 +335,7 @@ Spring 서버 처리:
 - 요청 본문에 포함되지 않은 필드는 기존 값을 유지합니다.
 - `nickname`은 `members.nickname`을 수정합니다.
 - `realname`은 회원 생성 시 provider 이름으로 초기화되며, 이 API로 수정할 수 없습니다.
-- `photoUrl`은 현재 앱에서 미사용이며, 추후 프로필 이미지 기능에서 사용 예정입니다.
+- `photoUrl`은 `POST /v1/images`의 `PROFILE_IMAGE` 업로드 결과 URL을 그대로 재사용할 수 있습니다.
 
 **Request:**
 ```json
@@ -1346,6 +1346,8 @@ Authorization:Bearer <firebase_id_token>
 { "type": "IMAGE", "imageUrl": "https://..." }
 ```
 
+- `IMAGE` 메시지의 `imageUrl`은 `POST /v1/images`의 `CHAT_IMAGE` 업로드 결과 URL을 그대로 사용합니다.
+
 **채팅방 목록 요약 이벤트 포맷 (서버 → 클라이언트):**
 ```json
 {
@@ -1535,6 +1537,8 @@ Authorization:Bearer <firebase_id_token>
   ]
 }
 ```
+
+- `images[]`의 `url`, `thumbUrl`, `width`, `height`, `size`, `mime`는 `POST /v1/images`의 `POST_IMAGE` 응답을 그대로 사용할 수 있습니다.
 
 #### PATCH /v1/posts/{postId}
 
@@ -3241,18 +3245,13 @@ data: {
 
 ## 11. Image API
 
-> 참고: 이 섹션은 **Phase 12(이미지/미디어 업로드 인프라)** 구현을 위한 참고 초안입니다.
-> 2026-03-10 기준 `/v3/api-docs` 런타임 계약에는 `/v1/images`가 아직 존재하지 않으며,
-> 현재 구현은 게시판/채팅/앱 공지/프로필이 **업로드된 URL 입력**만 받는 구조입니다.
-> 실제 구현 시에는 이 초안을 그대로 고정하지 않고, 런타임/API/OpenAPI/Postman을 함께 재검토해 동기화합니다.
-
-이미지 업로드는 **클라이언트 → Spring 서버(multipart) → Storage** 순으로 처리됩니다.
-스토리지 서비스 교체(Firebase Storage → AWS S3 등) 시 클라이언트 코드 변경 없이 **서버 구현체만 교체**하면 됩니다.
+이미지 업로드는 **클라이언트 → Spring 서버(multipart) → StorageRepository 구현체** 순으로 처리됩니다.
+현재 기본 runtime provider는 **LOCAL 파일시스템**이며, `FIREBASE` provider도 선택할 수 있습니다.
 
 ### 11.1 이미지 업로드
 
 #### POST /v1/images
-이미지 파일을 서버를 통해 Storage에 업로드합니다.
+이미지 파일을 서버를 통해 업로드하고, 원본/썸네일 URL과 메타데이터를 반환합니다.
 
 **인증:** Firebase ID Token 필수
 
@@ -3261,39 +3260,62 @@ data: {
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
 | `file` | File | O | 이미지 파일 (JPEG, PNG, WebP) |
-| `context` | string | O | 업로드 맥락 (`POST_IMAGE` \| `PROFILE_IMAGE`) |
+| `context` | string | O | 업로드 컨텍스트 (`POST_IMAGE` \| `CHAT_IMAGE` \| `APP_NOTICE_IMAGE` \| `PROFILE_IMAGE`) |
 
-**제약 조건:**
+**context 권한 정책**
+
+| context | 권한 | 주 사용처 |
+|---------|------|-----------|
+| `POST_IMAGE` | 인증 사용자 | Board `images[]` |
+| `CHAT_IMAGE` | 인증 사용자 | Chat `imageUrl` |
+| `PROFILE_IMAGE` | 인증 사용자 | Member profile `photoUrl` |
+| `APP_NOTICE_IMAGE` | 관리자만 허용 | AppNotice `imageUrls[]` |
+
+**제약 조건**
 - 최대 파일 크기: 10MB
 - 허용 형식: JPEG, PNG, WebP
+- 최대 해상도: 가로 5000px, 세로 5000px, 총 픽셀 수 20,000,000 이하
+- 응답 필드: `url`, `thumbUrl`, `width`, `height`, `size`, `mime`
+- LOCAL provider에서는 업로드 결과 URL이 `GET {media.storage.url-prefix}/**`로 공개 제공되며, Authorization 헤더가 있어도 공개 조회를 우선한다.
+- FIREBASE provider에서는 Firebase Storage download URL을 그대로 반환한다.
 
-**썸네일(thumbUrl) 생성 규칙:**
-- 서버가 업로드 시점에 원본 이미지를 리사이징하여 썸네일을 함께 생성
-- 최대 너비 300px (높이는 비율 유지)
-- 압축 품질: 80%
-- 파일명: 원본 파일명에 `_thumb` 접미사 추가 (예: `image.jpg` → `image_thumb.jpg`)
-- `StorageRepository` 구현체 내부에서 처리 (Firebase Storage / AWS S3 공통)
+**썸네일 생성 규칙**
+- 서버가 업로드 시점에 원본 이미지를 리사이징해 썸네일을 함께 생성합니다.
+- 최대 너비는 300px이며, 높이는 원본 비율을 유지합니다.
+- 썸네일 파일명은 원본 파일명에 `_thumb` 접미사를 붙입니다.
+- alpha 채널이 없는 이미지는 JPEG 썸네일, alpha 채널이 있는 이미지는 PNG 썸네일을 기본으로 사용합니다.
+
+**저장 경로 규칙**
+- `POST_IMAGE` → `posts/YYYY/MM/DD/{uuid}.{ext}`
+- `CHAT_IMAGE` → `chat/YYYY/MM/DD/{uuid}.{ext}`
+- `PROFILE_IMAGE` → `profiles/YYYY/MM/DD/{uuid}.{ext}`
+- `APP_NOTICE_IMAGE` → `app-notices/YYYY/MM/DD/{uuid}.{ext}`
 
 **Response (200 OK):**
 ```json
 {
   "success": true,
   "data": {
-    "url": "https://storage.googleapis.com/skuri-bucket/posts/uuid/image.jpg",
-    "thumbUrl": "https://storage.googleapis.com/skuri-bucket/posts/uuid/image_thumb.jpg",
+    "url": "https://api.skuri.example/uploads/posts/2026/03/10/4f3ec1a0.jpg",
+    "thumbUrl": "https://api.skuri.example/uploads/posts/2026/03/10/4f3ec1a0_thumb.jpg",
     "width": 800,
     "height": 600,
-    "size": 204800
+    "size": 245123,
+    "mime": "image/jpeg"
   }
 }
 ```
 
-**에러 코드:**
+**에러 코드**
 
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
-| `IMAGE_TOO_LARGE` | 413 | 파일 크기 초과 (10MB 이상) |
+| `INVALID_REQUEST` | 400 | multipart 파라미터 누락, 빈 `file`, 또는 잘못된 `context` |
+| `ADMIN_REQUIRED` | 403 | `APP_NOTICE_IMAGE`를 일반 사용자가 업로드 |
+| `IMAGE_DIMENSIONS_EXCEEDED` | 422 | 허용 해상도 또는 총 픽셀 수 초과 |
+| `IMAGE_TOO_LARGE` | 413 | 파일 크기 초과 (10MB 초과) |
 | `IMAGE_INVALID_FORMAT` | 415 | 지원하지 않는 이미지 형식 |
+| `IMAGE_UPLOAD_FAILED` | 500 | 스토리지 저장 또는 썸네일 생성 실패 |
 
 ---
 
@@ -3305,15 +3327,38 @@ data: {
 클라이언트
     │
     ├─ 1. POST /v1/images (multipart, context=POST_IMAGE)
-    │      └─ Response: { url, thumbUrl, width, height }   ← 이 값을 보관
-    │         (이미지가 여러 장이면 반복 호출)
+    │      └─ Response: { url, thumbUrl, width, height, size, mime }
     │
     └─ 2. POST /v1/posts
            {
              "title": "...",
              "content": "...",
-             "images": [{ "url": "...", "thumbUrl": "...", "width": 800, "height": 600 }]
+             "images": [{ "url": "...", "thumbUrl": "...", "width": 800, "height": 600, "size": 245123, "mime": "image/jpeg" }]
            }
+```
+
+#### 채팅 이미지
+
+```
+클라이언트
+    │
+    ├─ 1. POST /v1/images (multipart, context=CHAT_IMAGE)
+    │      └─ Response: { url, ... }
+    │
+    └─ 2. SEND /app/chat/{chatRoomId}
+           { "type": "IMAGE", "imageUrl": "https://..." }
+```
+
+#### 앱 공지 이미지
+
+```
+클라이언트(관리자)
+    │
+    ├─ 1. POST /v1/images (multipart, context=APP_NOTICE_IMAGE)
+    │      └─ Response: { url, ... }
+    │
+    └─ 2. POST /v1/admin/app-notices
+           { "imageUrls": ["https://..."], ... }
 ```
 
 #### 프로필 이미지
@@ -3332,20 +3377,22 @@ data: {
 
 ### 11.3 Storage 추상화 설계
 
-Spring 서버는 `StorageRepository` 인터페이스로 스토리지 서비스를 추상화합니다.
+Spring 서버는 `StorageRepository` 인터페이스로 storage provider를 추상화합니다.
 
 ```java
 interface StorageRepository {
-    UploadResult upload(String path, byte[] data, String contentType);
-    void delete(String path);
+    StoredObject store(String relativePath, byte[] data, String contentType);
+    void delete(String relativePath);
+
+    record StoredObject(String relativePath, String publicUrl) {}
 }
 ```
 
-스토리지 서비스 교체 시 구현체만 교체하면 됩니다.
+현재 provider는 LOCAL 파일시스템과 FIREBASE를 지원한다. LOCAL은 공개 URL prefix/base URL을 설정값으로 관리하고, FIREBASE는 bucket 업로드 후 tokenized download URL을 반환한다.
 
-| 현재 | 교체 가능 대상 |
-|------|--------------|
-| Firebase Storage | AWS S3, Google Cloud Storage, MinIO 등 |
+| 현재 기본 provider | 후속 교체 대상 |
+|--------------------|----------------|
+| LOCAL 파일시스템, FIREBASE | AWS S3, OCI Object Storage, MinIO 등 |
 
 ---
 
@@ -3376,6 +3423,8 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 #### POST /v1/admin/app-notices
 앱 공지 생성
+
+- `imageUrls[]`에는 `POST /v1/images`의 `APP_NOTICE_IMAGE` 업로드 결과 URL을 넣을 수 있습니다.
 
 **Request:**
 ```json
@@ -3963,4 +4012,4 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, `commentNotifications` / `bookmarkedPostCommentNotifications` 계약 반영
 > - 2026-03-08: Phase 8 Notification 계약 반영 — `PARTY_*` canonical enum 정렬, Notification API pagination/FCM token/SSE strict DTO(`ACADEMIC_SCHEDULE`, `academicScheduleId`) 동기화, 학사 일정 알림 설정 필드 추가
 > - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `@AdminApiAccess` 공통화, `admin_audit_logs` 저장 규약, Support Admin 목록 고정 정렬/페이지 정책, CSV 보류 및 운영 데이터 노출 정책 문서화
-> - 2026-03-10: Image 계약 정합화 — Image API 섹션을 Phase 12 참고 초안으로 유지하고, 현재 `/v3/api-docs` 런타임 계약에는 `/v1/images`가 아직 없음을 함께 명시
+> - 2026-03-10: Image 계약 구현 반영 — `/v1/images`를 런타임 계약으로 승격하고, context enum(`POST/CHAT/APP_NOTICE/PROFILE`), LOCAL storage 기본 전략, Board/Chat/AppNotice/Profile 재사용 플로우를 `/v3/api-docs` 기준으로 동기화

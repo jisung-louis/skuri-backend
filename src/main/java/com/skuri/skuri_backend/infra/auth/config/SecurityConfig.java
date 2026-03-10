@@ -1,9 +1,11 @@
 package com.skuri.skuri_backend.infra.auth.config;
 
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseAuthenticationFilter;
+import com.skuri.skuri_backend.infra.storage.MediaStorageProperties;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,12 +27,14 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@EnableConfigurationProperties(MediaStorageProperties.class)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final FirebaseAuthenticationFilter firebaseAuthenticationFilter;
     private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
     private final ApiAccessDeniedHandler apiAccessDeniedHandler;
+    private final MediaStorageProperties mediaStorageProperties;
 
     @Value("${app.openapi.enabled:true}")
     private boolean openApiEnabled;
@@ -47,8 +51,12 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> {
+                    String mediaUrlPrefix = mediaStorageProperties.normalizedUrlPrefix();
                     authorize.requestMatchers(HttpMethod.GET, "/v1/app-versions/**", "/v1/app-notices/**").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll();
+                    if (mediaStorageProperties.getProvider() == com.skuri.skuri_backend.infra.storage.StorageProviderType.LOCAL) {
+                        authorize.requestMatchers(HttpMethod.GET, mediaUrlPrefix, mediaUrlPrefix + "/**").permitAll();
+                    }
                     authorize.requestMatchers("/ws/**").permitAll();
                     if (openApiEnabled) {
                         authorize.requestMatchers(

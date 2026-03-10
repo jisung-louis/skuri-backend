@@ -16,8 +16,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,8 +26,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ApiAuthenticationEntryPoint.class,
         ApiAccessDeniedHandler.class
 })
-@TestPropertySource(properties = "app.openapi.enabled=true")
-class SecurityInfraPublicPathIntegrationTest {
+@TestPropertySource(properties = {
+        "app.openapi.enabled=true",
+        "media.storage.url-prefix=uploads"
+})
+class SecurityInfraCustomUploadPrefixIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -44,29 +45,8 @@ class SecurityInfraPublicPathIntegrationTest {
     private MemberRepository memberRepository;
 
     @Test
-    void actuatorHealth_인증없이_허용() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void openApi_활성화시_인증없이_허용() throws Exception {
-        mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void uploadsPath_인증없이_허용() throws Exception {
+    void uploadsPath_prefix에슬래시가없어도_기동되고허용된다() throws Exception {
         mockMvc.perform(get("/uploads/test.jpg"))
                 .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void uploadsPath_잘못된Bearer가있어도_토큰검증없이허용() throws Exception {
-        mockMvc.perform(get("/uploads/test.jpg")
-                        .header(AUTHORIZATION, "Bearer invalid-token"))
-                .andExpect(status().isNotFound());
-
-        verifyNoInteractions(firebaseTokenVerifier);
     }
 }

@@ -68,11 +68,18 @@ services:
       FIREBASE_AUTH_EMULATOR_HOST: ${FIREBASE_AUTH_EMULATOR_HOST:-}
       API_ALLOWED_ORIGIN_PATTERNS: ${API_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
       CHAT_WS_ALLOWED_ORIGIN_PATTERNS: ${CHAT_WS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
+      MEDIA_STORAGE_PROVIDER: ${MEDIA_STORAGE_PROVIDER:-LOCAL}
+      MEDIA_STORAGE_BASE_DIR: ${MEDIA_STORAGE_BASE_DIR:-/app/var/media}
+      MEDIA_STORAGE_PUBLIC_BASE_URL: ${MEDIA_STORAGE_PUBLIC_BASE_URL:-http://localhost:8080/uploads}
+      MEDIA_STORAGE_FIREBASE_BUCKET: ${MEDIA_STORAGE_FIREBASE_BUCKET:-}
       LOG_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-INFO}
       LOG_LEVEL_APP: ${LOG_LEVEL_APP:-INFO}
     ports:
       - "${APP_HOST_PORT:-8080}:8080"
+    volumes:
+      - media-data:/app/var/media
 
 volumes:
   mysql-data:
   redis-data:
+  media-data:
