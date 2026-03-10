@@ -167,6 +167,19 @@ class ImageUploadServiceTest {
     }
 
     @Test
+    void upload_디코딩가능하지만비허용포맷이면_크기와무관하게_IMAGE_INVALID_FORMAT() throws Exception {
+        byte[] imageBytes = createImageBytes("gif", 5_001, 100, BufferedImage.TYPE_INT_RGB);
+        MockMultipartFile file = new MockMultipartFile("file", "too-wide.gif", "image/gif", imageBytes);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file)
+        );
+
+        assertEquals(ErrorCode.IMAGE_INVALID_FORMAT, exception.getErrorCode());
+    }
+
+    @Test
     void upload_publicBaseUrl이없으면_urlPrefix기준기본공개경로를생성한다() throws Exception {
         MediaStorageProperties mediaStorageProperties = new MediaStorageProperties();
         mediaStorageProperties.setProvider(StorageProviderType.LOCAL);
