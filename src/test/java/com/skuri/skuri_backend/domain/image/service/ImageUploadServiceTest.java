@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockMultipartFile;
 
 import javax.imageio.ImageIO;
@@ -46,11 +47,19 @@ class ImageUploadServiceTest {
 
         ImageUploadProperties imageUploadProperties = new ImageUploadProperties();
         imageUploadProperties.setMaxFileSizeBytes(10 * 1024 * 1024);
+        imageUploadProperties.setMaxWidth(5_000);
+        imageUploadProperties.setMaxHeight(5_000);
+        imageUploadProperties.setMaxPixelCount(20_000_000L);
         imageUploadProperties.setThumbnailWidth(300);
         imageUploadProperties.setThumbnailJpegQuality(0.8d);
 
         StorageRepository storageRepository = new LocalStorageRepository(mediaStorageProperties);
-        imageUploadService = new ImageUploadService(storageRepository, imageUploadProperties, mediaStorageProperties);
+        imageUploadService = new ImageUploadService(
+                storageRepository,
+                imageUploadProperties,
+                mediaStorageProperties,
+                new MockEnvironment().withProperty("server.port", "8080")
+        );
     }
 
     @Test
@@ -102,6 +111,19 @@ class ImageUploadServiceTest {
     }
 
     @Test
+    void upload_빈파일이면_INVALID_REQUEST() {
+        MockMultipartFile file = new MockMultipartFile("file", "empty.jpg", "image/jpeg", new byte[0]);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file)
+        );
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+        assertEquals("file은 비어 있을 수 없습니다.", exception.getMessage());
+    }
+
+    @Test
     void upload_크기초과면_IMAGE_TOO_LARGE() {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -132,6 +154,48 @@ class ImageUploadServiceTest {
 
         assertTrue(response.url().contains(expectedSegment));
         assertTrue(response.thumbUrl().contains(expectedSegment));
+    }
+
+    @Test
+    void upload_해상도초과면_IMAGE_DIMENSIONS_EXCEEDED() throws Exception {
+        byte[] imageBytes = createImageBytes("png", 5_001, 100, BufferedImage.TYPE_INT_ARGB);
+        MockMultipartFile file = new MockMultipartFile("file", "too-wide.png", "image/png", imageBytes);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file)
+        );
+
+        assertEquals(ErrorCode.IMAGE_DIMENSIONS_EXCEEDED, exception.getErrorCode());
+    }
+
+    @Test
+    void upload_publicBaseUrl이없으면_urlPrefix기준기본공개경로를생성한다() throws Exception {
+        MediaStorageProperties mediaStorageProperties = new MediaStorageProperties();
+        mediaStorageProperties.setProvider(StorageProviderType.LOCAL);
+        mediaStorageProperties.setBaseDir(tempDir.toString());
+        mediaStorageProperties.setUrlPrefix("media-files");
+
+        ImageUploadProperties imageUploadProperties = new ImageUploadProperties();
+        StorageRepository storageRepository = new LocalStorageRepository(mediaStorageProperties);
+        ImageUploadService service = new ImageUploadService(
+                storageRepository,
+                imageUploadProperties,
+                mediaStorageProperties,
+                new MockEnvironment().withProperty("server.port", "9090")
+        );
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "sample.jpg",
+                "image/jpeg",
+                createImageBytes("jpg", 100, 100, BufferedImage.TYPE_INT_RGB)
+        );
+
+        ImageUploadResponse response = service.upload(false, ImageUploadContext.POST_IMAGE, file);
+
+        assertTrue(response.url().startsWith("http://localhost:9090/media-files/posts/"));
+        assertTrue(response.thumbUrl().startsWith("http://localhost:9090/media-files/posts/"));
     }
 
     private Path toStoredPath(String url) {

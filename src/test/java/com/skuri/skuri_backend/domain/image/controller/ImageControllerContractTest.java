@@ -118,6 +118,22 @@ class ImageControllerContractTest {
     }
 
     @Test
+    void postImages_해상도초과_422() throws Exception {
+        mockValidToken();
+        when(imageUploadService.upload(eq(false), eq(ImageUploadContext.POST_IMAGE), any()))
+                .thenThrow(new BusinessException(ErrorCode.IMAGE_DIMENSIONS_EXCEEDED));
+
+                mockMvc.perform(
+                        multipart("/v1/images")
+                                .file(new MockMultipartFile("file", "image.png", "image/png", "test-image".getBytes()))
+                                .param("context", "POST_IMAGE")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.errorCode").value("IMAGE_DIMENSIONS_EXCEEDED"));
+    }
+
+    @Test
     void postImages_잘못된context_400() throws Exception {
         mockValidToken();
 
