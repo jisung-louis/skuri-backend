@@ -35,6 +35,9 @@ public class SecurityConfig {
     @Value("${app.openapi.enabled:true}")
     private boolean openApiEnabled;
 
+    @Value("${media.storage.url-prefix:/uploads}")
+    private String mediaStorageUrlPrefix;
+
     @Value("${app.api.allowed-origin-patterns:}")
     private String[] apiAllowedOriginPatterns;
 
@@ -49,6 +52,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(HttpMethod.GET, "/v1/app-versions/**", "/v1/app-notices/**").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, mediaStorageUrlPrefix + "/**").permitAll();
                     authorize.requestMatchers("/ws/**").permitAll();
                     if (openApiEnabled) {
                         authorize.requestMatchers(

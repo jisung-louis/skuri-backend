@@ -116,6 +116,14 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi imageApi() {
+        return GroupedOpenApi.builder()
+                .group("image")
+                .pathsToMatch("/v1/images/**")
+                .build();
+    }
+
+    @Bean
     public GroupedOpenApi academicApi() {
         return GroupedOpenApi.builder()
                 .group("academic")
