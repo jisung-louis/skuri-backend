@@ -15,9 +15,9 @@ import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
 import com.skuri.skuri_backend.domain.support.exception.InquiryNotFoundException;
 import com.skuri.skuri_backend.domain.support.repository.InquiryRepository;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
+import com.skuri.skuri_backend.infra.admin.list.AdminPageRequestPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,8 +28,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class InquiryService {
-
-    private static final int MAX_PAGE_SIZE = 100;
 
     private final InquiryRepository inquiryRepository;
     private final MemberRepository memberRepository;
@@ -125,13 +123,7 @@ public class InquiryService {
     }
 
     private Pageable resolvePageable(int page, int size) {
-        if (page < 0) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "page는 0 이상이어야 합니다.");
-        }
-        if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "size는 1 이상 100 이하여야 합니다.");
-        }
-        return PageRequest.of(page, size);
+        return AdminPageRequestPolicy.of(page, size);
     }
 
     private String normalizeRequired(String value) {

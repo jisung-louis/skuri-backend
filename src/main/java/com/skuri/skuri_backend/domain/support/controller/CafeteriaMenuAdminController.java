@@ -5,6 +5,10 @@ import com.skuri.skuri_backend.domain.support.dto.request.CreateCafeteriaMenuReq
 import com.skuri.skuri_backend.domain.support.dto.request.UpdateCafeteriaMenuRequest;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.service.CafeteriaMenuService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportExamples;
@@ -20,7 +24,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/admin/cafeteria-menus")
 @Tag(name = "Admin Support Cafeteria API", description = "관리자 학식 메뉴 관리 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class CafeteriaMenuAdminController {
 
     private final CafeteriaMenuService cafeteriaMenuService;
@@ -119,6 +122,13 @@ public class CafeteriaMenuAdminController {
                                     """
                     )
             )
+    )
+    @AdminAudit(
+            action = AdminAuditActions.CAFETERIA_MENU_CREATED,
+            targetType = AdminAuditTargetTypes.CAFETERIA_MENU,
+            targetId = "#requestBody['weekId']",
+            before = "@adminAuditSnapshots.cafeteriaMenu(#requestBody['weekId'])",
+            after = "@adminAuditSnapshots.cafeteriaMenu(#requestBody['weekId'])"
     )
     public ResponseEntity<ApiResponse<CafeteriaMenuResponse>> createMenu(
             @Valid @RequestBody CreateCafeteriaMenuRequest request
@@ -207,6 +217,13 @@ public class CafeteriaMenuAdminController {
                     )
             )
     )
+    @AdminAudit(
+            action = AdminAuditActions.CAFETERIA_MENU_UPDATED,
+            targetType = AdminAuditTargetTypes.CAFETERIA_MENU,
+            targetId = "#weekId",
+            before = "@adminAuditSnapshots.cafeteriaMenu(#weekId)",
+            after = "@adminAuditSnapshots.cafeteriaMenu(#weekId)"
+    )
     public ResponseEntity<ApiResponse<CafeteriaMenuResponse>> updateMenu(
             @Parameter(description = "주차 ID", example = "2026-W08")
             @PathVariable String weekId,
@@ -264,6 +281,12 @@ public class CafeteriaMenuAdminController {
                     )
             )
     })
+    @AdminAudit(
+            action = AdminAuditActions.CAFETERIA_MENU_DELETED,
+            targetType = AdminAuditTargetTypes.CAFETERIA_MENU,
+            targetId = "#weekId",
+            before = "@adminAuditSnapshots.cafeteriaMenu(#weekId)"
+    )
     public ResponseEntity<ApiResponse<Void>> deleteMenu(
             @Parameter(description = "주차 ID", example = "2026-W08")
             @PathVariable String weekId

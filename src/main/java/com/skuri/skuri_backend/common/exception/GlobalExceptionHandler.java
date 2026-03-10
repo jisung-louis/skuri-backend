@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.common.exception;
 
 import com.skuri.skuri_backend.common.dto.ApiResponse;
+import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedErrorResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -21,8 +22,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final String ADMIN_PATH_PREFIX = "/v1/admin/";
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
@@ -98,7 +97,7 @@ public class GlobalExceptionHandler {
             AccessDeniedException e,
             HttpServletRequest request
     ) {
-        ErrorCode errorCode = isAdminPath(request) ? ErrorCode.ADMIN_REQUIRED : ErrorCode.FORBIDDEN;
+        ErrorCode errorCode = ApiAccessDeniedErrorResolver.resolve(request, e);
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
                 .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
@@ -121,13 +120,5 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.INTERNAL_ERROR.getHttpStatus())
                 .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR.getCode(), ErrorCode.INTERNAL_ERROR.getMessage()));
-    }
-
-    private boolean isAdminPath(HttpServletRequest request) {
-        if (request == null) {
-            return false;
-        }
-        String uri = request.getRequestURI();
-        return uri != null && uri.startsWith(ADMIN_PATH_PREFIX);
     }
 }

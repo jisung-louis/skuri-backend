@@ -18,10 +18,10 @@ import com.skuri.skuri_backend.domain.support.entity.ReportStatus;
 import com.skuri.skuri_backend.domain.support.entity.ReportTargetType;
 import com.skuri.skuri_backend.domain.support.exception.ReportNotFoundException;
 import com.skuri.skuri_backend.domain.support.repository.ReportRepository;
+import com.skuri.skuri_backend.infra.admin.list.AdminPageRequestPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,8 +32,6 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 public class ReportService {
-
-    private static final int MAX_PAGE_SIZE = 100;
 
     private final ReportRepository reportRepository;
     private final PostRepository postRepository;
@@ -115,13 +113,7 @@ public class ReportService {
     }
 
     private Pageable resolvePageable(int page, int size) {
-        if (page < 0) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "page는 0 이상이어야 합니다.");
-        }
-        if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "size는 1 이상 100 이하여야 합니다.");
-        }
-        return PageRequest.of(page, size);
+        return AdminPageRequestPolicy.of(page, size);
     }
 
     private String normalizeRequired(String value) {

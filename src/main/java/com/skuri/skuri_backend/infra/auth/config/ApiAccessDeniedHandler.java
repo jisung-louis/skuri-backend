@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skuri.skuri_backend.common.config.ObjectMapperConfig;
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
-import com.skuri.skuri_backend.infra.auth.firebase.EmailDomainRestrictedException;
-import com.skuri.skuri_backend.infra.auth.firebase.WithdrawnMemberAccessDeniedException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
@@ -20,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 public class ApiAccessDeniedHandler implements AccessDeniedHandler {
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMapperConfig.SHARED_OBJECT_MAPPER;
-    private static final String ADMIN_PATH_PREFIX = "/v1/admin/";
 
     @Override
     public void handle(
@@ -28,16 +25,7 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
             HttpServletResponse response,
             AccessDeniedException accessDeniedException
     ) throws IOException {
-        ErrorCode errorCode;
-        if (accessDeniedException instanceof EmailDomainRestrictedException) {
-            errorCode = ErrorCode.EMAIL_DOMAIN_RESTRICTED;
-        } else if (accessDeniedException instanceof WithdrawnMemberAccessDeniedException) {
-            errorCode = ErrorCode.MEMBER_WITHDRAWN;
-        } else if (isAdminPath(request)) {
-            errorCode = ErrorCode.ADMIN_REQUIRED;
-        } else {
-            errorCode = ErrorCode.FORBIDDEN;
-        }
+        ErrorCode errorCode = ApiAccessDeniedErrorResolver.resolve(request, accessDeniedException);
 
         writeResponse(
                 response,
@@ -51,10 +39,5 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getWriter().write(OBJECT_MAPPER.writeValueAsString(body));
-    }
-
-    private boolean isAdminPath(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        return uri != null && uri.startsWith(ADMIN_PATH_PREFIX);
     }
 }

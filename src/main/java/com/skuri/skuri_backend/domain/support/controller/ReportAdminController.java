@@ -7,6 +7,10 @@ import com.skuri.skuri_backend.domain.support.dto.response.AdminReportResponse;
 import com.skuri.skuri_backend.domain.support.entity.ReportStatus;
 import com.skuri.skuri_backend.domain.support.entity.ReportTargetType;
 import com.skuri.skuri_backend.domain.support.service.ReportService;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
+import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
+import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportExamples;
@@ -21,7 +25,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/admin/reports")
 @Tag(name = "Admin Support Report API", description = "관리자 신고 운영 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
-@PreAuthorize("hasRole('ADMIN')")
+@AdminApiAccess
 public class ReportAdminController {
 
     private final ReportService reportService;
@@ -178,6 +181,13 @@ public class ReportAdminController {
                                     """
                     )
             )
+    )
+    @AdminAudit(
+            action = AdminAuditActions.REPORT_STATUS_UPDATED,
+            targetType = AdminAuditTargetTypes.REPORT,
+            targetId = "#reportId",
+            before = "@adminAuditSnapshots.report(#reportId)",
+            after = "@adminAuditSnapshots.report(#reportId)"
     )
     public ResponseEntity<ApiResponse<AdminReportResponse>> updateReportStatus(
             @Parameter(description = "신고 ID", example = "report_uuid")

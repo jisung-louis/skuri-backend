@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-09
+> 최종 수정일: 2026-03-10
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -3354,6 +3354,12 @@ interface StorageRepository {
 isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 ```
 
+**운영 공통 규약**
+- 공통 인가: Admin Controller는 공통 메타 어노테이션(`@AdminApiAccess`) 기준으로 보호하며, `/v1/admin/**` 접근 거부는 `403 ADMIN_REQUIRED`로 표준화한다.
+- 감사 로그: 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)는 `admin_audit_logs`에 `actor_id(uid)`, `action`, `target_type`, `target_id`, `diff_before`, `diff_after`, `timestamp`를 저장한다. `actor_id`는 `members.id`의 논리적 참조이며 물리 FK는 두지 않는다. `target_id`는 raw 입력이 아니라 서비스와 동일한 canonical 키(`semester=2026-1`, `platform=ios`)를 저장한다. `GET` 조회는 고빈도 운영 조회 로그와 개인정보 중복 적재를 피하기 위해 감사 로그 대상에서 제외한다.
+- 목록 조회 규약: 문의/신고 Admin 목록은 `PageResponse`를 사용하고 `page=0`, `size=20`, `size<=100`, 고정 정렬 `createdAt,DESC`를 따른다. 자유 검색/가변 정렬/CSV export는 현 Phase 런타임 API 범위에서 제외한다.
+- 운영 데이터 노출: Inquiry의 구조화 개인정보(`userEmail`, `userName`, `userRealname`, `userStudentId`)는 관리자 응답에서만 노출하며, 회원 탈퇴 후에는 탈퇴 마스킹 정책이 적용된 값만 조회된다. 자유서술 `content`는 별도 자동 마스킹하지 않는다.
+
 > **기존 방식과의 차이:**
 > 마이그레이션 전에는 `scripts/manage-app-notices.js` 등 Node.js 스크립트가
 > Firebase Admin SDK를 통해 Firestore에 직접 write했습니다.
@@ -3744,6 +3750,12 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ### 12.8 운영 문의/신고 관리
 
+**운영 목록 공통 규약**
+- 두 목록 API 모두 `PageResponse`(`content`, `page`, `size`, `totalElements`, `totalPages`, `hasNext`, `hasPrevious`)를 동일하게 반환한다.
+- 정렬은 서버 고정 `createdAt,DESC`이며 별도 `sort` 파라미터를 받지 않는다.
+- 문의 목록은 `status`만, 신고 목록은 `status`, `targetType`만 필터로 지원한다.
+- CSV export와 상세 전용 API는 현재 계약에 포함하지 않는다.
+
 #### GET /v1/admin/inquiries
 문의 전체 목록 조회 (관리자)
 
@@ -3945,3 +3957,4 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Board 계약 동기화 — 댓글 depth 1 제한, 부모 삭제 정책(B: placeholder soft delete), `/v1/members/me/posts|bookmarks` 및 Board 에러코드(`COMMENT_DEPTH_EXCEEDED`, `COMMENT_ALREADY_DELETED`) 반영
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, `commentNotifications` / `bookmarkedPostCommentNotifications` 계약 반영
 > - 2026-03-08: Phase 8 Notification 계약 반영 — `PARTY_*` canonical enum 정렬, Notification API pagination/FCM token/SSE strict DTO(`ACADEMIC_SCHEDULE`, `academicScheduleId`) 동기화, 학사 일정 알림 설정 필드 추가
+> - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `@AdminApiAccess` 공통화, `admin_audit_logs` 저장 규약, Support Admin 목록 고정 정렬/페이지 정책, CSV 보류 및 운영 데이터 노출 정책 문서화

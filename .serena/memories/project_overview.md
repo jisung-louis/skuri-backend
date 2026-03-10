@@ -28,7 +28,7 @@
 - `local`은 프론트와 함께 실제 Firebase ID Token 흐름을 검증하는 통합 테스트용이며, `FIREBASE_PROJECT_ID`와 서비스 계정 파일 경로가 필요하다.
 - `local-emulator`는 Firebase Auth Emulator 기반 백엔드 단독 테스트용이며, `FIREBASE_AUTH_EMULATOR_HOST`, `FIREBASE_PROJECT_ID`만 주로 사용하고 자격증명 파일 경로는 비워 두는 것을 기본으로 한다.
 - `local`과 `local-emulator`는 각 프로필 파일에서 기본 DB를 `localhost:3306`으로 둔다.
-- 운영은 `prod` 프로필 + `OCI 단일 인스턴스에서 docker-compose.prod.yml(app + MySQL + Redis)` 구조를 사용하며, app 컨테이너는 호스트 포트가 아니라 compose 내부 주소 `mysql:3306`으로 MySQL에 접속한다.
+- 운영은 `prod` 프로필 + `OCI 단일 인스턴스에서 docker-compose.prod.yml(app + MySQL + Redis)` 구조를 사용하며, app 컨테이너는 compose 내부 주소 `mysql:3306`으로 MySQL에 접속한다.
 - OpenAPI는 `local/local-emulator`에서 노출하고 `prod`에서는 기본 비노출로 운영한다.
 - GitHub Actions CD는 `production` 환경 승인 기반 반자동 배포를 사용하며, `linux/amd64`와 `linux/arm64` 멀티플랫폼 이미지를 빌드한다.
 - CD workflow는 `concurrency.group = production-deploy`, `cancel-in-progress = true`로 최신 `main` push만 남기고 이전 run을 자동 취소한다.
@@ -40,4 +40,7 @@
 - Phase 10 이전 운영 DB 업그레이드 시에는 앱 기동 전에 `members.status`를 수동 SQL로 `ACTIVE` 백필한 뒤 새 버전을 실행한다.
 - `infra.auth.config.FirebaseConfig`를 재사용하고 Firebase Admin 중복 초기화는 금지한다.
 - `infra.notification`에는 `PushSender` 추상화, Firebase 기반 sender, credentials 부재 시 `NoOpPushSender`가 있다.
+- Phase 11부터 Admin 공통 인프라는 `infra/auth/config/AdminApiAccess`, `ApiAccessDeniedErrorResolver`, `AdminRequestPaths`, `infra/admin/audit`, `infra/admin/list`를 중심으로 정리됐다.
+- 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)는 `admin_audit_logs`에 `actor_id`, `action`, `target_type`, `target_id`, `diff_before`, `diff_after`, `timestamp`를 저장하고, 조회 `GET` Admin API는 감사 로그 대상에서 제외한다.
+- Support Admin 목록 API(`GET /v1/admin/inquiries`, `GET /v1/admin/reports`)는 `PageResponse` + `page=0`/`size=20`/`size<=100` + 고정 정렬 `createdAt,DESC` 규약을 따른다.
 - 공통 응답은 `ApiResponse`, 예외는 `GlobalExceptionHandler`, ErrorCode 중심으로 처리한다.

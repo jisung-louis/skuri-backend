@@ -1,6 +1,6 @@
 # Spring 백엔드 ERD (Entity Relationship Diagram)
 
-> 최종 수정일: 2026-03-09
+> 최종 수정일: 2026-03-10
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -462,7 +462,7 @@ erDiagram
 
     admin_audit_logs {
         varchar(36) id PK "UUID"
-        varchar(36) actor_id FK "관리자 ID"
+        varchar(36) actor_id "관리자 UID(논리적 참조)"
         varchar(50) action "NOT NULL"
         varchar(36) target_id
         varchar(50) target_type
@@ -676,6 +676,22 @@ erDiagram
 | platform | VARCHAR(10) | NOT NULL | `ios` 또는 `android` |
 | created_at | DATETIME | NOT NULL | 최초 등록 시각 |
 | last_used_at | DATETIME | | 마지막 성공 사용 시각 |
+
+**admin_audit_logs 주요 컬럼**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| id | VARCHAR(36) | PK | 감사 로그 ID |
+| actor_id | VARCHAR(36) | NOT NULL | 호출 관리자 UID (members.id에 대한 논리적 참조, 물리 FK 미적용) |
+| action | VARCHAR(50) | NOT NULL | 감사 액션 코드 (`INQUIRY_STATUS_UPDATED`, `ACADEMIC_SCHEDULE_CREATED` 등) |
+| target_id | VARCHAR(36) | | 대상 엔티티 ID 또는 canonical 운영 키(semester/platform/weekId) |
+| target_type | VARCHAR(50) | | 대상 타입 (`INQUIRY`, `REPORT`, `APP_VERSION` 등) |
+| diff_before | JSON | | 변경 전 스냅샷 |
+| diff_after | JSON | | 변경 후 스냅샷 |
+| timestamp | DATETIME | NOT NULL | 감사 로그 기록 시각 |
+
+- Phase 11 기준 `admin_audit_logs`는 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)만 저장하고 `GET` 조회는 저장하지 않는다.
+- `target_id`는 raw 입력이 아니라 서비스와 동일한 canonical 키를 저장한다. 예: `semester=2026-1`, `platform=ios`
 
 ---
 
@@ -912,3 +928,4 @@ CREATE INDEX idx_audit_logs_timestamp ON admin_audit_logs(timestamp DESC);
 > - 2026-03-05: Board 댓글 정책 동기화 — `comments.parent_id` 관계를 부모 보존 정책(B)에 맞게 정정(`ON DELETE SET NULL`), depth 1 제약/placeholder soft delete 설명 반영
 > - 2026-03-07: Board/Notice 댓글 정책 구현 반영 — 무제한 self-reference, 댓글 알림 설정 컬럼(`comment_notifications`, `bookmarked_post_comment_notifications`) 반영
 > - 2026-03-08: Phase 8 Notification 인프라 반영 — members 학사 일정 알림 컬럼, `user_notifications`/`fcm_tokens` 상세, notification type canonical enum 동기화
+> - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `admin_audit_logs` 상세 컬럼(`diff_before`, `diff_after`, `timestamp`)과 운영 식별자/저장 범위 정책을 문서화
