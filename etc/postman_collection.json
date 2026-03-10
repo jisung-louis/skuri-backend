@@ -9519,7 +9519,7 @@
     },
     {
       "name": "12. Image API",
-      "description": "## 목적\n- 공통 이미지 업로드 API와 context 권한 정책을 수동 검증합니다.\n\n## 실행 전\n- `01. Member > 00. Core`로 사용자 토큰을 확보합니다.\n- 관리자 context 검증은 `adminToken`이 준비된 상태에서 실행합니다.\n- Postman에서 `imageUploadFilePath` 변수에 JPEG/PNG/WebP 샘플 파일 경로를 설정합니다.\n\n## 통과 기준\n- 업로드 성공 시 `url`, `thumbUrl`, `width`, `height`, `size`, `mime`가 반환됩니다.\n- `POST_IMAGE`와 `APP_NOTICE_IMAGE` context가 각각 기대 권한으로 동작합니다.",
+      "description": "## 목적\n- 공통 이미지 업로드 API와 context 권한 정책을 수동 검증합니다.\n\n## 실행 전\n- `01. Member > 00. Core`로 사용자 토큰을 확보합니다.\n- 관리자 context 검증은 `adminToken`이 준비된 상태에서 실행합니다.\n- Postman에서 `imageUploadFilePath` 변수에 JPEG/PNG/WebP 샘플 파일 경로를 설정합니다.\n- 현재 runtime provider는 `MEDIA_STORAGE_PROVIDER` 설정값을 따릅니다.\n\n## 통과 기준\n- 업로드 성공 시 `url`, `thumbUrl`, `width`, `height`, `size`, `mime`가 반환됩니다.\n- `POST_IMAGE`와 `APP_NOTICE_IMAGE` context가 각각 기대 권한으로 동작합니다.\n- `LOCAL` provider면 업로드 URL이 공개 `GET /uploads/**` 경로를 사용하고, `FIREBASE` provider면 Firebase download URL을 반환합니다.",
       "item": [
         {
           "name": "게시글 이미지 업로드",
@@ -9552,7 +9552,7 @@
               ]
             },
             "url": "{{baseUrl}}/v1/images",
-            "description": "## 기능\n- 게시글 작성 전에 사용할 이미지를 업로드합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `leaderToken` 확보\n- `imageUploadFilePath`에 실제 JPEG/PNG/WebP 파일 경로 지정\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/images`\n- Body: form-data (`context=POST_IMAGE`, `file=@{{imageUploadFilePath}}`)\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- `data.url`, `data.thumbUrl`, `data.mime` 존재\n\n## 출력 변수\n- `imageUploadPostUrl`\n- `imageUploadPostThumbUrl`\n\n## 실패 시 확인\n- `413 IMAGE_TOO_LARGE`: 10MB 초과 파일인지 확인\n- `415 IMAGE_INVALID_FORMAT`: 파일이 실제 JPEG/PNG/WebP인지 확인\n- `400 INVALID_REQUEST`: `context`와 `file` 파트 누락 여부 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/image/controller/ImageController.java\n- Service: src/main/java/com/skuri/skuri_backend/domain/image/service/ImageUploadService.java\n- Storage: src/main/java/com/skuri/skuri_backend/domain/image/storage/StorageRepository.java, src/main/java/com/skuri/skuri_backend/infra/storage/LocalStorageRepository.java"
+            "description": "## 기능\n- 게시글 작성 전에 사용할 이미지를 업로드합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `leaderToken` 확보\n- `imageUploadFilePath`에 실제 JPEG/PNG/WebP 파일 경로 지정\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/images`\n- Body: form-data (`context=POST_IMAGE`, `file=@{{imageUploadFilePath}}`)\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- `data.url`, `data.thumbUrl`, `data.mime` 존재\n\n## 출력 변수\n- `imageUploadPostUrl`\n- `imageUploadPostThumbUrl`\n\n## 실패 시 확인\n- `400 INVALID_REQUEST`: `context`와 `file` 파트 누락 여부 확인\n- `413 IMAGE_TOO_LARGE`: 10MB 초과 파일인지 확인\n- `415 IMAGE_INVALID_FORMAT`: 파일이 실제 JPEG/PNG/WebP인지 확인\n- `422 IMAGE_DIMENSIONS_EXCEEDED`: 5000x5000 또는 총 20,000,000 픽셀 제한 초과 여부 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/image/controller/ImageController.java\n- Service: src/main/java/com/skuri/skuri_backend/domain/image/service/ImageUploadService.java\n- Storage: src/main/java/com/skuri/skuri_backend/domain/image/storage/StorageRepository.java, src/main/java/com/skuri/skuri_backend/infra/storage/LocalStorageRepository.java, src/main/java/com/skuri/skuri_backend/infra/storage/FirebaseStorageRepository.java"
           },
           "event": [
             {
@@ -9604,7 +9604,7 @@
               ]
             },
             "url": "{{baseUrl}}/v1/images",
-            "description": "## 기능\n- 관리자 전용 앱 공지 이미지 업로드를 검증합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `adminToken` 확보\n- `imageUploadFilePath`에 실제 JPEG/PNG/WebP 파일 경로 지정\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/images`\n- Body: form-data (`context=APP_NOTICE_IMAGE`, `file=@{{imageUploadFilePath}}`)\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- `data.url` 존재\n\n## 출력 변수\n- `imageUploadAppNoticeUrl`\n\n## 실패 시 확인\n- `403 ADMIN_REQUIRED`: 관리자 토큰이 맞는지 확인\n- `415 IMAGE_INVALID_FORMAT`: 파일 형식 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/image/controller/ImageController.java\n- 권한 정책: src/main/java/com/skuri/skuri_backend/domain/image/dto/request/ImageUploadContext.java, src/main/java/com/skuri/skuri_backend/domain/image/service/ImageUploadService.java"
+            "description": "## 기능\n- 관리자 전용 앱 공지 이미지 업로드를 검증합니다.\n\n## 테스트 모드\n- Core\n\n## 선행조건\n- `adminToken` 확보\n- `imageUploadFilePath`에 실제 JPEG/PNG/WebP 파일 경로 지정\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/images`\n- Body: form-data (`context=APP_NOTICE_IMAGE`, `file=@{{imageUploadFilePath}}`)\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- `data.url` 존재\n\n## 출력 변수\n- `imageUploadAppNoticeUrl`\n\n## 실패 시 확인\n- `403 ADMIN_REQUIRED`: 관리자 토큰이 맞는지 확인\n- `415 IMAGE_INVALID_FORMAT`: 파일 형식 확인\n- `422 IMAGE_DIMENSIONS_EXCEEDED`: 허용 해상도 또는 총 픽셀 수를 초과했는지 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/image/controller/ImageController.java\n- 권한 정책: src/main/java/com/skuri/skuri_backend/domain/image/dto/request/ImageUploadContext.java, src/main/java/com/skuri/skuri_backend/domain/image/service/ImageUploadService.java"
           },
           "event": [
             {
