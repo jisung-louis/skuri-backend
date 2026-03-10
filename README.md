@@ -150,7 +150,7 @@ cd skuri-backend
 - `local`은 실제 Firebase를 사용하므로 `FIREBASE_PROJECT_ID`와 `FIREBASE_CREDENTIALS_PATH`(또는 `GOOGLE_APPLICATION_CREDENTIALS`)가 필요합니다.
 - `local-emulator`는 실제 Firebase 서비스 계정 파일이 없어도 동작해야 하므로 `FIREBASE_CREDENTIALS_PATH`, `GOOGLE_APPLICATION_CREDENTIALS`는 비워 두는 것을 권장합니다.
 - 현재 기본 `docker-compose.yml`은 Firebase 자격증명 파일을 자동 마운트하지 않습니다. 실제 Firebase 인증까지 검증하려면 앱은 호스트에서 `bootRun`으로 실행하는 편이 더 쉽습니다.
-- 이미지 업로드는 기본적으로 `var/media`(호스트 실행) 또는 `/app/var/media`(Docker) 경로를 사용하며, `MEDIA_STORAGE_BASE_DIR`, `MEDIA_STORAGE_PUBLIC_BASE_URL`로 조정할 수 있습니다.
+- 이미지 업로드는 기본적으로 `var/media`(호스트 실행) 또는 `/app/var/media`(Docker) 경로를 사용하며, `MEDIA_STORAGE_BASE_DIR`, `MEDIA_STORAGE_PUBLIC_BASE_URL`로 조정할 수 있습니다. 로컬에서는 `MEDIA_STORAGE_PUBLIC_BASE_URL`을 비워 두면 `server.port + MEDIA_STORAGE_URL_PREFIX` 기준 기본 공개 URL을 사용합니다.
 - `.env`는 "실제 값", `application-*.yaml`은 "환경별 정책"을 담당합니다.
 - 브라우저에서 REST API를 호출하는 관리자 페이지가 있으면 `API_ALLOWED_ORIGIN_PATTERNS`에 허용 Origin을 넣어야 합니다.
 - WebSocket `/ws` 허용 Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`로 별도 관리합니다.

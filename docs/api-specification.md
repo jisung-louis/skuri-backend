@@ -3274,7 +3274,9 @@ data: {
 **제약 조건**
 - 최대 파일 크기: 10MB
 - 허용 형식: JPEG, PNG, WebP
+- 최대 해상도: 가로 5000px, 세로 5000px, 총 픽셀 수 20,000,000 이하
 - 응답 필드: `url`, `thumbUrl`, `width`, `height`, `size`, `mime`
+- 업로드 결과 URL은 `GET {media.storage.url-prefix}/**`로 공개 제공되며, Authorization 헤더가 있어도 공개 조회를 우선한다.
 
 **썸네일 생성 규칙**
 - 서버가 업로드 시점에 원본 이미지를 리사이징해 썸네일을 함께 생성합니다.
@@ -3307,8 +3309,9 @@ data: {
 
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
-| `INVALID_REQUEST` | 400 | multipart 파라미터 누락 또는 잘못된 `context` |
+| `INVALID_REQUEST` | 400 | multipart 파라미터 누락, 빈 `file`, 또는 잘못된 `context` |
 | `ADMIN_REQUIRED` | 403 | `APP_NOTICE_IMAGE`를 일반 사용자가 업로드 |
+| `IMAGE_DIMENSIONS_EXCEEDED` | 422 | 허용 해상도 또는 총 픽셀 수 초과 |
 | `IMAGE_TOO_LARGE` | 413 | 파일 크기 초과 (10MB 초과) |
 | `IMAGE_INVALID_FORMAT` | 415 | 지원하지 않는 이미지 형식 |
 | `IMAGE_UPLOAD_FAILED` | 500 | 스토리지 저장 또는 썸네일 생성 실패 |
