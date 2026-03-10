@@ -64,10 +64,13 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_TIMEOUT: ${REDIS_TIMEOUT:-2000ms}
+      MEDIA_STORAGE_BASE_DIR: ${MEDIA_STORAGE_BASE_DIR:-/app/var/media}
+      MEDIA_STORAGE_PUBLIC_BASE_URL: ${MEDIA_STORAGE_PUBLIC_BASE_URL:?set MEDIA_STORAGE_PUBLIC_BASE_URL in .env}
     ports:
       - "${APP_HOST_BIND:-127.0.0.1}:${APP_HOST_PORT:-8080}:8080"
     volumes:
       - ${FIREBASE_CREDENTIALS_FILE:?set FIREBASE_CREDENTIALS_FILE in .env}:${GOOGLE_APPLICATION_CREDENTIALS:?set GOOGLE_APPLICATION_CREDENTIALS in .env}:ro
+      - media-prod-data:/app/var/media
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health || exit 1"]
       interval: 30s
@@ -82,3 +85,4 @@ services:
 volumes:
   mysql-prod-data:
   redis-prod-data:
+  media-prod-data:
