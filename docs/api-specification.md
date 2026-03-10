@@ -3241,6 +3241,11 @@ data: {
 
 ## 11. Image API
 
+> 참고: 이 섹션은 **Phase 12(이미지/미디어 업로드 인프라)** 구현을 위한 참고 초안입니다.
+> 2026-03-10 기준 `/v3/api-docs` 런타임 계약에는 `/v1/images`가 아직 존재하지 않으며,
+> 현재 구현은 게시판/채팅/앱 공지/프로필이 **업로드된 URL 입력**만 받는 구조입니다.
+> 실제 구현 시에는 이 초안을 그대로 고정하지 않고, 런타임/API/OpenAPI/Postman을 함께 재검토해 동기화합니다.
+
 이미지 업로드는 **클라이언트 → Spring 서버(multipart) → Storage** 순으로 처리됩니다.
 스토리지 서비스 교체(Firebase Storage → AWS S3 등) 시 클라이언트 코드 변경 없이 **서버 구현체만 교체**하면 됩니다.
 
@@ -3958,3 +3963,4 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, `commentNotifications` / `bookmarkedPostCommentNotifications` 계약 반영
 > - 2026-03-08: Phase 8 Notification 계약 반영 — `PARTY_*` canonical enum 정렬, Notification API pagination/FCM token/SSE strict DTO(`ACADEMIC_SCHEDULE`, `academicScheduleId`) 동기화, 학사 일정 알림 설정 필드 추가
 > - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `@AdminApiAccess` 공통화, `admin_audit_logs` 저장 규약, Support Admin 목록 고정 정렬/페이지 정책, CSV 보류 및 운영 데이터 노출 정책 문서화
+> - 2026-03-10: Image 계약 정합화 — Image API 섹션을 Phase 12 참고 초안으로 유지하고, 현재 `/v3/api-docs` 런타임 계약에는 `/v1/images`가 아직 없음을 함께 명시

@@ -13,7 +13,7 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영), Phase 8 완료 (Notification 인프라), Phase 9 완료 (인프라/배포 기준 정리), Phase 10 완료 (Member 탈퇴/계정 라이프사이클), Phase 11 완료 (운영 공통 인프라 / Admin 공통) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영), Phase 8 완료 (Notification 인프라), Phase 9 완료 (인프라/배포 기준 정리), Phase 10 완료 (Member 탈퇴/계정 라이프사이클), Phase 11 완료 (운영 공통 인프라 / Admin 공통), Phase 12 예정 (이미지/미디어 업로드 인프라) |
 
 ---
 
@@ -43,6 +43,8 @@ Phase 9: 인프라 및 배포
 Phase 10: Member 탈퇴/계정 라이프사이클
     ↓
 Phase 11: 운영 공통 인프라 (Admin 공통)
+    ↓
+Phase 12: 이미지/미디어 업로드 인프라
 ```
 
 ---
@@ -380,7 +382,7 @@ SSE 운영 제약:
 | `DELETE` | `/v1/comments/{commentId}` | 댓글 삭제 |
 | `GET` | `/v1/members/me/posts` | 내가 작성한 게시글 목록 |
 | `GET` | `/v1/members/me/bookmarks` | 내가 북마크한 게시글 목록 |
-| `POST` | `/v1/images` | 이미지 업로드 (후속 범위) |
+| `POST` | `/v1/images` | 이미지 업로드 (Phase 12 예정) |
 | `GET` | `/v1/sse/posts` | 게시물 목록/조회수 실시간 구독 (후속 범위) |
 
 #### 4-4. 완료 기준
@@ -772,6 +774,43 @@ SSE 운영 제약:
 
 ---
 
+### Phase 12: 이미지/미디어 업로드 인프라
+
+> 현재 도메인 API가 "업로드된 URL 입력"을 받는 구조를 공통 업로드 인프라로 정리한다.
+> 1차 범위는 이미지 업로드부터 구현하고, 이후 미디어 확장이 가능한 storage/context 구조를 확보한다.
+
+#### 12-1. 구현 항목
+
+| # | 항목 | 설명 |
+|---|------|------|
+| 1 | 업로드 API | `POST /v1/images` multipart 업로드 API 구현, 인증 사용자 기준 접근 정책 정리 |
+| 2 | Storage 추상화 | 스토리지 구현체 교체가 가능한 공통 repository/service 인터페이스 정리 |
+| 3 | 업로드 정책 | 파일 크기, MIME type, 경로 naming, 썸네일 생성, context별 허용 규칙 확정 |
+| 4 | 도메인 연동 | 게시판(`images[]`), 채팅(`imageUrl`), 앱 공지(`imageUrls[]`), 프로필(`photoUrl`) 업로드 플로우 연결 |
+| 5 | 계약/검증 | OpenAPI, Postman, Contract 테스트, 운영 문서 동기화 |
+
+#### 12-2. API
+
+| Method | Path | 설명 |
+|--------|------|------|
+| `POST` | `/v1/images` | 이미지 업로드 (multipart/form-data, context 기반) |
+
+#### 12-3. 비고
+
+- 2026-03-10 기준 런타임에는 `/v1/images`가 존재하지 않으며, 각 도메인은 업로드된 URL만 입력받는다.
+- 1차 런타임 범위는 **이미지(image)** 업로드이며, video/audio 등 일반 media 확장은 storage/context 설계를 먼저 열어 두고 후속 범위로 둔다.
+- context enum은 최소 `POST_IMAGE`, `CHAT_IMAGE`, `APP_NOTICE_IMAGE`, `PROFILE_IMAGE` 후보를 검토하되, 실제 구현 시 도메인 요구사항 기준으로 확정한다.
+- 기존 Board/Chat/AppNotice/Profile 계약과의 호환성을 우선하며, URL 직접 입력 경로를 즉시 제거하지 않는다.
+
+#### 12-4. 완료 기준
+
+- [ ] `/v1/images` 런타임 API와 OpenAPI 문서가 `/v3/api-docs` 기준으로 동기화됨
+- [ ] 파일 크기/MIME/context validation 및 대표 실패 케이스 Contract 테스트가 추가됨
+- [ ] 게시판/채팅/앱 공지/프로필 중 최소 1개 이상에서 업로드 후 저장 플로우가 실제로 검증됨
+- [ ] `README`, `docs/api-specification.md`, `etc/postman_collection.json`이 업로드 정책 기준으로 동기화됨
+
+---
+
 ## 4. Phase 간 의존 관계
 
 ```
@@ -786,6 +825,7 @@ Phase 2~7 ── 연동 ──→ Phase 8 (Notification)
 전체 ───────────────→ Phase 9 (인프라/배포)
 Phase 1~9 ─────────────→ Phase 10 (Member 탈퇴)
 Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
+Phase 1/3/4/5 ── 연동 ──→ Phase 12 (이미지/미디어 업로드 인프라)
 ```
 
 **참고:** Phase 4~7 (Board, Notice, Academic, Support)은 서로 독립적이므로 **병렬 구현 가능**합니다.
@@ -846,3 +886,4 @@ Phase 3/5/6/7 ── 연동 ──→ Phase 11 (운영 공통 Admin 인프라)
 > - 2026-03-08: Phase 8 Notification 구현 반영 — `PARTY_*` canonical enum, RDB 저장 구조, FCM token/no-op sender, 학사 일정 리마인더, Notification SSE/인박스/정책 parity 동기화
 > - 2026-03-08: Phase 8 Push payload 계약 보강 — canonical `type + data`, `contractVersion`, platform별 sound/channel presentation profile 문서화
 > - 2026-03-10: Phase 11 완료 반영 — `@AdminApiAccess` 기반 공통 인가, `admin_audit_logs` 저장 인프라, Support 운영 목록 규약(`PageResponse`, `createdAt,DESC`, `page/size` 검증), Admin guard/OpenAPI convention 테스트 기준 문서화
+> - 2026-03-10: Phase 12 추가 — 이미지/미디어 업로드 인프라를 별도 Phase로 분리하고, 현재 `/v1/images`는 미구현 상태임을 문서 기준으로 정리
