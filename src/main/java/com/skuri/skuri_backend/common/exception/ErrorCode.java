@@ -22,6 +22,7 @@ public enum ErrorCode {
     CONFLICT(HttpStatus.CONFLICT, "CONFLICT", "리소스 충돌이 발생했습니다."),
     RESOURCE_CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "RESOURCE_CONCURRENT_MODIFICATION", "동시 수정 충돌이 발생했습니다. 다시 시도해주세요."),
     VALIDATION_ERROR(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_ERROR", "입력값 검증에 실패했습니다."),
+    IMAGE_DIMENSIONS_EXCEEDED(HttpStatus.UNPROCESSABLE_CONTENT, "IMAGE_DIMENSIONS_EXCEEDED", "이미지 해상도가 허용 범위를 초과했습니다."),
     IMAGE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "IMAGE_TOO_LARGE", "이미지 파일은 최대 10MB까지 업로드할 수 있습니다."),
     IMAGE_INVALID_FORMAT(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "IMAGE_INVALID_FORMAT", "지원하지 않는 이미지 형식입니다. JPEG, PNG, WebP만 업로드할 수 있습니다."),
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "IMAGE_UPLOAD_FAILED", "이미지 업로드에 실패했습니다."),

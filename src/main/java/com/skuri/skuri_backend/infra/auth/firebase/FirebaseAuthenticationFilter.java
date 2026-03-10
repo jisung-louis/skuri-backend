@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
+import com.skuri.skuri_backend.infra.storage.MediaStorageProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,6 +43,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectProvider<MemberRepository> memberRepositoryProvider;
     private final ApiAuthenticationEntryPoint authenticationEntryPoint;
     private final ApiAccessDeniedHandler accessDeniedHandler;
+    private final MediaStorageProperties mediaStorageProperties;
 
     @Value("${security.allowed-email-domain:sungkyul.ac.kr}")
     private String allowedEmailDomain;
@@ -52,7 +54,12 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
         String uri = request.getRequestURI();
-        return uri.startsWith("/v1/app-notices/") || "/v1/app-notices".equals(uri) || uri.startsWith("/v1/app-versions/");
+        String mediaUrlPrefix = mediaStorageProperties.normalizedUrlPrefix();
+        return uri.startsWith("/v1/app-notices/")
+                || "/v1/app-notices".equals(uri)
+                || uri.startsWith("/v1/app-versions/")
+                || uri.equals(mediaUrlPrefix)
+                || uri.startsWith(mediaUrlPrefix + "/");
     }
 
     @Override

@@ -15,7 +15,7 @@ public class MediaStorageProperties {
 
     private StorageProviderType provider = StorageProviderType.LOCAL;
     private String baseDir = "var/media";
-    private String publicBaseUrl = "http://localhost:8080/uploads";
+    private String publicBaseUrl;
     private String urlPrefix = "/uploads";
 
     public Path baseDirPath() {

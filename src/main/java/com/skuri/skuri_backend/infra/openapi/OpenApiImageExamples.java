@@ -28,6 +28,24 @@ public final class OpenApiImageExamples {
             }
             """;
 
+    public static final String ERROR_IMAGE_EMPTY_FILE = """
+            {
+              "success": false,
+              "errorCode": "INVALID_REQUEST",
+              "message": "file은 비어 있을 수 없습니다.",
+              "timestamp": "2026-03-10T12:00:00"
+            }
+            """;
+
+    public static final String ERROR_IMAGE_INVALID_CONTEXT = """
+            {
+              "success": false,
+              "errorCode": "INVALID_REQUEST",
+              "message": "지원하지 않는 context입니다: UNKNOWN_CONTEXT",
+              "timestamp": "2026-03-10T12:00:00"
+            }
+            """;
+
     public static final String ERROR_IMAGE_INVALID_FORMAT = """
             {
               "success": false,
@@ -42,6 +60,15 @@ public final class OpenApiImageExamples {
               "success": false,
               "errorCode": "IMAGE_UPLOAD_FAILED",
               "message": "이미지 업로드에 실패했습니다.",
+              "timestamp": "2026-03-10T12:00:00"
+            }
+            """;
+
+    public static final String ERROR_IMAGE_DIMENSIONS_EXCEEDED = """
+            {
+              "success": false,
+              "errorCode": "IMAGE_DIMENSIONS_EXCEEDED",
+              "message": "이미지 해상도가 허용 범위를 초과했습니다.",
               "timestamp": "2026-03-10T12:00:00"
             }
             """;

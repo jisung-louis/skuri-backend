@@ -8,6 +8,7 @@ import com.skuri.skuri_backend.domain.image.storage.StorageRepository;
 import com.skuri.skuri_backend.infra.storage.MediaStorageProperties;
 import lombok.RequiredArgsConstructor;
 import net.coobird.thumbnailator.Thumbnails;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,6 +35,7 @@ public class ImageUploadService {
     private final StorageRepository storageRepository;
     private final ImageUploadProperties imageUploadProperties;
     private final MediaStorageProperties mediaStorageProperties;
+    private final Environment environment;
 
     public ImageUploadResponse upload(boolean admin, ImageUploadContext context, MultipartFile file) {
         validateAccess(context, admin);
@@ -77,7 +79,7 @@ public class ImageUploadService {
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "file은 비어 있을 수 없습니다.");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "file은 비어 있을 수 없습니다.");
         }
     }
 
@@ -109,17 +111,32 @@ public class ImageUploadService {
             ImageReader reader = readers.next();
             try {
                 reader.setInput(imageInputStream, true, true);
+                int width = reader.getWidth(0);
+                int height = reader.getHeight(0);
+                validateDimensions(width, height);
                 BufferedImage bufferedImage = reader.read(0);
                 if (bufferedImage == null) {
                     throw new BusinessException(ErrorCode.IMAGE_INVALID_FORMAT);
                 }
                 ImageFormat format = ImageFormat.from(reader.getFormatName());
-                return new DetectedImage(format, bufferedImage, reader.getWidth(0), reader.getHeight(0));
+                return new DetectedImage(format, bufferedImage, width, height);
             } finally {
                 reader.dispose();
             }
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.IMAGE_INVALID_FORMAT);
+        }
+    }
+
+    private void validateDimensions(int width, int height) {
+        long pixelCount = (long) width * height;
+        if (width <= 0 || height <= 0) {
+            throw new BusinessException(ErrorCode.IMAGE_INVALID_FORMAT);
+        }
+        if (width > imageUploadProperties.getMaxWidth()
+                || height > imageUploadProperties.getMaxHeight()
+                || pixelCount > imageUploadProperties.getMaxPixelCount()) {
+            throw new BusinessException(ErrorCode.IMAGE_DIMENSIONS_EXCEEDED);
         }
     }
 
@@ -167,7 +184,8 @@ public class ImageUploadService {
     private String buildPublicUrl(String relativePath) {
         String baseUrl = mediaStorageProperties.normalizedPublicBaseUrl();
         if (!StringUtils.hasText(baseUrl)) {
-            throw new BusinessException(ErrorCode.IMAGE_UPLOAD_FAILED, "media.storage.public-base-url 설정이 필요합니다.");
+            String serverPort = environment.getProperty("server.port", "8080");
+            baseUrl = "http://localhost:" + serverPort + mediaStorageProperties.normalizedUrlPrefix();
         }
         return baseUrl + "/" + relativePath.replace('\\', '/');
     }

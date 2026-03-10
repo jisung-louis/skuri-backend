@@ -11,7 +11,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 
 @Configuration
-@EnableConfigurationProperties({MediaStorageProperties.class, ImageUploadProperties.class})
+@EnableConfigurationProperties(ImageUploadProperties.class)
 public class MediaStorageConfig {
 
     @Bean

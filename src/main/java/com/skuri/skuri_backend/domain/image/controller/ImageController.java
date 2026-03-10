@@ -61,7 +61,11 @@ public class ImageController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "invalid_request", value = OpenApiCommonExamples.ERROR_INVALID_REQUEST)
+                            examples = {
+                                    @ExampleObject(name = "invalid_context", value = OpenApiImageExamples.ERROR_IMAGE_INVALID_CONTEXT),
+                                    @ExampleObject(name = "empty_file", value = OpenApiImageExamples.ERROR_IMAGE_EMPTY_FILE),
+                                    @ExampleObject(name = "invalid_request", value = OpenApiCommonExamples.ERROR_INVALID_REQUEST)
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -102,6 +106,18 @@ public class ImageController {
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
                             examples = @ExampleObject(name = "image_invalid_format", value = OpenApiImageExamples.ERROR_IMAGE_INVALID_FORMAT)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "422",
+                    description = "이미지 해상도 초과",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(
+                                    name = "image_dimensions_exceeded",
+                                    value = OpenApiImageExamples.ERROR_IMAGE_DIMENSIONS_EXCEEDED
+                            )
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(

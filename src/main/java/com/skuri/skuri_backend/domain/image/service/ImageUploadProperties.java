@@ -13,6 +13,9 @@ public class ImageUploadProperties {
 
     private int maxFileSizeBytes = 10 * 1024 * 1024;
     private List<String> allowedMimeTypes = List.of("image/jpeg", "image/png", "image/webp");
+    private int maxWidth = 5000;
+    private int maxHeight = 5000;
+    private long maxPixelCount = 20_000_000L;
     private int thumbnailWidth = 300;
     private double thumbnailJpegQuality = 0.8d;
 }
