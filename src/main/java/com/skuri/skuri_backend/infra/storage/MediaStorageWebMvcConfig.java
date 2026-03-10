@@ -13,6 +13,9 @@ public class MediaStorageWebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        if (mediaStorageProperties.getProvider() != StorageProviderType.LOCAL) {
+            return;
+        }
         registry.addResourceHandler(mediaStorageProperties.normalizedUrlPrefix() + "/**")
                 .addResourceLocations(mediaStorageProperties.baseDirPath().toUri().toString());
     }

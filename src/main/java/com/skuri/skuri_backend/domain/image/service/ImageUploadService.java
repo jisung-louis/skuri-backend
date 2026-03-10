@@ -107,6 +107,7 @@ public class ImageUploadService {
             ImageReader reader = readers.next();
             try {
                 reader.setInput(imageInputStream, true, true);
+                ImageFormat format = ImageFormat.from(reader.getFormatName());
                 int width = reader.getWidth(0);
                 int height = reader.getHeight(0);
                 validateDimensions(width, height);
@@ -114,7 +115,6 @@ public class ImageUploadService {
                 if (bufferedImage == null) {
                     throw new BusinessException(ErrorCode.IMAGE_INVALID_FORMAT);
                 }
-                ImageFormat format = ImageFormat.from(reader.getFormatName());
                 return new DetectedImage(format, bufferedImage, width, height);
             } finally {
                 reader.dispose();

@@ -55,11 +55,12 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
         }
         String uri = request.getRequestURI();
         String mediaUrlPrefix = mediaStorageProperties.normalizedUrlPrefix();
+        boolean localMediaPublicRoute = mediaStorageProperties.getProvider() == com.skuri.skuri_backend.infra.storage.StorageProviderType.LOCAL
+                && (uri.equals(mediaUrlPrefix) || uri.startsWith(mediaUrlPrefix + "/"));
         return uri.startsWith("/v1/app-notices/")
                 || "/v1/app-notices".equals(uri)
                 || uri.startsWith("/v1/app-versions/")
-                || uri.equals(mediaUrlPrefix)
-                || uri.startsWith(mediaUrlPrefix + "/");
+                || localMediaPublicRoute;
     }
 
     @Override

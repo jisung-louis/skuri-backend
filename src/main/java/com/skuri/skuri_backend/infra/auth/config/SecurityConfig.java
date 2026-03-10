@@ -54,7 +54,9 @@ public class SecurityConfig {
                     String mediaUrlPrefix = mediaStorageProperties.normalizedUrlPrefix();
                     authorize.requestMatchers(HttpMethod.GET, "/v1/app-versions/**", "/v1/app-notices/**").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll();
-                    authorize.requestMatchers(HttpMethod.GET, mediaUrlPrefix, mediaUrlPrefix + "/**").permitAll();
+                    if (mediaStorageProperties.getProvider() == com.skuri.skuri_backend.infra.storage.StorageProviderType.LOCAL) {
+                        authorize.requestMatchers(HttpMethod.GET, mediaUrlPrefix, mediaUrlPrefix + "/**").permitAll();
+                    }
                     authorize.requestMatchers("/ws/**").permitAll();
                     if (openApiEnabled) {
                         authorize.requestMatchers(
