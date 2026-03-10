@@ -75,6 +75,15 @@ public class TimetableService {
                 .orElseGet(() -> emptyResponse(resolvedSemester));
     }
 
+    @Transactional
+    public void deleteAllByUserId(String userId) {
+        List<UserTimetable> timetables = userTimetableRepository.findAllByUserId(userId);
+        if (timetables.isEmpty()) {
+            return;
+        }
+        userTimetableRepository.deleteAll(timetables);
+    }
+
     private UserTimetable findOrCreateTimetableForUpdate(String userId, String semester) {
         return userTimetableRepository.findDetailByUserIdAndSemesterForUpdate(userId, semester)
                 .orElseGet(() -> createTimetable(userId, semester));

@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
+import com.skuri.skuri_backend.domain.member.exception.MemberWithdrawalNotAllowedException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.CreatePartyRequest;
@@ -400,6 +401,43 @@ public class TaxiPartyService {
         return new SettlementConfirmResponse(memberId, target.isSettled(), target.getSettledAt(), allSettled);
     }
 
+    @Transactional(readOnly = true)
+    public void validateWithdrawalAllowed(String memberId) {
+        boolean joinedArrivedParty = partyRepository.findActiveDetailsByMemberId(memberId, ACTIVE_PARTY_STATUSES).stream()
+                .anyMatch(party -> party.getStatus() == PartyStatus.ARRIVED && !party.isLeader(memberId));
+        if (joinedArrivedParty) {
+            throw new MemberWithdrawalNotAllowedException("정산이 진행 중인 ARRIVED 파티에 참여 중인 멤버는 탈퇴할 수 없습니다.");
+        }
+    }
+
+    @Transactional
+    public void handleMemberWithdrawal(String memberId) {
+        List<Party> activeParties = partyRepository.findActiveDetailsByMemberId(memberId, ACTIVE_PARTY_STATUSES);
+        for (Party party : activeParties) {
+            if (party.isLeader(memberId)) {
+                withdrawLeaderFromParty(party);
+                continue;
+            }
+
+            if (party.getStatus() == PartyStatus.ARRIVED) {
+                throw new MemberWithdrawalNotAllowedException("정산이 진행 중인 ARRIVED 파티에 참여 중인 멤버는 탈퇴할 수 없습니다.");
+            }
+
+            party.removeMember(memberId);
+            savePartyWithLockHandling(party);
+            chatService.syncPartyChatRoomMembers(party);
+            partySseService.publishPartyMemberLeft(party, memberId, "WITHDRAWN", party.getMemberIds());
+        }
+
+        joinRequestRepository.findByRequesterIdAndStatusOrderByCreatedAtDesc(memberId, JoinRequestStatus.PENDING)
+                .forEach(request -> {
+                    JoinRequestStatus previousStatus = request.getStatus();
+                    request.cancel();
+                    joinRequestRepository.save(request);
+                    joinRequestSseService.publishJoinRequestUpdated(request, previousStatus);
+                });
+    }
+
     private List<JoinRequestListItemResponse> mapJoinRequestResponses(List<JoinRequest> requests) {
         Map<String, Member> requesterMap = getMemberMap(requests.stream().map(JoinRequest::getRequesterId).toList());
 
@@ -430,8 +468,24 @@ public class TaxiPartyService {
     }
 
     private void lockMemberOrThrow(String memberId) {
-        memberRepository.findByIdForUpdate(memberId)
+        memberRepository.findActiveByIdForUpdate(memberId)
                 .orElseThrow(MemberNotFoundException::new);
+    }
+
+    private void withdrawLeaderFromParty(Party party) {
+        PartyStatus beforeStatus = party.getStatus();
+        party.withdrawLeader();
+        savePartyWithLockHandling(party);
+        partySseService.publishPartyStatusChanged(party);
+        eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
+
+        joinRequestRepository.findByParty_IdAndStatusOrderByCreatedAtDesc(party.getId(), JoinRequestStatus.PENDING)
+                .forEach(request -> {
+                    JoinRequestStatus previousStatus = request.getStatus();
+                    request.decline();
+                    joinRequestRepository.save(request);
+                    joinRequestSseService.publishJoinRequestUpdated(request, previousStatus);
+                });
     }
 
     private void requireLeader(Party party, String actorId) {

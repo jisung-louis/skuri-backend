@@ -17,6 +17,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,7 +35,7 @@ class FcmTokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(transactionManager.getTransaction(any()))
+        lenient().when(transactionManager.getTransaction(any()))
                 .thenReturn(new SimpleTransactionStatus(), new SimpleTransactionStatus());
         fcmTokenService = new FcmTokenService(fcmTokenRepository, transactionManager);
     }
@@ -67,5 +68,12 @@ class FcmTokenServiceTest {
         verify(fcmTokenRepository, times(2)).findByToken("device-token");
         assertEquals("member-1", existing.getUserId());
         assertEquals("ios", existing.getPlatform());
+    }
+
+    @Test
+    void deleteAllByUserId_회원탈퇴시_모든FCM토큰을삭제한다() {
+        fcmTokenService.deleteAllByUserId("member-1");
+
+        verify(fcmTokenRepository).deleteByUserId("member-1");
     }
 }

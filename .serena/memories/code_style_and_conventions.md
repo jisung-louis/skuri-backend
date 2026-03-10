@@ -5,6 +5,10 @@
 - Service가 비즈니스 규칙, 상태 전이, 권한 판단을 담당한다.
 - 부가효과(알림, SSE fan-out, push)는 핵심 트랜잭션과 분리한다.
 - 상태 변경 후 알림 발행은 `AfterCommitApplicationEventPublisher`로 after-commit semantics를 보장한다.
+- 회원 탈퇴는 hard delete 대신 tombstone(`status=WITHDRAWN`, `withdrawnAt`) + 개인정보 스크럽을 기본으로 한다.
+- 탈퇴로 인한 외부 후처리(Firebase 삭제, SSE 연결 종료)는 핵심 트랜잭션 안에서 직접 처리하지 않고 after-commit 리스너로 분리한다.
+- 같은 Firebase UID의 탈퇴 회원은 재활성화하지 않는다. `POST /v1/members`는 활성 회원에만 멱등이고, withdrawn UID에는 `WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환한다.
+- `NOT NULL` lifecycle 컬럼을 운영 DB에 추가할 때는 앱 기동 전에 수동 마이그레이션으로 legacy row를 먼저 채운다.
 
 ## 응답/예외
 - 모든 REST 응답은 `ApiResponse<T>`를 사용한다.

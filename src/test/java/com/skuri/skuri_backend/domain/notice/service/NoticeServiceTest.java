@@ -69,7 +69,7 @@ class NoticeServiceTest {
         CommentFixture existingAnonymous = comment("old-comment", notice, null, "member-1", true, 2);
 
         when(noticeRepository.findByIdForUpdate("notice-1")).thenReturn(Optional.of(notice));
-        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
         when(noticeCommentRepository.findFirstByNotice_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("notice-1", "notice-1:member-1"))
                 .thenReturn(Optional.of(existingAnonymous.comment));
         when(noticeCommentRepository.save(any(NoticeComment.class))).thenAnswer(invocation -> {
@@ -101,7 +101,7 @@ class NoticeServiceTest {
         CommentFixture child = comment("comment-2", notice, root.comment, "member-3", false, null);
 
         when(noticeRepository.findByIdForUpdate("notice-1")).thenReturn(Optional.of(notice));
-        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
         when(noticeCommentRepository.findByIdAndNoticeId("comment-2", "notice-1")).thenReturn(Optional.of(child.comment));
         when(noticeCommentRepository.save(any(NoticeComment.class))).thenAnswer(invocation -> {
             NoticeComment saved = invocation.getArgument(0);
@@ -193,6 +193,26 @@ class NoticeServiceTest {
         assertEquals("comment-3", responses.get(2).id());
         assertEquals("comment-2", responses.get(2).parentId());
         assertEquals(2, responses.get(2).depth());
+    }
+
+    @Test
+    void handleMemberWithdrawal_댓글익명화와좋아요읽음기록삭제를수행한다() {
+        Notice notice = notice("notice-1");
+        ReflectionTestUtils.setField(notice, "likeCount", 2);
+        CommentFixture commentFixture = comment("comment-1", notice, null, "member-1", false, null);
+        NoticeLike like = NoticeLike.create(notice, "member-1");
+
+        when(noticeCommentRepository.findByUserId("member-1")).thenReturn(List.of(commentFixture.comment));
+        when(noticeLikeRepository.findById_UserId("member-1")).thenReturn(List.of(like));
+        when(noticeRepository.findAllById(any())).thenReturn(List.of(notice));
+
+        noticeService.handleMemberWithdrawal("member-1");
+
+        assertEquals("withdrawn-member", commentFixture.comment.getUserId());
+        assertEquals("탈퇴한 사용자", commentFixture.comment.getUserDisplayName());
+        assertEquals(1, notice.getLikeCount());
+        verify(noticeLikeRepository).deleteAllInBatch(List.of(like));
+        verify(noticeReadStatusRepository).deleteById_UserId("member-1");
     }
 
     private Notice notice(String id) {

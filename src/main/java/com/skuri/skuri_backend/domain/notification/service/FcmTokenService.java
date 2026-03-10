@@ -66,6 +66,11 @@ public class FcmTokenService {
         fcmTokenRepository.deleteByTokenIn(tokens);
     }
 
+    @Transactional
+    public void deleteAllByUserId(String memberId) {
+        fcmTokenRepository.deleteByUserId(memberId);
+    }
+
     private String normalizeToken(String token) {
         return token == null ? "" : token.trim();
     }

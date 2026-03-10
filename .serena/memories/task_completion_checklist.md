@@ -6,7 +6,9 @@
 3. API 정상/예외 케이스 최소 1개 이상 확인
 4. `ApiResponse` 에러 포맷 일관성 확인
 5. OpenAPI example과 실제 `errorCode/message` 일치 확인
-6. Serena Memory 동기화 확인
+6. OpenAPI/문서 동기화 확인 (`/v3/api-docs` 기준, `docs/api-specification.md`, lifecycle 정책 문서 포함)
+7. 회원 라이프사이클 변경이면 탈퇴 후 접근 차단, 동일 UID 재가입 차단, 연관 도메인 정합성 회귀 확인
+8. Serena Memory 동기화 확인
 
 ## 운영/배포 변경 시 추가 검증
 1. `./gradlew build` 성공
@@ -21,3 +23,4 @@
 7. 로컬 프로필 변경 시 `local`은 실제 Firebase 자격증명 경로가 필요한지, `local-emulator`는 자격증명 경로 없이도 실행되는지 함께 확인
 8. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
 9. 운영 MySQL 접근 정책을 바꿨다면 host 바인딩이 `127.0.0.1` loopback 으로만 열리는지 확인
+10. Phase 10 이전 운영 DB 업그레이드면 앱 기동 전에 `members.status` 수동 마이그레이션 SQL을 먼저 적용했는지 확인

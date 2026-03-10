@@ -23,4 +23,6 @@ public interface NoticeLikeRepository extends JpaRepository<NoticeLike, NoticeLi
               and nl.id.noticeId in :noticeIds
             """)
     List<String> findLikedNoticeIds(@Param("userId") String userId, @Param("noticeIds") Collection<String> noticeIds);
+
+    List<NoticeLike> findById_UserId(String userId);
 }

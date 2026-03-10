@@ -24,4 +24,6 @@ public interface PostInteractionRepository extends JpaRepository<PostInteraction
               and pi.bookmarked = true
             """)
     List<String> findBookmarkedUserIdsByPostId(@Param("postId") String postId);
+
+    List<PostInteraction> findById_UserId(String userId);
 }

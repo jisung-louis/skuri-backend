@@ -65,7 +65,7 @@ class BoardServiceTest {
     @Test
     void createPost_정상생성() {
         Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "사용자", LocalDateTime.now());
-        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
         when(postRepository.save(any(Post.class))).thenAnswer(invocation -> {
             Post saved = invocation.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", "post-1");
@@ -97,7 +97,7 @@ class BoardServiceTest {
         Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "사용자", LocalDateTime.now());
 
         when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
-        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
         when(commentRepository.findByIdAndPostId("comment-1", "post-1")).thenReturn(Optional.of(parent));
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
             Comment saved = invocation.getArgument(0);
@@ -127,7 +127,7 @@ class BoardServiceTest {
         Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "사용자", LocalDateTime.now());
 
         when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
-        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
         when(commentRepository.findByIdAndPostId("child-1", "post-1")).thenReturn(Optional.of(child));
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
             Comment saved = invocation.getArgument(0);
@@ -180,7 +180,7 @@ class BoardServiceTest {
         Comment existingAnonymous = comment("old-comment", post, null, "member-1", true, 2);
 
         when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
-        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
         when(commentRepository.findFirstByPost_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("post-1", "post-1:member-1"))
                 .thenReturn(Optional.of(existingAnonymous));
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
@@ -237,6 +237,33 @@ class BoardServiceTest {
         assertEquals(1, bookmarked.bookmarkCount());
         assertFalse(unbookmarked.isBookmarked());
         assertEquals(0, unbookmarked.bookmarkCount());
+    }
+
+    @Test
+    void handleMemberWithdrawal_작성자익명화와인터랙션카운트정리를수행한다() {
+        Post authoredPost = post("post-authored", "member-1");
+        Post likedPost = post("post-liked", "author-2");
+        ReflectionTestUtils.setField(likedPost, "likeCount", 3);
+        ReflectionTestUtils.setField(likedPost, "bookmarkCount", 2);
+        Comment comment = comment("comment-1", likedPost, null, "member-1", false, null);
+        PostInteraction interaction = PostInteraction.create(likedPost, "member-1");
+        interaction.like();
+        interaction.bookmark();
+
+        when(postRepository.findByAuthorId("member-1")).thenReturn(List.of(authoredPost));
+        when(commentRepository.findByAuthorId("member-1")).thenReturn(List.of(comment));
+        when(postInteractionRepository.findById_UserId("member-1")).thenReturn(List.of(interaction));
+        when(postRepository.findAllById(any())).thenReturn(List.of(likedPost));
+
+        boardService.handleMemberWithdrawal("member-1");
+
+        assertEquals("withdrawn-member", authoredPost.getAuthorId());
+        assertEquals("탈퇴한 사용자", authoredPost.getAuthorName());
+        assertEquals("withdrawn-member", comment.getAuthorId());
+        assertEquals("탈퇴한 사용자", comment.getAuthorName());
+        assertEquals(2, likedPost.getLikeCount());
+        assertEquals(1, likedPost.getBookmarkCount());
+        verify(postInteractionRepository).deleteAllInBatch(List.of(interaction));
     }
 
     @Test

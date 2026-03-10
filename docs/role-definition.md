@@ -3,8 +3,8 @@
 # 백엔드 역할 정의서 v1.0
 (Firebase Serverless → Spring Migration)
 
-> 최종 수정일: 2026-03-08
-> 관련 문서: [도메인 분석](./domain-analysis.md) | [API 명세](./api-specification.md) | [구현 로드맵](./implementation-roadmap.md)
+> 최종 수정일: 2026-03-09
+> 관련 문서: [도메인 분석](./domain-analysis.md) | [API 명세](./api-specification.md) | [구현 로드맵](./implementation-roadmap.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ## 1. 문서 목적
 
@@ -92,6 +92,7 @@ Spring 내부의 이벤트 기반 구조로 대체한다.
 
 - 비즈니스 핵심 로직과 부가 효과(알림, 로그 등)를 분리한다.
 - 도메인 이벤트를 통해 후처리를 수행한다.
+- 회원 탈퇴처럼 외부 시스템(Firebase Auth) 정리가 필요한 경우에도, 핵심 트랜잭션과 after-commit 후처리를 분리한다.
 
 ---
 
@@ -139,6 +140,8 @@ Spring 내부의 이벤트 기반 구조로 대체한다.
 3. 검증 성공 시 토큰에 포함된 uid를 사용자 식별자로 사용한다.
 4. 검증된 토큰의 `email`이 `@sungkyul.ac.kr`가 아니면 요청을 거부한다. (403)
 5. Auth Emulator는 `local-emulator` 프로필에서만 허용하며, 운영/일반 local 프로필에서 emulator host가 감지되면 기동을 차단한다.
+6. `members.status = WITHDRAWN`인 회원은 보호 API에서 `403 MEMBER_WITHDRAWN`으로 차단한다.
+7. 예외적으로 `POST /v1/members`는 탈퇴한 동일 UID가 명시적인 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 받을 수 있도록 통과시킨다.
 
 Spring 백엔드는 Access Token / Refresh Token을 직접 발급하거나 관리하지 않는다.
 

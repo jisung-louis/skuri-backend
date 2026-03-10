@@ -58,6 +58,20 @@ public interface PartyRepository extends JpaRepository<Party, String> {
             """)
     List<Party> findMyParties(@Param("memberId") String memberId);
 
+    @EntityGraph(attributePaths = {"members"})
+    @Query("""
+            select distinct p
+            from Party p
+            join p.members pm
+            where pm.id.memberId = :memberId
+              and p.status in :statuses
+            order by p.createdAt desc
+            """)
+    List<Party> findActiveDetailsByMemberId(
+            @Param("memberId") String memberId,
+            @Param("statuses") Collection<PartyStatus> statuses
+    );
+
     @Query("""
             select p.id
             from Party p

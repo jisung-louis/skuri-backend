@@ -24,4 +24,6 @@ public interface NoticeReadStatusRepository extends JpaRepository<NoticeReadStat
               and s.read = true
             """)
     List<String> findReadNoticeIds(@Param("userId") String userId, @Param("noticeIds") Collection<String> noticeIds);
+
+    long deleteById_UserId(String userId);
 }

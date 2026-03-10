@@ -144,6 +144,11 @@ public class NotificationService {
         }
     }
 
+    @Transactional
+    public void deleteAllByUserId(String memberId) {
+        userNotificationRepository.deleteByUserId(memberId);
+    }
+
     private UserNotification getOwnedNotification(String memberId, String notificationId) {
         UserNotification notification = userNotificationRepository.findById(notificationId)
                 .orElseThrow(NotificationNotFoundException::new);

@@ -17,6 +17,7 @@ import com.skuri.skuri_backend.domain.member.entity.LinkedAccountProvider;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.entity.NotificationSetting;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
+import com.skuri.skuri_backend.domain.member.exception.WithdrawnMemberRejoinNotAllowedException;
 import com.skuri.skuri_backend.domain.member.repository.LinkedAccountRepository;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
@@ -53,6 +54,9 @@ public class MemberService {
         } catch (DataIntegrityViolationException e) {
             Member existingMember = memberRepository.findById(authenticatedMember.uid())
                     .orElseThrow(() -> new BusinessException(ErrorCode.CONFLICT, "회원 생성 처리 중 충돌이 발생했습니다."));
+            if (existingMember.isWithdrawn()) {
+                throw new WithdrawnMemberRejoinNotAllowedException();
+            }
             createLinkedAccount(existingMember, authenticatedMember);
             return MemberUpsertResult.existing(toMemberCreateResponse(existingMember));
         }
@@ -148,7 +152,7 @@ public class MemberService {
     }
 
     private Member getMemberOrThrow(String memberId) {
-        return memberRepository.findById(memberId)
+        return memberRepository.findActiveById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
     }
 

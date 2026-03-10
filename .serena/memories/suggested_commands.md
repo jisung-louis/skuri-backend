@@ -32,6 +32,7 @@ ss -ltnp | grep 8080
 ss -ltnp | grep 3307
 curl -i -X OPTIONS 'http://127.0.0.1:8080/v1/app-versions/android' -H 'Origin: <CD_SMOKE_CORS_ORIGIN or first exact API_ALLOWED_ORIGIN_PATTERNS entry>' -H 'Access-Control-Request-Method: GET'
 curl -o /dev/null -s -w '%{http_code}\n' http://127.0.0.1:8080/v3/api-docs
+mysql -u <user> -p<password> -h <host> -P <port> <database> -e "ALTER TABLE members ADD COLUMN status VARCHAR(20) NULL AFTER is_admin; UPDATE members SET status = 'ACTIVE' WHERE status IS NULL; ALTER TABLE members MODIFY COLUMN status VARCHAR(20) NOT NULL;"
 ```
 
 ```bash

@@ -12,6 +12,7 @@ import com.skuri.skuri_backend.domain.member.entity.LinkedAccount;
 import com.skuri.skuri_backend.domain.member.entity.LinkedAccountProvider;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
+import com.skuri.skuri_backend.domain.member.exception.WithdrawnMemberRejoinNotAllowedException;
 import com.skuri.skuri_backend.domain.member.repository.LinkedAccountRepository;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
@@ -98,6 +99,23 @@ class MemberServiceTest {
     }
 
     @Test
+    void createMember_탈퇴한동일UID가있으면_재가입불가예외() {
+        AuthenticatedMember authenticatedMember = authenticatedMember();
+        Member withdrawnMember = memberEntity(authenticatedMember.uid(), authenticatedMember.email());
+        withdrawnMember.withdraw(LocalDateTime.now());
+
+        doThrow(new DataIntegrityViolationException("duplicate member"))
+                .when(memberRepository).insert(any(Member.class));
+        when(memberRepository.findById(authenticatedMember.uid())).thenReturn(Optional.of(withdrawnMember));
+
+        assertThrows(
+                WithdrawnMemberRejoinNotAllowedException.class,
+                () -> memberService.createMember(authenticatedMember)
+        );
+        verify(linkedAccountRepository, never()).saveAndFlush(any(LinkedAccount.class));
+    }
+
+    @Test
     void createMember_linkedAccount중복충돌은_무해처리() {
         AuthenticatedMember authenticatedMember = authenticatedMember();
 
@@ -165,7 +183,7 @@ class MemberServiceTest {
     void updateMyProfile_부분수정_null필드유지() {
         Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
         member.updateProfile("기존닉네임", "20201234", "컴퓨터공학과", "https://example.com/old.jpg");
-        when(memberRepository.findById("firebase-uid")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
 
         MemberMeResponse response = memberService.updateMyProfile(
                 "firebase-uid",
@@ -181,7 +199,7 @@ class MemberServiceTest {
 
     @Test
     void updateMyProfile_회원없음_MEMBER_NOT_FOUND() {
-        when(memberRepository.findById("not-found")).thenReturn(Optional.empty());
+        when(memberRepository.findActiveById("not-found")).thenReturn(Optional.empty());
 
         assertThrows(
                 MemberNotFoundException.class,
@@ -192,7 +210,7 @@ class MemberServiceTest {
     @Test
     void updateMyBankAccount_hideNameNull이면False() {
         Member member = memberEntity("firebase-uid", "user@sungkyul.ac.kr");
-        when(memberRepository.findById("firebase-uid")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
 
         MemberMeResponse response = memberService.updateMyBankAccount(
                 "firebase-uid",
@@ -208,7 +226,7 @@ class MemberServiceTest {
 
     @Test
     void updateMyBankAccount_회원없음_MEMBER_NOT_FOUND() {
-        when(memberRepository.findById("not-found")).thenReturn(Optional.empty());
+        when(memberRepository.findActiveById("not-found")).thenReturn(Optional.empty());
 
         assertThrows(
                 MemberNotFoundException.class,
@@ -222,7 +240,7 @@ class MemberServiceTest {
     @Test
     void updateMyNotificationSettings_부분수정_지정필드만변경() {
         Member member = memberEntity("firebase-uid", "user@sungkyul.ac.kr");
-        when(memberRepository.findById("firebase-uid")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
 
         MemberMeResponse response = memberService.updateMyNotificationSettings(
                 "firebase-uid",
@@ -257,7 +275,7 @@ class MemberServiceTest {
 
     @Test
     void updateMyNotificationSettings_회원없음_MEMBER_NOT_FOUND() {
-        when(memberRepository.findById("not-found")).thenReturn(Optional.empty());
+        when(memberRepository.findActiveById("not-found")).thenReturn(Optional.empty());
 
         assertThrows(
                 MemberNotFoundException.class,
@@ -285,7 +303,7 @@ class MemberServiceTest {
         Member member = memberEntity("firebase-uid", "user@sungkyul.ac.kr");
         LocalDateTime oldLastLogin = LocalDateTime.now().minusDays(1);
         member.updateLastLogin(oldLastLogin);
-        when(memberRepository.findById("firebase-uid")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
 
         LocalDateTime callStartedAt = LocalDateTime.now();
         MemberMeResponse response = memberService.getMyProfile("firebase-uid");
@@ -301,7 +319,7 @@ class MemberServiceTest {
         ReflectionTestUtils.setField(member.getNotificationSetting(), "academicScheduleNotifications", null);
         ReflectionTestUtils.setField(member.getNotificationSetting(), "academicScheduleDayBeforeEnabled", null);
         ReflectionTestUtils.setField(member.getNotificationSetting(), "academicScheduleAllEventsEnabled", null);
-        when(memberRepository.findById("firebase-uid")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
 
         MemberMeResponse response = memberService.getMyProfile("firebase-uid");
 
@@ -315,7 +333,7 @@ class MemberServiceTest {
     void getMemberById_공개프로필반환() {
         Member member = memberEntity("firebase-uid", "user@sungkyul.ac.kr");
         member.updateProfile("공개닉네임", null, "컴퓨터공학과", "https://example.com/target.jpg");
-        when(memberRepository.findById("firebase-uid")).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
 
         MemberPublicProfileResponse response = memberService.getMemberById("firebase-uid");
 
@@ -327,7 +345,7 @@ class MemberServiceTest {
 
     @Test
     void getMemberById_회원없음_MEMBER_NOT_FOUND() {
-        when(memberRepository.findById("not-found")).thenReturn(Optional.empty());
+        when(memberRepository.findActiveById("not-found")).thenReturn(Optional.empty());
 
         assertThrows(
                 MemberNotFoundException.class,

@@ -8,6 +8,8 @@ import com.skuri.skuri_backend.domain.member.dto.response.MemberCreateResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberMeResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberPublicProfileResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberUpsertResult;
+import com.skuri.skuri_backend.domain.member.dto.response.MemberWithdrawResponse;
+import com.skuri.skuri_backend.domain.member.service.MemberLifecycleService;
 import com.skuri.skuri_backend.domain.member.service.MemberService;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
@@ -27,6 +29,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,16 +48,20 @@ import static com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMemberSup
 public class MemberController {
 
     private final MemberService memberService;
+    private final MemberLifecycleService memberLifecycleService;
 
     @PostMapping
-    @Operation(summary = "회원 생성", description = "인증된 Firebase 사용자를 회원으로 생성합니다. 이미 존재하면 기존 회원을 반환합니다.")
+    @Operation(
+            summary = "회원 생성",
+            description = "인증된 Firebase 사용자를 활성 회원으로 생성합니다. 이미 활성 회원이면 기존 회원을 반환하고, 탈퇴한 동일 UID는 재가입을 허용하지 않습니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
                     description = "신규 회원 생성",
                     content = @Content(
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_CREATE)
+                            examples = @ExampleObject(name = "created", value = OpenApiMemberExamples.SUCCESS_MEMBER_CREATE_CREATED)
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -63,7 +70,7 @@ public class MemberController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_CREATE)
+                            examples = @ExampleObject(name = "existing", value = OpenApiMemberExamples.SUCCESS_MEMBER_CREATE_EXISTING)
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -82,6 +89,18 @@ public class MemberController {
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "탈퇴한 동일 UID 재가입 불가",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(
+                                    name = "withdrawn_member_rejoin_not_allowed",
+                                    value = OpenApiMemberExamples.ERROR_WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED
+                            )
                     )
             )
     })
@@ -119,11 +138,14 @@ public class MemberController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
-                    description = "이메일 도메인 제한",
+                    description = "이메일 도메인 제한/탈퇴 회원 접근 차단",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED)
+                            examples = {
+                                    @ExampleObject(name = "email_domain_restricted", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED),
+                                    @ExampleObject(name = "member_withdrawn", value = OpenApiMemberExamples.ERROR_MEMBER_WITHDRAWN)
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -167,11 +189,14 @@ public class MemberController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
-                    description = "이메일 도메인 제한",
+                    description = "이메일 도메인 제한/탈퇴 회원 접근 차단",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED)
+                            examples = {
+                                    @ExampleObject(name = "email_domain_restricted", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED),
+                                    @ExampleObject(name = "member_withdrawn", value = OpenApiMemberExamples.ERROR_MEMBER_WITHDRAWN)
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -235,11 +260,14 @@ public class MemberController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
-                    description = "이메일 도메인 제한",
+                    description = "이메일 도메인 제한/탈퇴 회원 접근 차단",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED)
+                            examples = {
+                                    @ExampleObject(name = "email_domain_restricted", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED),
+                                    @ExampleObject(name = "member_withdrawn", value = OpenApiMemberExamples.ERROR_MEMBER_WITHDRAWN)
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -303,11 +331,14 @@ public class MemberController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
-                    description = "이메일 도메인 제한",
+                    description = "이메일 도메인 제한/탈퇴 회원 접근 차단",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED)
+                            examples = {
+                                    @ExampleObject(name = "email_domain_restricted", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED),
+                                    @ExampleObject(name = "member_withdrawn", value = OpenApiMemberExamples.ERROR_MEMBER_WITHDRAWN)
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -339,6 +370,66 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @DeleteMapping("/me")
+    @Operation(summary = "회원 탈퇴", description = "인증된 본인 회원 계정을 탈퇴 처리합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "탈퇴 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_WITHDRAW)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "이메일 도메인 제한/탈퇴 회원 접근 차단",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "email_domain_restricted", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED),
+                                    @ExampleObject(name = "member_withdrawn", value = OpenApiMemberExamples.ERROR_MEMBER_WITHDRAWN)
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회원 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.ERROR_MEMBER_NOT_FOUND)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "탈퇴 불가 상태",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.ERROR_MEMBER_WITHDRAWAL_NOT_ALLOWED)
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<MemberWithdrawResponse>> withdrawMyAccount(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember
+    ) {
+        MemberWithdrawResponse response = memberLifecycleService.withdrawMyAccount(requireAuthenticatedMember(authenticatedMember).uid());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "회원 공개 프로필 조회", description = "회원 ID로 공개 프로필만 조회합니다.")
     @ApiResponses({
@@ -362,11 +453,14 @@ public class MemberController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
-                    description = "이메일 도메인 제한",
+                    description = "이메일 도메인 제한/탈퇴 회원 접근 차단",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED)
+                            examples = {
+                                    @ExampleObject(name = "email_domain_restricted", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED),
+                                    @ExampleObject(name = "member_withdrawn", value = OpenApiMemberExamples.ERROR_MEMBER_WITHDRAWN)
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(

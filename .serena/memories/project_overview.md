@@ -12,7 +12,7 @@
 - OpenAPI: springdoc Swagger UI + Scalar
 
 ## 도메인 구조
-- member: 회원, 프로필, 알림 설정, FCM 토큰 API
+- member: 회원, 프로필, 알림 설정, FCM 토큰 API, 계정 라이프사이클(soft delete tombstone, 탈퇴, 재가입 정책)
 - taxiparty: 생성/참여/정산/상태 전이, SSE
 - chat: 채팅방/메시지/WebSocket
 - board: 게시글/댓글/북마크
@@ -33,6 +33,11 @@
 - GitHub Actions CD는 `production` 환경 승인 기반 반자동 배포를 사용하며, `linux/amd64`와 `linux/arm64` 멀티플랫폼 이미지를 빌드한다.
 - CD workflow는 `concurrency.group = production-deploy`, `cancel-in-progress = true`로 최신 `main` push만 남기고 이전 run을 자동 취소한다.
 - `common.event.AfterCommitApplicationEventPublisher`: 성공한 상태 변경 이후에만 `ApplicationEvent`를 발행한다.
+- Phase 10부터 회원 탈퇴는 `members.status=WITHDRAWN`, `withdrawnAt` 기반 soft delete tombstone으로 처리하고, 개인정보 스크럽 + 도메인 후처리를 함께 수행한다.
+- 탈퇴 회원은 보호 API에서 `403 MEMBER_WITHDRAWN`으로 차단되며, 동일 Firebase UID는 재활성화하지 않고 `POST /v1/members`에서 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환한다.
+- Firebase user 삭제, SSE 연결 종료 같은 외부 후처리는 after-commit 리스너에서 best-effort로 수행한다.
+- 채팅 WebSocket은 탈퇴 시 세션을 best-effort로 종료하고, 남은 `/topic/chat/**` delivery도 outbound interceptor로 차단한다.
+- Phase 10 이전 운영 DB 업그레이드 시에는 앱 기동 전에 `members.status`를 수동 SQL로 `ACTIVE` 백필한 뒤 새 버전을 실행한다.
 - `infra.auth.config.FirebaseConfig`를 재사용하고 Firebase Admin 중복 초기화는 금지한다.
 - `infra.notification`에는 `PushSender` 추상화, Firebase 기반 sender, credentials 부재 시 `NoOpPushSender`가 있다.
 - 공통 응답은 `ApiResponse`, 예외는 `GlobalExceptionHandler`, ErrorCode 중심으로 처리한다.

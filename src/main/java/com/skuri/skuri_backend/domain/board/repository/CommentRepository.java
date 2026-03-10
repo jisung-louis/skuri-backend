@@ -54,4 +54,6 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
             where c.post.id = :postId
             """)
     int findMaxAnonymousOrderByPostId(@Param("postId") String postId);
+
+    List<Comment> findByAuthorId(String authorId);
 }

@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -103,6 +104,17 @@ class TimetableServiceTest {
 
         assertEquals(0, response.courseCount());
         assertEquals(0, response.totalCredits());
+    }
+
+    @Test
+    void deleteAllByUserId_회원탈퇴시_시간표를전부삭제한다() {
+        UserTimetable first = timetable("timetable-1", "user-1", "2026-1");
+        UserTimetable second = timetable("timetable-2", "user-1", "2026-2");
+        when(userTimetableRepository.findAllByUserId("user-1")).thenReturn(List.of(first, second));
+
+        timetableService.deleteAllByUserId("user-1");
+
+        verify(userTimetableRepository).deleteAll(List.of(first, second));
     }
 
     private Course course(

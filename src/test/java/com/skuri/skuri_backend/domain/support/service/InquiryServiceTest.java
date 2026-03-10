@@ -16,10 +16,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -94,5 +96,28 @@ class InquiryServiceTest {
 
         assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
         assertEquals("page는 0 이상이어야 합니다.", exception.getMessage());
+    }
+
+    @Test
+    void anonymizeWithdrawnMemberInquiries_구조화개인정보를마스킹한다() {
+        Inquiry inquiry = Inquiry.create(
+                InquiryType.BUG,
+                "채팅 오류",
+                "채팅 진입 시 종료됩니다.",
+                "user-1",
+                "user@sungkyul.ac.kr",
+                "스쿠리유저",
+                "홍길동",
+                "20201234"
+        );
+
+        when(inquiryRepository.findAllByUserId("user-1")).thenReturn(List.of(inquiry));
+
+        inquiryService.anonymizeWithdrawnMemberInquiries("user-1");
+
+        assertEquals("탈퇴한 사용자", inquiry.getUserName());
+        assertNull(inquiry.getUserEmail());
+        assertNull(inquiry.getUserRealname());
+        assertNull(inquiry.getUserStudentId());
     }
 }

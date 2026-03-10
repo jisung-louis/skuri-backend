@@ -1,7 +1,7 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-08
-> 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md)
+> 최종 수정일: 2026-03-09
+> 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
 
@@ -105,8 +105,11 @@ Authorization: Bearer <firebase_id_token>
 | 401 | `UNAUTHORIZED` | 인증 필요 |
 | 403 | `FORBIDDEN` | 권한 없음 |
 | 403 | `ADMIN_REQUIRED` | 관리자 권한 필요 |
+| 403 | `MEMBER_WITHDRAWN` | 탈퇴한 회원 접근 차단 |
 | 404 | `NOT_FOUND` | 리소스 없음 |
 | 409 | `CONFLICT` | 충돌 (중복 등) |
+| 409 | `WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED` | 탈퇴한 동일 UID 재가입 불가 |
+| 409 | `MEMBER_WITHDRAWAL_NOT_ALLOWED` | 현재 상태상 회원 탈퇴 불가 |
 | 409 | `RESOURCE_CONCURRENT_MODIFICATION` | 낙관적 락 기반 동시 수정 충돌 |
 | 422 | `VALIDATION_ERROR` | 유효성 검사 실패 |
 | 500 | `INTERNAL_ERROR` | 서버 오류 |
@@ -123,9 +126,9 @@ Authorization: Bearer <firebase_id_token>
 
 ## 2. Member API
 
-> 구현 상태 (2026-03-02):
-> - 구현 완료: `POST /v1/members`, `GET /v1/members/me`, `PATCH /v1/members/me`, `PUT /v1/members/me/bank-account`, `PATCH /v1/members/me/notification-settings`, `GET /v1/members/{id}`, `POST/DELETE /v1/members/me/fcm-tokens`
-> - 구현 예정: `DELETE /v1/members/me` (Phase 10)
+> 구현 상태 (2026-03-09):
+> - 구현 완료: `POST /v1/members`, `GET /v1/members/me`, `PATCH /v1/members/me`, `PUT /v1/members/me/bank-account`, `PATCH /v1/members/me/notification-settings`, `DELETE /v1/members/me`, `GET /v1/members/{id}`, `POST/DELETE /v1/members/me/fcm-tokens`
+> - 계정 라이프사이클 정책: [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ### 2.1 인증 및 로그인 플로우
 
@@ -162,7 +165,8 @@ Authorization: Bearer <firebase_id_token>
 ```
 
 > **주의:** Firebase의 `isNewUser`가 간헐적으로 부정확할 수 있습니다.
-> 서버는 `POST /v1/members` 중복 호출(이미 존재하는 uid)에 대해 **200 OK + 기존 프로필**을 반환하여 안전하게 처리합니다.
+> 서버는 `POST /v1/members` 중복 호출(이미 존재하는 활성 uid)에 대해 **200 OK + 기존 프로필**을 반환하여 안전하게 처리합니다.
+> 단, 이미 탈퇴 처리된 동일 uid는 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환하며 재활성화하지 않습니다.
 
 **이메일 도메인 제한:**
 모든 인증 API에서 Firebase ID Token의 `email`이 `@sungkyul.ac.kr`로 끝나지 않으면 `403`을 반환합니다.
@@ -174,6 +178,10 @@ Authorization: Bearer <firebase_id_token>
   "message": "성결대학교 이메일(@sungkyul.ac.kr)만 사용 가능합니다."
 }
 ```
+
+**탈퇴 회원 접근 제한:**
+- 보호 API에 탈퇴 회원 토큰이 들어오면 `403 MEMBER_WITHDRAWN`을 반환합니다.
+- 예외적으로 `POST /v1/members`는 탈퇴한 동일 UID가 명시적인 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 받을 수 있도록 허용됩니다.
 
 **로컬 Auth Emulator 정책:**
 - `local-emulator` 프로필에서만 Auth Emulator 사용을 허용합니다.
@@ -210,7 +218,8 @@ Spring 서버 처리:
    - 소셜 로그인(`GOOGLE`)이 아닌 경우 `linked_accounts`는 `provider`를 제외한 provider 부가 컬럼(`provider_id`, `email`, `provider_display_name`, `photo_url`)을 `null`로 저장한다.
 2. `members` 테이블에서 `uid` 조회
    - **없음 (신규)** → INSERT + `linked_accounts` INSERT → 201 Created
-   - **있음 (중복)** → 별도 처리 없이 기존 프로필 200 OK 반환 (idempotent)
+   - **있음 + ACTIVE (중복)** → 별도 처리 없이 기존 프로필 200 OK 반환 (idempotent)
+   - **있음 + WITHDRAWN** → 409 Conflict (`WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`)
 
 > 정책: 회원 생성 시 `members.photoUrl`은 `null`로 저장한다.  
 > 소셜 계정 프로필 이미지(`picture`)는 `linked_accounts.photo_url`에만 저장한다.
@@ -257,6 +266,16 @@ Spring 서버 처리:
     "bankAccount": { ... },
     "joinedAt": "2024-03-01T00:00:00Z"
   }
+}
+```
+
+**Response (탈퇴한 동일 UID 재가입 시도 — 409 Conflict):**
+```json
+{
+  "success": false,
+  "message": "탈퇴한 계정은 같은 인증 계정으로 재가입할 수 없습니다.",
+  "errorCode": "WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED",
+  "timestamp": "2026-03-09T12:00:00"
 }
 ```
 
@@ -385,7 +404,14 @@ Spring 서버 처리:
 #### DELETE /v1/members/me
 회원 탈퇴
 
-> 구현 예정: Phase 10 (정책 확정 후)
+- 즉시 탈퇴 정책을 사용합니다.
+- `members` row는 soft delete tombstone으로 유지하고 `status=WITHDRAWN`, `withdrawnAt`를 기록합니다.
+- 개인정보는 스크럽합니다.
+  - `email`은 unique 충돌 방지용 placeholder로 치환
+  - `studentId`, `department`, `photoUrl`, `realname`, 계좌 정보는 제거
+  - `linked_accounts`, `user_notifications`, `fcm_tokens`, `user_timetables`는 삭제
+- Board/Notice 콘텐츠는 보존하고 작성자 표시만 `탈퇴한 사용자`로 익명화합니다.
+- TaxiParty는 리더 탈퇴 시 `WITHDRAWED`로 종료되며, 일반 멤버는 `ARRIVED` 파티 참여 중이면 탈퇴할 수 없습니다.
 
 **Response:**
 ```json
@@ -394,6 +420,16 @@ Spring 서버 처리:
   "data": {
     "message": "회원 탈퇴가 완료되었습니다."
   }
+}
+```
+
+**Response (탈퇴 불가 상태 — 409 Conflict):**
+```json
+{
+  "success": false,
+  "message": "현재 상태에서는 회원 탈퇴를 진행할 수 없습니다.",
+  "errorCode": "MEMBER_WITHDRAWAL_NOT_ALLOWED",
+  "timestamp": "2026-03-09T12:00:00"
 }
 ```
 

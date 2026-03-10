@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, String> {
 
@@ -130,4 +131,6 @@ public interface PostRepository extends JpaRepository<Post, String> {
               and p.deleted = false
             """)
     int incrementViewCount(@Param("postId") String postId);
+
+    List<Post> findByAuthorId(String authorId);
 }

@@ -33,6 +33,7 @@ public class FirebaseStompAuthChannelInterceptor implements ChannelInterceptor {
     private final FirebaseTokenVerifier firebaseTokenVerifier;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
+    private final ChatWebSocketSessionRegistry sessionRegistry;
 
     @Value("${security.allowed-email-domain:sungkyul.ac.kr}")
     private String allowedEmailDomain;
@@ -51,6 +52,11 @@ public class FirebaseStompAuthChannelInterceptor implements ChannelInterceptor {
 
         if (StompCommand.CONNECT.equals(command)) {
             authenticate(accessor);
+            return message;
+        }
+
+        if (StompCommand.DISCONNECT.equals(command)) {
+            sessionRegistry.unregisterSession(accessor.getSessionId());
             return message;
         }
 
@@ -73,14 +79,16 @@ public class FirebaseStompAuthChannelInterceptor implements ChannelInterceptor {
         try {
             FirebaseTokenClaims claims = firebaseTokenVerifier.verify(idToken);
             validateEmailDomain(claims.email());
-            accessor.setUser(new StompAuthenticatedMember(
+            StompAuthenticatedMember authenticatedMember = new StompAuthenticatedMember(
                     claims.uid(),
                     claims.email(),
                     claims.signInProvider(),
                     claims.providerId(),
                     claims.providerDisplayName(),
                     claims.photoUrl()
-            ));
+            );
+            accessor.setUser(authenticatedMember);
+            sessionRegistry.registerAuthenticatedSession(authenticatedMember.uid(), accessor.getSessionId());
         } catch (BusinessException e) {
             throw new MessagingException("WebSocket 인증에 실패했습니다.", new BusinessException(ErrorCode.STOMP_AUTH_FAILED));
         }
