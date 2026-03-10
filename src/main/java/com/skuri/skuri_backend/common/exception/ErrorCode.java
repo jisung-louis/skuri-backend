@@ -8,30 +8,47 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
-    // Common
+    // 공통 요청/인증/인가 에러.
+    // 특정 도메인과 무관하게 모든 API에서 재사용되는 기본 오류 코드다.
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "잘못된 요청입니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "접근 권한이 없습니다."),
     ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "ADMIN_REQUIRED", "관리자 권한이 필요합니다."),
-    EMAIL_DOMAIN_RESTRICTED(HttpStatus.FORBIDDEN, "EMAIL_DOMAIN_RESTRICTED", "성결대학교 이메일(@sungkyul.ac.kr)만 사용 가능합니다."),
-    MEMBER_WITHDRAWN(HttpStatus.FORBIDDEN, "MEMBER_WITHDRAWN", "탈퇴한 회원은 서비스에 접근할 수 없습니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "NOT_FOUND", "리소스를 찾을 수 없습니다."),
-    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."),
-    WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED(HttpStatus.CONFLICT, "WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED", "탈퇴한 계정은 같은 인증 계정으로 재가입할 수 없습니다."),
-    MEMBER_WITHDRAWAL_NOT_ALLOWED(HttpStatus.CONFLICT, "MEMBER_WITHDRAWAL_NOT_ALLOWED", "현재 상태에서는 회원 탈퇴를 진행할 수 없습니다."),
     CONFLICT(HttpStatus.CONFLICT, "CONFLICT", "리소스 충돌이 발생했습니다."),
     RESOURCE_CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "RESOURCE_CONCURRENT_MODIFICATION", "동시 수정 충돌이 발생했습니다. 다시 시도해주세요."),
     VALIDATION_ERROR(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_ERROR", "입력값 검증에 실패했습니다."),
+
+    // 회원(Member) 도메인 에러.
+    // 회원 식별, 재가입 제한, 탈퇴 상태, 계좌 등록 요건처럼 사용자 계정 상태와 직접 연결된 오류를 다룬다.
+    EMAIL_DOMAIN_RESTRICTED(HttpStatus.FORBIDDEN, "EMAIL_DOMAIN_RESTRICTED", "성결대학교 이메일(@sungkyul.ac.kr)만 사용 가능합니다."),
+    MEMBER_WITHDRAWN(HttpStatus.FORBIDDEN, "MEMBER_WITHDRAWN", "탈퇴한 회원은 서비스에 접근할 수 없습니다."),
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."),
+    WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED(HttpStatus.CONFLICT, "WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED", "탈퇴한 계정은 같은 인증 계정으로 재가입할 수 없습니다."),
+    MEMBER_WITHDRAWAL_NOT_ALLOWED(HttpStatus.CONFLICT, "MEMBER_WITHDRAWAL_NOT_ALLOWED", "현재 상태에서는 회원 탈퇴를 진행할 수 없습니다."),
+    BANK_ACCOUNT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT, "BANK_ACCOUNT_REQUIRED", "계좌 정보 등록 후 이용 가능합니다."),
+
+    // 이미지(Image) 업로드/미디어 도메인 에러.
+    // 파일 크기, 해상도, 포맷, 저장 실패처럼 공통 업로드 인프라에서 발생하는 예외를 담당한다.
     IMAGE_DIMENSIONS_EXCEEDED(HttpStatus.UNPROCESSABLE_CONTENT, "IMAGE_DIMENSIONS_EXCEEDED", "이미지 해상도가 허용 범위를 초과했습니다."),
-    IMAGE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "IMAGE_TOO_LARGE", "이미지 파일은 최대 10MB까지 업로드할 수 있습니다."),
+    IMAGE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "IMAGE_TOO_LARGE", "이미지 파일은 최대 10MB까지 업로드할 수 있습니다."),
     IMAGE_INVALID_FORMAT(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "IMAGE_INVALID_FORMAT", "지원하지 않는 이미지 형식입니다. JPEG, PNG, WebP만 업로드할 수 있습니다."),
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "IMAGE_UPLOAD_FAILED", "이미지 업로드에 실패했습니다."),
+
+    // 알림(Notification) 도메인 에러.
+    // 알림 조회와 소유자 접근 제어처럼 사용자 알림 기능에서 발생하는 오류를 정의한다.
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "알림을 찾을 수 없습니다."),
     NOT_NOTIFICATION_OWNER(HttpStatus.FORBIDDEN, "NOT_NOTIFICATION_OWNER", "본인 알림만 접근할 수 있습니다."),
+
+    // 학사/시간표(Academic) 도메인 에러.
+    // 강의, 학사 일정, 시간표 중복 검증 등 학사 데이터 관리에서 사용하는 오류 코드다.
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE_NOT_FOUND", "강의를 찾을 수 없습니다."),
     ACADEMIC_SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "ACADEMIC_SCHEDULE_NOT_FOUND", "학사 일정을 찾을 수 없습니다."),
     TIMETABLE_CONFLICT(HttpStatus.CONFLICT, "TIMETABLE_CONFLICT", "시간이 겹치는 강의가 이미 시간표에 있습니다."),
     COURSE_ALREADY_IN_TIMETABLE(HttpStatus.CONFLICT, "COURSE_ALREADY_IN_TIMETABLE", "이미 시간표에 추가된 강의입니다."),
+
+    // 택시파티(TaxiParty) 도메인 에러.
+    // 파티 상태 전이, 정원/멤버십, 정산, 리더 권한처럼 핵심 도메인 규칙 위반을 표현한다.
     PARTY_NOT_FOUND(HttpStatus.NOT_FOUND, "PARTY_NOT_FOUND", "파티를 찾을 수 없습니다."),
     PARTY_FULL(HttpStatus.CONFLICT, "PARTY_FULL", "파티 정원이 가득 찼습니다."),
     PARTY_CLOSED(HttpStatus.CONFLICT, "PARTY_CLOSED", "모집이 마감된 파티입니다."),
@@ -53,29 +70,46 @@ public enum ErrorCode {
     CANNOT_KICK_LEADER(HttpStatus.BAD_REQUEST, "CANNOT_KICK_LEADER", "리더는 강퇴할 수 없습니다."),
     INVALID_PARTY_STATE_TRANSITION(HttpStatus.CONFLICT, "INVALID_PARTY_STATE_TRANSITION", "허용되지 않는 파티 상태 전이입니다."),
     PARTY_CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "PARTY_CONCURRENT_MODIFICATION", "동시 요청 충돌이 발생했습니다. 다시 시도해주세요."),
+
+    // 채팅(Chat) 도메인 에러.
+    // 채팅방 참여 자격, 정원 제한, WebSocket 인증 실패 등 채팅 통신 관련 오류를 다룬다.
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_ROOM_NOT_FOUND", "채팅방을 찾을 수 없습니다."),
     NOT_CHAT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "NOT_CHAT_ROOM_MEMBER", "채팅방 멤버가 아닙니다."),
     CHAT_ROOM_FULL(HttpStatus.CONFLICT, "CHAT_ROOM_FULL", "채팅방 정원이 가득 찼습니다."),
     ALREADY_CHAT_ROOM_MEMBER(HttpStatus.CONFLICT, "ALREADY_CHAT_ROOM_MEMBER", "이미 채팅방에 참여 중입니다."),
     STOMP_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "STOMP_AUTH_FAILED", "WebSocket 인증에 실패했습니다."),
-    BANK_ACCOUNT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT, "BANK_ACCOUNT_REQUIRED", "계좌 정보 등록 후 이용 가능합니다."),
+
+    // 게시판(Board) 도메인 에러.
+    // 게시글/댓글 존재 여부와 작성자 권한 검증에 사용되는 오류 코드다.
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "POST_NOT_FOUND", "게시글을 찾을 수 없습니다."),
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT_NOT_FOUND", "댓글을 찾을 수 없습니다."),
     NOT_POST_AUTHOR(HttpStatus.FORBIDDEN, "NOT_POST_AUTHOR", "게시글 작성자만 수정/삭제할 수 있습니다."),
     NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_COMMENT_AUTHOR", "댓글 작성자만 수정/삭제할 수 있습니다."),
+
+    // 공지(Notice/AppNotice) 도메인 에러.
+    // 공지, 앱 공지, 공지 댓글 등 공지성 콘텐츠 관리에서 발생하는 오류를 정의한다.
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_NOT_FOUND", "공지사항을 찾을 수 없습니다."),
     APP_NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "APP_NOTICE_NOT_FOUND", "앱 공지를 찾을 수 없습니다."),
     NOTICE_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_COMMENT_NOT_FOUND", "공지 댓글을 찾을 수 없습니다."),
     NOT_NOTICE_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_NOTICE_COMMENT_AUTHOR", "공지 댓글 작성자만 삭제할 수 있습니다."),
     COMMENT_ALREADY_DELETED(HttpStatus.CONFLICT, "COMMENT_ALREADY_DELETED", "이미 삭제된 댓글입니다."),
+
+    // 지원/문의/신고(Support) 도메인 에러.
+    // 사용자 문의 처리와 신고 상태 관리에서 발생하는 비즈니스 규칙 위반을 표현한다.
     INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "INQUIRY_NOT_FOUND", "문의를 찾을 수 없습니다."),
     INVALID_INQUIRY_STATUS_TRANSITION(HttpStatus.CONFLICT, "INVALID_INQUIRY_STATUS_TRANSITION", "허용되지 않는 문의 상태 전이입니다."),
     REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "REPORT_NOT_FOUND", "신고를 찾을 수 없습니다."),
     REPORT_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "REPORT_ALREADY_SUBMITTED", "동일 대상에 대한 중복 신고입니다."),
     CANNOT_REPORT_YOURSELF(HttpStatus.BAD_REQUEST, "CANNOT_REPORT_YOURSELF", "자기 자신은 신고할 수 없습니다."),
     INVALID_REPORT_STATUS_TRANSITION(HttpStatus.CONFLICT, "INVALID_REPORT_STATUS_TRANSITION", "허용되지 않는 신고 상태 전이입니다."),
+
+    // 학식(Cafeteria) 도메인 에러.
+    // 주차별 학식 메뉴 등록과 조회에서 사용하는 오류 코드다.
     CAFETERIA_MENU_NOT_FOUND(HttpStatus.NOT_FOUND, "CAFETERIA_MENU_NOT_FOUND", "학식 메뉴를 찾을 수 없습니다."),
     CAFETERIA_MENU_ALREADY_EXISTS(HttpStatus.CONFLICT, "CAFETERIA_MENU_ALREADY_EXISTS", "이미 등록된 주차의 학식 메뉴입니다."),
+
+    // 공통 시스템 에러.
+    // 도메인 구분 없이 예기치 못한 서버 내부 오류를 표현하는 최후 수단 코드다.
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
