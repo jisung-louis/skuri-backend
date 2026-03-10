@@ -66,7 +66,7 @@
 | **Firestore**                | 실시간 데이터베이스 (파티, 게시판, 채팅 등 모든 데이터)                               |
 | **Cloud Functions**          | 서버 트리거, FCM 알림 발송, 데이터 일관성                                      |
 | **Firebase Messaging (FCM)** | 푸시 알림                                                           |
-| **Storage (현재 구현 기준)**   | `POST /v1/images` + `StorageRepository` 추상화 기반 이미지 저장, 기본 provider는 로컬 파일시스템 |
+| **Storage (현재 구현 기준)**   | `POST /v1/images` + `StorageRepository` 추상화 기반 이미지 저장, 기본 provider는 LOCAL 파일시스템이며 FIREBASE provider도 선택 가능 |
 | **Firebase Analytics**       | 사용자 행동 분석                                                       |
 | **Firebase Crashlytics**     | 런타임 오류 수집                                                       |
 | **Realtime Database**        | 마인크래프트 채팅 연동 (별도 채널)                                            |

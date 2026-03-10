@@ -626,7 +626,7 @@ Hooks:
 | **Auth** | Firebase Auth (Google Sign-In) | Spring Security + Firebase Admin SDK (ID Token 검증, SecurityContext 설정) |
 | **Push** | FCM + Cloud Functions | FCM (Firebase Admin SDK) |
 | **Notification** | userNotifications 컬렉션 + users.fcmTokens[] | `user_notifications` + `fcm_tokens` 테이블 + 이벤트 리스너 |
-| **Storage** | Firebase Storage | `StorageRepository` 추상화 + LOCAL 파일시스템 기본 구현, 후속 S3/OCI/GCS provider 확장 |
+| **Storage** | Firebase Storage | `StorageRepository` 추상화 + LOCAL 파일시스템 기본 구현, FIREBASE provider 포함 후속 S3/OCI/GCS provider 확장 |
 | **Realtime** | Firestore onSnapshot | SSE + WebSocket (STOMP + SockJS) |
 | **Scheduler** | Cloud Functions onSchedule | Spring Scheduler / Quartz |
 | **Audit** | adminAuditLogs 컬렉션 | Spring AOP + AuditLog 테이블 |
