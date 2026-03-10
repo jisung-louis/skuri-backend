@@ -6,6 +6,11 @@ spring:
   application:
     name: skuri-backend
 
+  servlet:
+    multipart:
+      max-file-size: ${MEDIA_MULTIPART_MAX_FILE_SIZE:12MB}
+      max-request-size: ${MEDIA_MULTIPART_MAX_REQUEST_SIZE:12MB}
+
   datasource:
     username: ${DB_USERNAME:}
     password: ${DB_PASSWORD:}
@@ -82,3 +87,18 @@ springdoc:
 
 scalar:
   enabled: ${OPENAPI_ENABLED:true}
+
+media:
+  storage:
+    provider: ${MEDIA_STORAGE_PROVIDER:LOCAL}
+    base-dir: ${MEDIA_STORAGE_BASE_DIR:var/media}
+    public-base-url: ${MEDIA_STORAGE_PUBLIC_BASE_URL:http://localhost:${server.port}/uploads}
+    url-prefix: ${MEDIA_STORAGE_URL_PREFIX:/uploads}
+  image:
+    max-file-size-bytes: ${MEDIA_IMAGE_MAX_FILE_SIZE_BYTES:10485760}
+    allowed-mime-types:
+      - image/jpeg
+      - image/png
+      - image/webp
+    thumbnail-width: ${MEDIA_IMAGE_THUMBNAIL_WIDTH:300}
+    thumbnail-jpeg-quality: ${MEDIA_IMAGE_THUMBNAIL_JPEG_QUALITY:0.8}

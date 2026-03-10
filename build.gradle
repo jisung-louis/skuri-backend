@@ -34,6 +34,8 @@ dependencies {
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-scalar:3.0.1'
 	implementation 'org.jsoup:jsoup:1.18.3'
+	implementation 'net.coobird:thumbnailator:0.4.20'
+	implementation 'com.twelvemonkeys.imageio:imageio-webp:3.12.0'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 	implementation 'com.google.firebase:firebase-admin:9.4.2'
