@@ -5,12 +5,9 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.image.dto.request.ImageUploadContext;
 import com.skuri.skuri_backend.domain.image.dto.response.ImageUploadResponse;
 import com.skuri.skuri_backend.domain.image.storage.StorageRepository;
-import com.skuri.skuri_backend.infra.storage.MediaStorageProperties;
 import lombok.RequiredArgsConstructor;
 import net.coobird.thumbnailator.Thumbnails;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -34,8 +31,6 @@ public class ImageUploadService {
 
     private final StorageRepository storageRepository;
     private final ImageUploadProperties imageUploadProperties;
-    private final MediaStorageProperties mediaStorageProperties;
-    private final Environment environment;
 
     public ImageUploadResponse upload(boolean admin, ImageUploadContext context, MultipartFile file) {
         validateAccess(context, admin);
@@ -53,22 +48,23 @@ public class ImageUploadService {
         String thumbnailPath = basePath + "/" + fileKey + "_thumb." + thumbnailImage.format().extension();
 
         try {
-            storageRepository.store(originalPath, originalBytes, detectedImage.format().mime());
-            storageRepository.store(thumbnailPath, thumbnailImage.bytes(), thumbnailImage.format().mime());
+            StorageRepository.StoredObject originalObject =
+                    storageRepository.store(originalPath, originalBytes, detectedImage.format().mime());
+            StorageRepository.StoredObject thumbnailObject =
+                    storageRepository.store(thumbnailPath, thumbnailImage.bytes(), thumbnailImage.format().mime());
+            return new ImageUploadResponse(
+                    originalObject.publicUrl(),
+                    thumbnailObject.publicUrl(),
+                    detectedImage.width(),
+                    detectedImage.height(),
+                    Math.toIntExact(file.getSize()),
+                    detectedImage.format().mime()
+            );
         } catch (RuntimeException e) {
             deleteQuietly(originalPath);
             deleteQuietly(thumbnailPath);
             throw mapUploadFailure(e);
         }
-
-        return new ImageUploadResponse(
-                buildPublicUrl(originalPath),
-                buildPublicUrl(thumbnailPath),
-                detectedImage.width(),
-                detectedImage.height(),
-                Math.toIntExact(file.getSize()),
-                detectedImage.format().mime()
-        );
     }
 
     private void validateAccess(ImageUploadContext context, boolean admin) {
@@ -179,15 +175,6 @@ public class ImageUploadService {
                 today.getMonthValue(),
                 today.getDayOfMonth()
         );
-    }
-
-    private String buildPublicUrl(String relativePath) {
-        String baseUrl = mediaStorageProperties.normalizedPublicBaseUrl();
-        if (!StringUtils.hasText(baseUrl)) {
-            String serverPort = environment.getProperty("server.port", "8080");
-            baseUrl = "http://localhost:" + serverPort + mediaStorageProperties.normalizedUrlPrefix();
-        }
-        return baseUrl + "/" + relativePath.replace('\\', '/');
     }
 
     private void deleteQuietly(String relativePath) {

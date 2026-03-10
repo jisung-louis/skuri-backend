@@ -17,6 +17,7 @@ public class MediaStorageProperties {
     private String baseDir = "var/media";
     private String publicBaseUrl;
     private String urlPrefix = "/uploads";
+    private String firebaseBucket;
 
     public Path baseDirPath() {
         return Paths.get(baseDir).toAbsolutePath().normalize();
@@ -32,6 +33,14 @@ public class MediaStorageProperties {
 
     public String normalizedPublicBaseUrl() {
         return trimTrailingSlash(publicBaseUrl);
+    }
+
+    public String normalizedFirebaseBucket() {
+        String normalized = trimTrailingSlash(firebaseBucket);
+        if (!StringUtils.hasText(normalized)) {
+            return normalized;
+        }
+        return normalized.startsWith("gs://") ? normalized.substring("gs://".length()) : normalized;
     }
 
     private String trimTrailingSlash(String value) {
