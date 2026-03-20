@@ -17,8 +17,10 @@ import java.lang.reflect.Constructor;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,11 +55,17 @@ class PartySseServiceTest {
     void publishHeartbeat_전송실패시_구독해제() throws Exception {
         PartySseService partySseService = new PartySseService(partyRepository, memberRepository);
         Map<String, Object> subscribers = (Map<String, Object>) ReflectionTestUtils.getField(partySseService, "subscribers");
+        AtomicInteger completeCount = new AtomicInteger();
 
         SseEmitter failingEmitter = new SseEmitter() {
             @Override
             public synchronized void send(SseEventBuilder builder) throws IOException {
                 throw new IOException("send failed");
+            }
+
+            @Override
+            public synchronized void complete() {
+                completeCount.incrementAndGet();
             }
         };
 
@@ -66,6 +74,7 @@ class PartySseServiceTest {
         partySseService.publishHeartbeat();
 
         assertTrue(subscribers.isEmpty());
+        assertEquals(0, completeCount.get());
     }
 
     private Object createSubscriber(String memberId, SseEmitter emitter) throws Exception {
