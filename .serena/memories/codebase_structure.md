@@ -29,6 +29,10 @@
 ## 인증 인프라
 - `infra/auth/firebase/FirebaseAuthenticationFilter.java`: Bearer 토큰을 `AuthenticatedMember`로 변환하고, SSE 스트림의 async 재디스패치에서도 다시 실행되어 Spring Security `AuthorizationFilter`가 동일한 인증 컨텍스트를 보도록 유지한다.
 
+## SSE 운영
+- `domain/notification/service/NotificationSseService.java`, `domain/taxiparty/service/PartySseService.java`: 하트비트/이벤트 전송 실패 시 subscriber만 제거하고 이미 깨진 `SseEmitter`에 `complete()`를 다시 호출하지 않는다.
+- `common/exception/GlobalExceptionHandler.java`: `AsyncRequestNotUsableException`을 별도 처리해 SSE 종료 직후 `ApiResponse` JSON을 쓰려는 2차 실패를 막는다.
+
 ## 테스트 포인트
 - `src/test/java/com/skuri/skuri_backend/domain/image/controller/ImageControllerContractTest.java`: `/v1/images`의 200/400/401/403/415/422 contract 검증
 - `src/test/java/com/skuri/skuri_backend/domain/image/service/ImageUploadServiceTest.java`: context 권한, 경로 naming, MIME/size/dimension validation, 원본/썸네일 저장 검증
