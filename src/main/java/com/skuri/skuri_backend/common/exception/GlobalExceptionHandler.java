@@ -15,6 +15,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.persistence.OptimisticLockException;
@@ -133,6 +134,14 @@ public class GlobalExceptionHandler {
                         ErrorCode.RESOURCE_CONCURRENT_MODIFICATION.getCode(),
                         ErrorCode.RESOURCE_CONCURRENT_MODIFICATION.getMessage()
                 ));
+    }
+
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsableException(
+            AsyncRequestNotUsableException e,
+            HttpServletRequest request
+    ) {
+        log.debug("AsyncRequestNotUsableException: uri={}, message={}", request.getRequestURI(), e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

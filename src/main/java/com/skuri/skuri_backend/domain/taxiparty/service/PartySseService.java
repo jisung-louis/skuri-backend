@@ -45,11 +45,11 @@ public class PartySseService {
         emitter.onCompletion(() -> subscribers.remove(emitterId));
         emitter.onTimeout(() -> {
             subscribers.remove(emitterId);
-            emitter.complete();
+            safeComplete(emitter);
         });
         emitter.onError(ex -> {
             subscribers.remove(emitterId);
-            emitter.completeWithError(ex);
+            log.debug("파티 SSE 연결 오류로 구독 해제: emitterId={}", emitterId, ex);
         });
 
         sendToOne(
@@ -192,12 +192,15 @@ public class PartySseService {
             );
         } catch (IOException | IllegalStateException e) {
             subscribers.remove(emitterId);
-            try {
-                subscriber.emitter().complete();
-            } catch (Exception ignored) {
-                // no-op
-            }
             log.debug("SSE 전송 실패로 구독 해제: emitterId={}, eventType={}", emitterId, eventType);
+        }
+    }
+
+    private void safeComplete(SseEmitter emitter) {
+        try {
+            emitter.complete();
+        } catch (Exception ignored) {
+            // no-op
         }
     }
 
