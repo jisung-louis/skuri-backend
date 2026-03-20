@@ -25,6 +25,10 @@
 - `infra/admin/audit/AdminAuditLog.java`, `AdminAuditLogRepository.java`, `AdminAuditLogService.java`: `admin_audit_logs` 저장 모델
 - `infra/admin/audit/AdminAuditSnapshotFactory.java`: Academic/Chat/App/Support 도메인 snapshot 생성기
 
+
+## 인증 인프라
+- `infra/auth/firebase/FirebaseAuthenticationFilter.java`: Bearer 토큰을 `AuthenticatedMember`로 변환하고, SSE 스트림의 async 재디스패치에서도 다시 실행되어 Spring Security `AuthorizationFilter`가 동일한 인증 컨텍스트를 보도록 유지한다.
+
 ## 테스트 포인트
 - `src/test/java/com/skuri/skuri_backend/domain/image/controller/ImageControllerContractTest.java`: `/v1/images`의 200/400/401/403/415/422 contract 검증
 - `src/test/java/com/skuri/skuri_backend/domain/image/service/ImageUploadServiceTest.java`: context 권한, 경로 naming, MIME/size/dimension validation, 원본/썸네일 저장 검증
