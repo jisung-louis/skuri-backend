@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -38,6 +39,8 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ASYNC_AUTHENTICATION_ATTRIBUTE =
+            FirebaseAuthenticationFilter.class.getName() + ".ASYNC_AUTHENTICATION";
 
     private final FirebaseTokenVerifier firebaseTokenVerifier;
     private final ObjectProvider<MemberRepository> memberRepositoryProvider;
@@ -64,11 +67,25 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        // SSE re-dispatches pass through Spring Security again after the stream starts.
+        // Re-authenticate on ASYNC dispatches so AuthorizationFilter sees the same principal.
+        return false;
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        Authentication asyncAuthentication = resolveAsyncAuthentication(request);
+        if (asyncAuthentication != null) {
+            setAuthentication(asyncAuthentication);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String idToken = resolveIdToken(request);
         if (!StringUtils.hasText(idToken)) {
             filterChain.doFilter(request, response);
@@ -89,9 +106,8 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
                     authorities
             );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-            securityContext.setAuthentication(authentication);
-            SecurityContextHolder.setContext(securityContext);
+            cacheAsyncAuthentication(request, authentication);
+            setAuthentication(authentication);
 
             filterChain.doFilter(request, response);
         } catch (EmailDomainRestrictedException e) {
@@ -112,6 +128,28 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             return null;
         }
         return authorization.substring(BEARER_PREFIX.length()).trim();
+    }
+
+    private Authentication resolveAsyncAuthentication(HttpServletRequest request) {
+        if (!isAsyncDispatch(request)) {
+            return null;
+        }
+
+        Object authentication = request.getAttribute(ASYNC_AUTHENTICATION_ATTRIBUTE);
+        if (authentication instanceof Authentication asyncAuthentication) {
+            return asyncAuthentication;
+        }
+        return null;
+    }
+
+    private void cacheAsyncAuthentication(HttpServletRequest request, Authentication authentication) {
+        request.setAttribute(ASYNC_AUTHENTICATION_ATTRIBUTE, authentication);
+    }
+
+    private void setAuthentication(Authentication authentication) {
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
     }
 
     private void validateEmailDomain(String email) {
