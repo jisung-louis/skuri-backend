@@ -64,6 +64,13 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        // SSE re-dispatches pass through Spring Security again after the stream starts.
+        // Re-authenticate on ASYNC dispatches so AuthorizationFilter sees the same principal.
+        return false;
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
