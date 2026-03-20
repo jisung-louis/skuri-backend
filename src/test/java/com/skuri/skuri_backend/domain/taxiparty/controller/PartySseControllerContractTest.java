@@ -18,9 +18,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE;
@@ -93,6 +96,27 @@ class PartySseControllerContractTest {
                 )
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.errorCode").value("NOT_PARTY_MEMBER"));
+    }
+
+    @Test
+    void subscribeParties_async응답사용불가예외발생시_204_및_재구독없음() throws Exception {
+        mockValidToken();
+        SseEmitter emitter = new SseEmitter(5_000L);
+        when(partySseService.subscribeParties("firebase-uid")).thenReturn(emitter);
+
+        MvcResult mvcResult = mockMvc.perform(
+                        get("/v1/sse/parties")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        emitter.completeWithError(new AsyncRequestNotUsableException("Response not usable after response errors."));
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isNoContent());
+
+        verify(partySseService, times(1)).subscribeParties("firebase-uid");
     }
 
     @Test
