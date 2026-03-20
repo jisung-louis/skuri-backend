@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.common.exception;
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedErrorResolver;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
@@ -10,6 +11,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -136,6 +138,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @ExceptionHandler(AsyncRequestNotUsableException.class)
     public void handleAsyncRequestNotUsableException(
             AsyncRequestNotUsableException e,
