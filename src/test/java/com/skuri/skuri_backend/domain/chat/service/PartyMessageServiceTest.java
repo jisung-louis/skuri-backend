@@ -1,13 +1,11 @@
 package com.skuri.skuri_backend.domain.chat.service;
 
-import com.skuri.skuri_backend.common.exception.BusinessException;
-import com.skuri.skuri_backend.common.exception.ErrorCode;
-import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
-import com.skuri.skuri_backend.domain.member.entity.BankAccount;
+import com.skuri.skuri_backend.domain.chat.dto.request.SendChatMessageRequest;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +19,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,50 +37,73 @@ class PartyMessageServiceTest {
     private PartyMessageService partyMessageService;
 
     @Test
-    void buildSpecialPayload_ACCOUNT_계좌없으면_BANK_ACCOUNT_REQUIRED() {
-        Party party = sampleParty("leader-1", true, false, false);
+    void buildClientPayload_ACCOUNT_remember면회원계좌도함께저장한다() {
+        Party party = sampleParty("leader-1", true);
+        Member member = Member.create("leader-1", "leader-1@sungkyul.ac.kr", "리더", LocalDateTime.now());
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
-        when(memberRepository.findById("leader-1"))
-                .thenReturn(Optional.of(Member.create("leader-1", "leader-1@sungkyul.ac.kr", "리더", LocalDateTime.now())));
+        when(memberRepository.findById("leader-1")).thenReturn(Optional.of(member));
 
-        BusinessException exception = assertThrows(
-                BusinessException.class,
-                () -> partyMessageService.buildSpecialPayload("party:party-1", "leader-1", ChatMessageType.ACCOUNT)
+        PartySpecialMessagePayload payload = partyMessageService.buildClientPayload(
+                "party:party-1",
+                "leader-1",
+                new SendChatMessageRequest(
+                        com.skuri.skuri_backend.domain.chat.entity.ChatMessageType.ACCOUNT,
+                        null,
+                        null,
+                        new SendChatMessageRequest.AccountPayload(
+                                "카카오뱅크",
+                                "3333-01-1234567",
+                                "홍길동",
+                                true,
+                                true
+                        )
+                )
         );
 
-        assertEquals(ErrorCode.BANK_ACCOUNT_REQUIRED, exception.getErrorCode());
+        assertEquals("계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)", payload.text());
+        assertNotNull(payload.accountData());
+        assertEquals("카카오뱅크", payload.accountData().getBankName());
+        assertEquals("홍*동", payload.accountData().getAccountHolder());
+        assertTrue(payload.accountData().getHideName());
+        assertNotNull(member.getBankAccount());
+        assertEquals("홍길동", member.getBankAccount().getAccountHolder());
+        assertTrue(member.getBankAccount().getHideName());
     }
 
     @Test
-    void buildSpecialPayload_ARRIVED_성공() {
-        Party party = sampleParty("leader-1", true, true, false);
-        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
-
-        PartySpecialMessagePayload payload = partyMessageService.buildSpecialPayload(
-                "party:party-1",
-                "leader-1",
-                ChatMessageType.ARRIVED
+    void buildArrivalPayload_정산스냅샷을포함한다() {
+        Party party = sampleParty("leader-1", true);
+        party.arrive(
+                14000,
+                List.of("member-2"),
+                SettlementAccountSnapshot.of("카카오뱅크", "3333-01-1234567", "홍길동", true)
         );
 
-        assertEquals("파티가 도착했습니다. 정산을 진행해주세요. (1인당 14000원)", payload.text());
+        PartySpecialMessagePayload payload = partyMessageService.buildArrivalPayload(party, "leader-1");
+
+        assertEquals("택시가 목적지에 도착했어요. 총 14000원, 2명 정산, 1인당 7000원입니다.", payload.text());
+        assertNotNull(payload.arrivalData());
         assertEquals(14000, payload.arrivalData().getTaxiFare());
+        assertEquals(7000, payload.arrivalData().getPerPersonAmount());
+        assertEquals(2, payload.arrivalData().getSplitMemberCount());
+        assertEquals(List.of("member-2"), payload.arrivalData().getSettlementTargetMemberIds());
+        assertEquals("홍*동", payload.arrivalData().getAccountData().getAccountHolder());
+        assertTrue(payload.arrivalData().getAccountData().getHideName());
     }
 
     @Test
-    void buildSpecialPayload_END_성공() {
-        Party party = sampleParty("leader-1", true, true, true);
-        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+    void buildEndPayload_CANCELLED면취소문구를사용한다() {
+        Party party = sampleParty("leader-1", true);
+        party.cancel();
 
-        PartySpecialMessagePayload payload = partyMessageService.buildSpecialPayload(
-                "party:party-1",
-                "leader-1",
-                ChatMessageType.END
-        );
+        PartySpecialMessagePayload payload = partyMessageService.buildEndPayload(party, "leader-1");
 
-        assertEquals("파티가 종료되었습니다. (FORCE_ENDED)", payload.text());
+        assertEquals("리더가 파티를 취소했어요.", payload.text());
+        assertEquals(null, payload.accountData());
+        assertEquals(null, payload.arrivalData());
     }
 
-    private Party sampleParty(String leaderId, boolean includeMember, boolean arrived, boolean ended) {
+    private Party sampleParty(String leaderId, boolean includeMember) {
         Party party = Party.create(
                 leaderId,
                 Location.of("성결대학교", 37.38, 126.93),
@@ -92,12 +115,6 @@ class PartyMessageServiceTest {
         );
         if (includeMember) {
             party.addMember("member-2");
-        }
-        if (arrived) {
-            party.arrive(14000);
-        }
-        if (ended) {
-            party.forceEnd();
         }
         ReflectionTestUtils.setField(party, "id", "party-1");
         return party;
