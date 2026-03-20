@@ -282,7 +282,10 @@ public class NotificationEventHandler {
     }
 
     private void handlePartyChatMessage(ChatRoom room, ChatMessage message) {
-        if (message.getType() == ChatMessageType.SYSTEM || message.getType() == ChatMessageType.ACCOUNT) {
+        if (message.getType() == ChatMessageType.SYSTEM
+                || message.getType() == ChatMessageType.ACCOUNT
+                || message.getType() == ChatMessageType.ARRIVED
+                || message.getType() == ChatMessageType.END) {
             return;
         }
 

@@ -13,4 +13,5 @@ public class ChatAccountData {
     private String bankName;
     private String accountNumber;
     private String accountHolder;
+    private Boolean hideName;
 }

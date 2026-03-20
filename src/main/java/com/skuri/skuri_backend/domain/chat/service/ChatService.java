@@ -199,8 +199,8 @@ public class ChatService {
         Member sender = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
 
         ChatMessageType type = request.type();
-        if (type == ChatMessageType.SYSTEM) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "SYSTEM 메시지는 클라이언트 전송이 허용되지 않습니다.");
+        if (type == ChatMessageType.SYSTEM || type == ChatMessageType.ARRIVED || type == ChatMessageType.END) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, type + " 메시지는 서버에서 생성됩니다.");
         }
 
         String text;
@@ -215,18 +215,18 @@ public class ChatService {
             if (room.getType() != ChatRoomType.PARTY) {
                 throw new BusinessException(ErrorCode.INVALID_REQUEST, "파티 채팅방에서만 특수 메시지를 전송할 수 있습니다.");
             }
-            PartySpecialMessagePayload payload = partyMessageService.buildSpecialPayload(
+            PartySpecialMessagePayload payload = partyMessageService.buildClientPayload(
                     chatRoomId,
                     senderId,
-                    type
+                    request
             );
             text = payload.text();
             accountData = payload.accountData();
             arrivalData = payload.arrivalData();
         }
 
-        ChatMessage message = ChatMessage.create(
-                chatRoomId,
+        return saveAndPublishMessage(
+                room,
                 senderId,
                 sender.getNickname(),
                 text,
@@ -234,19 +234,53 @@ public class ChatService {
                 accountData,
                 arrivalData
         );
-        ChatMessage saved = chatMessageRepository.save(message);
+    }
 
-        room.applyNewMessage(saved);
-        chatRoomRepository.save(room);
+    @Transactional
+    public ChatMessageResponse createPartySystemMessage(Party party, String senderId, String text) {
+        Member sender = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
+        ChatRoom room = findRoomOrThrow("party:" + party.getId());
+        return saveAndPublishMessage(
+                room,
+                senderId,
+                sender.getNickname(),
+                text,
+                ChatMessageType.SYSTEM,
+                null,
+                null
+        );
+    }
 
-        ChatMessageResponse response = toMessageResponse(saved);
-        publishAfterCommit(() -> {
-            messagingTemplate.convertAndSend("/topic/chat/" + chatRoomId, response);
-            publishChatRoomSummaryEvent(room);
-        });
-        eventPublisher.publish(new NotificationDomainEvent.ChatMessageCreated(chatRoomId, saved.getId()));
+    @Transactional
+    public ChatMessageResponse createPartyArrivalMessage(Party party, String senderId) {
+        Member sender = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
+        PartySpecialMessagePayload payload = partyMessageService.buildArrivalPayload(party, senderId);
+        ChatRoom room = findRoomOrThrow("party:" + party.getId());
+        return saveAndPublishMessage(
+                room,
+                senderId,
+                sender.getNickname(),
+                payload.text(),
+                ChatMessageType.ARRIVED,
+                payload.accountData(),
+                payload.arrivalData()
+        );
+    }
 
-        return response;
+    @Transactional
+    public ChatMessageResponse createPartyEndMessage(Party party, String senderId) {
+        Member sender = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
+        PartySpecialMessagePayload payload = partyMessageService.buildEndPayload(party, senderId);
+        ChatRoom room = findRoomOrThrow("party:" + party.getId());
+        return saveAndPublishMessage(
+                room,
+                senderId,
+                sender.getNickname(),
+                payload.text(),
+                ChatMessageType.END,
+                payload.accountData(),
+                payload.arrivalData()
+        );
     }
 
     @Transactional
@@ -364,7 +398,8 @@ public class ChatService {
             accountDataResponse = new ChatAccountDataResponse(
                     message.getAccountData().getBankName(),
                     message.getAccountData().getAccountNumber(),
-                    message.getAccountData().getAccountHolder()
+                    message.getAccountData().getAccountHolder(),
+                    message.getAccountData().getHideName()
             );
         }
 
@@ -372,8 +407,17 @@ public class ChatService {
         if (message.getArrivalData() != null) {
             arrivalDataResponse = new ChatArrivalDataResponse(
                     message.getArrivalData().getTaxiFare(),
-                    message.getArrivalData().getPerPerson(),
-                    message.getArrivalData().getMemberCount()
+                    message.getArrivalData().getSplitMemberCount(),
+                    message.getArrivalData().getPerPersonAmount(),
+                    message.getArrivalData().getSettlementTargetMemberIds(),
+                    message.getArrivalData().getAccountData() != null
+                            ? new ChatAccountDataResponse(
+                            message.getArrivalData().getAccountData().getBankName(),
+                            message.getArrivalData().getAccountData().getAccountNumber(),
+                            message.getArrivalData().getAccountData().getAccountHolder(),
+                            message.getArrivalData().getAccountData().getHideName()
+                    )
+                            : null
             );
         }
 
@@ -392,6 +436,40 @@ public class ChatService {
                 arrivalDataResponse,
                 message.getCreatedAt()
         );
+    }
+
+    private ChatMessageResponse saveAndPublishMessage(
+            ChatRoom room,
+            String senderId,
+            String senderName,
+            String text,
+            ChatMessageType type,
+            ChatAccountData accountData,
+            ChatArrivalData arrivalData
+    ) {
+        String chatRoomId = room.getId();
+        ChatMessage message = ChatMessage.create(
+                chatRoomId,
+                senderId,
+                senderName,
+                text,
+                type,
+                accountData,
+                arrivalData
+        );
+        ChatMessage saved = chatMessageRepository.save(message);
+
+        room.applyNewMessage(saved);
+        chatRoomRepository.save(room);
+
+        ChatMessageResponse response = toMessageResponse(saved);
+        publishAfterCommit(() -> {
+            messagingTemplate.convertAndSend("/topic/chat/" + chatRoomId, response);
+            publishChatRoomSummaryEvent(room);
+        });
+        eventPublisher.publish(new NotificationDomainEvent.ChatMessageCreated(chatRoomId, saved.getId()));
+
+        return response;
     }
 
     private String requireText(String text) {

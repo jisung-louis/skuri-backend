@@ -202,7 +202,19 @@ public final class OpenApiTaxiPartyExamples {
                 "status": "ARRIVED",
                 "settlement": {
                   "status": "PENDING",
-                  "perPersonAmount": 4600,
+                  "taxiFare": 15000,
+                  "splitMemberCount": 3,
+                  "perPersonAmount": 5000,
+                  "settlementTargetMemberIds": [
+                    "member-2",
+                    "member-3"
+                  ],
+                  "account": {
+                    "bankName": "카카오뱅크",
+                    "accountNumber": "3333-01-1234567",
+                    "accountHolder": "홍*동",
+                    "hideName": true
+                  },
                   "memberSettlements": [
                     {
                       "memberId": "member-2",
@@ -397,13 +409,31 @@ public final class OpenApiTaxiPartyExamples {
                   "isLeader": false,
                   "settlement": {
                     "status": "PENDING",
+                    "taxiFare": 12600,
+                    "splitMemberCount": 3,
                     "perPersonAmount": 4200,
+                    "settlementTargetMemberIds": [
+                      "member-2",
+                      "member-3"
+                    ],
+                    "account": {
+                      "bankName": "카카오뱅크",
+                      "accountNumber": "3333-01-1234567",
+                      "accountHolder": "홍*동",
+                      "hideName": true
+                    },
                     "memberSettlements": [
                       {
-                        "memberId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
-                        "memberName": "스쿠리 유저",
+                        "memberId": "member-2",
+                        "memberName": "김철수",
                         "settled": false,
                         "settledAt": null
+                      },
+                      {
+                        "memberId": "member-3",
+                        "memberName": "이영희",
+                        "settled": true,
+                        "settledAt": "2026-03-04T21:12:00"
                       }
                     ]
                   }
@@ -450,6 +480,9 @@ public final class OpenApiTaxiPartyExamples {
 
     public static final String ERROR_NO_MEMBERS_TO_SETTLE =
             "{\"success\":false,\"message\":\"정산 대상 멤버가 없습니다.\",\"errorCode\":\"NO_MEMBERS_TO_SETTLE\",\"timestamp\":\"2026-03-04T12:00:00\"}";
+
+    public static final String ERROR_VALIDATION_SETTLEMENT_TARGET_MEMBER_IDS =
+            "{\"success\":false,\"message\":\"settlementTargetMemberIds에는 현재 파티의 non-leader 멤버만 포함해야 합니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-04T12:00:00\"}";
 
     public static final String ERROR_PARTY_NOT_CANCELABLE =
             "{\"success\":false,\"message\":\"취소할 수 없는 파티 상태입니다.\",\"errorCode\":\"PARTY_NOT_CANCELABLE\",\"timestamp\":\"2026-03-04T12:00:00\"}";

@@ -1,14 +1,14 @@
-package com.skuri.skuri_backend.domain.chat.dto.response;
+package com.skuri.skuri_backend.domain.taxiparty.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "ACCOUNT 메시지 계좌 정보")
-public record ChatAccountDataResponse(
+@Schema(description = "정산 계좌 snapshot 응답")
+public record SettlementAccountResponse(
         @Schema(description = "은행명", example = "카카오뱅크")
         String bankName,
         @Schema(description = "계좌번호", example = "3333-01-1234567")
         String accountNumber,
-        @Schema(description = "표시용 예금주(hideName=true면 마스킹됨)", example = "홍*동")
+        @Schema(description = "예금주 표시값(hideName=true면 마스킹됨)", example = "홍*동")
         String accountHolder,
         @Schema(description = "이름 일부 숨김 여부", example = "true", nullable = true)
         Boolean hideName
