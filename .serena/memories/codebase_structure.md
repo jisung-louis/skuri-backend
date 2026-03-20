@@ -31,7 +31,7 @@
 
 ## SSE 운영
 - `domain/notification/service/NotificationSseService.java`, `domain/taxiparty/service/PartySseService.java`: 하트비트/이벤트 전송 실패 시 subscriber만 제거하고 이미 깨진 `SseEmitter`에 `complete()`를 다시 호출하지 않는다.
-- `common/exception/GlobalExceptionHandler.java`: `AsyncRequestNotUsableException`을 별도 처리해 SSE 종료 직후 `ApiResponse` JSON을 쓰려는 2차 실패를 막는다.
+- `common/exception/GlobalExceptionHandler.java`: `AsyncRequestNotUsableException`을 `204 No Content`로 별도 처리해 async SSE 재디스패치가 원래 subscribe 경로로 재진입하지 않게 하고, 종료 직후 `ApiResponse` JSON을 쓰려는 2차 실패도 막는다.
 
 ## 테스트 포인트
 - `src/test/java/com/skuri/skuri_backend/domain/image/controller/ImageControllerContractTest.java`: `/v1/images`의 200/400/401/403/415/422 contract 검증
