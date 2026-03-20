@@ -8,6 +8,7 @@
 5. `ApiResponse` 에러 포맷 일관성 확인
 6. OpenAPI example과 실제 `errorCode/message` 일치 확인
 7. OpenAPI/문서 동기화 확인 (`/v3/api-docs` 기준, `docs/api-specification.md`, lifecycle 정책 문서 포함)
+7-1. TaxiParty/Chat 계약을 바꿨다면 join accept SYSTEM 메시지, ARRIVED/END 서버 메시지, ACCOUNT/settlement snapshot payload 예시가 OpenAPI와 런타임 응답에서 일치하는지 확인
 8. 회원 라이프사이클 변경이면 탈퇴 후 접근 차단, 동일 UID 재가입 차단, 연관 도메인 정합성 회귀 확인
 9. Serena Memory 동기화 확인
 10. Admin 공통 변경이면 대표 Admin API에 대해 `401` / `403 ADMIN_REQUIRED` / 관리자 성공 시나리오를 확인한다.

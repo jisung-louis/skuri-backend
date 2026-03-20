@@ -13,8 +13,8 @@
 
 ## 도메인 구조
 - member: 회원, 프로필, 알림 설정, FCM 토큰 API, 계정 라이프사이클(soft delete tombstone, 탈퇴, 재가입 정책)
-- taxiparty: 생성/참여/정산/상태 전이, SSE
-- chat: 채팅방/메시지/WebSocket
+- taxiparty: 생성/참여/정산/상태 전이, SSE, 정산 snapshot(taxiFare/account/settlementTargetMemberIds) 관리
+- chat: 채팅방/메시지/WebSocket, 파티 도메인 이벤트 기반 서버 생성 메시지(SYSTEM/ARRIVED/END)
 - board: 게시글/댓글/북마크
 - notice: 학교 공지 수집/상세/댓글/읽음
 - academic: 강의/시간표/학사 일정

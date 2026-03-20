@@ -747,7 +747,16 @@ FCM 토큰 삭제
     "isLeader": true,
     "settlement": {
       "status": "PENDING",
+      "taxiFare": 14000,
+      "splitMemberCount": 4,
       "perPersonAmount": 3500,
+      "settlementTargetMemberIds": ["uuid", "uuid2", "uuid3"],
+      "account": {
+        "bankName": "카카오뱅크",
+        "accountNumber": "3333-01-1234567",
+        "accountHolder": "홍*동",
+        "hideName": true
+      },
       "memberSettlements": [
         {
           "memberId": "uuid",
@@ -876,14 +885,25 @@ FCM 토큰 삭제
 도착 및 정산 시작 (리더만)
 
 - OPEN 또는 CLOSED 상태에서만 호출 가능
-- 리더를 제외한 멤버가 1명 이상 있어야 함 (정산 대상이 없으면 호출 불가)
-- `perPersonAmount = taxiFare / 정산대상인원` 정수 나눗셈(버림)으로 계산
+- 요청 본문에는 `taxiFare`, `settlementTargetMemberIds`, `account` snapshot이 모두 포함되어야 함
+- `settlementTargetMemberIds`에는 현재 파티의 non-leader 멤버만 포함할 수 있음
+- 리더를 제외한 멤버가 1명 이상 선택되어야 함 (정산 대상이 없으면 호출 불가)
+- `splitMemberCount = settlementTargetMemberIds.size + 1` 이며 리더도 1/N 분모에 포함
+- `perPersonAmount = taxiFare / splitMemberCount` 정수 나눗셈(버림)으로 계산
 - 정수 나눗셈으로 생기는 잔여 1원 단위 금액은 서버에서 자동 분배하지 않음
+- 성공 시 파티 상태/정산 snapshot 저장과 함께 파티 채팅방에 서버 생성 `ARRIVED` 메시지가 남음
 
 **Request:**
 ```json
 {
-  "taxiFare": 14000
+  "taxiFare": 14000,
+  "settlementTargetMemberIds": ["member-2", "member-3"],
+  "account": {
+    "bankName": "카카오뱅크",
+    "accountNumber": "3333-01-1234567",
+    "accountHolder": "홍길동",
+    "hideName": true
+  }
 }
 ```
 
@@ -896,7 +916,16 @@ FCM 토큰 삭제
     "status": "ARRIVED",
     "settlement": {
       "status": "PENDING",
-      "perPersonAmount": 3500,
+      "taxiFare": 14000,
+      "splitMemberCount": 3,
+      "perPersonAmount": 4666,
+      "settlementTargetMemberIds": ["member-2", "member-3"],
+      "account": {
+        "bankName": "카카오뱅크",
+        "accountNumber": "3333-01-1234567",
+        "accountHolder": "홍*동",
+        "hideName": true
+      },
       "memberSettlements": [ ... ]
     }
   }
@@ -909,6 +938,7 @@ FCM 토큰 삭제
 |----------|------|------|
 | `PARTY_NOT_ARRIVABLE` | 409 | OPEN/CLOSED 상태가 아닌 파티 |
 | `NO_MEMBERS_TO_SETTLE` | 409 | 리더 외 멤버가 없어 정산 불가 |
+| `VALIDATION_ERROR` | 422 | `settlementTargetMemberIds`가 현재 non-leader 멤버 목록과 다르거나 `account` snapshot 검증 실패 |
 
 #### PATCH /v1/parties/{partyId}/settlement/members/{memberId}/confirm
 멤버 정산 완료 표시 (리더만)
@@ -1378,14 +1408,27 @@ Authorization:Bearer <firebase_id_token>
 - 파티 채팅도 동일 경로를 사용합니다.
   - 전송: `/app/chat/party:{partyId}`
   - 수신: `/topic/chat/party:{partyId}`
-- 특수 메시지 타입: `ACCOUNT`, `ARRIVED`, `END`
+- 클라이언트가 직접 보낼 수 있는 타입: `TEXT`, `IMAGE`, `ACCOUNT`
+- 서버가 생성하는 타입: `SYSTEM`, `ARRIVED`, `END`
+- 파티 채팅의 `SYSTEM`/`ARRIVED`/`END`는 도메인 이벤트(동승 승인, 도착 처리, 취소/종료) 기준으로만 생성됨
 
 **전송 포맷:**
 ```json
 { "type": "TEXT", "text": "곧 도착합니다!" }
-{ "type": "ACCOUNT" }
+{
+  "type": "ACCOUNT",
+  "account": {
+    "bankName": "카카오뱅크",
+    "accountNumber": "3333-01-1234567",
+    "accountHolder": "홍길동",
+    "hideName": true,
+    "remember": true
+  }
+}
 ```
-> `ACCOUNT` 타입: body 없이 서버가 발신자의 등록된 계좌 정보를 조회하여 메시지에 삽입
+> `ACCOUNT` 타입: 계좌 snapshot을 payload로 전달합니다.
+> `remember=true`이면 전송한 snapshot을 회원 프로필 계좌 정보에도 함께 저장합니다.
+> 클라이언트가 `SYSTEM`, `ARRIVED`, `END`를 직접 보내면 `INVALID_REQUEST`로 거부됩니다.
 
 **수신 포맷 (서버 → 클라이언트):**
 ```json
@@ -1395,12 +1438,38 @@ Authorization:Bearer <firebase_id_token>
   "senderId": "user_uuid",
   "senderName": "홍길동",
   "type": "ACCOUNT",
+  "text": "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)",
   "accountData": {
     "bankName": "카카오뱅크",
     "accountNumber": "3333-01-1234567",
-    "accountHolder": "홍길동"
+    "accountHolder": "홍*동",
+    "hideName": true
   },
   "createdAt": "2026-02-03T12:00:00Z"
+}
+```
+
+```json
+{
+  "id": "message_uuid_2",
+  "chatRoomId": "party:party_uuid",
+  "senderId": "leader_uuid",
+  "senderName": "홍길동",
+  "type": "ARRIVED",
+  "text": "택시가 목적지에 도착했어요. 총 14000원, 3명 정산, 1인당 4666원입니다.",
+  "arrivalData": {
+    "taxiFare": 14000,
+    "splitMemberCount": 3,
+    "perPersonAmount": 4666,
+    "settlementTargetMemberIds": ["member-2", "member-3"],
+    "accountData": {
+      "bankName": "카카오뱅크",
+      "accountNumber": "3333-01-1234567",
+      "accountHolder": "홍*동",
+      "hideName": true
+    }
+  },
+  "createdAt": "2026-02-03T12:05:00Z"
 }
 ```
 
@@ -1425,7 +1494,8 @@ Authorization:Bearer <firebase_id_token>
 | 채팅방 목록 요약 이벤트 | 메시지 저장/멤버수 변경 커밋 후 `/user/queue/chat-rooms`로 요약 이벤트 전송 |
 | 읽음 처리 (`PATCH /v1/chat-rooms/{chatRoomId}/read`) | `lastReadAt` 단조 증가 갱신 + 미래 시각 clamp |
 | 설정 수정 (`PATCH /v1/chat-rooms/{chatRoomId}/settings`) | ChatRoomMember.muted 갱신 |
-| ACCOUNT 메시지 | 계좌 정보 DB 조회 + 메시지 DB 저장 → 커밋 후 브로드캐스트 |
+| ACCOUNT 메시지 | payload snapshot 검증 + 선택적 회원 계좌 저장(`remember=true`) + 메시지 DB 저장 → 커밋 후 브로드캐스트 |
+| 파티 상태 기반 서버 메시지 | party 상태/정산 snapshot 저장 후 `SYSTEM`/`ARRIVED`/`END` 메시지 DB 저장 → 커밋 후 브로드캐스트 |
 
 > 브로드캐스트(WebSocket push)는 트랜잭션 커밋 성공 후 수행합니다. (트랜잭션 커밋 후 콜백)
 
@@ -1438,7 +1508,8 @@ Authorization:Bearer <firebase_id_token>
 | `CHAT_ROOM_FULL` | 채팅방 정원 초과 |
 | `ALREADY_CHAT_ROOM_MEMBER` | 이미 참여 중인 채팅방 |
 | `STOMP_AUTH_FAILED` | WebSocket STOMP 연결 인증 실패 (토큰 검증 오류) |
-| `BANK_ACCOUNT_REQUIRED` | ACCOUNT 메시지 전송 시 계좌 미등록 상태 |
+| `INVALID_REQUEST` | 클라이언트가 `SYSTEM`/`ARRIVED`/`END` 같은 서버 전용 메시지 타입을 전송한 경우 |
+| `VALIDATION_ERROR` | `ACCOUNT` payload 또는 cursor 쿼리 조합 검증 실패 |
 
 ---
 
