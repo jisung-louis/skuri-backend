@@ -275,11 +275,10 @@ public class TaxiPartyService {
             throw new BusinessException(ErrorCode.PARTY_ENDED);
         }
 
-        String leaveSystemMessage = memberRepository.findById(memberId)
-                .map(Member::getNickname)
-                .filter(nickname -> !nickname.isBlank())
-                .map(nickname -> nickname + "님이 파티에서 나갔어요.")
-                .orElse("멤버가 파티에서 나갔어요.");
+        Member leavingMember = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        String leaveSystemMessage = leavingMember.getNickname() != null && !leavingMember.getNickname().isBlank()
+                ? leavingMember.getNickname() + "님이 파티에서 나갔어요."
+                : "멤버가 파티에서 나갔어요.";
 
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
