@@ -1020,6 +1020,7 @@ FCM 토큰 삭제
 - 리더는 나가기 불가 (취소 또는 위임 불가 정책)
 - ARRIVED 상태에서는 나가기 불가 (정산 진행/완료 여부와 무관)
 - 리더가 탈퇴(회원탈퇴)하면 파티 강제 종료 (`endReason: WITHDRAWED`)
+- 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"홍길동님이 파티에서 나갔어요."`가 추가됩니다. 닉네임을 찾지 못하면 `"멤버가 파티에서 나갔어요."`를 사용합니다.
 
 **Response:**
 ```json
@@ -1325,6 +1326,7 @@ FCM 토큰 삭제
 파티 채팅 비즈니스 규칙(멤버 검증, 계좌 정보 조회 등)은 서버 내부 STOMP 핸들러에서 처리합니다.
 - 파티 채팅 이력 조회는 `GET /v1/chat-rooms/{chatRoomId}/messages`를 사용합니다.
   - 예: `chatRoomId = party:{partyId}`
+- 서버 생성 안내 메시지(`SYSTEM`/`ARRIVED`/`END`)도 동일한 조회/구독 경로로 전달됩니다.
 
 ### 4.5 WebSocket (STOMP)
 
@@ -1414,8 +1416,8 @@ Authorization:Bearer <firebase_id_token>
   - 수신: `/topic/chat/party:{partyId}`
 - 클라이언트가 직접 보낼 수 있는 타입: `TEXT`, `IMAGE`, `ACCOUNT`
 - 서버가 생성하는 타입: `SYSTEM`, `ARRIVED`, `END`
-- 파티 채팅의 `SYSTEM`/`ARRIVED`/`END`는 도메인 이벤트(동승 승인, 도착 처리, 취소/종료) 기준으로만 생성됨
-- `SYSTEM` 메시지 예: 동승 승인, 모집 마감, 모집 재개
+- 파티 채팅의 `SYSTEM`/`ARRIVED`/`END`는 도메인 이벤트(동승 승인, 멤버 나가기, 도착 처리, 취소/종료) 기준으로만 생성됨
+- `SYSTEM` 메시지 예: 동승 승인, 모집 마감, 모집 재개, 멤버 나가기
 
 **전송 포맷:**
 ```json

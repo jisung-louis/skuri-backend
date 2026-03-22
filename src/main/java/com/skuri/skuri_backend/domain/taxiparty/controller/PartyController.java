@@ -686,7 +686,7 @@ public class PartyController {
     }
 
     @DeleteMapping("/parties/{id}/members/me")
-    @Operation(summary = "파티 탈퇴", description = "본인이 파티에서 탈퇴합니다.")
+    @Operation(summary = "파티 탈퇴", description = "본인이 파티에서 탈퇴합니다. 성공 시 파티 채팅에 서버 생성 SYSTEM 메시지가 추가됩니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",

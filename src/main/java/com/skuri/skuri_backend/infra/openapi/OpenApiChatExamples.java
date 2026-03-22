@@ -78,6 +78,15 @@ public final class OpenApiChatExamples {
                     "createdAt": "2026-03-05T21:11:30"
                   },
                   {
+                    "id": "msg-system-4",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "member-2",
+                    "senderName": "홍길동",
+                    "type": "SYSTEM",
+                    "text": "홍길동님이 파티에서 나갔어요.",
+                    "createdAt": "2026-03-05T21:11:45"
+                  },
+                  {
                     "id": "msg-account-1",
                     "chatRoomId": "party:party-1",
                     "senderId": "leader-1",
