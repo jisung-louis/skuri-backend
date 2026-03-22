@@ -121,6 +121,22 @@ class TaxiPartyServiceTest {
 
         assertEquals(PartyStatus.CLOSED, response.status());
         assertEquals(PartyStatus.CLOSED, party.getStatus());
+        verify(chatService).createPartySystemMessage(party, "leader", "모집이 마감되었어요.");
+        verify(partySseService).publishPartyStatusChanged(party);
+    }
+
+    @Test
+    void reopenParty_리더가CLOSED파티를재개하면OPEN과시스템메시지를생성한다() {
+        Party party = sampleParty("party-1", "leader", 4, true);
+        party.close();
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PartyStatusResponse response = taxiPartyService.reopenParty("leader", "party-1");
+
+        assertEquals(PartyStatus.OPEN, response.status());
+        assertEquals(PartyStatus.OPEN, party.getStatus());
+        verify(chatService).createPartySystemMessage(party, "leader", "모집이 재개되었어요.");
         verify(partySseService).publishPartyStatusChanged(party);
     }
 
