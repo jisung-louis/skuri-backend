@@ -275,9 +275,16 @@ public class TaxiPartyService {
             throw new BusinessException(ErrorCode.PARTY_ENDED);
         }
 
+        String leaveSystemMessage = memberRepository.findById(memberId)
+                .map(Member::getNickname)
+                .filter(nickname -> !nickname.isBlank())
+                .map(nickname -> nickname + "님이 파티에서 나갔어요.")
+                .orElse("멤버가 파티에서 나갔어요.");
+
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
+        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
         partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
     }
 
