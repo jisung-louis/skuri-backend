@@ -171,6 +171,7 @@ public class TaxiPartyService {
         PartyStatus beforeStatus = party.getStatus();
         party.close();
         savePartyWithLockHandling(party);
+        chatService.createPartySystemMessage(party, actorId, "모집이 마감되었어요.");
         partySseService.publishPartyStatusChanged(party);
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
@@ -183,6 +184,7 @@ public class TaxiPartyService {
         PartyStatus beforeStatus = party.getStatus();
         party.reopen();
         savePartyWithLockHandling(party);
+        chatService.createPartySystemMessage(party, actorId, "모집이 재개되었어요.");
         partySseService.publishPartyStatusChanged(party);
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
