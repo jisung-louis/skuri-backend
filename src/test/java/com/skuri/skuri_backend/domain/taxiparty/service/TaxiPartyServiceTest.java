@@ -511,11 +511,11 @@ class TaxiPartyServiceTest {
     }
 
     @Test
-    void leaveParty_닉네임조회실패시_fallback시스템메시지를생성한다() {
+    void leaveParty_닉네임이비어있으면_fallback시스템메시지를생성한다() {
         Party party = sampleParty("party-1", "leader", 4, true);
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
         when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(memberRepository.findById("member-1")).thenReturn(Optional.empty());
+        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member("member-1", "")));
 
         taxiPartyService.leaveParty("member-1", "party-1");
 
