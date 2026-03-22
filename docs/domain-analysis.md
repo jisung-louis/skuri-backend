@@ -181,7 +181,7 @@ Hooks:
   - `settlementTargetMemberIds`에는 현재 파티의 non-leader 멤버만 포함할 수 있다
   - `perPersonAmount`는 `taxiFare / (정산대상인원 + 리더 1명)` 정수 나눗셈(버림)으로 계산
   - 정수 나눗셈으로 생기는 잔여 1원 단위 금액은 서버에서 분배하지 않음(리더 현장 정산 정책)
-  - 동승 요청 승인, 도착 처리, 취소/종료는 서버가 파티 채팅방 안내 메시지(`SYSTEM`/`ARRIVED`/`END`)를 생성한다
+  - 동승 요청 승인, 모집 마감/재개, 도착 처리, 취소/종료는 서버가 파티 채팅방 안내 메시지(`SYSTEM`/`ARRIVED`/`END`)를 생성한다
 
 상태 머신:
   Party:
@@ -1270,7 +1270,7 @@ public enum MessageDirection {
 - 클라이언트 직접 전송 가능 타입은 `TEXT`, `IMAGE`, `ACCOUNT`만 허용한다.
 - `ACCOUNT` 메시지는 클라이언트가 계좌 snapshot을 payload로 보내고, `remember=true`면 회원 프로필 계좌도 함께 갱신한다.
 - `SYSTEM`, `ARRIVED`, `END`는 서버 전용 메시지다.
-  - 동승 요청 승인 → `SYSTEM` 메시지 생성
+  - 동승 요청 승인, 모집 마감, 모집 재개 → `SYSTEM` 메시지 생성
   - 도착 처리 → 정산 snapshot이 포함된 `ARRIVED` 메시지 생성
   - 리더 취소/종료/탈퇴 종료 → `END` 메시지 생성
 - 파티 상태 변경과 서버 생성 채팅 메시지는 같은 트랜잭션 안에서 저장하고, WebSocket 브로드캐스트는 커밋 후 수행한다.

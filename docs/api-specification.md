@@ -856,6 +856,8 @@ FCM 토큰 삭제
 #### PATCH /v1/parties/{partyId}/close
 파티 모집 마감 (리더만)
 
+- 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"모집이 마감되었어요."`가 추가됩니다.
+
 **Response:**
 ```json
 {
@@ -869,6 +871,8 @@ FCM 토큰 삭제
 
 #### PATCH /v1/parties/{partyId}/reopen
 파티 모집 재개 (리더만)
+
+- 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"모집이 재개되었어요."`가 추가됩니다.
 
 **Response (200 OK):**
 ```json
@@ -1411,6 +1415,7 @@ Authorization:Bearer <firebase_id_token>
 - 클라이언트가 직접 보낼 수 있는 타입: `TEXT`, `IMAGE`, `ACCOUNT`
 - 서버가 생성하는 타입: `SYSTEM`, `ARRIVED`, `END`
 - 파티 채팅의 `SYSTEM`/`ARRIVED`/`END`는 도메인 이벤트(동승 승인, 도착 처리, 취소/종료) 기준으로만 생성됨
+- `SYSTEM` 메시지 예: 동승 승인, 모집 마감, 모집 재개
 
 **전송 포맷:**
 ```json

@@ -60,6 +60,24 @@ public final class OpenApiChatExamples {
                     "createdAt": "2026-03-05T21:10:00"
                   },
                   {
+                    "id": "msg-system-2",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "leader-1",
+                    "senderName": "파티 리더",
+                    "type": "SYSTEM",
+                    "text": "모집이 마감되었어요.",
+                    "createdAt": "2026-03-05T21:11:00"
+                  },
+                  {
+                    "id": "msg-system-3",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "leader-1",
+                    "senderName": "파티 리더",
+                    "type": "SYSTEM",
+                    "text": "모집이 재개되었어요.",
+                    "createdAt": "2026-03-05T21:11:30"
+                  },
+                  {
                     "id": "msg-account-1",
                     "chatRoomId": "party:party-1",
                     "senderId": "leader-1",
