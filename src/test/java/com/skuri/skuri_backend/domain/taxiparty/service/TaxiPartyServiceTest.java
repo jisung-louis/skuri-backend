@@ -500,12 +500,26 @@ class TaxiPartyServiceTest {
         Party party = sampleParty("party-1", "leader", 4, true);
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
         when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member("member-1", "홍길동")));
 
         taxiPartyService.leaveParty("member-1", "party-1");
 
         assertFalse(party.isMember("member-1"));
         verify(chatService).syncPartyChatRoomMembers(party);
+        verify(chatService).createPartySystemMessage(party, "member-1", "홍길동님이 파티에서 나갔어요.");
         verify(partySseService).publishPartyMemberLeft(party, "member-1", "LEFT", party.getMemberIds());
+    }
+
+    @Test
+    void leaveParty_닉네임조회실패시_fallback시스템메시지를생성한다() {
+        Party party = sampleParty("party-1", "leader", 4, true);
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberRepository.findById("member-1")).thenReturn(Optional.empty());
+
+        taxiPartyService.leaveParty("member-1", "party-1");
+
+        verify(chatService).createPartySystemMessage(party, "member-1", "멤버가 파티에서 나갔어요.");
     }
 
     @Test
@@ -681,6 +695,12 @@ class TaxiPartyServiceTest {
 
     private Member member(String memberId) {
         return Member.create(memberId, memberId + "@sungkyul.ac.kr", memberId, LocalDateTime.now());
+    }
+
+    private Member member(String memberId, String nickname) {
+        Member member = member(memberId);
+        member.updateProfile(nickname, null, null, null);
+        return member;
     }
 
     private ArrivePartyRequest arriveRequest(int taxiFare, List<String> settlementTargetMemberIds) {
