@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -281,17 +282,18 @@ class ChatRoomControllerContractTest {
     void markAsRead_정상요청_200() throws Exception {
         mockValidToken();
         when(chatService.markAsRead(eq("firebase-uid"), eq("room-1"), any()))
-                .thenReturn(new ChatReadUpdateResponse("room-1", LocalDateTime.of(2026, 3, 5, 21, 10, 0), false));
+                .thenReturn(new ChatReadUpdateResponse("room-1", Instant.parse("2026-03-05T12:10:00Z"), true));
 
         mockMvc.perform(
                         patch("/v1/chat-rooms/room-1/read")
                                 .header(AUTHORIZATION, "Bearer valid-token")
                                 .contentType(APPLICATION_JSON)
-                                .content("{\"lastReadAt\":\"2026-03-05T20:00:00\"}")
+                                .content("{\"lastReadAt\":\"2026-03-05T12:10:00Z\"}")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.chatRoomId").value("room-1"))
-                .andExpect(jsonPath("$.data.updated").value(false));
+                .andExpect(jsonPath("$.data.lastReadAt").value("2026-03-05T12:10:00Z"))
+                .andExpect(jsonPath("$.data.updated").value(true));
     }
 
     @Test
@@ -344,7 +346,7 @@ class ChatRoomControllerContractTest {
                 new ChatRoomLastMessageResponse("TEXT", "안녕하세요", "홍길동", LocalDateTime.now().minusMinutes(1)),
                 LocalDateTime.now().minusMinutes(1),
                 false,
-                joined ? LocalDateTime.now().minusMinutes(5) : null
+                joined ? Instant.parse("2026-03-05T12:05:00Z") : null
         );
     }
 }

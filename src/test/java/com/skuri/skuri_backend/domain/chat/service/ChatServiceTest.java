@@ -31,7 +31,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -192,7 +194,7 @@ class ChatServiceTest {
 
         assertTrue(response.joined());
         assertEquals(0, response.unreadCount());
-        assertEquals(LocalDateTime.of(2026, 3, 5, 22, 0, 0), response.lastReadAt());
+        assertEquals(toInstant(LocalDateTime.of(2026, 3, 5, 22, 0, 0)), response.lastReadAt());
         assertEquals(11, response.memberCount());
         verify(messagingTemplate).convertAndSendToUser(eq("member-1"), eq("/queue/chat-rooms"), any());
     }
@@ -262,11 +264,11 @@ class ChatServiceTest {
         ChatReadUpdateResponse response = chatService.markAsRead(
                 "member-1",
                 "room-1",
-                LocalDateTime.of(2026, 3, 5, 20, 59, 0)
+                toInstant(LocalDateTime.of(2026, 3, 5, 20, 59, 0))
         );
 
         assertFalse(response.updated());
-        assertEquals(LocalDateTime.of(2026, 3, 5, 21, 0, 0), response.lastReadAt());
+        assertEquals(toInstant(LocalDateTime.of(2026, 3, 5, 21, 0, 0)), response.lastReadAt());
     }
 
     @Test
@@ -283,11 +285,42 @@ class ChatServiceTest {
         ChatReadUpdateResponse response = chatService.markAsRead(
                 "member-1",
                 "room-1",
-                LocalDateTime.of(2099, 3, 5, 21, 0, 0)
+                Instant.parse("2099-03-05T12:00:00Z")
         );
 
-        assertEquals(LocalDateTime.of(2026, 3, 5, 21, 30, 0), response.lastReadAt());
+        assertEquals(toInstant(LocalDateTime.of(2026, 3, 5, 21, 30, 0)), response.lastReadAt());
         assertTrue(response.updated());
+    }
+
+    @Test
+    void markAsRead_UTC요청후_상세와목록재조회에도_unread가복원되지않는다() {
+        ChatRoom room = ChatRoom.create("room-1", "테스트", ChatRoomType.UNIVERSITY, null, null, null, true, null);
+        LocalDateTime lastMessageAt = LocalDateTime.of(2026, 3, 5, 21, 30, 0);
+        ReflectionTestUtils.setField(room, "lastMessageTimestamp", lastMessageAt);
+        ReflectionTestUtils.setField(room, "messageCount", 5);
+        ChatRoomMember roomMember = membership(room, "room-1", "member-1");
+        Member member = activeMember("member-1", "컴퓨터공학과");
+
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
+        when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
+        when(chatRoomRepository.findAll()).thenReturn(List.of(room));
+        when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1"))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findById_MemberId("member-1")).thenReturn(List.of(roomMember));
+        when(chatRoomMemberRepository.save(any(ChatRoomMember.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatMessageRepository.countByChatRoomIdAndCreatedAtAfter("room-1", lastMessageAt)).thenReturn(0L);
+
+        Instant readAt = Instant.parse("2026-03-05T12:30:00Z");
+
+        ChatReadUpdateResponse updateResponse = chatService.markAsRead("member-1", "room-1", readAt);
+        ChatRoomDetailResponse detailResponse = chatService.getChatRoomDetail("member-1", "room-1");
+        List<ChatRoomSummaryResponse> summaryResponses = chatService.getChatRooms("member-1", null, null);
+
+        assertTrue(updateResponse.updated());
+        assertEquals(readAt, updateResponse.lastReadAt());
+        assertEquals(0, detailResponse.unreadCount());
+        assertEquals(readAt, detailResponse.lastReadAt());
+        assertEquals(0, summaryResponses.get(0).unreadCount());
     }
 
     @Test
@@ -402,5 +435,9 @@ class ChatServiceTest {
         ChatRoomMember membership = ChatRoomMember.create(room, memberId, LocalDateTime.now().minusHours(1));
         ReflectionTestUtils.setField(membership, "id", ChatRoomMemberId.of(chatRoomId, memberId));
         return membership;
+    }
+
+    private Instant toInstant(LocalDateTime value) {
+        return value.atZone(ZoneId.of("Asia/Seoul")).toInstant();
     }
 }
