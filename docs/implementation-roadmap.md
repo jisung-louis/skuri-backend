@@ -304,7 +304,7 @@ SSE 운영 제약:
 
 | 항목 | 설명 |
 |------|------|
-| WebSocket 설정 | STOMP + SockJS, Firebase ID Token 인증 |
+| WebSocket 설정 | STOMP over SockJS(`/ws`) + native WebSocket(`/ws-native`), Firebase ID Token 인증 |
 | WebSocket 인가 | CONNECT 이후 SEND/SUBSCRIBE 목적지별 멤버십 검증 |
 | 브라우저/실시간 CORS | 프로필/환경별 허용 Origin 설정 (`API_ALLOWED_ORIGIN_PATTERNS`, `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`) |
 | ChatService | 공통 채팅 엔진 (메시지 저장, 전송, 읽음 처리) |
