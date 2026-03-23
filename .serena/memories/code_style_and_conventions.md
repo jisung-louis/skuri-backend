@@ -14,6 +14,7 @@
 - `@AdminAudit`의 `targetId`와 snapshot lookup은 서비스가 쓰는 canonical 키(`semester=2026-1`, `platform=ios`) 기준으로 맞추고, request body 기반 값은 공통 request-body cache를 통해 preHandle 단계에서 복원한다.
 - 감사 로그 실패는 warn 수준으로 남기고 비즈니스 API를 500으로 깨지 않게 best-effort로 처리한다.
 - Support Admin 목록은 `AdminPageRequestPolicy` 기준 `page=0`, `size=20`, `size<=100`, 정렬 `createdAt,DESC` 규약을 유지한다.
+- 일반 Chat 읽음 처리 외부 계약은 ISO 8601 UTC(`Instant`)로 유지하고, 내부 `ChatRoomMember.lastReadAt` 비교/저장은 `Asia/Seoul` 기준 `LocalDateTime`으로 정규화한다. unread의 source of truth는 서버 저장값이다.
 
 ## 응답/예외
 - 모든 REST 응답은 `ApiResponse<T>`를 사용한다.
