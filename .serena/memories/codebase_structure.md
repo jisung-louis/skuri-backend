@@ -12,6 +12,7 @@
 - `domain/member/entity/Member.java`: `status`, `withdrawnAt`를 포함한 회원 lifecycle 원장
 - `domain/member/service/MemberLifecycleService.java`: 회원 탈퇴 오케스트레이션과 도메인 후처리 진입점
 - `domain/member/service/MemberLifecycleEventListener.java`: after-commit 기반 Firebase 삭제/SSE 종료 처리
+- `domain/chat/websocket/ChatWebSocketConfig.java`: STOMP endpoint를 `/ws`(SockJS)와 `/ws-native`(native WebSocket)로 분리 등록
 - `domain/chat/websocket/ChatWebSocketSessionRegistry.java`, `ChatSubscriptionAccessInterceptor.java`: 탈퇴 회원 WebSocket 세션 추적/차단
 - `domain/*/controller/*AdminController.java`: Phase 11 기준 공통 `@AdminApiAccess`를 사용하고, 상태 변경 엔드포인트는 `@AdminAudit`로 감사 로그 대상 지정
 

@@ -1298,9 +1298,12 @@ FCM 토큰 삭제
 채팅방 목록 화면은 방별 다중 구독이 아닌 **사용자 전용 요약 채널 1개**를 구독합니다.
 
 #### STOMP Endpoint
-```
-ws://api.skuri.app/ws
-```
+- SockJS endpoint: `/ws`
+- Native WebSocket endpoint: `/ws-native`
+- 권장 사용:
+  - 웹/SockJS 클라이언트: `/ws`
+  - React Native native WebSocket 클라이언트: `/ws-native`
+- React Native는 SockJS transport path인 `/ws/websocket` 우회 경로 대신 `/ws-native`를 사용합니다.
 
 #### 연결 인증
 연결 시 STOMP CONNECT 프레임 헤더에 Firebase ID Token을 포함합니다.
