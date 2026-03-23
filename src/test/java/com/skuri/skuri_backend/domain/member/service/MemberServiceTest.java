@@ -218,6 +218,36 @@ class MemberServiceTest {
     }
 
     @Test
+    void updateMyProfile_레거시학과명은_정규화해서저장한다() {
+        Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
+
+        MemberMeResponse response = memberService.updateMyProfile(
+                "firebase-uid",
+                new UpdateMemberProfileRequest(null, null, "소프트웨어학과", null)
+        );
+
+        assertEquals("미디어소프트웨어학과", response.department());
+        verify(chatService).removeMemberFromDepartmentChatRooms("firebase-uid");
+    }
+
+    @Test
+    void updateMyProfile_지원하지않는학과면_VALIDATION_ERROR() {
+        Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberService.updateMyProfile(
+                        "firebase-uid",
+                        new UpdateMemberProfileRequest(null, null, "없는학과", null)
+                )
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+    }
+
+    @Test
     void updateMyProfile_회원없음_MEMBER_NOT_FOUND() {
         when(memberRepository.findActiveById("not-found")).thenReturn(Optional.empty());
 

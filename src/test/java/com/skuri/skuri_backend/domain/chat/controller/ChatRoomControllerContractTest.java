@@ -142,6 +142,27 @@ class ChatRoomControllerContractTest {
     }
 
     @Test
+    void createChatRoom_회원없음_404() throws Exception {
+        mockValidToken();
+        when(chatService.createChatRoom(eq("firebase-uid"), any(CreateChatRoomRequest.class)))
+                .thenThrow(new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        mockMvc.perform(
+                        post("/v1/chat-rooms")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "name": "시험기간 밤샘 메이트",
+                                          "description": "기말고사 기간 같이 공부할 사람들 모여요."
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("MEMBER_NOT_FOUND"));
+    }
+
+    @Test
     void getChatRoom_정상조회_200() throws Exception {
         mockValidToken();
         when(chatService.getChatRoomDetail("firebase-uid", "room-1"))
@@ -183,6 +204,20 @@ class ChatRoomControllerContractTest {
                 )
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("ALREADY_CHAT_ROOM_MEMBER"));
+    }
+
+    @Test
+    void joinChatRoom_회원없음_404() throws Exception {
+        mockValidToken();
+        when(chatService.joinChatRoom("firebase-uid", "room-1"))
+                .thenThrow(new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        mockMvc.perform(
+                        post("/v1/chat-rooms/room-1/join")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("MEMBER_NOT_FOUND"));
     }
 
     @Test

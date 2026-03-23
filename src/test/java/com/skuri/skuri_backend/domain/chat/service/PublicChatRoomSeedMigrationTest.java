@@ -1,6 +1,5 @@
 package com.skuri.skuri_backend.domain.chat.service;
 
-import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
 import org.junit.jupiter.api.Test;
@@ -9,9 +8,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,19 +25,35 @@ class PublicChatRoomSeedMigrationTest {
 
     @Test
     void seed_공개방이없으면_공식방과학과방을생성한다() {
-        when(chatRoomRepository.existsById(anyString())).thenReturn(false);
+        when(chatRoomRepository.insertPublicSeedRoomIfAbsent(
+                anyString(),
+                anyString(),
+                anyString(),
+                nullable(String.class),
+                nullable(String.class)
+        ))
+                .thenReturn(1);
 
         seedMigration.seed();
 
-        verify(chatRoomRepository, times(DepartmentCatalog.DEPARTMENTS.size() + 2)).save(any(ChatRoom.class));
+        verify(chatRoomRepository, times(DepartmentCatalog.DEPARTMENTS.size() + 2))
+                .insertPublicSeedRoomIfAbsent(anyString(), anyString(), anyString(), nullable(String.class), nullable(String.class));
     }
 
     @Test
     void seed_이미존재하면_중복생성하지않는다() {
-        when(chatRoomRepository.existsById(anyString())).thenReturn(true);
+        when(chatRoomRepository.insertPublicSeedRoomIfAbsent(
+                anyString(),
+                anyString(),
+                anyString(),
+                nullable(String.class),
+                nullable(String.class)
+        ))
+                .thenReturn(0);
 
         seedMigration.seed();
 
-        verify(chatRoomRepository, never()).save(any(ChatRoom.class));
+        verify(chatRoomRepository, times(DepartmentCatalog.DEPARTMENTS.size() + 2))
+                .insertPublicSeedRoomIfAbsent(anyString(), anyString(), anyString(), nullable(String.class), nullable(String.class));
     }
 }

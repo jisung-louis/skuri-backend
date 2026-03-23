@@ -132,6 +132,7 @@ class ChatServiceTest {
     @Test
     void createChatRoom_생성자는_즉시참여상태가된다() {
         AtomicReference<ChatRoomMember> savedMemberRef = new AtomicReference<>();
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과")));
         when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(chatRoomMemberRepository.save(any(ChatRoomMember.class))).thenAnswer(invocation -> {
             ChatRoomMember member = invocation.getArgument(0);
@@ -154,12 +155,28 @@ class ChatServiceTest {
     }
 
     @Test
+    void createChatRoom_활성회원이없으면_MEMBER_NOT_FOUND() {
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> chatService.createChatRoom(
+                        "member-1",
+                        new CreateChatRoomRequest("시험기간 밤샘 메이트", "기말고사 기간 같이 공부할 사람들 모여요.")
+                )
+        );
+
+        assertEquals(ErrorCode.MEMBER_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
     void joinChatRoom_기존메시지가있으면_초기unread를0으로시작한다() {
         ChatRoom room = ChatRoom.create("room-1", "시험기간 밤샘 메이트", ChatRoomType.CUSTOM, null, null, null, true, null);
         ReflectionTestUtils.setField(room, "memberCount", 10);
         ReflectionTestUtils.setField(room, "lastMessageTimestamp", LocalDateTime.of(2026, 3, 5, 22, 0, 0));
         AtomicReference<ChatRoomMember> savedMemberRef = new AtomicReference<>();
 
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과")));
         when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
         when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1")).thenReturn(Optional.empty());
         when(chatRoomMemberRepository.save(any(ChatRoomMember.class))).thenAnswer(invocation -> {
@@ -178,6 +195,18 @@ class ChatServiceTest {
         assertEquals(LocalDateTime.of(2026, 3, 5, 22, 0, 0), response.lastReadAt());
         assertEquals(11, response.memberCount());
         verify(messagingTemplate).convertAndSendToUser(eq("member-1"), eq("/queue/chat-rooms"), any());
+    }
+
+    @Test
+    void joinChatRoom_활성회원이없으면_MEMBER_NOT_FOUND() {
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> chatService.joinChatRoom("member-1", "room-1")
+        );
+
+        assertEquals(ErrorCode.MEMBER_NOT_FOUND, exception.getErrorCode());
     }
 
     @Test
