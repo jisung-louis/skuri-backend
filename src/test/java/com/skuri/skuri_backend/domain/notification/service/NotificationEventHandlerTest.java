@@ -25,6 +25,8 @@ import com.skuri.skuri_backend.domain.notification.entity.NotificationType;
 import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
 import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import org.junit.jupiter.api.Test;
@@ -212,5 +214,42 @@ class NotificationEventHandlerTest {
 
         verify(notificationService, never()).createInboxNotifications(org.mockito.ArgumentMatchers.any());
         verify(pushNotificationService, never()).send(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void handlePartyStatusChanged_ARRIVED알림은정산대상멤버에게만보낸다() {
+        Party party = Party.create(
+                "leader-1",
+                Location.of("정문", null, null),
+                Location.of("역", null, null),
+                LocalDateTime.of(2026, 3, 8, 18, 30),
+                4,
+                List.of("역"),
+                "상세"
+        );
+        ReflectionTestUtils.setField(party, "id", "party-1");
+        party.addMember("member-1");
+        party.addMember("member-2");
+        party.arrive(
+                14000,
+                List.of("member-1"),
+                SettlementAccountSnapshot.of("카카오뱅크", "3333-03-1234567", "홍길동", true)
+        );
+
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(memberRepository.findPartyNotificationRecipientIds(List.of("member-1")))
+                .thenReturn(List.of("member-1"));
+
+        notificationEventHandler.handle(new NotificationDomainEvent.PartyStatusChanged(
+                "party-1",
+                PartyStatus.CLOSED,
+                PartyStatus.ARRIVED
+        ));
+
+        ArgumentCaptor<NotificationDispatchRequest> captor = ArgumentCaptor.forClass(NotificationDispatchRequest.class);
+        verify(notificationService).createInboxNotifications(captor.capture());
+        verify(pushNotificationService).send(captor.getValue());
+        assertEquals(NotificationType.PARTY_ARRIVED, captor.getValue().type());
+        assertEquals(List.of("member-1"), captor.getValue().recipientIds().stream().toList());
     }
 }
