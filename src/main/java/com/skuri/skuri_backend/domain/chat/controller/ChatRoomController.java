@@ -401,7 +401,7 @@ public class ChatRoomController {
     }
 
     @PatchMapping("/{id}/read")
-    @Operation(summary = "읽음 처리", description = "lastReadAt 단조 증가를 보장하며 읽음 시각을 갱신합니다.")
+    @Operation(summary = "읽음 처리", description = "JS/React Native의 new Date().toISOString() 형태 ISO 8601 UTC 문자열을 받아 lastReadAt 단조 증가를 보장하며 읽음 시각을 갱신합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",

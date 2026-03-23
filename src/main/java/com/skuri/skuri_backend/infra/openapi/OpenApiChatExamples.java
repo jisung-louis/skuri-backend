@@ -113,7 +113,7 @@ public final class OpenApiChatExamples {
                 },
                 "lastMessageAt": "2026-03-05T21:30:00",
                 "isMuted": false,
-                "lastReadAt": "2026-03-05T21:30:00"
+                "lastReadAt": "2026-03-05T12:30:00Z"
               }
             }
             """;
@@ -241,7 +241,7 @@ public final class OpenApiChatExamples {
               "success": true,
               "data": {
                 "chatRoomId": "public:university",
-                "lastReadAt": "2026-03-05T21:10:00",
+                "lastReadAt": "2026-03-05T12:10:00Z",
                 "updated": true
               }
             }

@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.chat.dto.response;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Schema(description = "채팅방 상세 응답")
@@ -29,7 +30,7 @@ public record ChatRoomDetailResponse(
         LocalDateTime lastMessageAt,
         @Schema(description = "음소거 여부", example = "false")
         boolean isMuted,
-        @Schema(description = "내 lastReadAt", example = "2026-03-05T21:00:00", nullable = true)
-        LocalDateTime lastReadAt
+        @Schema(description = "내 lastReadAt (ISO 8601 UTC)", example = "2026-03-05T12:00:00Z", nullable = true)
+        Instant lastReadAt
 ) {
 }

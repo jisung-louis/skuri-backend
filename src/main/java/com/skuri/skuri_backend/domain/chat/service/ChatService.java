@@ -41,7 +41,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,6 +60,7 @@ public class ChatService {
 
     private static final int DEFAULT_MESSAGE_PAGE_SIZE = 50;
     private static final int MAX_MESSAGE_PAGE_SIZE = 100;
+    private static final ZoneId CHAT_TIME_ZONE = ZoneId.of("Asia/Seoul");
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
@@ -160,7 +163,7 @@ public class ChatService {
     }
 
     @Transactional
-    public ChatReadUpdateResponse markAsRead(String memberId, String chatRoomId, LocalDateTime lastReadAt) {
+    public ChatReadUpdateResponse markAsRead(String memberId, String chatRoomId, Instant lastReadAt) {
         ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
         ChatRoom room = access.room();
         ChatRoomMember member = requireChatRoomMember(access.member());
@@ -168,7 +171,7 @@ public class ChatService {
         if (updated) {
             chatRoomMemberRepository.save(member);
         }
-        return new ChatReadUpdateResponse(chatRoomId, member.getLastReadAt(), updated);
+        return new ChatReadUpdateResponse(chatRoomId, toApiInstant(member.getLastReadAt()), updated);
     }
 
     @Transactional
@@ -416,16 +419,17 @@ public class ChatService {
         return chatMessageRepository.countByChatRoomIdAndCreatedAtAfter(room.getId(), lastReadAt);
     }
 
-    private LocalDateTime clampLastReadAt(ChatRoom room, LocalDateTime requestedLastReadAt) {
-        if (requestedLastReadAt == null) {
+    private LocalDateTime clampLastReadAt(ChatRoom room, Instant requestedLastReadAt) {
+        LocalDateTime normalizedRequestedLastReadAt = toChatLocalDateTime(requestedLastReadAt);
+        if (normalizedRequestedLastReadAt == null) {
             return null;
         }
 
-        LocalDateTime upperBound = LocalDateTime.now();
+        LocalDateTime upperBound = LocalDateTime.now(CHAT_TIME_ZONE);
         if (room.getLastMessageTimestamp() != null && room.getLastMessageTimestamp().isBefore(upperBound)) {
             upperBound = room.getLastMessageTimestamp();
         }
-        return requestedLastReadAt.isAfter(upperBound) ? upperBound : requestedLastReadAt;
+        return normalizedRequestedLastReadAt.isAfter(upperBound) ? upperBound : normalizedRequestedLastReadAt;
     }
 
     private Comparator<ChatRoom> chatRoomComparator() {
@@ -465,7 +469,7 @@ public class ChatService {
                 toLastMessage(room),
                 room.getLastMessageTimestamp(),
                 member != null && member.isMuted(),
-                member != null ? member.getLastReadAt() : null
+                member != null ? toApiInstant(member.getLastReadAt()) : null
         );
     }
 
@@ -639,7 +643,21 @@ public class ChatService {
     }
 
     private LocalDateTime initialLastReadAt(ChatRoom room) {
-        return room.getLastMessageTimestamp() != null ? room.getLastMessageTimestamp() : LocalDateTime.now();
+        return room.getLastMessageTimestamp() != null ? room.getLastMessageTimestamp() : LocalDateTime.now(CHAT_TIME_ZONE);
+    }
+
+    private LocalDateTime toChatLocalDateTime(Instant value) {
+        if (value == null) {
+            return null;
+        }
+        return LocalDateTime.ofInstant(value, CHAT_TIME_ZONE);
+    }
+
+    private Instant toApiInstant(LocalDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZone(CHAT_TIME_ZONE).toInstant();
     }
 
     private String normalizeNullable(String value) {
