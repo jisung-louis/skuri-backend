@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.member.service;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberBankAccountRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberNotificationSettingsRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberProfileRequest;
@@ -50,6 +51,9 @@ class MemberServiceTest {
 
     @Mock
     private LinkedAccountRepository linkedAccountRepository;
+
+    @Mock
+    private ChatService chatService;
 
     @InjectMocks
     private MemberService memberService;
@@ -195,6 +199,22 @@ class MemberServiceTest {
         assertEquals("컴퓨터공학과", response.department());
         assertEquals("기존실명", response.realname());
         assertEquals("https://example.com/new.jpg", response.photoUrl());
+        verify(chatService, never()).removeMemberFromDepartmentChatRooms("firebase-uid");
+    }
+
+    @Test
+    void updateMyProfile_학과가변경되면_기존학과방멤버십을정리한다() {
+        Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
+        member.updateProfile("기존닉네임", "20201234", "컴퓨터공학과", null);
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
+
+        MemberMeResponse response = memberService.updateMyProfile(
+                "firebase-uid",
+                new UpdateMemberProfileRequest(null, null, "경영학과", null)
+        );
+
+        assertEquals("경영학과", response.department());
+        verify(chatService).removeMemberFromDepartmentChatRooms("firebase-uid");
     }
 
     @Test

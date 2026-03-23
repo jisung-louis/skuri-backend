@@ -1,11 +1,14 @@
 package com.skuri.skuri_backend.domain.chat.service;
 
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
+import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.request.CreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.request.SendChatMessageRequest;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatReadUpdateResponse;
-import com.skuri.skuri_backend.common.exception.BusinessException;
-import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomDetailResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomSummaryResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatAccountData;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessage;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
@@ -31,13 +34,16 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -71,38 +77,153 @@ class ChatServiceTest {
     private ChatService chatService;
 
     @Test
-    void getChatRooms_비공개방은_멤버에게만노출() {
-        ChatRoom publicRoom = ChatRoom.create("room-public", "공개", ChatRoomType.UNIVERSITY, null, null, null, true, null);
-        ChatRoom privateRoom = ChatRoom.create("room-private", "비공개", ChatRoomType.CUSTOM, null, null, null, false, null);
-        ChatRoomMember membership = ChatRoomMember.create(publicRoom, "member-1", LocalDateTime.now().minusHours(1));
-        ReflectionTestUtils.setField(membership, "id", ChatRoomMemberId.of("room-public", "member-1"));
+    void getChatRooms_다른학과공개방은_목록에서숨긴다() {
+        Member member = activeMember("member-1", "컴퓨터공학과");
+        ChatRoom universityRoom = ChatRoom.create("public:university", "성결대학교 전체 채팅방", ChatRoomType.UNIVERSITY, null, null, null, true, null);
+        ChatRoom departmentRoom = ChatRoom.create("public:department:cs", "컴퓨터공학과 채팅방", ChatRoomType.DEPARTMENT, "컴퓨터공학과", null, null, true, null);
+        ChatRoom otherDepartmentRoom = ChatRoom.create("public:department:law", "법학과 채팅방", ChatRoomType.DEPARTMENT, "법학과", null, null, true, null);
 
-        when(chatRoomRepository.findAll()).thenReturn(List.of(publicRoom, privateRoom));
-        when(chatRoomMemberRepository.findById_MemberId("member-1")).thenReturn(List.of(membership));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
+        when(chatRoomRepository.findAll()).thenReturn(List.of(universityRoom, departmentRoom, otherDepartmentRoom));
+        when(chatRoomMemberRepository.findById_MemberId("member-1")).thenReturn(List.of());
 
-        List<?> rooms = chatService.getChatRooms("member-1", null, null);
+        List<ChatRoomSummaryResponse> rooms = chatService.getChatRooms("member-1", null, null);
 
-        assertEquals(1, rooms.size());
+        assertEquals(2, rooms.size());
+        assertEquals(List.of("public:university", "public:department:cs"), rooms.stream().map(ChatRoomSummaryResponse::id).toList());
+        assertFalse(rooms.get(0).joined());
     }
 
     @Test
-    void getChatRoomDetail_비공개방비멤버면_예외() {
-        ChatRoom privateRoom = ChatRoom.create("room-private", "비공개", ChatRoomType.CUSTOM, null, null, null, false, null);
-        when(chatRoomRepository.findById("room-private")).thenReturn(Optional.of(privateRoom));
-        when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-private", "member-1"))
+    void getChatRoomDetail_미참여공개방도_조회할수있다() {
+        ChatRoom publicRoom = ChatRoom.create("public:university", "성결대학교 전체 채팅방", ChatRoomType.UNIVERSITY, null, "설명", null, true, null);
+        ReflectionTestUtils.setField(publicRoom, "lastMessageTimestamp", LocalDateTime.of(2026, 3, 5, 21, 10, 0));
+        ReflectionTestUtils.setField(publicRoom, "lastMessageText", "안녕하세요");
+        ReflectionTestUtils.setField(publicRoom, "lastMessageSenderName", "홍길동");
+        ReflectionTestUtils.setField(publicRoom, "lastMessageType", ChatMessageType.TEXT);
+
+        when(chatRoomRepository.findById("public:university")).thenReturn(Optional.of(publicRoom));
+        when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("public:university", "member-1"))
+                .thenReturn(Optional.empty());
+
+        ChatRoomDetailResponse response = chatService.getChatRoomDetail("member-1", "public:university");
+
+        assertFalse(response.joined());
+        assertEquals(0, response.unreadCount());
+        assertNotNull(response.lastMessage());
+        assertEquals(LocalDateTime.of(2026, 3, 5, 21, 10, 0), response.lastMessageAt());
+    }
+
+    @Test
+    void getMessages_미참여공개방이면_NOT_CHAT_ROOM_MEMBER() {
+        ChatRoom publicRoom = ChatRoom.create("public:university", "성결대학교 전체 채팅방", ChatRoomType.UNIVERSITY, null, null, null, true, null);
+        when(chatRoomRepository.findById("public:university")).thenReturn(Optional.of(publicRoom));
+        when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("public:university", "member-1"))
                 .thenReturn(Optional.empty());
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> chatService.getChatRoomDetail("member-1", "room-private")
+                () -> chatService.getMessages("member-1", "public:university", null, null, 50)
         );
+
         assertEquals(ErrorCode.NOT_CHAT_ROOM_MEMBER, exception.getErrorCode());
+    }
+
+    @Test
+    void createChatRoom_생성자는_즉시참여상태가된다() {
+        AtomicReference<ChatRoomMember> savedMemberRef = new AtomicReference<>();
+        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMemberRepository.save(any(ChatRoomMember.class))).thenAnswer(invocation -> {
+            ChatRoomMember member = invocation.getArgument(0);
+            ReflectionTestUtils.setField(member, "id", ChatRoomMemberId.of(member.getChatRoom().getId(), member.getMemberId()));
+            savedMemberRef.set(member);
+            return member;
+        });
+        when(chatRoomMemberRepository.findById_ChatRoomId(anyString())).thenAnswer(invocation -> List.of(savedMemberRef.get()));
+
+        ChatRoomDetailResponse response = chatService.createChatRoom(
+                "member-1",
+                new CreateChatRoomRequest("시험기간 밤샘 메이트", "기말고사 기간 같이 공부할 사람들 모여요.")
+        );
+
+        assertEquals(ChatRoomType.CUSTOM, response.type());
+        assertTrue(response.joined());
+        assertEquals(1, response.memberCount());
+        assertEquals("시험기간 밤샘 메이트", response.name());
+        verify(messagingTemplate).convertAndSendToUser(eq("member-1"), eq("/queue/chat-rooms"), any());
+    }
+
+    @Test
+    void joinChatRoom_기존메시지가있으면_초기unread를0으로시작한다() {
+        ChatRoom room = ChatRoom.create("room-1", "시험기간 밤샘 메이트", ChatRoomType.CUSTOM, null, null, null, true, null);
+        ReflectionTestUtils.setField(room, "memberCount", 10);
+        ReflectionTestUtils.setField(room, "lastMessageTimestamp", LocalDateTime.of(2026, 3, 5, 22, 0, 0));
+        AtomicReference<ChatRoomMember> savedMemberRef = new AtomicReference<>();
+
+        when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
+        when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1")).thenReturn(Optional.empty());
+        when(chatRoomMemberRepository.save(any(ChatRoomMember.class))).thenAnswer(invocation -> {
+            ChatRoomMember member = invocation.getArgument(0);
+            ReflectionTestUtils.setField(member, "id", ChatRoomMemberId.of("room-1", "member-1"));
+            savedMemberRef.set(member);
+            return member;
+        });
+        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMemberRepository.findById_ChatRoomId("room-1")).thenAnswer(invocation -> List.of(savedMemberRef.get()));
+
+        ChatRoomDetailResponse response = chatService.joinChatRoom("member-1", "room-1");
+
+        assertTrue(response.joined());
+        assertEquals(0, response.unreadCount());
+        assertEquals(LocalDateTime.of(2026, 3, 5, 22, 0, 0), response.lastReadAt());
+        assertEquals(11, response.memberCount());
+        verify(messagingTemplate).convertAndSendToUser(eq("member-1"), eq("/queue/chat-rooms"), any());
+    }
+
+    @Test
+    void leaveChatRoom_멤버십을제거하고_removed이벤트를보낸다() {
+        ChatRoom room = ChatRoom.create("room-1", "시험기간 밤샘 메이트", ChatRoomType.CUSTOM, null, null, null, true, null);
+        ReflectionTestUtils.setField(room, "memberCount", 2);
+        ChatRoomMember membership = membership(room, "room-1", "member-1");
+        ChatRoomMember remainingMember = membership(room, "room-1", "member-2");
+
+        when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
+        when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1")).thenReturn(Optional.of(membership));
+        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMemberRepository.findById_ChatRoomId("room-1")).thenReturn(List.of(remainingMember));
+
+        ChatRoomDetailResponse response = chatService.leaveChatRoom("member-1", "room-1");
+
+        assertFalse(response.joined());
+        assertNull(response.lastReadAt());
+        assertEquals(1, response.memberCount());
+        verify(chatRoomMemberRepository).delete(membership);
+        verify(messagingTemplate, times(2)).convertAndSendToUser(anyString(), eq("/queue/chat-rooms"), any());
+    }
+
+    @Test
+    void removeMemberFromDepartmentChatRooms_학과방멤버십만정리한다() {
+        ChatRoom departmentRoom = ChatRoom.create("public:department:cs", "컴퓨터공학과 채팅방", ChatRoomType.DEPARTMENT, "컴퓨터공학과", null, null, true, null);
+        ReflectionTestUtils.setField(departmentRoom, "memberCount", 1);
+        ChatRoom customRoom = ChatRoom.create("room-1", "시험기간 밤샘 메이트", ChatRoomType.CUSTOM, null, null, null, true, null);
+        ReflectionTestUtils.setField(customRoom, "memberCount", 1);
+        ChatRoomMember departmentMembership = membership(departmentRoom, "public:department:cs", "member-1");
+        ChatRoomMember customMembership = membership(customRoom, "room-1", "member-1");
+
+        when(chatRoomMemberRepository.findById_MemberId("member-1")).thenReturn(List.of(departmentMembership, customMembership));
+        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMemberRepository.findById_ChatRoomId("public:department:cs")).thenReturn(List.of());
+
+        chatService.removeMemberFromDepartmentChatRooms("member-1");
+
+        verify(chatRoomMemberRepository).delete(departmentMembership);
+        verify(chatRoomMemberRepository, times(1)).delete(any(ChatRoomMember.class));
     }
 
     @Test
     void markAsRead_과거시각요청이면_단조증가유지() {
         ChatRoom room = ChatRoom.create("room-1", "테스트", ChatRoomType.UNIVERSITY, null, null, null, true, null);
-        ChatRoomMember roomMember = ChatRoomMember.create(room, "member-1", LocalDateTime.now().minusHours(2));
+        ChatRoomMember roomMember = membership(room, "room-1", "member-1");
         roomMember.advanceLastReadAt(LocalDateTime.of(2026, 3, 5, 21, 0, 0));
 
         when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
@@ -123,7 +244,7 @@ class ChatServiceTest {
     void markAsRead_미래시각요청이면_마지막메시지시각으로보정한다() {
         ChatRoom room = ChatRoom.create("room-1", "테스트", ChatRoomType.UNIVERSITY, null, null, null, true, null);
         ReflectionTestUtils.setField(room, "lastMessageTimestamp", LocalDateTime.of(2026, 3, 5, 21, 30, 0));
-        ChatRoomMember roomMember = ChatRoomMember.create(room, "member-1", LocalDateTime.now().minusHours(2));
+        ChatRoomMember roomMember = membership(room, "room-1", "member-1");
 
         when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
         when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1"))
@@ -143,7 +264,7 @@ class ChatServiceTest {
     @Test
     void sendMessage_파티ACCOUNT타입이면_특수페이로드저장및브로드캐스트() {
         ChatRoom room = ChatRoom.createPartyRoom("party-1");
-        ChatRoomMember roomMember = ChatRoomMember.create(room, "member-1", LocalDateTime.now().minusHours(1));
+        ChatRoomMember roomMember = membership(room, "party:party-1", "member-1");
         Member sender = Member.create("member-1", "member-1@sungkyul.ac.kr", "홍길동", LocalDateTime.now().minusDays(1));
         SendChatMessageRequest request = new SendChatMessageRequest(
                 ChatMessageType.ACCOUNT,
@@ -228,10 +349,8 @@ class ChatServiceTest {
         ReflectionTestUtils.setField(party, "id", "party-1");
 
         ChatRoom room = ChatRoom.createPartyRoom("party-1");
-        ChatRoomMember leaderMember = ChatRoomMember.create(room, "leader-1", LocalDateTime.now().minusHours(1));
-        ReflectionTestUtils.setField(leaderMember, "id", ChatRoomMemberId.of("party:party-1", "leader-1"));
-        ChatRoomMember removedMember = ChatRoomMember.create(room, "member-2", LocalDateTime.now().minusHours(1));
-        ReflectionTestUtils.setField(removedMember, "id", ChatRoomMemberId.of("party:party-1", "member-2"));
+        ChatRoomMember leaderMember = membership(room, "party:party-1", "leader-1");
+        ChatRoomMember removedMember = membership(room, "party:party-1", "member-2");
 
         when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
         when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -244,24 +363,15 @@ class ChatServiceTest {
         assertEquals(1, room.getMemberCount());
     }
 
-    @Test
-    void removeMemberFromAllChatRooms_참여중인모든채팅방에서제거하고인원수를갱신한다() {
-        ChatRoom room = ChatRoom.create("room-1", "테스트", ChatRoomType.CUSTOM, null, null, null, false, null);
-        ReflectionTestUtils.setField(room, "memberCount", 2);
-        ChatRoomMember membership = ChatRoomMember.create(room, "member-1", LocalDateTime.now().minusHours(1));
-        ReflectionTestUtils.setField(membership, "id", ChatRoomMemberId.of("room-1", "member-1"));
-        ChatRoomMember remainingMember = ChatRoomMember.create(room, "member-2", LocalDateTime.now().minusHours(1));
-        ReflectionTestUtils.setField(remainingMember, "id", ChatRoomMemberId.of("room-1", "member-2"));
+    private Member activeMember(String memberId, String department) {
+        Member member = Member.create(memberId, memberId + "@sungkyul.ac.kr", "홍길동", LocalDateTime.now().minusDays(1));
+        member.updateProfile(null, null, department, null);
+        return member;
+    }
 
-        when(chatRoomMemberRepository.findById_MemberId("member-1")).thenReturn(List.of(membership));
-        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(chatRoomMemberRepository.findById_ChatRoomId("room-1")).thenReturn(List.of(remainingMember));
-
-        chatService.removeMemberFromAllChatRooms("member-1");
-
-        assertEquals(1, room.getMemberCount());
-        verify(chatRoomMemberRepository).delete(membership);
-        verify(chatRoomRepository).save(room);
-        verify(messagingTemplate).convertAndSendToUser(eq("member-2"), eq("/queue/chat-rooms"), any());
+    private ChatRoomMember membership(ChatRoom room, String chatRoomId, String memberId) {
+        ChatRoomMember membership = ChatRoomMember.create(room, memberId, LocalDateTime.now().minusHours(1));
+        ReflectionTestUtils.setField(membership, "id", ChatRoomMemberId.of(chatRoomId, memberId));
+        return membership;
     }
 }
