@@ -9,13 +9,13 @@
 - `SkuriBackendApplication.java`
 
 ## 도메인 구조 메모
-- `domain/member/constant/DepartmentCatalog.java`: 공개방 seed와 프로필 입력에서 맞춰야 하는 성결대학교 학과 기준 목록
+- `domain/member/constant/DepartmentCatalog.java`: 공개방 seed와 프로필 입력에서 맞춰야 하는 성결대학교 학과 canonical 목록과 legacy alias 정규화 기준
 - `domain/member/entity/Member.java`: `status`, `withdrawnAt`를 포함한 회원 lifecycle 원장
 - `domain/member/service/MemberLifecycleService.java`: 회원 탈퇴 오케스트레이션과 도메인 후처리 진입점
 - `domain/member/service/MemberLifecycleEventListener.java`: after-commit 기반 Firebase 삭제/SSE 종료 처리
 - `domain/chat/websocket/ChatWebSocketConfig.java`: STOMP endpoint를 `/ws`(SockJS)와 `/ws-native`(native WebSocket)로 분리 등록
-- `domain/chat/service/PublicChatRoomSeedMigration.java`: 앱 기동 시 공식 공개방(학교 전체/마인크래프트/학과방) idempotent seed
-- `domain/chat/service/ChatService.java`: 공개방 visibility(joined/not joined summary, 학과방 노출 제한), 공개방 create/join/leave, 메시지/summary 실시간 fan-out, 학과방 membership 정리
+- `domain/chat/service/PublicChatRoomSeedMigration.java`: 앱 기동 시 공식 공개방(학교 전체/마인크래프트/학과방)을 MySQL `INSERT IGNORE` 기반으로 idempotent + multi-instance safe seed
+- `domain/chat/service/ChatService.java`: 공개방 visibility(joined/not joined summary, 학과방 노출 제한), 공개방 create/join/leave, active member 검증, 메시지/summary 실시간 fan-out, 학과방 membership 정리
 - `domain/chat/websocket/ChatWebSocketSessionRegistry.java`, `ChatSubscriptionAccessInterceptor.java`: 탈퇴 회원 WebSocket 세션 추적/차단
 - `domain/chat/service/PartyMessageService.java`: 파티 채팅 특수 payload와 서버 생성 메시지 텍스트 정책(ACCOUNT snapshot, join/close/reopen/member leave SYSTEM, ARRIVED/END) 생성기
 - `domain/taxiparty/entity/SettlementAccountSnapshot.java`, `domain/taxiparty/dto/request/ArrivePartyRequest.java`: ARRIVED 정산 snapshot(account/taxiFare/settlementTargetMemberIds) 계약 정의
