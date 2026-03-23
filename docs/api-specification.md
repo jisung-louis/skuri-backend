@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-10
+> 최종 수정일: 2026-03-23
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -1177,19 +1177,38 @@ FCM 토큰 삭제
 
 ## 4. Chat API
 
-### 4.1 채팅방 조회
+### 4.1 채팅방 조회 / 공개방 멤버십
+
+#### 공개방 기본 정책
+
+- 공식 공개방 seed:
+  - 학교 전체방 1개: `성결대학교 전체 채팅방`
+  - 마인크래프트방 1개: `마인크래프트 채팅방`
+  - 학과방: `{학과명} 채팅방`
+- 노출 규칙:
+  - `UNIVERSITY`, `GAME`, `CUSTOM` 공개방은 모든 사용자에게 보입니다.
+  - `DEPARTMENT` 공개방은 본인 `department`와 일치하는 방만 보이고, 다른 학과 방은 목록/상세에서 숨깁니다.
+  - `PARTY`는 공개방이 아니며 참여 중인 멤버에게만 보입니다.
+- 미참여 공개방 정책:
+  - 목록/상세에는 보입니다.
+  - `description`, `lastMessage`, `lastMessageAt`, `memberCount`는 보입니다.
+  - `joined=false`, `unreadCount=0`, `isMuted=false`로 내려갑니다.
+  - `GET /v1/chat-rooms/{id}/messages`는 `NOT_CHAT_ROOM_MEMBER`를 반환합니다.
+- 정렬 정책:
+  - 서버가 최종 UI 정렬을 강제하지는 않습니다.
+  - 프론트는 `type`, `joined`, `lastMessageAt` 메타데이터로 `학교 전체방 → 학과방 → 마인크래프트방 → joined custom → not joined custom` 정렬을 구성할 수 있습니다.
 
 #### GET /v1/chat-rooms
 접근 가능한 채팅방 목록
 
-- 기본 정책: `공개 채팅방 + 내가 참여 중인 비공개 채팅방(PARTY 포함)`만 반환합니다.
+- 기본 정책: `보이는 공개 채팅방 + 내가 참여 중인 비공개 채팅방(PARTY 포함)`을 반환합니다.
 
 **Query Parameters:**
 
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `type` | string | 채팅방 타입 (UNIVERSITY, DEPARTMENT, GAME, CUSTOM, PARTY) |
-| `joined` | boolean | 참여 중인 채팅방만 |
+| `joined` | boolean | `true`면 참여 중인 채팅방만 |
 
 **Response:**
 ```json
@@ -1197,49 +1216,141 @@ FCM 토큰 삭제
   "success": true,
   "data": [
     {
-      "id": "room_id",
-      "name": "성결대 전체 채팅방",
+      "id": "public:university",
       "type": "UNIVERSITY",
+      "name": "성결대학교 전체 채팅방",
+      "description": "성결대학교 전체 채팅방입니다.",
+      "isPublic": true,
       "memberCount": 150,
+      "joined": false,
+      "unreadCount": 0,
       "lastMessage": {
         "type": "TEXT",
         "text": "안녕하세요!",
         "senderName": "홍길동",
         "createdAt": "2026-02-03T12:00:00Z"
       },
-      "unreadCount": 5,
-      "isJoined": true
+      "lastMessageAt": "2026-02-03T12:00:00Z",
+      "isMuted": false
+    },
+    {
+      "id": "room_uuid",
+      "type": "CUSTOM",
+      "name": "시험기간 밤샘 메이트",
+      "description": "기말고사 기간 같이 공부할 사람들 모여요.",
+      "isPublic": true,
+      "memberCount": 24,
+      "joined": true,
+      "unreadCount": 3,
+      "lastMessage": {
+        "type": "TEXT",
+        "text": "중앙도서관 4층 자리 남아요.",
+        "senderName": "김성결",
+        "createdAt": "2026-02-03T23:10:00Z"
+      },
+      "lastMessageAt": "2026-02-03T23:10:00Z",
+      "isMuted": false
     }
   ]
+}
+```
+
+#### POST /v1/chat-rooms
+커스텀 공개 채팅방 생성
+
+**Request:**
+```json
+{
+  "name": "시험기간 밤샘 메이트",
+  "description": "기말고사 기간 같이 공부할 사람들 모여요."
+}
+```
+
+**정책:**
+- 생성 가능한 타입은 `CUSTOM` 고정입니다.
+- 생성된 채팅방은 `isPublic=true` 공개 탐색 방입니다.
+- 생성자는 즉시 `joined=true` 상태가 되며, `memberCount`는 1로 시작합니다.
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "room_uuid",
+    "type": "CUSTOM",
+    "name": "시험기간 밤샘 메이트",
+    "description": "기말고사 기간 같이 공부할 사람들 모여요.",
+    "isPublic": true,
+    "memberCount": 1,
+    "joined": true,
+    "unreadCount": 0,
+    "lastMessage": null,
+    "lastMessageAt": null,
+    "isMuted": false,
+    "lastReadAt": null
+  }
 }
 ```
 
 #### GET /v1/chat-rooms/{chatRoomId}
 채팅방 상세
 
+- 공개 채팅방은 `joined=false`여도 상세 조회할 수 있습니다.
 - 비공개 채팅방은 멤버만 조회 가능합니다.
+- 다른 학과 공개방은 `CHAT_ROOM_NOT_FOUND`로 숨깁니다.
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "id": "room_id",
-    "name": "성결대 전체 채팅방",
+    "id": "public:university",
     "type": "UNIVERSITY",
-    "description": "성결대학교 학생들의 소통 공간",
-    "memberCount": 150,
+    "name": "성결대학교 전체 채팅방",
+    "description": "성결대학교 전체 채팅방입니다.",
     "isPublic": true,
-    "isJoined": true,
+    "memberCount": 150,
+    "joined": false,
+    "unreadCount": 0,
+    "lastMessage": {
+      "type": "TEXT",
+      "text": "안녕하세요!",
+      "senderName": "홍길동",
+      "createdAt": "2026-02-03T12:00:00Z"
+    },
+    "lastMessageAt": "2026-02-03T12:00:00Z",
     "isMuted": false,
-    "lastReadAt": "2026-02-03T11:00:00Z",
-    "unreadCount": 5
+    "lastReadAt": null
   }
 }
 ```
 
+#### POST /v1/chat-rooms/{chatRoomId}/join
+공개 채팅방 참여
+
+- 참여하기 버튼을 누르면 즉시 참여합니다.
+- 이미 참여 중이면 `409 ALREADY_CHAT_ROOM_MEMBER`
+- 정원이 있는 방에서 가득 찼으면 `409 CHAT_ROOM_FULL`
+- 참여 직후 `unreadCount`는 0으로 시작하도록 `lastReadAt`을 현재 방의 마지막 메시지 시각으로 초기화합니다.
+
+#### DELETE /v1/chat-rooms/{chatRoomId}/members/me
+공개 채팅방 나가기
+
+- 모든 공개 채팅방은 나갈 수 있습니다.
+- 나간 뒤에도 공개방 상세 조회는 계속 가능합니다.
+- 나간 뒤 `joined=false`, `unreadCount=0`, `isMuted=false` 상태가 됩니다.
+
+#### 학과 변경 정책
+
+- `PATCH /v1/members/me`에서 `department`가 바뀌면 기존 학과방 membership은 자동 제거합니다.
+- 새 학과방 membership은 자동 생성하지 않습니다.
+- 다음 refresh/재진입 시 기존 학과방은 목록에서 제거되고 접근할 수 없습니다.
+
 #### GET /v1/chat-rooms/{chatRoomId}/messages
 채팅 메시지 조회
+
+- `joined=true`인 경우에만 조회할 수 있습니다.
+- 공개 채팅방이라도 미참여 상태면 `403 NOT_CHAT_ROOM_MEMBER`
 
 **Query Parameters:**
 
@@ -1406,6 +1517,7 @@ Authorization:Bearer <firebase_id_token>
 ```
 
 > `eventType`은 `CHAT_ROOM_SNAPSHOT`, `CHAT_ROOM_UPSERT`, `CHAT_ROOM_REMOVED`를 사용합니다.
+> `/user/queue/chat-rooms`는 joined room summary 기준 채널이며, 미참여 공개방 탐색 목록은 `GET /v1/chat-rooms` refresh 기준으로 유지합니다.
 
 ---
 
