@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.member.service;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberBankAccountRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberNotificationSettingsRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberProfileRequest;
@@ -25,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -36,6 +38,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final LinkedAccountRepository linkedAccountRepository;
+    private final ChatService chatService;
 
     // Intentionally non-transactional: insert 충돌(DataIntegrityViolationException) 이후
     // 복구 조회를 새로운 JPA 세션/트랜잭션에서 수행해 Session 오염을 피한다.
@@ -72,12 +75,16 @@ public class MemberService {
     @Transactional
     public MemberMeResponse updateMyProfile(String memberId, UpdateMemberProfileRequest request) {
         Member member = getMemberOrThrow(memberId);
+        String previousDepartment = member.getDepartment();
         member.updateProfile(
                 request.nickname(),
                 request.studentId(),
                 request.department(),
                 request.photoUrl()
         );
+        if (request.department() != null && !normalizeNullable(previousDepartment).equals(normalizeNullable(member.getDepartment()))) {
+            chatService.removeMemberFromDepartmentChatRooms(memberId);
+        }
         return toMemberMeResponse(member);
     }
 
@@ -154,6 +161,13 @@ public class MemberService {
     private Member getMemberOrThrow(String memberId) {
         return memberRepository.findActiveById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
+    }
+
+    private String normalizeNullable(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        return value.trim();
     }
 
     private MemberCreateResponse toMemberCreateResponse(Member member) {

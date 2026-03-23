@@ -10,18 +10,40 @@ public final class OpenApiChatExamples {
               "success": true,
               "data": [
                 {
-                  "id": "room-university",
-                  "name": "성결대 전체 채팅방",
+                  "id": "public:university",
                   "type": "UNIVERSITY",
+                  "name": "성결대학교 전체 채팅방",
+                  "description": "성결대학교 전체 채팅방입니다.",
+                  "isPublic": true,
                   "memberCount": 150,
+                  "joined": false,
+                  "unreadCount": 0,
                   "lastMessage": {
                     "type": "TEXT",
                     "text": "안녕하세요!",
                     "senderName": "홍길동",
                     "createdAt": "2026-03-05T21:10:00"
                   },
-                  "unreadCount": 5,
-                  "isJoined": true
+                  "lastMessageAt": "2026-03-05T21:10:00",
+                  "isMuted": false
+                },
+                {
+                  "id": "room:42c6ad65-c8e1-4c87-b796-3f0f6d0f0f0f",
+                  "type": "CUSTOM",
+                  "name": "시험기간 밤샘 메이트",
+                  "description": "기말고사 기간 같이 공부할 사람들 모여요.",
+                  "isPublic": true,
+                  "memberCount": 24,
+                  "joined": true,
+                  "unreadCount": 3,
+                  "lastMessage": {
+                    "type": "TEXT",
+                    "text": "중앙도서관 4층 자리 남아요.",
+                    "senderName": "김성결",
+                    "createdAt": "2026-03-05T22:10:00"
+                  },
+                  "lastMessageAt": "2026-03-05T22:10:00",
+                  "isMuted": false
                 }
               ]
             }
@@ -31,16 +53,92 @@ public final class OpenApiChatExamples {
             {
               "success": true,
               "data": {
-                "id": "room-university",
-                "name": "성결대 전체 채팅방",
+                "id": "public:university",
                 "type": "UNIVERSITY",
-                "description": "성결대학교 학생들의 소통 공간",
+                "name": "성결대학교 전체 채팅방",
+                "description": "성결대학교 전체 채팅방입니다.",
                 "isPublic": true,
                 "memberCount": 150,
-                "isJoined": true,
+                "joined": false,
+                "unreadCount": 0,
+                "lastMessage": {
+                  "type": "TEXT",
+                  "text": "안녕하세요!",
+                  "senderName": "홍길동",
+                  "createdAt": "2026-03-05T21:10:00"
+                },
+                "lastMessageAt": "2026-03-05T21:10:00",
+                "isMuted": false
+              }
+            }
+            """;
+
+    public static final String SUCCESS_CHAT_ROOM_CREATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "room:42c6ad65-c8e1-4c87-b796-3f0f6d0f0f0f",
+                "type": "CUSTOM",
+                "name": "시험기간 밤샘 메이트",
+                "description": "기말고사 기간 같이 공부할 사람들 모여요.",
+                "isPublic": true,
+                "memberCount": 1,
+                "joined": true,
+                "unreadCount": 0,
+                "lastMessage": null,
+                "lastMessageAt": null,
                 "isMuted": false,
-                "lastReadAt": "2026-03-05T21:00:00",
-                "unreadCount": 5
+                "lastReadAt": null
+              }
+            }
+            """;
+
+    public static final String SUCCESS_CHAT_ROOM_JOIN = """
+            {
+              "success": true,
+              "data": {
+                "id": "public:game:minecraft",
+                "type": "GAME",
+                "name": "마인크래프트 채팅방",
+                "description": "스쿠리 서버 채팅방입니다.",
+                "isPublic": true,
+                "memberCount": 87,
+                "joined": true,
+                "unreadCount": 0,
+                "lastMessage": {
+                  "type": "TEXT",
+                  "text": "오늘 저녁 9시에 이벤트 서버 열어요.",
+                  "senderName": "스쿠리운영팀",
+                  "createdAt": "2026-03-05T21:30:00"
+                },
+                "lastMessageAt": "2026-03-05T21:30:00",
+                "isMuted": false,
+                "lastReadAt": "2026-03-05T21:30:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_CHAT_ROOM_LEAVE = """
+            {
+              "success": true,
+              "data": {
+                "id": "room:42c6ad65-c8e1-4c87-b796-3f0f6d0f0f0f",
+                "type": "CUSTOM",
+                "name": "시험기간 밤샘 메이트",
+                "description": "기말고사 기간 같이 공부할 사람들 모여요.",
+                "isPublic": true,
+                "memberCount": 23,
+                "joined": false,
+                "unreadCount": 0,
+                "lastMessage": {
+                  "type": "TEXT",
+                  "text": "중앙도서관 4층 자리 남아요.",
+                  "senderName": "김성결",
+                  "createdAt": "2026-03-05T22:10:00"
+                },
+                "lastMessageAt": "2026-03-05T22:10:00",
+                "isMuted": false,
+                "lastReadAt": null
               }
             }
             """;
@@ -142,7 +240,7 @@ public final class OpenApiChatExamples {
             {
               "success": true,
               "data": {
-                "chatRoomId": "room-university",
+                "chatRoomId": "public:university",
                 "lastReadAt": "2026-03-05T21:10:00",
                 "updated": true
               }
@@ -153,7 +251,7 @@ public final class OpenApiChatExamples {
             {
               "success": true,
               "data": {
-                "chatRoomId": "room-university",
+                "chatRoomId": "public:university",
                 "muted": true
               }
             }
@@ -164,7 +262,7 @@ public final class OpenApiChatExamples {
               "success": true,
               "data": {
                 "id": "room:2e8f745a-c131-4e1d-9b8e-7e8d4bb686b3",
-                "name": "성결대 전체 채팅방",
+                "name": "성결대학교 전체 채팅방",
                 "type": "UNIVERSITY"
               }
             }
@@ -209,6 +307,33 @@ public final class OpenApiChatExamples {
               "success": false,
               "errorCode": "ALREADY_CHAT_ROOM_MEMBER",
               "message": "이미 채팅방에 참여 중입니다.",
+              "timestamp": "2026-03-05T21:10:00"
+            }
+            """;
+
+    public static final String ERROR_CHAT_ROOM_PUBLIC_MEMBERSHIP_ONLY = """
+            {
+              "success": false,
+              "errorCode": "INVALID_REQUEST",
+              "message": "공개 채팅방만 이 API로 처리할 수 있습니다.",
+              "timestamp": "2026-03-05T21:10:00"
+            }
+            """;
+
+    public static final String ERROR_CHAT_ROOM_JOIN_PARTY_API_ONLY = """
+            {
+              "success": false,
+              "errorCode": "INVALID_REQUEST",
+              "message": "파티 채팅방 참여는 택시 파티 API로 처리해야 합니다.",
+              "timestamp": "2026-03-05T21:10:00"
+            }
+            """;
+
+    public static final String ERROR_CHAT_ROOM_LEAVE_PARTY_API_ONLY = """
+            {
+              "success": false,
+              "errorCode": "INVALID_REQUEST",
+              "message": "파티 채팅방 나가기는 택시 파티 API로 처리해야 합니다.",
               "timestamp": "2026-03-05T21:10:00"
             }
             """;
