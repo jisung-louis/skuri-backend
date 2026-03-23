@@ -334,6 +334,9 @@ Spring 서버 처리:
 - 부분 업데이트 API입니다.
 - 요청 본문에 포함되지 않은 필드는 기존 값을 유지합니다.
 - `nickname`은 `members.nickname`을 수정합니다.
+- `department`는 서버가 지원하는 학과 카탈로그 기준으로만 허용합니다.
+  - legacy 표기(예: `소프트웨어학과`)는 canonical 값으로 정규화해 저장합니다.
+  - 지원하지 않는 값은 `422 VALIDATION_ERROR`를 반환합니다.
 - `realname`은 회원 생성 시 provider 이름으로 초기화되며, 이 API로 수정할 수 없습니다.
 - `photoUrl`은 `POST /v1/images`의 `PROFILE_IMAGE` 업로드 결과 URL을 그대로 재사용할 수 있습니다.
 
@@ -1270,6 +1273,7 @@ FCM 토큰 삭제
 - 생성 가능한 타입은 `CUSTOM` 고정입니다.
 - 생성된 채팅방은 `isPublic=true` 공개 탐색 방입니다.
 - 생성자는 즉시 `joined=true` 상태가 되며, `memberCount`는 1로 시작합니다.
+- `members`에 가입 완료된 활성 회원만 생성할 수 있습니다. 미가입 UID는 `MEMBER_NOT_FOUND`를 반환합니다.
 
 **Response (201 Created):**
 ```json
@@ -1332,6 +1336,7 @@ FCM 토큰 삭제
 - 이미 참여 중이면 `409 ALREADY_CHAT_ROOM_MEMBER`
 - 정원이 있는 방에서 가득 찼으면 `409 CHAT_ROOM_FULL`
 - 참여 직후 `unreadCount`는 0으로 시작하도록 `lastReadAt`을 현재 방의 마지막 메시지 시각으로 초기화합니다.
+- `members`에 가입 완료된 활성 회원만 참여할 수 있습니다. 미가입 UID는 `MEMBER_NOT_FOUND`를 반환합니다.
 
 #### DELETE /v1/chat-rooms/{chatRoomId}/members/me
 공개 채팅방 나가기
