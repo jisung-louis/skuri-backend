@@ -57,7 +57,7 @@ public class SecurityConfig {
                     if (mediaStorageProperties.getProvider() == com.skuri.skuri_backend.infra.storage.StorageProviderType.LOCAL) {
                         authorize.requestMatchers(HttpMethod.GET, mediaUrlPrefix, mediaUrlPrefix + "/**").permitAll();
                     }
-                    authorize.requestMatchers("/ws/**").permitAll();
+                    authorize.requestMatchers("/ws/**", "/ws-native/**").permitAll();
                     if (openApiEnabled) {
                         authorize.requestMatchers(
                                 "/v3/api-docs/**",

@@ -17,6 +17,8 @@ import java.util.Arrays;
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
 public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
+    private static final String SOCKJS_STOMP_ENDPOINT = "/ws";
+    private static final String NATIVE_STOMP_ENDPOINT = "/ws-native";
 
     private final FirebaseStompAuthChannelInterceptor firebaseStompAuthChannelInterceptor;
     private final ChatSubscriptionAccessInterceptor chatSubscriptionAccessInterceptor;
@@ -33,11 +35,17 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        StompWebSocketEndpointRegistration endpoint = registry.addEndpoint("/ws");
+        applyAllowedOriginPatterns(registry.addEndpoint(NATIVE_STOMP_ENDPOINT));
+        applyAllowedOriginPatterns(registry.addEndpoint(SOCKJS_STOMP_ENDPOINT)).withSockJS();
+    }
+
+    private StompWebSocketEndpointRegistration applyAllowedOriginPatterns(
+            StompWebSocketEndpointRegistration endpoint
+    ) {
         if (allowedOriginPatterns != null && Arrays.stream(allowedOriginPatterns).anyMatch(value -> value != null && !value.isBlank())) {
             endpoint.setAllowedOriginPatterns(allowedOriginPatterns);
         }
-        endpoint.withSockJS();
+        return endpoint;
     }
 
     @Override

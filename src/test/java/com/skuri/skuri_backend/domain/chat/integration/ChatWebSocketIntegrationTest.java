@@ -168,6 +168,47 @@ class ChatWebSocketIntegrationTest {
     }
 
     @Test
+    void native_websocket_연결후_메시지송수신_성공() throws Exception {
+        WebSocketStompClient nativeStompClient = new WebSocketStompClient(new StandardWebSocketClient());
+        nativeStompClient.setMessageConverter(new MappingJackson2MessageConverter());
+
+        try {
+            String url = "ws://localhost:" + port + "/ws-native";
+            StompHeaders connectHeaders = new StompHeaders();
+            connectHeaders.add("Authorization", "Bearer valid-token");
+
+            StompSession session = nativeStompClient
+                    .connectAsync(url, new WebSocketHttpHeaders(), connectHeaders, new StompSessionHandlerAdapter() {})
+                    .get(5, TimeUnit.SECONDS);
+
+            LinkedBlockingQueue<Map<String, Object>> received = new LinkedBlockingQueue<>();
+            session.subscribe("/topic/chat/room-ws", new StompFrameHandler() {
+                @Override
+                public Type getPayloadType(StompHeaders headers) {
+                    return Map.class;
+                }
+
+                @Override
+                public void handleFrame(StompHeaders headers, Object payload) {
+                    received.offer((Map<String, Object>) payload);
+                }
+            });
+            Thread.sleep(300);
+
+            session.send("/app/chat/room-ws", Map.of("type", "TEXT", "text", "네이티브 웹소켓 전송 테스트"));
+
+            Map<String, Object> payload = received.poll(5, TimeUnit.SECONDS);
+            assertNotNull(payload);
+            assertEquals("TEXT", payload.get("type"));
+            assertEquals("네이티브 웹소켓 전송 테스트", payload.get("text"));
+
+            session.disconnect();
+        } finally {
+            nativeStompClient.stop();
+        }
+    }
+
+    @Test
     void websocket_메시지전송예외는_표준에러포맷으로수신() throws Exception {
         String url = "http://localhost:" + port + "/ws";
         StompHeaders connectHeaders = new StompHeaders();
