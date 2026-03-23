@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenClaims;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenVerifier;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -21,6 +22,7 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.Locale;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class FirebaseStompAuthChannelInterceptor implements ChannelInterceptor {
@@ -51,6 +53,12 @@ public class FirebaseStompAuthChannelInterceptor implements ChannelInterceptor {
         }
 
         if (StompCommand.CONNECT.equals(command)) {
+            log.info(
+                    "Chat STOMP CONNECT frame received: sessionId={}, nativeHeaderNames={}, hasAuthorizationHeader={}",
+                    accessor.getSessionId(),
+                    accessor.toNativeHeaderMap().keySet(),
+                    StringUtils.hasText(resolveIdToken(accessor))
+            );
             authenticate(accessor);
             return message;
         }
@@ -89,7 +97,18 @@ public class FirebaseStompAuthChannelInterceptor implements ChannelInterceptor {
             );
             accessor.setUser(authenticatedMember);
             sessionRegistry.registerAuthenticatedSession(authenticatedMember.uid(), accessor.getSessionId());
+            log.info(
+                    "Chat STOMP CONNECT authenticated: sessionId={}, memberId={}, email={}",
+                    accessor.getSessionId(),
+                    authenticatedMember.uid(),
+                    claims.email()
+            );
         } catch (BusinessException e) {
+            log.warn(
+                    "Chat STOMP CONNECT authentication failed: sessionId={}, message={}",
+                    accessor.getSessionId(),
+                    e.getMessage()
+            );
             throw new MessagingException("WebSocket 인증에 실패했습니다.", new BusinessException(ErrorCode.STOMP_AUTH_FAILED));
         }
     }

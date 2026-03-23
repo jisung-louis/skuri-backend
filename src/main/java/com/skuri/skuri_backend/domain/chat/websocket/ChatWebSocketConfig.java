@@ -23,6 +23,7 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final FirebaseStompAuthChannelInterceptor firebaseStompAuthChannelInterceptor;
     private final ChatSubscriptionAccessInterceptor chatSubscriptionAccessInterceptor;
     private final TrackingWebSocketHandlerDecoratorFactory trackingWebSocketHandlerDecoratorFactory;
+    private final ChatWebSocketHandshakeLoggingInterceptor chatWebSocketHandshakeLoggingInterceptor;
     @Value("${chat.websocket.allowed-origin-patterns:}")
     private String[] allowedOriginPatterns;
 
@@ -35,8 +36,11 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        applyAllowedOriginPatterns(registry.addEndpoint(NATIVE_STOMP_ENDPOINT));
-        applyAllowedOriginPatterns(registry.addEndpoint(SOCKJS_STOMP_ENDPOINT)).withSockJS();
+        applyAllowedOriginPatterns(registry.addEndpoint(NATIVE_STOMP_ENDPOINT))
+                .addInterceptors(chatWebSocketHandshakeLoggingInterceptor);
+        applyAllowedOriginPatterns(registry.addEndpoint(SOCKJS_STOMP_ENDPOINT))
+                .addInterceptors(chatWebSocketHandshakeLoggingInterceptor)
+                .withSockJS();
     }
 
     private StompWebSocketEndpointRegistration applyAllowedOriginPatterns(
