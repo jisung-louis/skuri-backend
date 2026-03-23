@@ -1,6 +1,10 @@
 package com.skuri.skuri_backend.domain.member.constant;
 
+import org.springframework.util.StringUtils;
+
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class DepartmentCatalog {
 
@@ -36,6 +40,32 @@ public final class DepartmentCatalog {
             "파이데이아학부"
     );
 
+    private static final Map<String, String> LEGACY_ALIASES = Map.of(
+            "소프트웨어학과", "미디어소프트웨어학과"
+    );
+
+    private static final Map<String, String> SUPPORTED_DEPARTMENTS = buildSupportedDepartments();
+
     private DepartmentCatalog() {
+    }
+
+    public static boolean isSupported(String department) {
+        return normalize(department) != null;
+    }
+
+    public static String normalize(String department) {
+        if (!StringUtils.hasText(department)) {
+            return null;
+        }
+        return SUPPORTED_DEPARTMENTS.get(department.trim());
+    }
+
+    private static Map<String, String> buildSupportedDepartments() {
+        Map<String, String> supportedDepartments = new LinkedHashMap<>();
+        for (String department : DEPARTMENTS) {
+            supportedDepartments.put(department, department);
+        }
+        supportedDepartments.putAll(LEGACY_ALIASES);
+        return Map.copyOf(supportedDepartments);
     }
 }

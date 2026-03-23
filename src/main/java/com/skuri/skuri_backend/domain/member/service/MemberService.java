@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.member.service;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
+import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberBankAccountRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberNotificationSettingsRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberProfileRequest;
@@ -76,10 +77,16 @@ public class MemberService {
     public MemberMeResponse updateMyProfile(String memberId, UpdateMemberProfileRequest request) {
         Member member = getMemberOrThrow(memberId);
         String previousDepartment = member.getDepartment();
+        String normalizedDepartment = request.department() != null
+                ? DepartmentCatalog.normalize(request.department())
+                : null;
+        if (request.department() != null && StringUtils.hasText(request.department()) && normalizedDepartment == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "지원하지 않는 department입니다.");
+        }
         member.updateProfile(
                 request.nickname(),
                 request.studentId(),
-                request.department(),
+                normalizedDepartment,
                 request.photoUrl()
         );
         if (request.department() != null && !normalizeNullable(previousDepartment).equals(normalizeNullable(member.getDepartment()))) {

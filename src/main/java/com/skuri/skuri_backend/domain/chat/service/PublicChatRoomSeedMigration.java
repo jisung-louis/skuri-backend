@@ -1,6 +1,5 @@
 package com.skuri.skuri_backend.domain.chat.service;
 
-import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
@@ -69,21 +68,13 @@ public class PublicChatRoomSeedMigration {
             String department,
             String description
     ) {
-        if (chatRoomRepository.existsById(roomId)) {
-            return 0;
-        }
-
-        chatRoomRepository.save(ChatRoom.create(
+        return chatRoomRepository.insertPublicSeedRoomIfAbsent(
                 roomId,
                 name,
-                type,
+                type.name(),
                 department,
-                description,
-                null,
-                true,
-                null
-        ));
-        return 1;
+                description
+        );
     }
 
     private String departmentRoomId(String department) {

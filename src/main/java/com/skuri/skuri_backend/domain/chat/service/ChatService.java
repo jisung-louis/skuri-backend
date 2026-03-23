@@ -26,6 +26,7 @@ import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
+import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
@@ -181,6 +182,7 @@ public class ChatService {
 
     @Transactional
     public ChatRoomDetailResponse createChatRoom(String memberId, CreateChatRoomRequest request) {
+        requireActiveMember(memberId);
         ChatRoom room = ChatRoom.create(
                 "room:" + UUID.randomUUID(),
                 request.name().trim(),
@@ -202,6 +204,7 @@ public class ChatService {
 
     @Transactional
     public ChatRoomDetailResponse joinChatRoom(String memberId, String chatRoomId) {
+        requireActiveMember(memberId);
         ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
         ChatRoom room = access.room();
         validatePublicRoomMembershipAction(room, "참여");
@@ -611,13 +614,19 @@ public class ChatService {
     }
 
     private boolean matchesDepartment(String roomDepartment, String currentDepartment) {
-        return Objects.equals(normalizeNullable(roomDepartment), normalizeNullable(currentDepartment));
+        return Objects.equals(normalizeDepartment(roomDepartment), normalizeDepartment(currentDepartment));
     }
 
     private String findCurrentDepartment(String memberId) {
         return memberRepository.findActiveById(memberId)
                 .map(Member::getDepartment)
+                .map(this::normalizeDepartment)
                 .orElse(null);
+    }
+
+    private Member requireActiveMember(String memberId) {
+        return memberRepository.findActiveById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
     }
 
     private void validatePublicRoomMembershipAction(ChatRoom room, String actionName) {
@@ -638,6 +647,11 @@ public class ChatService {
             return null;
         }
         return value.trim();
+    }
+
+    private String normalizeDepartment(String value) {
+        String normalized = DepartmentCatalog.normalize(value);
+        return normalized != null ? normalized : normalizeNullable(value);
     }
 
     private void removeMembership(ChatRoomMember membership, boolean notifyRemovedMember) {
