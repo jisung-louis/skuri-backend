@@ -16,6 +16,7 @@ import java.util.Map;
 @Component
 public class ChatWebSocketHandshakeLoggingInterceptor implements HandshakeInterceptor {
 
+    public static final String ATTRIBUTE_HAS_AUTHORIZATION_HEADER = "chatWsHasAuthorizationHeader";
     private static final String WEBSOCKET_PROTOCOL_HEADER = "Sec-WebSocket-Protocol";
 
     @Override
@@ -26,6 +27,10 @@ public class ChatWebSocketHandshakeLoggingInterceptor implements HandshakeInterc
             Map<String, Object> attributes
     ) {
         HttpHeaders headers = request.getHeaders();
+        attributes.put(
+                ATTRIBUTE_HAS_AUTHORIZATION_HEADER,
+                StringUtils.hasText(headers.getFirst(HttpHeaders.AUTHORIZATION))
+        );
         log.info(
                 "Chat WebSocket handshake start: uri={}, origin={}, remoteAddress={}, userAgent={}, protocol={}, hasAuthorizationHeader={}",
                 request.getURI(),
@@ -33,7 +38,7 @@ public class ChatWebSocketHandshakeLoggingInterceptor implements HandshakeInterc
                 request.getRemoteAddress(),
                 trimHeader(headers.getFirst(HttpHeaders.USER_AGENT)),
                 joinHeaderValues(headers.get(WEBSOCKET_PROTOCOL_HEADER)),
-                StringUtils.hasText(headers.getFirst(HttpHeaders.AUTHORIZATION))
+                attributes.get(ATTRIBUTE_HAS_AUTHORIZATION_HEADER)
         );
         return true;
     }

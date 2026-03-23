@@ -28,7 +28,7 @@ public class TrackingWebSocketHandlerDecoratorFactory implements WebSocketHandle
                         session.getUri(),
                         session.getRemoteAddress(),
                         session.getAcceptedProtocol(),
-                        session.getHandshakeHeaders().getFirst("Authorization") != null
+                        session.getAttributes().get(ChatWebSocketHandshakeLoggingInterceptor.ATTRIBUTE_HAS_AUTHORIZATION_HEADER)
                 );
                 super.afterConnectionEstablished(session);
             }
