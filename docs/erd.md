@@ -85,7 +85,12 @@ erDiagram
         enum end_reason "ARRIVED,FORCE_ENDED,CANCELLED,TIMEOUT,WITHDRAWED"
         datetime ended_at
         enum settlement_status "PENDING,COMPLETED"
+        int taxi_fare
         int per_person_amount
+        varchar(20) settlement_bank_name
+        varchar(30) settlement_account_number
+        varchar(50) settlement_account_holder
+        boolean settlement_hide_name
         bigint version "Optimistic Lock"
         datetime created_at
         datetime updated_at
@@ -564,7 +569,12 @@ erDiagram
 | end_reason | ENUM | | ARRIVED, FORCE_ENDED, CANCELLED, TIMEOUT, WITHDRAWED |
 | ended_at | DATETIME | | 종료 시간 |
 | settlement_status | ENUM | | PENDING, COMPLETED |
+| taxi_fare | INT | | 총 택시비 snapshot |
 | per_person_amount | INT | | 1인당 요금 |
+| settlement_bank_name | VARCHAR(20) | | 정산 계좌 은행명 snapshot |
+| settlement_account_number | VARCHAR(30) | | 정산 계좌번호 snapshot |
+| settlement_account_holder | VARCHAR(50) | | 정산 예금주 snapshot |
+| settlement_hide_name | BOOLEAN | | 정산 예금주 마스킹 여부 |
 | version | BIGINT | NOT NULL | Optimistic Lock 버전 |
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |

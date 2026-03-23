@@ -51,20 +51,89 @@ public final class OpenApiChatExamples {
               "data": {
                 "messages": [
                   {
-                    "id": "9f9efc3b-4d55-44e7-a86f-93d5101938ec",
-                    "chatRoomId": "room-university",
-                    "senderId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
-                    "senderName": "스쿠리 유저",
-                    "type": "TEXT",
-                    "text": "안녕하세요!",
+                    "id": "msg-system-1",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "leader-1",
+                    "senderName": "파티 리더",
+                    "type": "SYSTEM",
+                    "text": "김철수님이 파티에 합류했어요.",
                     "createdAt": "2026-03-05T21:10:00"
+                  },
+                  {
+                    "id": "msg-system-2",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "leader-1",
+                    "senderName": "파티 리더",
+                    "type": "SYSTEM",
+                    "text": "모집이 마감되었어요.",
+                    "createdAt": "2026-03-05T21:11:00"
+                  },
+                  {
+                    "id": "msg-system-3",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "leader-1",
+                    "senderName": "파티 리더",
+                    "type": "SYSTEM",
+                    "text": "모집이 재개되었어요.",
+                    "createdAt": "2026-03-05T21:11:30"
+                  },
+                  {
+                    "id": "msg-system-4",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "member-2",
+                    "senderName": "홍길동",
+                    "type": "SYSTEM",
+                    "text": "홍길동님이 파티에서 나갔어요.",
+                    "createdAt": "2026-03-05T21:11:45"
+                  },
+                  {
+                    "id": "msg-account-1",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "leader-1",
+                    "senderName": "파티 리더",
+                    "type": "ACCOUNT",
+                    "text": "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)",
+                    "accountData": {
+                      "bankName": "카카오뱅크",
+                      "accountNumber": "3333-01-1234567",
+                      "accountHolder": "홍*동",
+                      "hideName": true
+                    },
+                    "createdAt": "2026-03-05T21:12:00"
+                  },
+                  {
+                    "id": "msg-arrived-1",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "leader-1",
+                    "senderName": "파티 리더",
+                    "type": "ARRIVED",
+                    "text": "택시가 목적지에 도착했어요. 총 15000원, 3명 정산, 1인당 5000원입니다.",
+                    "arrivalData": {
+                      "taxiFare": 15000,
+                      "splitMemberCount": 3,
+                      "perPersonAmount": 5000,
+                      "settlementTargetMemberIds": ["member-2", "member-3"],
+                      "accountData": {
+                        "bankName": "카카오뱅크",
+                        "accountNumber": "3333-01-1234567",
+                        "accountHolder": "홍*동",
+                        "hideName": true
+                      }
+                    },
+                    "createdAt": "2026-03-05T21:30:00"
+                  },
+                  {
+                    "id": "msg-end-1",
+                    "chatRoomId": "party:party-1",
+                    "senderId": "leader-1",
+                    "senderName": "파티 리더",
+                    "type": "END",
+                    "text": "리더가 파티를 종료했어요.",
+                    "createdAt": "2026-03-05T21:45:00"
                   }
                 ],
-                "hasNext": true,
-                "nextCursor": {
-                  "createdAt": "2026-03-05T21:10:00",
-                  "id": "9f9efc3b-4d55-44e7-a86f-93d5101938ec"
-                }
+                "hasNext": false,
+                "nextCursor": null
               }
             }
             """;
@@ -140,15 +209,6 @@ public final class OpenApiChatExamples {
               "success": false,
               "errorCode": "ALREADY_CHAT_ROOM_MEMBER",
               "message": "이미 채팅방에 참여 중입니다.",
-              "timestamp": "2026-03-05T21:10:00"
-            }
-            """;
-
-    public static final String ERROR_BANK_ACCOUNT_REQUIRED = """
-            {
-              "success": false,
-              "errorCode": "BANK_ACCOUNT_REQUIRED",
-              "message": "계좌 정보 등록 후 이용 가능합니다.",
               "timestamp": "2026-03-05T21:10:00"
             }
             """;

@@ -145,15 +145,27 @@ class ChatServiceTest {
         ChatRoom room = ChatRoom.createPartyRoom("party-1");
         ChatRoomMember roomMember = ChatRoomMember.create(room, "member-1", LocalDateTime.now().minusHours(1));
         Member sender = Member.create("member-1", "member-1@sungkyul.ac.kr", "홍길동", LocalDateTime.now().minusDays(1));
+        SendChatMessageRequest request = new SendChatMessageRequest(
+                ChatMessageType.ACCOUNT,
+                null,
+                null,
+                new SendChatMessageRequest.AccountPayload(
+                        "카카오뱅크",
+                        "3333-01-1234567",
+                        "홍길동",
+                        false,
+                        false
+                )
+        );
 
         when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
         when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("party:party-1", "member-1"))
                 .thenReturn(Optional.of(roomMember));
         when(memberRepository.findById("member-1")).thenReturn(Optional.of(sender));
-        when(partyMessageService.buildSpecialPayload(eq("party:party-1"), eq("member-1"), eq(ChatMessageType.ACCOUNT)))
+        when(partyMessageService.buildClientPayload(eq("party:party-1"), eq("member-1"), eq(request)))
                 .thenReturn(new PartySpecialMessagePayload(
-                        "카카오뱅크/3333-01-1234567",
-                        new ChatAccountData("카카오뱅크", "3333-01-1234567", "홍길동"),
+                        "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)",
+                        new ChatAccountData("카카오뱅크", "3333-01-1234567", "홍길동", false),
                         null
                 ));
         when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(invocation -> {
@@ -168,7 +180,7 @@ class ChatServiceTest {
         ChatMessageResponse response = chatService.sendMessage(
                 "party:party-1",
                 "member-1",
-                new SendChatMessageRequest(ChatMessageType.ACCOUNT, null, null, null)
+                request
         );
 
         assertEquals(ChatMessageType.ACCOUNT, response.type());

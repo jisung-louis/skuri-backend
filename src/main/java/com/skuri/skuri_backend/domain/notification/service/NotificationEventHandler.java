@@ -174,7 +174,7 @@ public class NotificationEventHandler {
         if (event.afterStatus() == PartyStatus.ARRIVED && event.beforeStatus() != PartyStatus.ARRIVED) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_ARRIVED,
-                    findPartyRecipients(party.getNonLeaderMemberIds()),
+                    findPartyRecipients(party.getSettlementTargetMemberIds()),
                     "택시가 목적지에 도착했어요",
                     "정산을 진행해주세요.",
                     NotificationData.ofParty(party.getId()),
@@ -282,7 +282,10 @@ public class NotificationEventHandler {
     }
 
     private void handlePartyChatMessage(ChatRoom room, ChatMessage message) {
-        if (message.getType() == ChatMessageType.SYSTEM || message.getType() == ChatMessageType.ACCOUNT) {
+        if (message.getType() == ChatMessageType.SYSTEM
+                || message.getType() == ChatMessageType.ACCOUNT
+                || message.getType() == ChatMessageType.ARRIVED
+                || message.getType() == ChatMessageType.END) {
             return;
         }
 

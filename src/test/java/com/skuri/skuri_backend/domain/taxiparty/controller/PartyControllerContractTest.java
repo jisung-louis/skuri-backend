@@ -194,7 +194,18 @@ class PartyControllerContractTest {
                         patch("/v1/parties/party-1/arrive")
                                 .header(AUTHORIZATION, "Bearer valid-token")
                                 .contentType(APPLICATION_JSON)
-                                .content("{\"taxiFare\":0}")
+                                .content("""
+                                        {
+                                          "taxiFare": 0,
+                                          "settlementTargetMemberIds": ["member-1"],
+                                          "account": {
+                                            "bankName": "카카오뱅크",
+                                            "accountNumber": "3333-01-1234567",
+                                            "accountHolder": "홍길동",
+                                            "hideName": true
+                                          }
+                                        }
+                                        """)
                 )
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));

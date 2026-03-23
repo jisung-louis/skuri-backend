@@ -165,7 +165,10 @@ Hooks:
     - status (PENDING → ACCEPTED | DECLINED | CANCELED)
   - Settlement (Embedded)
     - status (PENDING, COMPLETED)
+    - taxiFare
+    - splitMemberCount (정산 대상 non-leader 수 + leader)
     - perPersonAmount
+    - settlementAccount snapshot (bankName, accountNumber, accountHolder, hideName)
     - memberSettlements (Map<memberId, MemberSettlement>)
   - MemberSettlement (Embedded)
     - settled, settledAt
@@ -174,8 +177,11 @@ Hooks:
   - 앱 내 결제/송금 기능은 제공하지 않으며, 향후에도 제공하지 않음
   - 정산 상태(`memberSettlements`) 변경은 파티 리더만 가능
   - 일반 멤버는 자신의 정산 상태를 직접 변경할 수 없음
-  - `perPersonAmount`는 `taxiFare / 정산대상인원` 정수 나눗셈(버림)으로 계산
+  - 도착 처리 요청은 `taxiFare`, `settlementTargetMemberIds`, `account snapshot`을 함께 받는다
+  - `settlementTargetMemberIds`에는 현재 파티의 non-leader 멤버만 포함할 수 있다
+  - `perPersonAmount`는 `taxiFare / (정산대상인원 + 리더 1명)` 정수 나눗셈(버림)으로 계산
   - 정수 나눗셈으로 생기는 잔여 1원 단위 금액은 서버에서 분배하지 않음(리더 현장 정산 정책)
+  - 동승 요청 승인, 모집 마감/재개, 멤버 나가기, 도착 처리, 취소/종료는 서버가 파티 채팅방 안내 메시지(`SYSTEM`/`ARRIVED`/`END`)를 생성한다
 
 상태 머신:
   Party:
@@ -1260,96 +1266,14 @@ public enum MessageDirection {
 
 ### 7.4 TaxiParty ↔ Chat 협력 구조
 
-```java
-@Service
-@RequiredArgsConstructor
-public class PartyMessageService {
-    private final ChatService chatService;
-    private final PartyRepository partyRepository;
-    private final ApplicationEventPublisher eventPublisher;
-
-    /**
-     * 파티 채팅방 생성 (파티 생성 시 호출)
-     */
-    public void createPartyChatRoom(Party party) {
-        ChatRoom chatRoom = ChatRoom.forParty(party.getId(), party.getMembers());
-        chatService.createRoom(chatRoom);
-    }
-
-    /**
-     * 일반 메시지 전송 (Chat 엔진에 위임)
-     */
-    public void sendMessage(String partyId, String senderId, String text) {
-        validatePartyMember(partyId, senderId);
-        chatService.sendMessage("party:" + partyId, senderId, text, MessageType.TEXT);
-    }
-
-    /**
-     * 계좌 공유 메시지 (파티 도메인 규칙)
-     */
-    public void sendAccountMessage(String partyId, String senderId, BankAccount account) {
-        Party party = validatePartyMember(partyId, senderId);
-
-        ChatMessage message = ChatMessage.builder()
-            .chatRoomId("party:" + partyId)
-            .senderId(senderId)
-            .type(MessageType.ACCOUNT)
-            .accountData(AccountData.from(account))
-            .build();
-
-        chatService.sendMessage(message);
-    }
-
-    /**
-     * 도착 메시지 (파티 상태 변경 + 메시지)
-     */
-    @Transactional
-    public void sendArrivalMessage(String partyId, String leaderId, int taxiFare) {
-        Party party = partyRepository.findById(partyId)
-            .orElseThrow(PartyNotFoundException::new);
-
-        if (!party.isLeader(leaderId)) {
-            throw new NotPartyLeaderException();
-        }
-
-        // 1. 파티 상태 변경
-        party.arrive(taxiFare);
-
-        // 2. 도착 메시지 전송
-        int perPerson = taxiFare / party.getMembers().size();
-        ChatMessage message = ChatMessage.builder()
-            .chatRoomId("party:" + partyId)
-            .senderId(leaderId)
-            .type(MessageType.ARRIVED)
-            .arrivalData(ArrivalData.builder()
-                .taxiFare(taxiFare)
-                .perPerson(perPerson)
-                .memberCount(party.getMembers().size())
-                .build())
-            .build();
-
-        chatService.sendMessage(message);
-
-        // 3. 이벤트 발행 → 알림 전송
-        eventPublisher.publishEvent(new PartyArrivedEvent(
-            partyId,
-            party.getMembers(),
-            taxiFare,
-            perPerson
-        ));
-    }
-
-    private Party validatePartyMember(String partyId, String memberId) {
-        Party party = partyRepository.findById(partyId)
-            .orElseThrow(PartyNotFoundException::new);
-
-        if (!party.isMember(memberId)) {
-            throw new NotPartyMemberException();
-        }
-        return party;
-    }
-}
-```
+- 파티 생성 시 `ChatService.createPartyChatRoom`이 `party:{partyId}` 비공개 채팅방을 생성/동기화한다.
+- 클라이언트 직접 전송 가능 타입은 `TEXT`, `IMAGE`, `ACCOUNT`만 허용한다.
+- `ACCOUNT` 메시지는 클라이언트가 계좌 snapshot을 payload로 보내고, `remember=true`면 회원 프로필 계좌도 함께 갱신한다.
+- `SYSTEM`, `ARRIVED`, `END`는 서버 전용 메시지다.
+  - 동승 요청 승인, 모집 마감, 모집 재개, 멤버 나가기 → `SYSTEM` 메시지 생성
+  - 도착 처리 → 정산 snapshot이 포함된 `ARRIVED` 메시지 생성
+  - 리더 취소/종료/탈퇴 종료 → `END` 메시지 생성
+- 파티 상태 변경과 서버 생성 채팅 메시지는 같은 트랜잭션 안에서 저장하고, WebSocket 브로드캐스트는 커밋 후 수행한다.
 
 ---
 

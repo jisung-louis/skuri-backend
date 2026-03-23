@@ -1,16 +1,19 @@
 package com.skuri.skuri_backend.domain.chat.service;
 
+import com.skuri.skuri_backend.common.util.AccountHolderMasker;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.request.SendChatMessageRequest;
 import com.skuri.skuri_backend.domain.chat.entity.ChatAccountData;
 import com.skuri.skuri_backend.domain.chat.entity.ChatArrivalData;
-import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import com.skuri.skuri_backend.domain.member.entity.BankAccount;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementStatus;
 import com.skuri.skuri_backend.domain.taxiparty.exception.PartyNotFoundException;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,46 +30,22 @@ public class PartyMessageService {
     private final PartyRepository partyRepository;
     private final MemberRepository memberRepository;
 
-    @Transactional(readOnly = true)
-    public PartySpecialMessagePayload buildSpecialPayload(
+    @Transactional
+    public PartySpecialMessagePayload buildClientPayload(
             String chatRoomId,
             String senderId,
-            ChatMessageType type
+            SendChatMessageRequest request
     ) {
-        String partyId = extractPartyId(chatRoomId);
-        Party party = partyRepository.findDetailById(partyId).orElseThrow(PartyNotFoundException::new);
-        if (!party.isMember(senderId)) {
-            throw new BusinessException(ErrorCode.NOT_PARTY_MEMBER);
-        }
+        requirePartyMember(chatRoomId, senderId);
 
-        return switch (type) {
-            case ACCOUNT -> buildAccountPayload(senderId);
-            case ARRIVED -> buildArrivalPayload(party, senderId);
-            case END -> buildEndPayload(party, senderId);
+        return switch (request.type()) {
+            case ACCOUNT -> buildAccountPayload(senderId, request.account());
             default -> throw new BusinessException(ErrorCode.INVALID_REQUEST, "파티 특수 메시지 타입이 아닙니다.");
         };
     }
 
-    private PartySpecialMessagePayload buildAccountPayload(String senderId) {
-        Member member = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
-        BankAccount bankAccount = member.getBankAccount();
-        if (bankAccount == null
-                || !StringUtils.hasText(bankAccount.getBankName())
-                || !StringUtils.hasText(bankAccount.getAccountNumber())
-                || !StringUtils.hasText(bankAccount.getAccountHolder())) {
-            throw new BusinessException(ErrorCode.BANK_ACCOUNT_REQUIRED);
-        }
-
-        ChatAccountData accountData = new ChatAccountData(
-                bankAccount.getBankName(),
-                bankAccount.getAccountNumber(),
-                bankAccount.getAccountHolder()
-        );
-        String text = String.format("%s/%s", bankAccount.getBankName(), bankAccount.getAccountNumber());
-        return new PartySpecialMessagePayload(text, accountData, null);
-    }
-
-    private PartySpecialMessagePayload buildArrivalPayload(Party party, String senderId) {
+    @Transactional(readOnly = true)
+    public PartySpecialMessagePayload buildArrivalPayload(Party party, String senderId) {
         if (!party.isLeader(senderId)) {
             throw new BusinessException(ErrorCode.NOT_PARTY_LEADER);
         }
@@ -74,25 +53,39 @@ public class PartyMessageService {
             throw new BusinessException(ErrorCode.INVALID_PARTY_STATE_TRANSITION, "ARRIVED 상태에서만 도착 메시지를 전송할 수 있습니다.");
         }
 
-        Integer perPerson = party.getPerPersonAmount();
-        int settlementTargetCount = party.getSettlementItems().size();
-        Integer taxiFare = (perPerson != null && settlementTargetCount > 0)
-                ? perPerson * settlementTargetCount
-                : null;
-        Integer memberCount = party.getCurrentMembers();
+        SettlementAccountSnapshot settlementAccount = party.getSettlementAccount();
+        if (settlementAccount == null || !settlementAccount.isComplete()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "정산 계좌 정보를 모두 입력해야 합니다.");
+        }
+
+        ChatAccountData accountData = toChatAccountData(
+                settlementAccount.getBankName(),
+                settlementAccount.getAccountNumber(),
+                settlementAccount.getAccountHolder(),
+                settlementAccount.getHideName()
+        );
         ChatArrivalData arrivalData = new ChatArrivalData(
-                taxiFare,
-                perPerson,
-                memberCount
+                party.getTaxiFare(),
+                party.getPerPersonAmount(),
+                party.getSplitMemberCount(),
+                party.getSettlementTargetMemberIds(),
+                accountData
         );
 
-        String text = perPerson == null
-                ? "파티가 도착했습니다."
-                : "파티가 도착했습니다. 정산을 진행해주세요. (1인당 " + perPerson + "원)";
+        Integer taxiFare = party.getTaxiFare();
+        Integer perPersonAmount = party.getPerPersonAmount();
+        Integer splitMemberCount = party.getSplitMemberCount();
+        String text = (taxiFare == null || perPersonAmount == null || splitMemberCount == null)
+                ? "택시가 목적지에 도착했어요."
+                : "택시가 목적지에 도착했어요. 총 "
+                + taxiFare + "원, "
+                + splitMemberCount + "명 정산, 1인당 "
+                + perPersonAmount + "원입니다.";
         return new PartySpecialMessagePayload(text, null, arrivalData);
     }
 
-    private PartySpecialMessagePayload buildEndPayload(Party party, String senderId) {
+    @Transactional(readOnly = true)
+    public PartySpecialMessagePayload buildEndPayload(Party party, String senderId) {
         if (!party.isLeader(senderId)) {
             throw new BusinessException(ErrorCode.NOT_PARTY_LEADER);
         }
@@ -100,10 +93,60 @@ public class PartyMessageService {
             throw new BusinessException(ErrorCode.INVALID_PARTY_STATE_TRANSITION, "ENDED 상태에서만 종료 메시지를 전송할 수 있습니다.");
         }
 
-        String text = party.getEndReason() == null
-                ? "파티가 종료되었습니다."
-                : "파티가 종료되었습니다. (" + party.getEndReason().name() + ")";
+        String text = switch (party.getEndReason()) {
+            case CANCELLED -> "리더가 파티를 취소했어요.";
+            case FORCE_ENDED -> party.getSettlementStatus() == SettlementStatus.COMPLETED
+                    ? "모든 정산 확인 후 파티를 종료했어요."
+                    : "리더가 파티를 종료했어요.";
+            case TIMEOUT -> "파티가 자동 종료되었어요.";
+            case WITHDRAWED -> "리더 탈퇴로 파티가 종료되었어요.";
+            case ARRIVED -> "파티가 종료되었어요.";
+            case null -> "파티가 종료되었어요.";
+        };
         return new PartySpecialMessagePayload(text, null, null);
+    }
+
+    private PartySpecialMessagePayload buildAccountPayload(String senderId, SendChatMessageRequest.AccountPayload accountRequest) {
+        if (accountRequest == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "ACCOUNT 메시지에는 account payload가 필요합니다.");
+        }
+
+        String bankName = accountRequest.bankName().trim();
+        String accountNumber = accountRequest.accountNumber().trim();
+        String accountHolder = accountRequest.accountHolder().trim();
+        boolean hideName = Boolean.TRUE.equals(accountRequest.hideName());
+
+        Member member = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
+        if (Boolean.TRUE.equals(accountRequest.remember())) {
+            member.updateBankAccount(BankAccount.of(bankName, accountNumber, accountHolder, hideName));
+        }
+
+        ChatAccountData accountData = toChatAccountData(bankName, accountNumber, accountHolder, hideName);
+        String text = String.format("계좌 정보를 공유했어요. (%s %s)", bankName, accountNumber);
+        return new PartySpecialMessagePayload(text, accountData, null);
+    }
+
+    private ChatAccountData toChatAccountData(
+            String bankName,
+            String accountNumber,
+            String accountHolder,
+            Boolean hideName
+    ) {
+        return new ChatAccountData(
+                bankName,
+                accountNumber,
+                AccountHolderMasker.mask(accountHolder, hideName),
+                hideName
+        );
+    }
+
+    private Party requirePartyMember(String chatRoomId, String senderId) {
+        String partyId = extractPartyId(chatRoomId);
+        Party party = partyRepository.findDetailById(partyId).orElseThrow(PartyNotFoundException::new);
+        if (!party.isMember(senderId)) {
+            throw new BusinessException(ErrorCode.NOT_PARTY_MEMBER);
+        }
+        return party;
     }
 
     private String extractPartyId(String chatRoomId) {

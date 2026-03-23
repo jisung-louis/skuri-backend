@@ -10,6 +10,7 @@ import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.exception.MemberWithdrawalNotAllowedException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
+import com.skuri.skuri_backend.domain.taxiparty.dto.request.ArrivePartyRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.CreatePartyRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.UpdatePartyRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestListItemResponse;
@@ -23,6 +24,7 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyLocationRespon
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyMemberResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementAccountResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementSummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequest;
@@ -32,6 +34,7 @@ import com.skuri.skuri_backend.domain.taxiparty.entity.MemberSettlement;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyMember;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
 import com.skuri.skuri_backend.domain.taxiparty.exception.JoinRequestNotFoundException;
 import com.skuri.skuri_backend.domain.taxiparty.exception.PartyNotFoundException;
 import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
@@ -168,6 +171,7 @@ public class TaxiPartyService {
         PartyStatus beforeStatus = party.getStatus();
         party.close();
         savePartyWithLockHandling(party);
+        chatService.createPartySystemMessage(party, actorId, "모집이 마감되었어요.");
         partySseService.publishPartyStatusChanged(party);
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
@@ -180,18 +184,24 @@ public class TaxiPartyService {
         PartyStatus beforeStatus = party.getStatus();
         party.reopen();
         savePartyWithLockHandling(party);
+        chatService.createPartySystemMessage(party, actorId, "모집이 재개되었어요.");
         partySseService.publishPartyStatusChanged(party);
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
     }
 
     @Transactional
-    public PartyDetailResponse arriveParty(String actorId, String partyId, int taxiFare) {
+    public PartyDetailResponse arriveParty(String actorId, String partyId, ArrivePartyRequest request) {
         Party party = findPartyDetailOrThrow(partyId);
         requireLeader(party, actorId);
         PartyStatus beforeStatus = party.getStatus();
-        party.arrive(taxiFare);
+        party.arrive(
+                request.taxiFare(),
+                request.settlementTargetMemberIds(),
+                toSettlementAccountSnapshot(request.account())
+        );
         savePartyWithLockHandling(party);
+        chatService.createPartyArrivalMessage(party, actorId);
         partySseService.publishPartyStatusChanged(party);
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
 
@@ -206,6 +216,7 @@ public class TaxiPartyService {
         PartyStatus beforeStatus = party.getStatus();
         party.forceEnd();
         savePartyWithLockHandling(party);
+        chatService.createPartyEndMessage(party, actorId);
         partySseService.publishPartyStatusChanged(party);
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
@@ -218,6 +229,7 @@ public class TaxiPartyService {
         PartyStatus beforeStatus = party.getStatus();
         party.cancel();
         savePartyWithLockHandling(party);
+        chatService.createPartyEndMessage(party, actorId);
         partySseService.publishPartyDeleted(party.getId());
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
         return toPartyStatusResponse(party);
@@ -263,9 +275,15 @@ public class TaxiPartyService {
             throw new BusinessException(ErrorCode.PARTY_ENDED);
         }
 
+        Member leavingMember = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        String leaveSystemMessage = leavingMember.getNickname() != null && !leavingMember.getNickname().isBlank()
+                ? leavingMember.getNickname() + "님이 파티에서 나갔어요."
+                : "멤버가 파티에서 나갔어요.";
+
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
+        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
         partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
     }
 
@@ -329,6 +347,13 @@ public class TaxiPartyService {
         String requesterName = memberRepository.findById(requesterId)
                 .map(Member::getNickname)
                 .orElse(null);
+        chatService.createPartySystemMessage(
+                party,
+                leaderId,
+                requesterName != null
+                        ? requesterName + "님이 파티에 합류했어요."
+                        : "새 멤버가 파티에 합류했어요."
+        );
         partySseService.publishPartyMemberJoined(party, requesterId, requesterName, party.getMemberIds());
         joinRequestSseService.publishJoinRequestUpdated(joinRequest, previousStatus);
         if (beforeStatus != party.getStatus()) {
@@ -476,6 +501,7 @@ public class TaxiPartyService {
         PartyStatus beforeStatus = party.getStatus();
         party.withdrawLeader();
         savePartyWithLockHandling(party);
+        chatService.createPartyEndMessage(party, party.getLeaderId());
         partySseService.publishPartyStatusChanged(party);
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
 
@@ -578,7 +604,15 @@ public class TaxiPartyService {
                 })
                 .toList();
 
-        return new SettlementSummaryResponse(party.getSettlementStatus(), party.getPerPersonAmount(), settlements);
+        return new SettlementSummaryResponse(
+                party.getSettlementStatus(),
+                party.getTaxiFare(),
+                party.getSplitMemberCount(),
+                party.getPerPersonAmount(),
+                party.getSettlementTargetMemberIds(),
+                toSettlementAccountResponse(party.getSettlementAccount()),
+                settlements
+        );
     }
 
     private PartyStatusResponse toPartyStatusResponse(Party party) {
@@ -599,6 +633,27 @@ public class TaxiPartyService {
 
     private PartyLocationResponse toLocationResponse(Location location) {
         return new PartyLocationResponse(location.getName(), location.getLat(), location.getLng());
+    }
+
+    private SettlementAccountSnapshot toSettlementAccountSnapshot(ArrivePartyRequest.SettlementAccountRequest request) {
+        return SettlementAccountSnapshot.of(
+                request.bankName().trim(),
+                request.accountNumber().trim(),
+                request.accountHolder().trim(),
+                request.hideName()
+        );
+    }
+
+    private SettlementAccountResponse toSettlementAccountResponse(SettlementAccountSnapshot settlementAccount) {
+        if (settlementAccount == null) {
+            return null;
+        }
+        return new SettlementAccountResponse(
+                settlementAccount.getBankName(),
+                settlementAccount.getAccountNumber(),
+                settlementAccount.getDisplayAccountHolder(),
+                settlementAccount.getHideName()
+        );
     }
 
     private Map<String, Member> getMemberMap(Collection<String> memberIds) {

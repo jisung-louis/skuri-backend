@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Entity
@@ -87,6 +89,12 @@ public class Party extends BaseTimeEntity {
 
     @Column(name = "per_person_amount")
     private Integer perPersonAmount;
+
+    @Column(name = "taxi_fare")
+    private Integer taxiFare;
+
+    @Embedded
+    private SettlementAccountSnapshot settlementAccount;
 
     @Version
     private Long version;
@@ -155,19 +163,44 @@ public class Party extends BaseTimeEntity {
         this.status = PartyStatus.OPEN;
     }
 
-    public void arrive(int taxiFare) {
+    public void arrive(int taxiFare, List<String> settlementTargetMemberIds, SettlementAccountSnapshot settlementAccount) {
         if (this.status != PartyStatus.OPEN && this.status != PartyStatus.CLOSED) {
             throw new BusinessException(ErrorCode.PARTY_NOT_ARRIVABLE);
         }
+        if (taxiFare < 1) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "taxiFare는 1원 이상이어야 합니다.");
+        }
 
-        List<String> settlementTargets = getNonLeaderMemberIds();
+        if (settlementAccount == null || !settlementAccount.isComplete()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "정산 계좌 정보를 모두 입력해야 합니다.");
+        }
+
+        List<String> settlementTargets = settlementTargetMemberIds == null
+                ? List.of()
+                : settlementTargetMemberIds.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .toList();
         if (settlementTargets.isEmpty()) {
             throw new BusinessException(ErrorCode.NO_MEMBERS_TO_SETTLE);
         }
 
+        Set<String> expectedTargets = getNonLeaderMemberIds().stream().collect(Collectors.toSet());
+        Set<String> normalizedTargets = settlementTargets.stream().collect(Collectors.toSet());
+        if (normalizedTargets.size() != settlementTargets.size()
+                || !expectedTargets.containsAll(normalizedTargets)) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "settlementTargetMemberIds에는 현재 파티의 non-leader 멤버만 포함해야 합니다."
+            );
+        }
+
         this.status = PartyStatus.ARRIVED;
         this.settlementStatus = SettlementStatus.PENDING;
-        this.perPersonAmount = taxiFare / settlementTargets.size();
+        this.taxiFare = taxiFare;
+        this.settlementAccount = settlementAccount;
+        this.perPersonAmount = taxiFare / (settlementTargets.size() + 1);
         this.memberSettlements.clear();
         settlementTargets.forEach(memberId -> this.memberSettlements.add(MemberSettlement.create(this, memberId)));
     }
@@ -289,6 +322,19 @@ public class Party extends BaseTimeEntity {
 
     public Collection<MemberSettlement> getSettlementItems() {
         return this.memberSettlements;
+    }
+
+    public List<String> getSettlementTargetMemberIds() {
+        return this.memberSettlements.stream()
+                .map(MemberSettlement::getMemberId)
+                .toList();
+    }
+
+    public int getSplitMemberCount() {
+        if (this.settlementStatus == null) {
+            return 0;
+        }
+        return this.memberSettlements.size() + 1;
     }
 
     private void addMemberInternal(String memberId) {

@@ -455,7 +455,13 @@ public class PartyController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_VALIDATION)
+                            examples = {
+                                    @ExampleObject(name = "bean_validation_error", value = OpenApiCommonExamples.ERROR_VALIDATION),
+                                    @ExampleObject(
+                                            name = "invalid_settlement_target_member_ids",
+                                            value = OpenApiTaxiPartyExamples.ERROR_VALIDATION_SETTLEMENT_TARGET_MEMBER_IDS
+                                    )
+                            }
                     )
             )
     })
@@ -465,7 +471,7 @@ public class PartyController {
             @PathVariable("id") String partyId,
             @Valid @RequestBody ArrivePartyRequest request
     ) {
-        PartyDetailResponse response = taxiPartyService.arriveParty(requireAuthenticatedMember(authenticatedMember).uid(), partyId, request.taxiFare());
+        PartyDetailResponse response = taxiPartyService.arriveParty(requireAuthenticatedMember(authenticatedMember).uid(), partyId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -680,7 +686,7 @@ public class PartyController {
     }
 
     @DeleteMapping("/parties/{id}/members/me")
-    @Operation(summary = "파티 탈퇴", description = "본인이 파티에서 탈퇴합니다.")
+    @Operation(summary = "파티 탈퇴", description = "본인이 파티에서 탈퇴합니다. 성공 시 파티 채팅에 서버 생성 SYSTEM 메시지가 추가됩니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
