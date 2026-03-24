@@ -142,6 +142,26 @@ public final class OpenApiNoticeExamples {
             }
             """;
 
+    public static final String SUCCESS_NOTICE_COMMENT_UPDATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "notice-comment-1",
+                "parentId": "notice-comment-parent",
+                "depth": 1,
+                "content": "수정된 댓글 내용",
+                "authorId": "member-1",
+                "authorName": "홍길동",
+                "isAnonymous": false,
+                "anonymousOrder": null,
+                "isAuthor": true,
+                "isDeleted": false,
+                "createdAt": "2026-02-03T12:00:00",
+                "updatedAt": "2026-02-03T12:30:00"
+              }
+            }
+            """;
+
     public static final String SUCCESS_NOTICE_SYNC = """
             {
               "success": true,
@@ -162,7 +182,7 @@ public final class OpenApiNoticeExamples {
             "{\"success\":false,\"message\":\"공지 댓글을 찾을 수 없습니다.\",\"errorCode\":\"NOTICE_COMMENT_NOT_FOUND\",\"timestamp\":\"2026-03-06T12:00:00\"}";
 
     public static final String ERROR_NOT_NOTICE_COMMENT_AUTHOR =
-            "{\"success\":false,\"message\":\"공지 댓글 작성자만 삭제할 수 있습니다.\",\"errorCode\":\"NOT_NOTICE_COMMENT_AUTHOR\",\"timestamp\":\"2026-03-06T12:00:00\"}";
+            "{\"success\":false,\"message\":\"공지 댓글 작성자만 수정/삭제할 수 있습니다.\",\"errorCode\":\"NOT_NOTICE_COMMENT_AUTHOR\",\"timestamp\":\"2026-03-06T12:00:00\"}";
 
     public static final String ERROR_NOTICE_COMMENT_ALREADY_DELETED =
             "{\"success\":false,\"message\":\"이미 삭제된 댓글입니다.\",\"errorCode\":\"COMMENT_ALREADY_DELETED\",\"timestamp\":\"2026-03-06T12:00:00\"}";

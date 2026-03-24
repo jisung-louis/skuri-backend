@@ -8,6 +8,7 @@ import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
+import com.skuri.skuri_backend.domain.notice.dto.request.UpdateNoticeCommentRequest;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeDetailResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
@@ -140,6 +141,20 @@ public class NoticeService {
         eventPublisher.publish(new NotificationDomainEvent.NoticeCommentCreated(saved.getId()));
 
         return toCommentResponse(saved, memberId, resolveDepth(saved));
+    }
+
+    @Transactional
+    public NoticeCommentResponse updateComment(String memberId, String commentId, UpdateNoticeCommentRequest request) {
+        NoticeComment comment = noticeCommentRepository.findById(commentId)
+                .orElseThrow(NoticeCommentNotFoundException::new);
+
+        requireCommentAuthor(comment, memberId);
+        if (comment.isDeleted()) {
+            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
+        }
+
+        comment.updateContent(request.content().trim());
+        return toCommentResponse(comment, memberId, resolveDepth(comment));
     }
 
     @Transactional
