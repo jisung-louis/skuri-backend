@@ -24,13 +24,12 @@
 - 데이터 마이그레이션 관련 신규 발견사항(컬렉션 구조, ID 매핑, seed 충돌 가능성, 요약 필드 재계산 규칙 등)이 생기면 위 참고 문서를 먼저 갱신하고, 필요 시 `api-specification.md`, `domain-analysis.md`, `erd.md`에도 함께 반영한다.
 - 프론트/백엔드 구현 에이전트의 최종 보고에는 “상대 레포의 동일 문서를 바로 동기화하라”는 문구를 반드시 포함한다.
 
-## 1.2 진행 예정 작업: OpenAPI Show Schema 전수 보강
+## 1.2 완료 작업: OpenAPI Show Schema 전수 보강
 
-- 목적: 전체 REST 성공 응답에서 `Scalar Show schema`의 `data` 필드가 concrete type으로 보이도록 전수 보강한다.
-- 범위: `2xx + application/json` 성공 응답 중 `ApiResponse<T>`의 `T`가 DTO/List/PageResponse인 API
-- 제외: `ApiResponse<Void>`, `204`, SSE
-- 방식: `useReturnTypeSchema` 대신 도메인별 OpenAPI wrapper schema 사용
-- 상세 계획: [OpenAPI Show Schema 전수 보강 계획](./openapi-show-schema-rollout-plan.md)
+- 전체 REST 성공 응답 중 `2xx + application/json`이며 `ApiResponse<T>`의 `T`가 DTO/List/PageResponse인 API에 대해 `Scalar Show schema`가 concrete `data` 타입을 노출하도록 전수 보강했다.
+- `useReturnTypeSchema` 대신 도메인별 OpenAPI wrapper schema(`OpenApi*Schemas`)를 사용해 `Show schema` 품질을 고정했다.
+- 예외 대상은 기존 정책대로 `ApiResponse<Void>`, `204`, SSE로 유지한다.
+- `/v3/api-docs` 전수 회귀 테스트를 추가해 대상 성공 응답이 다시 generic `data`로 후퇴하지 않도록 검증한다.
 
 ---
 
