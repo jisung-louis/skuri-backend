@@ -15,8 +15,8 @@
 - member: 회원, 프로필, 알림 설정, FCM 토큰 API, 계정 라이프사이클(soft delete tombstone, 탈퇴, 재가입 정책)
 - taxiparty: 생성/참여/정산/상태 전이, SSE, 정산 snapshot(taxiFare/account/settlementTargetMemberIds) 관리
 - chat: 채팅방/메시지/WebSocket, 파티 도메인 이벤트 기반 서버 생성 메시지(SYSTEM/ARRIVED/END), 공식 공개방 seed(학교 전체/마인크래프트/학과방)와 공개방 join/leave/create 및 학과 변경 시 학과방 membership 정리 정책 관리. 공개방 create/join은 가입 완료된 active member만 허용한다. 일반 Chat 읽음 처리 API는 ISO 8601 UTC `lastReadAt`를 받아 `Asia/Seoul` 기준 `LocalDateTime`으로 정규화해 저장/비교하고, `PATCH /read` 및 detail 응답은 다시 UTC 문자열로 반환한다.
-- board: 게시글/댓글/북마크
-- notice: 학교 공지 수집/상세/댓글/읽음
+- board: 게시글/댓글/북마크, 목록 summary `bookmarkCount`, `PATCH /v1/posts/{id}`의 `isAnonymous` 수정 및 `images` 전체 교체 계약 지원
+- notice: 학교 공지 수집/상세/댓글/읽음, `PATCH /v1/notice-comments/{id}` content 수정 지원(익명 여부는 생성 시점 값 유지)
 - academic: 강의/시간표/학사 일정
 - app: 앱 공지
 - support: 문의/신고/버전/학식

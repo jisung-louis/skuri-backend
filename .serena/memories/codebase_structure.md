@@ -19,6 +19,8 @@
 - `domain/chat/websocket/ChatWebSocketSessionRegistry.java`, `ChatSubscriptionAccessInterceptor.java`: 탈퇴 회원 WebSocket 세션 추적/차단
 - `domain/chat/service/PartyMessageService.java`: 파티 채팅 특수 payload와 서버 생성 메시지 텍스트 정책(ACCOUNT snapshot, join/close/reopen/member leave SYSTEM, ARRIVED/END) 생성기
 - `domain/taxiparty/entity/SettlementAccountSnapshot.java`, `domain/taxiparty/dto/request/ArrivePartyRequest.java`: ARRIVED 정산 snapshot(account/taxiFare/settlementTargetMemberIds) 계약 정의
+- `domain/board/controller/PostController.java`, `domain/board/service/BoardService.java`: 게시글 summary `bookmarkCount`와 `PATCH /v1/posts/{postId}`의 `isAnonymous` 수정 + `images` 전체 교체 계약을 관리
+- `domain/notice/controller/NoticeCommentController.java`, `domain/notice/service/NoticeService.java`: `PATCH /v1/notice-comments/{commentId}` content 수정 계약과 soft-delete/작성자 권한 규칙을 관리
 - `domain/*/controller/*AdminController.java`: Phase 11 기준 공통 `@AdminApiAccess`를 사용하고, 상태 변경 엔드포인트는 `@AdminAudit`로 감사 로그 대상 지정
 
 ## Admin 공통 인프라
