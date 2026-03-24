@@ -8,6 +8,7 @@ import com.skuri.skuri_backend.domain.board.dto.request.CreatePostRequest;
 import com.skuri.skuri_backend.domain.board.dto.response.CommentResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostBookmarkResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostDetailResponse;
+import com.skuri.skuri_backend.domain.board.dto.response.PostImageResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostLikeResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostSummaryResponse;
 import com.skuri.skuri_backend.domain.board.entity.PostCategory;
@@ -93,7 +94,8 @@ class PostControllerContractTest {
                                 .header(AUTHORIZATION, "Bearer valid-token")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].id").value("post-1"));
+                .andExpect(jsonPath("$.data.content[0].id").value("post-1"))
+                .andExpect(jsonPath("$.data.content[0].bookmarkCount").value(3));
     }
 
     @Test
@@ -145,6 +147,37 @@ class PostControllerContractTest {
                 )
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.errorCode").value("NOT_POST_AUTHOR"));
+    }
+
+    @Test
+    void patchPost_익명과이미지수정_200() throws Exception {
+        mockValidToken();
+        when(boardService.updatePost(eq("firebase-uid"), eq("post-1"), any()))
+                .thenReturn(updatedPostDetailResponse());
+
+        mockMvc.perform(
+                        patch("/v1/posts/post-1")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "isAnonymous": true,
+                                          "images": [
+                                            {
+                                              "url": "https://example.com/post-1.jpg",
+                                              "thumbUrl": null,
+                                              "width": 800,
+                                              "height": 600,
+                                              "size": 245123,
+                                              "mime": "image/jpeg"
+                                            }
+                                          ]
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isAnonymous").value(true))
+                .andExpect(jsonPath("$.data.images[0].url").value("https://example.com/post-1.jpg"));
     }
 
     @Test
@@ -327,8 +360,32 @@ class PostControllerContractTest {
                 10,
                 2,
                 1,
+                3,
                 false,
                 false,
+                LocalDateTime.now()
+        );
+    }
+
+    private PostDetailResponse updatedPostDetailResponse() {
+        return new PostDetailResponse(
+                "post-1",
+                "수정된 게시글 제목",
+                "수정된 게시글 본문",
+                null,
+                "익명",
+                null,
+                true,
+                PostCategory.GENERAL,
+                1,
+                0,
+                0,
+                0,
+                List.of(new PostImageResponse("https://example.com/post-1.jpg", null, 800, 600, 245123, "image/jpeg")),
+                false,
+                false,
+                true,
+                LocalDateTime.now(),
                 LocalDateTime.now()
         );
     }

@@ -18,6 +18,7 @@ import com.skuri.skuri_backend.domain.board.entity.PostInteraction;
 import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostInteractionRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostRepository;
+import com.skuri.skuri_backend.domain.board.repository.PostSummaryProjection;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class BoardServiceTest {
@@ -240,6 +242,33 @@ class BoardServiceTest {
     }
 
     @Test
+    void getPosts_목록summary에_bookmarkCount를포함한다() {
+        PostSummaryProjection projection = mock(PostSummaryProjection.class);
+        when(projection.getId()).thenReturn("post-1");
+        when(projection.getTitle()).thenReturn("제목");
+        when(projection.getContent()).thenReturn("본문");
+        when(projection.getAuthorId()).thenReturn("author-1");
+        when(projection.getAuthorName()).thenReturn("작성자");
+        when(projection.getAuthorProfileImage()).thenReturn("https://example.com/profile.jpg");
+        when(projection.isAnonymous()).thenReturn(false);
+        when(projection.getCategory()).thenReturn(PostCategory.GENERAL);
+        when(projection.getViewCount()).thenReturn(10);
+        when(projection.getLikeCount()).thenReturn(4);
+        when(projection.getCommentCount()).thenReturn(2);
+        when(projection.getBookmarkCount()).thenReturn(3);
+        when(projection.isHasImage()).thenReturn(true);
+        when(projection.isPinned()).thenReturn(false);
+        when(projection.getCreatedAt()).thenReturn(LocalDateTime.now());
+        when(postRepository.searchSummaries(any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(projection)));
+
+        var response = boardService.getPosts("member-1", PostCategory.GENERAL, null, null, "latest", 0, 20);
+
+        assertEquals(1, response.getContent().size());
+        assertEquals(3, response.getContent().get(0).bookmarkCount());
+    }
+
+    @Test
     void handleMemberWithdrawal_작성자익명화와인터랙션카운트정리를수행한다() {
         Post authoredPost = post("post-authored", "member-1");
         Post likedPost = post("post-liked", "author-2");
@@ -273,7 +302,7 @@ class BoardServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> boardService.updatePost("member-2", "post-1", new UpdatePostRequest("수정", null, null))
+                () -> boardService.updatePost("member-2", "post-1", new UpdatePostRequest("수정", null, null, null, null))
         );
 
         assertEquals(ErrorCode.NOT_POST_AUTHOR, exception.getErrorCode());
@@ -283,11 +312,43 @@ class BoardServiceTest {
     void updatePost_공백만전달되면_VALIDATION_ERROR() {
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> boardService.updatePost("member-1", "post-1", new UpdatePostRequest("   ", null, null))
+                () -> boardService.updatePost("member-1", "post-1", new UpdatePostRequest("   ", null, null, null, null))
         );
 
         assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
         verify(postRepository, never()).findByIdAndDeletedFalse("post-1");
+    }
+
+    @Test
+    void updatePost_익명여부와이미지를전체교체한다() {
+        Post post = post("post-1", "author-1");
+        post.appendImage("https://example.com/old.jpg", null, 400, 300, 1000, "image/jpeg", 0);
+        when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
+        when(postInteractionRepository.existsById_UserIdAndId_PostIdAndLikedTrue("author-1", "post-1")).thenReturn(false);
+        when(postInteractionRepository.existsById_UserIdAndId_PostIdAndBookmarkedTrue("author-1", "post-1")).thenReturn(false);
+
+        PostDetailResponse response = boardService.updatePost(
+                "author-1",
+                "post-1",
+                new UpdatePostRequest(
+                        null,
+                        null,
+                        null,
+                        true,
+                        List.of(
+                                new CreatePostImageRequest("https://example.com/new-1.jpg", null, 800, 600, 2000, "image/jpeg"),
+                                new CreatePostImageRequest("https://example.com/new-2.jpg", null, 1024, 768, 3000, "image/jpeg")
+                        )
+                )
+        );
+
+        assertTrue(response.isAnonymous());
+        assertEquals("익명", response.authorName());
+        assertEquals(2, response.images().size());
+        assertEquals("https://example.com/new-1.jpg", response.images().get(0).url());
+        assertEquals(2, post.getImages().size());
+        assertEquals("https://example.com/new-2.jpg", post.getImages().get(1).getUrl());
+        assertEquals("post-1:author-1", post.getAnonId());
     }
 
     @Test
