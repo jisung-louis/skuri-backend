@@ -357,6 +357,12 @@ Hooks:
   - 내 작성글: GET /v1/members/me/posts
   - 내 북마크글: GET /v1/members/me/bookmarks
 
+게시글 수정 정책:
+  - `PATCH /v1/posts/{postId}`는 `title`, `content`, `category`, `isAnonymous`를 부분 수정으로 지원
+  - `images`는 생성과 동일한 구조를 사용하며, 필드를 보내면 전체 이미지 목록 교체
+  - `images[]`의 각 원소는 `null` 불가
+  - `images: []`는 전체 제거, `images` 생략/null은 기존 유지
+
 카테고리:
   - GENERAL (일반)
   - QUESTION (질문)
@@ -444,6 +450,10 @@ Hooks:
   - 공지 본문은 회원과 독립적인 외부 데이터이므로 영향 없음
   - `NoticeComment`는 본문을 유지하고 `userId`, `userDisplayName`만 익명화
   - `NoticeLike`, `NoticeReadStatus`는 탈퇴 회원 기준으로 정리
+
+댓글 수정 정책:
+  - `PATCH /v1/notice-comments/{commentId}`는 `content`만 수정 가능
+  - `isAnonymous`, `parentId`, `anonymousOrder`는 생성 시점 값을 유지
 
 향후 확장 준비:
   - AI 요약은 `summary` 컬럼에 저장하고, `contentHash`가 바뀌면 기존 AI 요약을 무효화한다.

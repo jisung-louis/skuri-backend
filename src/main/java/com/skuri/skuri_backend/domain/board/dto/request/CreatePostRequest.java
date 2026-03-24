@@ -30,7 +30,7 @@ public record CreatePostRequest(
 
         @Size(max = 10, message = "images는 최대 10개까지 첨부할 수 있습니다.")
         @Valid
-        @Schema(description = "첨부 이미지 목록", nullable = true)
-        List<CreatePostImageRequest> images
+        @Schema(description = "첨부 이미지 목록. 배열 원소는 null일 수 없습니다.", nullable = true)
+        List<@NotNull(message = "images 항목은 null일 수 없습니다.") @Valid CreatePostImageRequest> images
 ) {
 }

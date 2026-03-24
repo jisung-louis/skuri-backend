@@ -29,6 +29,8 @@ public record PostSummaryResponse(
         int likeCount,
         @Schema(description = "댓글 수", example = "5")
         int commentCount,
+        @Schema(description = "북마크 수", example = "3")
+        int bookmarkCount,
         @Schema(description = "이미지 포함 여부", example = "true")
         boolean hasImage,
         @Schema(description = "상단 고정 여부", example = "false")

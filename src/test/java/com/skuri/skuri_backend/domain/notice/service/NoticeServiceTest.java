@@ -6,6 +6,7 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
+import com.skuri.skuri_backend.domain.notice.dto.request.UpdateNoticeCommentRequest;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeReadResponse;
@@ -169,6 +170,37 @@ class NoticeServiceTest {
         );
 
         assertEquals(ErrorCode.NOT_NOTICE_COMMENT_AUTHOR, exception.getErrorCode());
+    }
+
+    @Test
+    void updateComment_작성자이면_본문을수정한다() {
+        Notice notice = notice("notice-1");
+        CommentFixture fixture = comment("comment-1", notice, null, "member-1", false, null);
+        when(noticeCommentRepository.findById("comment-1")).thenReturn(Optional.of(fixture.comment));
+
+        NoticeCommentResponse response = noticeService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateNoticeCommentRequest("수정된 댓글")
+        );
+
+        assertEquals("수정된 댓글", response.content());
+        assertEquals("수정된 댓글", fixture.comment.getContent());
+    }
+
+    @Test
+    void updateComment_이미삭제된댓글이면_COMMENT_ALREADY_DELETED() {
+        Notice notice = notice("notice-1");
+        CommentFixture fixture = comment("comment-1", notice, null, "member-1", false, null);
+        fixture.comment.softDelete();
+        when(noticeCommentRepository.findById("comment-1")).thenReturn(Optional.of(fixture.comment));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> noticeService.updateComment("member-1", "comment-1", new UpdateNoticeCommentRequest("수정"))
+        );
+
+        assertEquals(ErrorCode.COMMENT_ALREADY_DELETED, exception.getErrorCode());
     }
 
     @Test

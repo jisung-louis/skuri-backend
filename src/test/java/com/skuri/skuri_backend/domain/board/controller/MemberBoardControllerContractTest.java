@@ -111,6 +111,7 @@ class MemberBoardControllerContractTest {
                 10,
                 2,
                 1,
+                3,
                 false,
                 false,
                 LocalDateTime.now()

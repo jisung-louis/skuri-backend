@@ -7,16 +7,17 @@
 4. `/v1/images`처럼 업로드/정적 리소스가 추가되면 공개 업로드 경로(GET)와 도메인 재사용 플로우(예: Board 저장)를 함께 확인
 5. `ApiResponse` 에러 포맷 일관성 확인
 6. OpenAPI example과 실제 `errorCode/message` 일치 확인
-7. OpenAPI/문서 동기화 확인 (`/v3/api-docs` 기준, `docs/api-specification.md`, lifecycle 정책 문서 포함)
-7-1. TaxiParty/Chat 계약을 바꿨다면 join accept/member leave/close/reopen SYSTEM 메시지, ARRIVED/END 서버 메시지, ACCOUNT/settlement snapshot payload 예시가 OpenAPI와 런타임 응답에서 일치하는지 확인
-7-2. 공개 채팅방 계약을 바꿨다면 공식 공개방 seed 생성, joined/not joined summary 필드, 미참여 공개방 detail 허용 + messages 차단, 학과 변경 시 학과방 membership 제거를 함께 확인
-7-3. 회원/공개방 정책을 바꿨다면 active member 없이 create/join이 가능한지, department alias 정규화와 unsupported department 422가 맞는지, seed가 multi-instance에서도 중복 실패 없이 올라가는지 확인
-7-4. 일반 Chat 읽음 계약을 바꿨다면 `PATCH /v1/chat-rooms/{id}/read`가 JS `new Date().toISOString()` UTC 문자열을 그대로 받고, markAsRead 후 summary/detail 재조회에서도 unread가 복원되지 않는지 확인한다. shared 문서를 수정했다면 `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`를 같은 작업에서 즉시 동기화한다.
-8. 회원 라이프사이클 변경이면 탈퇴 후 접근 차단, 동일 UID 재가입 차단, 연관 도메인 정합성 회귀 확인
-9. Serena Memory 동기화 확인
-10. Admin 공통 변경이면 대표 Admin API에 대해 `401` / `403 ADMIN_REQUIRED` / 관리자 성공 시나리오를 확인한다.
-11. 상태 변경 Admin API를 건드렸다면 `admin_audit_logs` row 생성과 `actor/target/diff` snapshot을 확인하고, `target_id`가 raw 입력이 아닌 canonical 키로 저장되는지 함께 확인한다.
-12. Support Admin 목록 규약을 바꿨다면 `page/size` validation, `PageResponse`, 고정 정렬 문서 동기화를 함께 확인한다.
+7. Scalar/Swagger의 success response `Show schema`에서 contract-critical `data` 필드가 concrete type으로 노출되는지 확인
+8. OpenAPI/문서 동기화 확인 (`/v3/api-docs` 기준, `docs/api-specification.md`, lifecycle 정책 문서 포함)
+8-1. TaxiParty/Chat 계약을 바꿨다면 join accept/member leave/close/reopen SYSTEM 메시지, ARRIVED/END 서버 메시지, ACCOUNT/settlement snapshot payload 예시가 OpenAPI와 런타임 응답에서 일치하는지 확인
+8-2. 공개 채팅방 계약을 바꿨다면 공식 공개방 seed 생성, joined/not joined summary 필드, 미참여 공개방 detail 허용 + messages 차단, 학과 변경 시 학과방 membership 제거를 함께 확인
+8-3. 회원/공개방 정책을 바꿨다면 active member 없이 create/join이 가능한지, department alias 정규화와 unsupported department 422가 맞는지, seed가 multi-instance에서도 중복 실패 없이 올라가는지 확인
+8-4. 일반 Chat 읽음 계약을 바꿨다면 `PATCH /v1/chat-rooms/{id}/read`가 JS `new Date().toISOString()` UTC 문자열을 그대로 받고, markAsRead 후 summary/detail 재조회에서도 unread가 복원되지 않는지 확인한다. shared 문서를 수정했다면 `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`를 같은 작업에서 즉시 동기화한다.
+9. 회원 라이프사이클 변경이면 탈퇴 후 접근 차단, 동일 UID 재가입 차단, 연관 도메인 정합성 회귀 확인
+10. Serena Memory 동기화 확인
+11. Admin 공통 변경이면 대표 Admin API에 대해 `401` / `403 ADMIN_REQUIRED` / 관리자 성공 시나리오를 확인한다.
+12. 상태 변경 Admin API를 건드렸다면 `admin_audit_logs` row 생성과 `actor/target/diff` snapshot을 확인하고, `target_id`가 raw 입력이 아닌 canonical 키로 저장되는지 함께 확인한다.
+13. Support Admin 목록 규약을 바꿨다면 `page/size` validation, `PageResponse`, 고정 정렬 문서 동기화를 함께 확인한다.
 
 ## 운영/배포 변경 시 추가 검증
 1. `./gradlew build` 성공

@@ -117,6 +117,10 @@ public class NoticeComment extends BaseTimeEntity {
         this.content = DELETED_PLACEHOLDER;
     }
 
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
     public void anonymizeAuthor() {
         this.userId = MemberWithdrawalSanitizer.WITHDRAWN_AUTHOR_ID;
         this.userDisplayName = MemberWithdrawalSanitizer.WITHDRAWN_DISPLAY_NAME;

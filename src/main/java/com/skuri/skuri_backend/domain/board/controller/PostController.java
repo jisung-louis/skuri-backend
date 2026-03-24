@@ -14,6 +14,7 @@ import com.skuri.skuri_backend.domain.board.entity.PostCategory;
 import com.skuri.skuri_backend.domain.board.service.BoardService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiBoardExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiBoardSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,7 +61,7 @@ public class PostController {
                     description = "작성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_POST_CREATE)
                     )
             ),
@@ -118,7 +119,7 @@ public class PostController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostSummaryPageApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_POST_LIST_PAGE)
                     )
             ),
@@ -171,7 +172,7 @@ public class PostController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_POST_DETAIL)
                     )
             ),
@@ -204,14 +205,17 @@ public class PostController {
     }
 
     @PatchMapping("/{postId}")
-    @Operation(summary = "게시글 수정", description = "게시글 작성자만 게시글을 수정할 수 있습니다.")
+    @Operation(
+            summary = "게시글 수정",
+            description = "게시글 작성자만 게시글을 수정할 수 있습니다. `images` 필드를 전달하면 전체 이미지 목록을 교체하고, 빈 배열이면 이미지를 모두 제거합니다. `images`를 생략하거나 null로 보내면 기존 이미지를 유지합니다. `isAnonymous`를 전달하면 게시글 익명 상태도 변경할 수 있습니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "수정 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_POST_DETAIL)
                     )
             ),
@@ -261,7 +265,19 @@ public class PostController {
                             value = """
                                     {
                                       "title": "수정된 제목",
-                                      "content": "수정된 내용"
+                                      "content": "수정된 내용",
+                                      "category": "QUESTION",
+                                      "isAnonymous": true,
+                                      "images": [
+                                        {
+                                          "url": "https://cdn.skuri.app/posts/post-1/image-1.jpg",
+                                          "thumbUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg",
+                                          "width": 800,
+                                          "height": 600,
+                                          "size": 245123,
+                                          "mime": "image/jpeg"
+                                        }
+                                      ]
                                     }
                                     """
                     )
@@ -334,7 +350,7 @@ public class PostController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostLikeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_LIKE)
                     )
             ),
@@ -374,7 +390,7 @@ public class PostController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostLikeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_LIKE)
                     )
             ),
@@ -414,7 +430,7 @@ public class PostController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostBookmarkApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_BOOKMARK)
                     )
             ),
@@ -454,7 +470,7 @@ public class PostController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostBookmarkApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_BOOKMARK)
                     )
             ),
@@ -494,7 +510,7 @@ public class PostController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostSummaryPageApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_POST_LIST_PAGE)
                     )
             ),
@@ -539,7 +555,7 @@ public class PostController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.CommentListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_COMMENTS_LIST)
                     )
             ),
@@ -579,7 +595,7 @@ public class PostController {
                     description = "작성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.CommentApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_COMMENT_CREATE)
                     )
             ),

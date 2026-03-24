@@ -29,6 +29,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
                    p.viewCount as viewCount,
                    p.likeCount as likeCount,
                    p.commentCount as commentCount,
+                   p.bookmarkCount as bookmarkCount,
                    p.pinned as pinned,
                    p.createdAt as createdAt,
                    case when exists (
@@ -63,6 +64,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
                    p.viewCount as viewCount,
                    p.likeCount as likeCount,
                    p.commentCount as commentCount,
+                   p.bookmarkCount as bookmarkCount,
                    p.pinned as pinned,
                    p.createdAt as createdAt,
                    case when exists (
@@ -88,6 +90,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
                    p.viewCount as viewCount,
                    p.likeCount as likeCount,
                    p.commentCount as commentCount,
+                   p.bookmarkCount as bookmarkCount,
                    p.pinned as pinned,
                    p.createdAt as createdAt,
                    case when exists (

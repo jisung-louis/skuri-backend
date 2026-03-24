@@ -28,6 +28,8 @@ public interface PostSummaryProjection {
 
     int getCommentCount();
 
+    int getBookmarkCount();
+
     boolean isPinned();
 
     LocalDateTime getCreatedAt();

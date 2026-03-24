@@ -62,6 +62,8 @@ public class BoardService {
 
     @Transactional
     public PostDetailResponse createPost(String memberId, CreatePostRequest request) {
+        validatePostImages(request.images());
+
         Member author = findMemberOrThrow(memberId);
         Post post = Post.create(
                 request.title().trim(),
@@ -73,19 +75,7 @@ public class BoardService {
                 request.category()
         );
 
-        List<CreatePostImageRequest> images = request.images() == null ? List.of() : request.images();
-        for (int index = 0; index < images.size(); index++) {
-            CreatePostImageRequest image = images.get(index);
-            post.appendImage(
-                    image.url(),
-                    image.thumbUrl(),
-                    image.width(),
-                    image.height(),
-                    image.size(),
-                    image.mime(),
-                    index
-            );
-        }
+        replacePostImages(post, request.images());
 
         Post saved = postRepository.save(post);
         saved.assignAnonId();
@@ -135,9 +125,12 @@ public class BoardService {
     public PostDetailResponse updatePost(String memberId, String postId, UpdatePostRequest request) {
         String title = trimToNull(request.title());
         String content = trimToNull(request.content());
-        if (title == null && content == null && request.category() == null) {
+        boolean updatesImages = request.images() != null;
+        boolean updatesAnonymous = request.isAnonymous() != null;
+        if (title == null && content == null && request.category() == null && !updatesAnonymous && !updatesImages) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "수정할 필드를 최소 1개 이상 입력해야 합니다.");
         }
+        validatePostImages(request.images());
 
         Post post = findActivePostOrThrow(postId);
         requirePostAuthor(post, memberId);
@@ -145,8 +138,12 @@ public class BoardService {
         post.update(
                 title,
                 content,
-                request.category()
+                request.category(),
+                request.isAnonymous()
         );
+        if (updatesImages) {
+            replacePostImages(post, request.images());
+        }
 
         boolean isLiked = postInteractionRepository.existsById_UserIdAndId_PostIdAndLikedTrue(memberId, postId);
         boolean isBookmarked = postInteractionRepository.existsById_UserIdAndId_PostIdAndBookmarkedTrue(memberId, postId);
@@ -386,6 +383,7 @@ public class BoardService {
                 post.getViewCount(),
                 post.getLikeCount(),
                 post.getCommentCount(),
+                post.getBookmarkCount(),
                 post.isHasImage(),
                 post.isPinned(),
                 post.getCreatedAt()
@@ -430,6 +428,38 @@ public class BoardService {
                 image.getSize(),
                 image.getMime()
         );
+    }
+
+    private void replacePostImages(Post post, List<CreatePostImageRequest> images) {
+        post.clearImages();
+        if (images == null) {
+            return;
+        }
+
+        for (int index = 0; index < images.size(); index++) {
+            CreatePostImageRequest image = images.get(index);
+            post.appendImage(
+                    image.url(),
+                    image.thumbUrl(),
+                    image.width(),
+                    image.height(),
+                    image.size(),
+                    image.mime(),
+                    index
+            );
+        }
+    }
+
+    private void validatePostImages(List<CreatePostImageRequest> images) {
+        if (images == null) {
+            return;
+        }
+
+        for (CreatePostImageRequest image : images) {
+            if (image == null) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "images 항목은 null일 수 없습니다.");
+            }
+        }
     }
 
     private List<CommentResponse> flattenComments(List<Comment> comments, String memberId, String postAuthorId) {

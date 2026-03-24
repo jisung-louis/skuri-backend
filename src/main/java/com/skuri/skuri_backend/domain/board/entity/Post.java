@@ -122,7 +122,7 @@ public class Post extends BaseTimeEntity {
         return this.authorId.equals(memberId);
     }
 
-    public void update(String title, String content, PostCategory category) {
+    public void update(String title, String content, PostCategory category, Boolean anonymous) {
         if (title != null) {
             this.title = title;
         }
@@ -131,6 +131,14 @@ public class Post extends BaseTimeEntity {
         }
         if (category != null) {
             this.category = category;
+        }
+        if (anonymous != null) {
+            this.anonymous = anonymous;
+            if (this.anonymous) {
+                assignAnonId();
+            } else {
+                this.anonId = null;
+            }
         }
     }
 
@@ -148,6 +156,10 @@ public class Post extends BaseTimeEntity {
             Integer sortOrder
     ) {
         this.images.add(PostImage.create(this, url, thumbUrl, width, height, size, mime, sortOrder));
+    }
+
+    public void clearImages() {
+        this.images.clear();
     }
 
     public void assignAnonId() {
