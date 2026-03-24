@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-23
+> 최종 수정일: 2026-03-24
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -1755,6 +1755,7 @@ Authorization:Bearer <firebase_id_token>
 ```
 
 - `images[]`의 `url`, `thumbUrl`, `width`, `height`, `size`, `mime`는 `POST /v1/images`의 `POST_IMAGE` 응답을 그대로 사용할 수 있습니다.
+- `images[]`의 각 원소는 `null`일 수 없습니다. `{"images":[null]}` 같은 payload는 `422 VALIDATION_ERROR`를 반환합니다.
 
 #### PATCH /v1/posts/{postId}
 
@@ -1783,6 +1784,7 @@ Authorization:Bearer <firebase_id_token>
 - `images` 필드를 전달하면 전체 이미지 목록을 전달한 순서대로 교체한다.
 - `images: []`는 첨부 이미지를 모두 제거한다.
 - `images`를 생략하거나 `null`로 보내면 기존 이미지를 유지한다.
+- `images[]`의 각 원소는 `null`일 수 없다. `{"images":[null]}` 같은 payload는 `422 VALIDATION_ERROR`를 반환한다.
 
 #### DELETE /v1/posts/{postId}
 

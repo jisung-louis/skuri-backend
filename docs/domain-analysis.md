@@ -360,6 +360,7 @@ Hooks:
 게시글 수정 정책:
   - `PATCH /v1/posts/{postId}`는 `title`, `content`, `category`, `isAnonymous`를 부분 수정으로 지원
   - `images`는 생성과 동일한 구조를 사용하며, 필드를 보내면 전체 이미지 목록 교체
+  - `images[]`의 각 원소는 `null` 불가
   - `images: []`는 전체 제거, `images` 생략/null은 기존 유지
 
 카테고리:

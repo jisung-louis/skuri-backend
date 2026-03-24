@@ -376,7 +376,7 @@ SSE 운영 제약:
 | 익명 처리 | `anonId` = `{postId}:{userId}`, `anonymousOrder` 서버 계산 (글 단위 순번) |
 | 좋아요/북마크 | `PostInteraction` 단일 테이블, 등록/취소 방식 |
 | 카운트 관리 | `viewCount`, `likeCount`, `commentCount`, `bookmarkCount` 동기화 |
-| 게시글 수정 정책 | `PATCH /v1/posts/{postId}`는 `title/content/category/isAnonymous`와 `images` 전체 교체를 지원 |
+| 게시글 수정 정책 | `PATCH /v1/posts/{postId}`는 `title/content/category/isAnonymous`와 `images` 전체 교체를 지원하며 `images[]` 원소는 null 불가 |
 | 댓글 구조 | 무제한 depth 저장 + flat list 조회 응답 (`parentId`, `depth`) |
 | 부모 삭제 정책(B) | 부모 댓글은 placeholder soft delete(`삭제된 댓글입니다`), 자식 댓글은 유지 |
 
