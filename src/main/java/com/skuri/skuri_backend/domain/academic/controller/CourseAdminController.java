@@ -9,6 +9,7 @@ import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
 import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
 import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +47,7 @@ public class CourseAdminController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.AdminBulkCoursesApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_ADMIN_COURSE_BULK)
                     )
             ),
@@ -147,7 +148,7 @@ public class CourseAdminController {
                     description = "삭제 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.AdminBulkCoursesApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_ADMIN_COURSE_DELETE)
                     )
             ),

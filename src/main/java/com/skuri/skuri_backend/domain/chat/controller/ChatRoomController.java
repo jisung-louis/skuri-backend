@@ -13,6 +13,7 @@ import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiChatExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiChatSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiMemberExamples;
@@ -61,7 +62,7 @@ public class ChatRoomController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatRoomSummaryListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_CHAT_ROOM_LIST)
                     )
             ),
@@ -96,7 +97,7 @@ public class ChatRoomController {
                     description = "생성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatRoomDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_CHAT_ROOM_CREATE)
                     )
             ),
@@ -157,7 +158,7 @@ public class ChatRoomController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatRoomDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_CHAT_ROOM_DETAIL)
                     )
             ),
@@ -205,7 +206,7 @@ public class ChatRoomController {
                     description = "참여 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatRoomDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_CHAT_ROOM_JOIN)
                     )
             ),
@@ -274,7 +275,7 @@ public class ChatRoomController {
                     description = "나가기 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatRoomDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_CHAT_ROOM_LEAVE)
                     )
             ),
@@ -337,7 +338,7 @@ public class ChatRoomController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatMessagePageApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_CHAT_MESSAGES_PAGE)
                     )
             ),
@@ -408,7 +409,7 @@ public class ChatRoomController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatReadUpdateApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_CHAT_READ_UPDATE)
                     )
             ),
@@ -470,7 +471,7 @@ public class ChatRoomController {
                     description = "수정 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatRoomSettingsApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_CHAT_SETTINGS_UPDATE)
                     )
             ),

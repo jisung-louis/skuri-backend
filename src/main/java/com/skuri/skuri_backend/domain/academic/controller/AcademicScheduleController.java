@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.AcademicScheduleResponse;
 import com.skuri.skuri_backend.domain.academic.service.AcademicScheduleService;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,7 +42,7 @@ public class AcademicScheduleController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.AcademicScheduleListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_ACADEMIC_SCHEDULE_LIST)
                     )
             ),

@@ -14,6 +14,7 @@ import com.skuri.skuri_backend.domain.member.service.MemberService;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiMemberExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiMemberSchemas;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -60,7 +61,7 @@ public class MemberController {
                     responseCode = "201",
                     description = "신규 회원 생성",
                     content = @Content(
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiMemberSchemas.MemberCreateApiResponse.class),
                             examples = @ExampleObject(name = "created", value = OpenApiMemberExamples.SUCCESS_MEMBER_CREATE_CREATED)
                     )
             ),
@@ -69,7 +70,7 @@ public class MemberController {
                     description = "기존 회원 반환(멱등 처리)",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiMemberSchemas.MemberCreateApiResponse.class),
                             examples = @ExampleObject(name = "existing", value = OpenApiMemberExamples.SUCCESS_MEMBER_CREATE_EXISTING)
                     )
             ),
@@ -123,7 +124,7 @@ public class MemberController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiMemberSchemas.MemberMeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_ME)
                     )
             ),
@@ -174,7 +175,7 @@ public class MemberController {
                     description = "수정 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiMemberSchemas.MemberMeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_ME_UPDATED)
                     )
             ),
@@ -245,7 +246,7 @@ public class MemberController {
                     description = "수정 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiMemberSchemas.MemberMeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_ME_BANK_UPDATED)
                     )
             ),
@@ -316,7 +317,7 @@ public class MemberController {
                     description = "수정 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiMemberSchemas.MemberMeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_ME_NOTIFICATION_UPDATED)
                     )
             ),
@@ -378,7 +379,7 @@ public class MemberController {
                     description = "탈퇴 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiMemberSchemas.MemberWithdrawApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_WITHDRAW)
                     )
             ),
@@ -438,7 +439,7 @@ public class MemberController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiMemberSchemas.MemberPublicProfileApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_MEMBER_PUBLIC_PROFILE)
                     )
             ),

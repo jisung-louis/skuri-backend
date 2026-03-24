@@ -11,6 +11,7 @@ import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
 import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
 import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAppExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiAppSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,7 +52,7 @@ public class AppNoticeAdminController {
                     description = "생성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAppSchemas.AppNoticeCreateApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAppExamples.SUCCESS_ADMIN_APP_NOTICE_CREATE)
                     )
             ),
@@ -124,7 +125,7 @@ public class AppNoticeAdminController {
                     description = "수정 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAppSchemas.AppNoticeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAppExamples.SUCCESS_ADMIN_APP_NOTICE_UPDATE)
                     )
             ),

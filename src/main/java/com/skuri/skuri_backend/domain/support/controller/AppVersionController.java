@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.domain.support.dto.response.AppVersionResponse;
 import com.skuri.skuri_backend.domain.support.service.AppVersionService;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiSupportSchemas;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,7 +41,7 @@ public class AppVersionController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiSupportSchemas.AppVersionApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiSupportExamples.SUCCESS_APP_VERSION)
                     )
             ),

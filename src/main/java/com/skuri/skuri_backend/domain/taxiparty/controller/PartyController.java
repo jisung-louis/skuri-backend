@@ -18,6 +18,7 @@ import com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiTaxiPartySchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiTaxiPartyExamples;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -67,7 +68,7 @@ public class PartyController {
                     description = "생성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartyCreateApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_CREATE)
                     )
             ),
@@ -107,7 +108,7 @@ public class PartyController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartySummaryPageApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_LIST_PAGE)
                     )
             ),
@@ -148,7 +149,7 @@ public class PartyController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartyDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_DETAIL_OPEN)
                     )
             ),
@@ -185,7 +186,7 @@ public class PartyController {
                     description = "수정 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartyDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_DETAIL_UPDATED)
                     )
             ),
@@ -268,7 +269,7 @@ public class PartyController {
                     description = "마감 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartyStatusApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_STATUS_CLOSED)
                     )
             ),
@@ -335,7 +336,7 @@ public class PartyController {
                     description = "재개 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartyStatusApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_STATUS_OPEN)
                     )
             ),
@@ -402,7 +403,7 @@ public class PartyController {
                     description = "도착 처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartyDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_DETAIL_ARRIVED)
                     )
             ),
@@ -483,7 +484,7 @@ public class PartyController {
                     description = "종료 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartyStatusApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_STATUS_ENDED_FORCE)
                     )
             ),
@@ -550,7 +551,7 @@ public class PartyController {
                     description = "취소 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.PartyStatusApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_PARTY_STATUS_ENDED_CANCELLED)
                     )
             ),
@@ -762,7 +763,7 @@ public class PartyController {
                     description = "요청 생성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.JoinRequestApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_JOIN_REQUEST_CREATE)
                     )
             ),
@@ -816,7 +817,7 @@ public class PartyController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.JoinRequestListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_JOIN_REQUEST_LIST_PARTY)
                     )
             ),
@@ -868,7 +869,7 @@ public class PartyController {
                     description = "정산 확인 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.SettlementConfirmApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_SETTLEMENT_CONFIRM)
                     )
             ),
@@ -947,7 +948,7 @@ public class PartyController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.MyPartyListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_MY_PARTIES_LIST)
                     )
             ),
