@@ -94,7 +94,7 @@ public final class OpenApiMemberExamples {
                 "email": "user@sungkyul.ac.kr",
                 "nickname": "스쿠리유저_수정",
                 "studentId": "2023112233",
-                "department": "소프트웨어학과",
+                "department": "미디어소프트웨어학과",
                 "photoUrl": "https://cdn.skuri.app/profiles/user-1-new.png",
                 "realname": "홍길동",
                 "isAdmin": false,

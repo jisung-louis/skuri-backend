@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-10
+> 최종 수정일: 2026-03-23
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -288,6 +288,16 @@ Hooks:
 역할:
   - 파티 채팅: TaxiParty 도메인이 규칙 관리, Chat은 엔진만 제공
   - 공개 채팅: Chat 도메인이 전체 관리
+  - 공식 공개방은 seed migration으로 `UNIVERSITY 1개 + GAME 1개 + 학과방들 + 사용자 생성 CUSTOM` 구조를 유지
+  - 공개방 visibility는 서버가 강제한다.
+    - `UNIVERSITY`, `GAME`, `CUSTOM`: 전체 사용자 노출
+    - `DEPARTMENT`: 본인 학과와 일치하는 방만 노출
+    - 회원 `department`는 서버 카탈로그 기준 canonical 값으로 정규화하고 legacy 학과명은 alias 매핑으로 흡수
+  - 미참여 공개방도 목록/상세 조회는 가능하지만, 메시지 조회/읽음/mute는 참여자만 가능
+  - 공개방 참여/나가기/커스텀방 생성은 REST(`POST /v1/chat-rooms`, `POST /v1/chat-rooms/{id}/join`, `DELETE /v1/chat-rooms/{id}/members/me`)로 처리
+  - 공개방 create/join은 가입 완료된 active member만 가능하며, 미가입 UID는 `MEMBER_NOT_FOUND`
+  - 커스텀 공개방 생성자는 자동으로 joined 상태가 되며, join 시 초기 unread는 0으로 시작한다
+  - 회원 프로필 학과 변경 시 기존 학과방 membership은 자동 제거하고, 새 학과방은 자동 참여시키지 않는다
   - 채팅방 목록 실시간: `/user/queue/chat-rooms` 사용자 전용 요약 채널 1개 구독
   - 채팅방 상세 실시간: `/topic/chat/{chatRoomId}` 방 단위 구독
   - 채팅방 메시지 전송: `/app/chat/{chatRoomId}`

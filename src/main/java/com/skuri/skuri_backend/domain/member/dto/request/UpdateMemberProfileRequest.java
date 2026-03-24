@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.member.dto.request;
 
+import com.skuri.skuri_backend.domain.member.validation.ValidDepartment;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 
@@ -15,6 +16,7 @@ public record UpdateMemberProfileRequest(
 
         @Schema(description = "학과", example = "컴퓨터공학과", nullable = true)
         @Size(max = 50, message = "department는 50자 이하여야 합니다.")
+        @ValidDepartment
         String department,
 
         @Schema(description = "앱 내 프로필 이미지 URL", example = "https://cdn.skuri.app/profiles/user-1.png", nullable = true)

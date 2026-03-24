@@ -22,6 +22,7 @@ env JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew test --tests "com.skuri.
 ./gradlew test --tests "com.skuri.skuri_backend.domain.notification.service.NotificationServiceTest"
 ./gradlew test --tests "com.skuri.skuri_backend.domain.notification.service.NotificationEventHandlerTest"
 ./gradlew test --tests "com.skuri.skuri_backend.domain.chat.service.PartyMessageServiceTest" --tests "com.skuri.skuri_backend.domain.chat.service.ChatServiceTest" --tests "com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyServiceTest" --tests "com.skuri.skuri_backend.domain.taxiparty.controller.PartyControllerContractTest"
+./gradlew test --tests "com.skuri.skuri_backend.domain.chat.controller.ChatRoomControllerContractTest" --tests "com.skuri.skuri_backend.domain.chat.service.ChatServiceTest" --tests "com.skuri.skuri_backend.domain.chat.service.PublicChatRoomSeedMigrationTest" --tests "com.skuri.skuri_backend.domain.member.service.MemberServiceTest" --tests "com.skuri.skuri_backend.domain.member.controller.MemberControllerContractTest"
 ./gradlew test --tests "com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisherTest"
 ./gradlew test --tests "com.skuri.skuri_backend.infra.auth.SecurityIntegrationTest"
 ./gradlew test --tests "com.skuri.skuri_backend.infra.auth.SecurityInfraCorsIntegrationTest"

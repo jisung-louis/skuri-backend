@@ -208,6 +208,27 @@ class MemberControllerContractTest {
     }
 
     @Test
+    void patchMembersMe_지원하지않는학과면_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        patch("/v1/members/me")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "department": "없는학과"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message", containsString("department: 지원하지 않는 department입니다.")));
+
+        verifyNoInteractions(memberService);
+    }
+
+    @Test
     void putMembersMeBankAccount_기본성공() throws Exception {
         mockValidToken();
         when(memberService.updateMyBankAccount(eq("firebase-uid"), any()))

@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.chat.service;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.request.CreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.request.SendChatMessageRequest;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatAccountDataResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatArrivalDataResponse;
@@ -25,6 +26,7 @@ import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
+import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
@@ -39,12 +41,16 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -54,6 +60,7 @@ public class ChatService {
 
     private static final int DEFAULT_MESSAGE_PAGE_SIZE = 50;
     private static final int MAX_MESSAGE_PAGE_SIZE = 100;
+    private static final ZoneId CHAT_TIME_ZONE = ZoneId.of("Asia/Seoul");
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
@@ -96,12 +103,13 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public List<ChatRoomSummaryResponse> getChatRooms(String memberId, ChatRoomType type, Boolean joinedOnly) {
+        String currentDepartment = findCurrentDepartment(memberId);
         List<ChatRoom> rooms = type == null ? chatRoomRepository.findAll() : chatRoomRepository.findByType(type);
         Map<String, ChatRoomMember> membershipMap = chatRoomMemberRepository.findById_MemberId(memberId).stream()
                 .collect(Collectors.toMap(ChatRoomMember::getChatRoomId, Function.identity()));
 
         return rooms.stream()
-                .filter(room -> room.isPublic() || membershipMap.containsKey(room.getId()))
+                .filter(room -> isVisibleToMember(room, membershipMap.get(room.getId()), currentDepartment))
                 .filter(room -> !Boolean.TRUE.equals(joinedOnly) || membershipMap.containsKey(room.getId()))
                 .sorted(chatRoomComparator())
                 .map(room -> toSummaryResponse(room, membershipMap.get(room.getId())))
@@ -110,27 +118,8 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public ChatRoomDetailResponse getChatRoomDetail(String memberId, String chatRoomId) {
-        ChatRoom room = findRoomOrThrow(chatRoomId);
-        ChatRoomMember member = chatRoomMemberRepository
-                .findById_ChatRoomIdAndId_MemberId(chatRoomId, memberId)
-                .orElse(null);
-        if (!room.isPublic() && member == null) {
-            throw new BusinessException(ErrorCode.NOT_CHAT_ROOM_MEMBER);
-        }
-
-        long unreadCount = calculateUnreadCount(room, member);
-        return new ChatRoomDetailResponse(
-                room.getId(),
-                room.getName(),
-                room.getType(),
-                room.getDescription(),
-                room.isPublic(),
-                room.getMemberCount(),
-                member != null,
-                member != null && member.isMuted(),
-                member != null ? member.getLastReadAt() : null,
-                unreadCount
-        );
+        ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
+        return toDetailResponse(access.room(), access.member());
     }
 
     @Transactional(readOnly = true)
@@ -141,8 +130,9 @@ public class ChatService {
             String cursorId,
             Integer size
     ) {
-        ChatRoom room = findRoomOrThrow(chatRoomId);
-        requireChatRoomMember(chatRoomId, memberId);
+        ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
+        ChatRoom room = access.room();
+        requireChatRoomMember(access.member());
         validateCursor(cursorCreatedAt, cursorId);
 
         int pageSize = size == null ? DEFAULT_MESSAGE_PAGE_SIZE : size;
@@ -173,23 +163,80 @@ public class ChatService {
     }
 
     @Transactional
-    public ChatReadUpdateResponse markAsRead(String memberId, String chatRoomId, LocalDateTime lastReadAt) {
-        ChatRoom room = findRoomOrThrow(chatRoomId);
-        ChatRoomMember member = requireChatRoomMember(chatRoomId, memberId);
+    public ChatReadUpdateResponse markAsRead(String memberId, String chatRoomId, Instant lastReadAt) {
+        ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
+        ChatRoom room = access.room();
+        ChatRoomMember member = requireChatRoomMember(access.member());
         boolean updated = member.advanceLastReadAt(clampLastReadAt(room, lastReadAt));
         if (updated) {
             chatRoomMemberRepository.save(member);
         }
-        return new ChatReadUpdateResponse(chatRoomId, member.getLastReadAt(), updated);
+        return new ChatReadUpdateResponse(chatRoomId, toApiInstant(member.getLastReadAt()), updated);
     }
 
     @Transactional
     public ChatRoomSettingsResponse updateSettings(String memberId, String chatRoomId, boolean muted) {
-        findRoomOrThrow(chatRoomId);
-        ChatRoomMember member = requireChatRoomMember(chatRoomId, memberId);
+        ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
+        ChatRoomMember member = requireChatRoomMember(access.member());
         member.updateMuted(muted);
         chatRoomMemberRepository.save(member);
         return new ChatRoomSettingsResponse(chatRoomId, member.isMuted());
+    }
+
+    @Transactional
+    public ChatRoomDetailResponse createChatRoom(String memberId, CreateChatRoomRequest request) {
+        requireActiveMember(memberId);
+        ChatRoom room = ChatRoom.create(
+                "room:" + UUID.randomUUID(),
+                request.name().trim(),
+                ChatRoomType.CUSTOM,
+                null,
+                normalizeNullable(request.description()),
+                memberId,
+                true,
+                null
+        );
+        ChatRoom saved = chatRoomRepository.save(room);
+        ChatRoomMember member = ChatRoomMember.create(saved, memberId, LocalDateTime.now());
+        chatRoomMemberRepository.save(member);
+        saved.increaseMemberCount();
+        chatRoomRepository.save(saved);
+        publishAfterCommit(() -> publishChatRoomSummaryEvent(saved));
+        return toDetailResponse(saved, member);
+    }
+
+    @Transactional
+    public ChatRoomDetailResponse joinChatRoom(String memberId, String chatRoomId) {
+        requireActiveMember(memberId);
+        ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
+        ChatRoom room = access.room();
+        validatePublicRoomMembershipAction(room, "참여");
+
+        if (access.member() != null) {
+            throw new BusinessException(ErrorCode.ALREADY_CHAT_ROOM_MEMBER);
+        }
+        if (room.getMaxMembers() != null && room.getMemberCount() >= room.getMaxMembers()) {
+            throw new BusinessException(ErrorCode.CHAT_ROOM_FULL);
+        }
+
+        ChatRoomMember member = ChatRoomMember.create(room, memberId, LocalDateTime.now());
+        member.advanceLastReadAt(initialLastReadAt(room));
+        chatRoomMemberRepository.save(member);
+        room.increaseMemberCount();
+        chatRoomRepository.save(room);
+        publishAfterCommit(() -> publishChatRoomSummaryEvent(room));
+        return toDetailResponse(room, member);
+    }
+
+    @Transactional
+    public ChatRoomDetailResponse leaveChatRoom(String memberId, String chatRoomId) {
+        ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
+        ChatRoom room = access.room();
+        validatePublicRoomMembershipAction(room, "나가기");
+
+        ChatRoomMember member = requireChatRoomMember(access.member());
+        removeMembership(member, true);
+        return toDetailResponse(room, null);
     }
 
     @Transactional
@@ -287,11 +334,18 @@ public class ChatService {
     public void removeMemberFromAllChatRooms(String memberId) {
         List<ChatRoomMember> memberships = chatRoomMemberRepository.findById_MemberId(memberId);
         for (ChatRoomMember membership : memberships) {
-            ChatRoom room = membership.getChatRoom();
-            chatRoomMemberRepository.delete(membership);
-            room.updateMemberCount(Math.max(0, room.getMemberCount() - 1));
-            chatRoomRepository.save(room);
-            publishAfterCommit(() -> publishChatRoomSummaryEvent(room));
+            removeMembership(membership, false);
+        }
+    }
+
+    @Transactional
+    public void removeMemberFromDepartmentChatRooms(String memberId) {
+        List<ChatRoomMember> memberships = chatRoomMemberRepository.findById_MemberId(memberId).stream()
+                .filter(membership -> membership.getChatRoom().getType() == ChatRoomType.DEPARTMENT)
+                .toList();
+
+        for (ChatRoomMember membership : memberships) {
+            removeMembership(membership, true);
         }
     }
 
@@ -312,6 +366,19 @@ public class ChatService {
         }
     }
 
+    private void publishChatRoomRemovedEvent(ChatRoom room, String memberId) {
+        ChatRoomSummaryEventResponse payload = new ChatRoomSummaryEventResponse(
+                "CHAT_ROOM_REMOVED",
+                room.getId(),
+                room.getName(),
+                room.getMemberCount(),
+                0L,
+                toLastMessage(room),
+                LocalDateTime.now()
+        );
+        messagingTemplate.convertAndSendToUser(memberId, "/queue/chat-rooms", payload);
+    }
+
     private void publishAfterCommit(Runnable publisher) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -326,9 +393,14 @@ public class ChatService {
     }
 
     private ChatRoomMember requireChatRoomMember(String chatRoomId, String memberId) {
-        return chatRoomMemberRepository
-                .findById_ChatRoomIdAndId_MemberId(chatRoomId, memberId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_CHAT_ROOM_MEMBER));
+        return requireChatRoomMember(findMembership(chatRoomId, memberId));
+    }
+
+    private ChatRoomMember requireChatRoomMember(ChatRoomMember member) {
+        if (member == null) {
+            throw new BusinessException(ErrorCode.NOT_CHAT_ROOM_MEMBER);
+        }
+        return member;
     }
 
     private ChatRoom findRoomOrThrow(String chatRoomId) {
@@ -347,16 +419,17 @@ public class ChatService {
         return chatMessageRepository.countByChatRoomIdAndCreatedAtAfter(room.getId(), lastReadAt);
     }
 
-    private LocalDateTime clampLastReadAt(ChatRoom room, LocalDateTime requestedLastReadAt) {
-        if (requestedLastReadAt == null) {
+    private LocalDateTime clampLastReadAt(ChatRoom room, Instant requestedLastReadAt) {
+        LocalDateTime normalizedRequestedLastReadAt = toChatLocalDateTime(requestedLastReadAt);
+        if (normalizedRequestedLastReadAt == null) {
             return null;
         }
 
-        LocalDateTime upperBound = LocalDateTime.now();
+        LocalDateTime upperBound = LocalDateTime.now(CHAT_TIME_ZONE);
         if (room.getLastMessageTimestamp() != null && room.getLastMessageTimestamp().isBefore(upperBound)) {
             upperBound = room.getLastMessageTimestamp();
         }
-        return requestedLastReadAt.isAfter(upperBound) ? upperBound : requestedLastReadAt;
+        return normalizedRequestedLastReadAt.isAfter(upperBound) ? upperBound : normalizedRequestedLastReadAt;
     }
 
     private Comparator<ChatRoom> chatRoomComparator() {
@@ -368,15 +441,35 @@ public class ChatService {
     }
 
     private ChatRoomSummaryResponse toSummaryResponse(ChatRoom room, ChatRoomMember member) {
-        long unreadCount = calculateUnreadCount(room, member);
         return new ChatRoomSummaryResponse(
                 room.getId(),
-                room.getName(),
                 room.getType(),
+                room.getName(),
+                room.getDescription(),
+                room.isPublic(),
                 room.getMemberCount(),
+                member != null,
+                calculateUnreadCount(room, member),
                 toLastMessage(room),
-                unreadCount,
-                member != null
+                room.getLastMessageTimestamp(),
+                member != null && member.isMuted()
+        );
+    }
+
+    private ChatRoomDetailResponse toDetailResponse(ChatRoom room, ChatRoomMember member) {
+        return new ChatRoomDetailResponse(
+                room.getId(),
+                room.getType(),
+                room.getName(),
+                room.getDescription(),
+                room.isPublic(),
+                room.getMemberCount(),
+                member != null,
+                calculateUnreadCount(room, member),
+                toLastMessage(room),
+                room.getLastMessageTimestamp(),
+                member != null && member.isMuted(),
+                member != null ? toApiInstant(member.getLastReadAt()) : null
         );
     }
 
@@ -492,5 +585,107 @@ public class ChatService {
         if (createdAtProvided != idProvided) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "cursorCreatedAt와 cursorId는 함께 전달해야 합니다.");
         }
+    }
+
+    private ChatRoomAccess findAccessibleRoom(String memberId, String chatRoomId) {
+        ChatRoom room = findRoomOrThrow(chatRoomId);
+        ChatRoomMember member = findMembership(chatRoomId, memberId);
+        if (member != null) {
+            return new ChatRoomAccess(room, member);
+        }
+        if (!room.isPublic()) {
+            throw new BusinessException(ErrorCode.NOT_CHAT_ROOM_MEMBER);
+        }
+        if (room.getType() == ChatRoomType.DEPARTMENT && !matchesDepartment(room.getDepartment(), findCurrentDepartment(memberId))) {
+            throw new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND);
+        }
+        return new ChatRoomAccess(room, null);
+    }
+
+    private ChatRoomMember findMembership(String chatRoomId, String memberId) {
+        return chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId(chatRoomId, memberId)
+                .orElse(null);
+    }
+
+    private boolean isVisibleToMember(ChatRoom room, ChatRoomMember member, String currentDepartment) {
+        if (member != null) {
+            return true;
+        }
+        if (!room.isPublic()) {
+            return false;
+        }
+        return room.getType() != ChatRoomType.DEPARTMENT || matchesDepartment(room.getDepartment(), currentDepartment);
+    }
+
+    private boolean matchesDepartment(String roomDepartment, String currentDepartment) {
+        return Objects.equals(normalizeDepartment(roomDepartment), normalizeDepartment(currentDepartment));
+    }
+
+    private String findCurrentDepartment(String memberId) {
+        return memberRepository.findActiveById(memberId)
+                .map(Member::getDepartment)
+                .map(this::normalizeDepartment)
+                .orElse(null);
+    }
+
+    private Member requireActiveMember(String memberId) {
+        return memberRepository.findActiveById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+    }
+
+    private void validatePublicRoomMembershipAction(ChatRoom room, String actionName) {
+        if (room.getType() == ChatRoomType.PARTY) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "파티 채팅방 " + actionName + "는 택시 파티 API로 처리해야 합니다.");
+        }
+        if (!room.isPublic()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "공개 채팅방만 이 API로 처리할 수 있습니다.");
+        }
+    }
+
+    private LocalDateTime initialLastReadAt(ChatRoom room) {
+        return room.getLastMessageTimestamp() != null ? room.getLastMessageTimestamp() : LocalDateTime.now(CHAT_TIME_ZONE);
+    }
+
+    private LocalDateTime toChatLocalDateTime(Instant value) {
+        if (value == null) {
+            return null;
+        }
+        return LocalDateTime.ofInstant(value, CHAT_TIME_ZONE);
+    }
+
+    private Instant toApiInstant(LocalDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZone(CHAT_TIME_ZONE).toInstant();
+    }
+
+    private String normalizeNullable(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private String normalizeDepartment(String value) {
+        String normalized = DepartmentCatalog.normalize(value);
+        return normalized != null ? normalized : normalizeNullable(value);
+    }
+
+    private void removeMembership(ChatRoomMember membership, boolean notifyRemovedMember) {
+        ChatRoom room = membership.getChatRoom();
+        String memberId = membership.getMemberId();
+        chatRoomMemberRepository.delete(membership);
+        room.decreaseMemberCount();
+        chatRoomRepository.save(room);
+        publishAfterCommit(() -> {
+            publishChatRoomSummaryEvent(room);
+            if (notifyRemovedMember) {
+                publishChatRoomRemovedEvent(room, memberId);
+            }
+        });
+    }
+
+    private record ChatRoomAccess(ChatRoom room, ChatRoomMember member) {
     }
 }
