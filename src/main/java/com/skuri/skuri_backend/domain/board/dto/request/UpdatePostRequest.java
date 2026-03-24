@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.board.dto.request;
 import com.skuri.skuri_backend.domain.board.entity.PostCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -26,9 +27,9 @@ public record UpdatePostRequest(
         @Size(max = 10, message = "images는 최대 10개까지 첨부할 수 있습니다.")
         @Valid
         @Schema(
-                description = "첨부 이미지 목록. 필드를 전달하면 전체 이미지 목록을 이 순서대로 교체하고, 빈 배열이면 이미지를 모두 제거합니다. 생략 또는 null이면 기존 이미지를 유지합니다.",
+                description = "첨부 이미지 목록. 필드를 전달하면 전체 이미지 목록을 이 순서대로 교체하고, 빈 배열이면 이미지를 모두 제거합니다. 생략 또는 null이면 기존 이미지를 유지합니다. 배열 원소는 null일 수 없습니다.",
                 nullable = true
         )
-        List<CreatePostImageRequest> images
+        List<@NotNull(message = "images 항목은 null일 수 없습니다.") @Valid CreatePostImageRequest> images
 ) {
 }

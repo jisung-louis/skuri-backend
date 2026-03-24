@@ -62,6 +62,8 @@ public class BoardService {
 
     @Transactional
     public PostDetailResponse createPost(String memberId, CreatePostRequest request) {
+        validatePostImages(request.images());
+
         Member author = findMemberOrThrow(memberId);
         Post post = Post.create(
                 request.title().trim(),
@@ -128,6 +130,7 @@ public class BoardService {
         if (title == null && content == null && request.category() == null && !updatesAnonymous && !updatesImages) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "수정할 필드를 최소 1개 이상 입력해야 합니다.");
         }
+        validatePostImages(request.images());
 
         Post post = findActivePostOrThrow(postId);
         requirePostAuthor(post, memberId);
@@ -444,6 +447,18 @@ public class BoardService {
                     image.mime(),
                     index
             );
+        }
+    }
+
+    private void validatePostImages(List<CreatePostImageRequest> images) {
+        if (images == null) {
+            return;
+        }
+
+        for (CreatePostImageRequest image : images) {
+            if (image == null) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "images 항목은 null일 수 없습니다.");
+            }
         }
     }
 
