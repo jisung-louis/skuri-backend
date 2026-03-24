@@ -1661,7 +1661,7 @@ Authorization:Bearer <firebase_id_token>
 | `POST` | `/v1/posts` | 게시글 작성 |
 | `GET` | `/v1/posts` | 게시글 목록 조회 |
 | `GET` | `/v1/posts/{postId}` | 게시글 상세 조회 (조회수 증가) |
-| `PATCH` | `/v1/posts/{postId}` | 게시글 수정 (작성자) |
+| `PATCH` | `/v1/posts/{postId}` | 게시글 수정 (작성자, `isAnonymous`/`images` 전체 교체 포함) |
 | `DELETE` | `/v1/posts/{postId}` | 게시글 삭제 (작성자, soft delete) |
 | `POST` | `/v1/posts/{postId}/like` | 좋아요 등록 |
 | `DELETE` | `/v1/posts/{postId}/like` | 좋아요 취소 |
@@ -1709,6 +1709,7 @@ Authorization:Bearer <firebase_id_token>
         "viewCount": 100,
         "likeCount": 10,
         "commentCount": 5,
+        "bookmarkCount": 3,
         "hasImage": true,
         "isPinned": false,
         "createdAt": "2026-02-03T12:00:00Z"
@@ -1723,6 +1724,8 @@ Authorization:Bearer <firebase_id_token>
   }
 }
 ```
+
+- 목록 summary의 `bookmarkCount`는 상세 응답의 `bookmarkCount`와 동일한 게시글 누적 북마크 수입니다.
 
 #### GET /v1/posts/{postId}
 
@@ -1759,9 +1762,27 @@ Authorization:Bearer <firebase_id_token>
 {
   "title": "수정된 제목",
   "content": "수정된 내용",
-  "category": "QUESTION"
+  "category": "QUESTION",
+  "isAnonymous": true,
+  "images": [
+    {
+      "url": "https://...",
+      "thumbUrl": "https://...",
+      "width": 800,
+      "height": 600,
+      "size": 245123,
+      "mime": "image/jpeg"
+    }
+  ]
 }
 ```
+
+- 수정 가능 필드: `title`, `content`, `category`, `isAnonymous`, `images`
+- `isAnonymous`를 전달하면 게시글 익명 상태를 변경하고, 생략하거나 `null`이면 기존 값을 유지한다.
+- `images[]`는 `POST /v1/posts`와 동일한 구조를 사용한다.
+- `images` 필드를 전달하면 전체 이미지 목록을 전달한 순서대로 교체한다.
+- `images: []`는 첨부 이미지를 모두 제거한다.
+- `images`를 생략하거나 `null`로 보내면 기존 이미지를 유지한다.
 
 #### DELETE /v1/posts/{postId}
 
@@ -2065,6 +2086,42 @@ Authorization:Bearer <firebase_id_token>
 - 각 댓글은 최소 `id`, `parentId`, `depth`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
 - 서버는 thread 순서를 보장한 flat list를 반환하고, 클라이언트가 트리 UI를 조립한다.
 
+#### PATCH /v1/notice-comments/{commentId}
+공지 댓글 수정
+
+**Request:**
+```json
+{
+  "content": "수정된 댓글 내용"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "notice_comment_uuid",
+    "parentId": null,
+    "depth": 0,
+    "content": "수정된 댓글 내용",
+    "authorId": "user_uuid",
+    "authorName": "홍길동",
+    "isAnonymous": false,
+    "anonymousOrder": null,
+    "isAuthor": true,
+    "isDeleted": false,
+    "createdAt": "2026-02-03T12:00:00",
+    "updatedAt": "2026-02-03T12:30:00"
+  }
+}
+```
+
+**수정 정책:**
+- 댓글 작성자만 본문을 수정할 수 있다.
+- `content`만 수정 가능하며 `parentId`, `isAnonymous`, `anonymousOrder`는 생성 시점 값을 유지한다.
+- 이미 삭제된 댓글은 `409 COMMENT_ALREADY_DELETED`를 반환한다.
+
 #### DELETE /v1/notice-comments/{commentId}
 공지 댓글 삭제
 
@@ -2129,8 +2186,8 @@ Authorization:Bearer <firebase_id_token>
 | `NOTICE_NOT_FOUND` | 404 | 존재하지 않는 학교 공지 |
 | `APP_NOTICE_NOT_FOUND` | 404 | 존재하지 않는 앱 공지 |
 | `NOTICE_COMMENT_NOT_FOUND` | 404 | 존재하지 않는 공지 댓글 |
-| `NOT_NOTICE_COMMENT_AUTHOR` | 403 | 댓글 작성자가 아닌데 삭제 시도 |
-| `COMMENT_ALREADY_DELETED` | 409 | 이미 삭제된 댓글 재삭제 시도 |
+| `NOT_NOTICE_COMMENT_AUTHOR` | 403 | 댓글 작성자가 아닌데 수정/삭제 시도 |
+| `COMMENT_ALREADY_DELETED` | 409 | 이미 삭제된 댓글 수정/재삭제 시도 |
 | `RESOURCE_CONCURRENT_MODIFICATION` | 409 | 공지 동기화가 이미 진행 중임 |
 
 ---
