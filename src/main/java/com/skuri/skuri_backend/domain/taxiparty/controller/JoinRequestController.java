@@ -9,6 +9,7 @@ import com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiTaxiPartySchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiTaxiPartyExamples;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -49,7 +50,7 @@ public class JoinRequestController {
                     description = "수락 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.JoinRequestAcceptApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_JOIN_REQUEST_ACCEPT)
                     )
             ),
@@ -114,7 +115,7 @@ public class JoinRequestController {
                     description = "거절 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.JoinRequestApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_JOIN_REQUEST_DECLINE)
                     )
             ),
@@ -172,7 +173,7 @@ public class JoinRequestController {
                     description = "취소 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.JoinRequestApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_JOIN_REQUEST_CANCEL)
                     )
             ),
@@ -233,7 +234,7 @@ public class JoinRequestController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.JoinRequestListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_JOIN_REQUEST_LIST_MY)
                     )
             ),

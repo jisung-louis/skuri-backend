@@ -1,28 +1,31 @@
 package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
-import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
-import com.skuri.skuri_backend.domain.notice.dto.response.NoticeDetailResponse;
-import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
-import com.skuri.skuri_backend.domain.notice.dto.response.NoticeReadResponse;
-import com.skuri.skuri_backend.domain.notice.dto.response.NoticeSummaryResponse;
-import com.skuri.skuri_backend.domain.notice.dto.response.NoticeSyncResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestAcceptResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestListItemResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.MyPartyResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyCreateResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public final class OpenApiNoticeSchemas {
+public final class OpenApiTaxiPartySchemas {
 
-    private OpenApiNoticeSchemas() {
+    private OpenApiTaxiPartySchemas() {
     }
 
-    @Schema(name = "NoticeSummaryPageApiResponse", description = "공통 API 응답 포맷")
-    public record NoticeSummaryPageApiResponse(
+    @Schema(name = "TaxiPartyCreateApiResponse", description = "공통 API 응답 포맷")
+    public record PartyCreateApiResponse(
             @Schema(description = "요청 성공 여부")
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
-            PageResponse<NoticeSummaryResponse> data,
+            PartyCreateResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
@@ -32,12 +35,12 @@ public final class OpenApiNoticeSchemas {
     ) {
     }
 
-    @Schema(name = "NoticeDetailApiResponse", description = "공통 API 응답 포맷")
-    public record NoticeDetailApiResponse(
+    @Schema(name = "TaxiPartySummaryPageApiResponse", description = "공통 API 응답 포맷")
+    public record PartySummaryPageApiResponse(
             @Schema(description = "요청 성공 여부")
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
-            NoticeDetailResponse data,
+            PageResponse<PartySummaryResponse> data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
@@ -47,12 +50,12 @@ public final class OpenApiNoticeSchemas {
     ) {
     }
 
-    @Schema(name = "NoticeReadApiResponse", description = "공통 API 응답 포맷")
-    public record NoticeReadApiResponse(
+    @Schema(name = "TaxiPartyDetailApiResponse", description = "공통 API 응답 포맷")
+    public record PartyDetailApiResponse(
             @Schema(description = "요청 성공 여부")
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
-            NoticeReadResponse data,
+            PartyDetailResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
@@ -62,12 +65,12 @@ public final class OpenApiNoticeSchemas {
     ) {
     }
 
-    @Schema(name = "NoticeLikeApiResponse", description = "공통 API 응답 포맷")
-    public record NoticeLikeApiResponse(
+    @Schema(name = "TaxiPartyStatusApiResponse", description = "공통 API 응답 포맷")
+    public record PartyStatusApiResponse(
             @Schema(description = "요청 성공 여부")
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
-            NoticeLikeResponse data,
+            PartyStatusResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
@@ -77,12 +80,12 @@ public final class OpenApiNoticeSchemas {
     ) {
     }
 
-    @Schema(name = "NoticeCommentListApiResponse", description = "공통 API 응답 포맷")
-    public record NoticeCommentListApiResponse(
+    @Schema(name = "TaxiPartyJoinRequestApiResponse", description = "공통 API 응답 포맷")
+    public record JoinRequestApiResponse(
             @Schema(description = "요청 성공 여부")
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
-            List<NoticeCommentResponse> data,
+            JoinRequestResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
@@ -92,12 +95,12 @@ public final class OpenApiNoticeSchemas {
     ) {
     }
 
-    @Schema(name = "NoticeCommentApiResponse", description = "공통 API 응답 포맷")
-    public record NoticeCommentApiResponse(
+    @Schema(name = "TaxiPartyJoinRequestAcceptApiResponse", description = "공통 API 응답 포맷")
+    public record JoinRequestAcceptApiResponse(
             @Schema(description = "요청 성공 여부")
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
-            NoticeCommentResponse data,
+            JoinRequestAcceptResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
@@ -107,12 +110,42 @@ public final class OpenApiNoticeSchemas {
     ) {
     }
 
-    @Schema(name = "NoticeSyncApiResponse", description = "공통 API 응답 포맷")
-    public record NoticeSyncApiResponse(
+    @Schema(name = "TaxiPartyJoinRequestListApiResponse", description = "공통 API 응답 포맷")
+    public record JoinRequestListApiResponse(
             @Schema(description = "요청 성공 여부")
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
-            NoticeSyncResponse data,
+            List<JoinRequestListItemResponse> data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "TaxiPartySettlementConfirmApiResponse", description = "공통 API 응답 포맷")
+    public record SettlementConfirmApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            SettlementConfirmResponse data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "TaxiPartyMyPartyListApiResponse", description = "공통 API 응답 포맷")
+    public record MyPartyListApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            List<MyPartyResponse> data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)

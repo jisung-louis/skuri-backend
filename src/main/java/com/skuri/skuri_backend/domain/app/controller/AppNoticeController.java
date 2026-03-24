@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeResponse;
 import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAppExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiAppSchemas;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -41,7 +42,7 @@ public class AppNoticeController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAppSchemas.AppNoticeListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAppExamples.SUCCESS_APP_NOTICES)
                     )
             )
@@ -62,7 +63,7 @@ public class AppNoticeController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAppSchemas.AppNoticeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAppExamples.SUCCESS_APP_NOTICE_DETAIL)
                     )
             ),

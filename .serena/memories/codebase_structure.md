@@ -48,8 +48,7 @@
 - `src/test/java/com/skuri/skuri_backend/infra/storage/FirebaseStorageRepositoryTest.java`: Firebase bucket 업로드 metadata(download token)/download URL/delete 동작 검증
 - `src/test/java/com/skuri/skuri_backend/infra/auth/AdminApiGuardIntegrationTest.java`: 대표 Admin API의 401/403/관리자 성공 guard 검증
 - `src/test/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditIntegrationTest.java`: 상태 변경 Admin API의 감사 로그 row/snapshot 검증
-- `src/test/java/com/skuri/skuri_backend/infra/openapi/AdminOpenApiConventionTest.java`: `@AdminApiAccess`와 `ERROR_ADMIN_REQUIRED` 예시 재사용 강제
-
+- `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApi*Schemas.java`: 각 도메인의 성공 응답 `Show schema`가 concrete `data` 타입을 노출하도록 하는 OpenAPI 전용 wrapper schema 모음\n- `src/test/java/com/skuri/skuri_backend/infra/openapi/AdminOpenApiConventionTest.java`: `@AdminApiAccess`와 `ERROR_ADMIN_REQUIRED` 예시 재사용 강제\n- `src/test/java/com/skuri/skuri_backend/infra/openapi/OpenApiSuccessSchemaCoverageIntegrationTest.java`: `/v3/api-docs` 전체 success response를 스캔해 대상 API가 다시 generic `data`로 후퇴하지 않는지 검증\n
 ## 프로필 역할
 - `application.yaml`: 모든 환경이 공유하는 기본 정책과 공통 datasource 인증정보
 - `application-local.yaml`: `localhost:3306` 기반 로컬 통합 테스트 + 실제 Firebase ID Token 흐름 검증용

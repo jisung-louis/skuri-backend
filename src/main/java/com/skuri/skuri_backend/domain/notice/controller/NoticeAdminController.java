@@ -10,6 +10,7 @@ import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiNoticeExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiNoticeSchemas;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -41,7 +42,7 @@ public class NoticeAdminController {
                     description = "동기화 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeSyncApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_SYNC)
                     )
             ),

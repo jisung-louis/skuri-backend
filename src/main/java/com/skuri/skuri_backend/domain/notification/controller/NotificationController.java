@@ -10,6 +10,7 @@ import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiNotificationExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiNotificationSchemas;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -48,7 +49,7 @@ public class NotificationController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNotificationSchemas.NotificationListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNotificationExamples.SUCCESS_NOTIFICATION_LIST)
                     )
             ),
@@ -85,7 +86,7 @@ public class NotificationController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNotificationSchemas.NotificationUnreadCountApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNotificationExamples.SUCCESS_NOTIFICATION_UNREAD_COUNT)
                     )
             ),
@@ -116,7 +117,7 @@ public class NotificationController {
                     description = "읽음 처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNotificationSchemas.NotificationApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNotificationExamples.SUCCESS_NOTIFICATION_READ)
                     )
             ),
@@ -168,7 +169,7 @@ public class NotificationController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNotificationSchemas.NotificationReadAllApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNotificationExamples.SUCCESS_NOTIFICATION_READ_ALL)
                     )
             ),

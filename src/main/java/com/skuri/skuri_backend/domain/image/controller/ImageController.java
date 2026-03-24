@@ -10,6 +10,7 @@ import com.skuri.skuri_backend.domain.image.service.ImageUploadService;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiImageExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiImageSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiMemberExamples;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,7 +52,7 @@ public class ImageController {
                     description = "업로드 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiImageSchemas.ImageUploadApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiImageExamples.SUCCESS_IMAGE_UPLOAD)
                     )
             ),

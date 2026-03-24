@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.CourseSummaryResponse;
 import com.skuri.skuri_backend.domain.academic.service.CourseService;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,7 +39,7 @@ public class CourseController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.CourseSummaryPageApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_COURSE_LIST_PAGE)
                     )
             ),

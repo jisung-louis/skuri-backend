@@ -6,6 +6,7 @@ import com.skuri.skuri_backend.domain.academic.dto.response.UserTimetableRespons
 import com.skuri.skuri_backend.domain.academic.service.TimetableService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,7 +49,7 @@ public class TimetableController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.UserTimetableApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_TIMETABLE)
                     )
             ),
@@ -89,7 +90,7 @@ public class TimetableController {
                     description = "추가 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.UserTimetableApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_TIMETABLE)
                     )
             ),
@@ -173,7 +174,7 @@ public class TimetableController {
                     description = "삭제 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.UserTimetableApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_TIMETABLE)
                     )
             ),

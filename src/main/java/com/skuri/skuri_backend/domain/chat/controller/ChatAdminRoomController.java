@@ -10,6 +10,7 @@ import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
 import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiChatExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiChatSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,7 +53,7 @@ public class ChatAdminRoomController {
                     description = "생성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiChatSchemas.AdminCreateChatRoomApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiChatExamples.SUCCESS_ADMIN_CHAT_ROOM_CREATE)
                     )
             ),

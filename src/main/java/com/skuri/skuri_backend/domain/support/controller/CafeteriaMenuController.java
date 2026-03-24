@@ -6,6 +6,7 @@ import com.skuri.skuri_backend.domain.support.service.CafeteriaMenuService;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiSupportSchemas;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -47,7 +48,7 @@ public class CafeteriaMenuController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiSupportSchemas.CafeteriaMenuApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiSupportExamples.SUCCESS_CAFETERIA_MENU)
                     )
             ),
@@ -106,7 +107,7 @@ public class CafeteriaMenuController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiSupportSchemas.CafeteriaMenuApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiSupportExamples.SUCCESS_CAFETERIA_MENU)
                     )
             ),

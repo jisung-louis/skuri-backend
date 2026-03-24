@@ -10,6 +10,7 @@ import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
 import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
 import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiAcademicSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,7 +51,7 @@ public class AcademicScheduleAdminController {
                     description = "생성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.AcademicScheduleApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_ADMIN_ACADEMIC_SCHEDULE)
                     )
             ),
@@ -120,7 +121,7 @@ public class AcademicScheduleAdminController {
                     description = "수정 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiAcademicSchemas.AcademicScheduleApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_ADMIN_ACADEMIC_SCHEDULE)
                     )
             ),
