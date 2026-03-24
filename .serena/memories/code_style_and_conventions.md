@@ -18,6 +18,7 @@
 
 ## 응답/예외
 - 모든 REST 응답은 `ApiResponse<T>`를 사용한다.
+- OpenAPI 2xx 성공 응답은 Scalar `Show schema`에서 `data`의 concrete type이 보이도록 raw `ApiResponse.class`만 두지 않는다. 필요하면 도메인별 OpenAPI 전용 wrapper schema를 사용한다.
 - 예외는 `BusinessException + ErrorCode`로 표현하고 `GlobalExceptionHandler`에서 일관 처리한다.
 - Admin 403 판별은 `ApiAccessDeniedErrorResolver`로 공통화하고 `/v1/admin/**`는 `ADMIN_REQUIRED`를 반환한다.
 - Notification 전용 최소 ErrorCode는 `NOTIFICATION_NOT_FOUND`, `NOT_NOTIFICATION_OWNER`를 사용한다.
