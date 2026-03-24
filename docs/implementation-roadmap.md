@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-23
+> 최종 수정일: 2026-03-24
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md) | [채팅 Firestore → MySQL 마이그레이션 참고](./chat-firestore-to-mysql-migration-reference.md)
 
 ---
@@ -23,6 +23,14 @@
 - 채팅 Firestore → MySQL 이관 참고사항은 [chat-firestore-to-mysql-migration-reference.md](./chat-firestore-to-mysql-migration-reference.md)에 누적 관리한다.
 - 데이터 마이그레이션 관련 신규 발견사항(컬렉션 구조, ID 매핑, seed 충돌 가능성, 요약 필드 재계산 규칙 등)이 생기면 위 참고 문서를 먼저 갱신하고, 필요 시 `api-specification.md`, `domain-analysis.md`, `erd.md`에도 함께 반영한다.
 - 프론트/백엔드 구현 에이전트의 최종 보고에는 “상대 레포의 동일 문서를 바로 동기화하라”는 문구를 반드시 포함한다.
+
+## 1.2 진행 예정 작업: OpenAPI Show Schema 전수 보강
+
+- 목적: 전체 REST 성공 응답에서 `Scalar Show schema`의 `data` 필드가 concrete type으로 보이도록 전수 보강한다.
+- 범위: `2xx + application/json` 성공 응답 중 `ApiResponse<T>`의 `T`가 DTO/List/PageResponse인 API
+- 제외: `ApiResponse<Void>`, `204`, SSE
+- 방식: `useReturnTypeSchema` 대신 도메인별 OpenAPI wrapper schema 사용
+- 상세 계획: [OpenAPI Show Schema 전수 보강 계획](./openapi-show-schema-rollout-plan.md)
 
 ---
 
