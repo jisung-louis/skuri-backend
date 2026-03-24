@@ -30,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,6 +91,26 @@ class BoardServiceTest {
         assertEquals("post-1", response.id());
         assertTrue(response.isAnonymous());
         assertEquals("익명", response.authorName());
+    }
+
+    @Test
+    void createPost_images항목에_null이있으면_VALIDATION_ERROR() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> boardService.createPost(
+                        "member-1",
+                        new CreatePostRequest(
+                                "게시글 제목",
+                                "게시글 내용",
+                                PostCategory.GENERAL,
+                                false,
+                                Arrays.asList((CreatePostImageRequest) null)
+                        )
+                )
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        verify(memberRepository, never()).findActiveById("member-1");
     }
 
     @Test
@@ -349,6 +370,27 @@ class BoardServiceTest {
         assertEquals(2, post.getImages().size());
         assertEquals("https://example.com/new-2.jpg", post.getImages().get(1).getUrl());
         assertEquals("post-1:author-1", post.getAnonId());
+    }
+
+    @Test
+    void updatePost_images항목에_null이있으면_VALIDATION_ERROR() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> boardService.updatePost(
+                        "author-1",
+                        "post-1",
+                        new UpdatePostRequest(
+                                null,
+                                null,
+                                null,
+                                null,
+                                Arrays.asList((CreatePostImageRequest) null)
+                        )
+                )
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        verify(postRepository, never()).findByIdAndDeletedFalse("post-1");
     }
 
     @Test

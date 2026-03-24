@@ -84,6 +84,30 @@ class PostControllerContractTest {
     }
 
     @Test
+    void postPosts_images항목에_null이있으면_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        post("/v1/posts")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "title": "게시글 제목",
+                                          "content": "게시글 내용",
+                                          "category": "GENERAL",
+                                          "isAnonymous": false,
+                                          "images": [null]
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(boardService);
+    }
+
+    @Test
     void getPosts_정상요청_200() throws Exception {
         mockValidToken();
         when(boardService.getPosts(eq("firebase-uid"), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null)))
@@ -178,6 +202,26 @@ class PostControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isAnonymous").value(true))
                 .andExpect(jsonPath("$.data.images[0].url").value("https://example.com/post-1.jpg"));
+    }
+
+    @Test
+    void patchPost_images항목에_null이있으면_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        patch("/v1/posts/post-1")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "images": [null]
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(boardService);
     }
 
     @Test
