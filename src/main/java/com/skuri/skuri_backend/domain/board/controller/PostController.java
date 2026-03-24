@@ -204,7 +204,10 @@ public class PostController {
     }
 
     @PatchMapping("/{postId}")
-    @Operation(summary = "게시글 수정", description = "게시글 작성자만 게시글을 수정할 수 있습니다.")
+    @Operation(
+            summary = "게시글 수정",
+            description = "게시글 작성자만 게시글을 수정할 수 있습니다. `images` 필드를 전달하면 전체 이미지 목록을 교체하고, 빈 배열이면 이미지를 모두 제거합니다. `images`를 생략하거나 null로 보내면 기존 이미지를 유지합니다. `isAnonymous`를 전달하면 게시글 익명 상태도 변경할 수 있습니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -261,7 +264,19 @@ public class PostController {
                             value = """
                                     {
                                       "title": "수정된 제목",
-                                      "content": "수정된 내용"
+                                      "content": "수정된 내용",
+                                      "category": "QUESTION",
+                                      "isAnonymous": true,
+                                      "images": [
+                                        {
+                                          "url": "https://cdn.skuri.app/posts/post-1/image-1.jpg",
+                                          "thumbUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg",
+                                          "width": 800,
+                                          "height": 600,
+                                          "size": 245123,
+                                          "mime": "image/jpeg"
+                                        }
+                                      ]
                                     }
                                     """
                     )
