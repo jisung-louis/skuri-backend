@@ -1,0 +1,106 @@
+package com.skuri.skuri_backend.infra.openapi;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class BoardNoticeOpenApiSchemaIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    void board_success_schema가_목록과북마크응답의_구체타입을노출한다() throws Exception {
+        JsonNode root = apiDocs();
+
+        JsonNode bookmarkResponseSchema = successResponseSchema(root, "/v1/posts/{postId}/bookmark", "post", "200");
+        JsonNode bookmarkDataSchema = resolveSchema(root, bookmarkResponseSchema.path("properties").path("data"));
+        assertTrue(bookmarkDataSchema.path("properties").has("isBookmarked"));
+        assertTrue(bookmarkDataSchema.path("properties").has("bookmarkCount"));
+
+        JsonNode postListResponseSchema = successResponseSchema(root, "/v1/posts", "get", "200");
+        JsonNode postListDataSchema = resolveSchema(root, postListResponseSchema.path("properties").path("data"));
+        JsonNode contentItemsSchema = resolveSchema(
+                root,
+                postListDataSchema.path("properties").path("content").path("items")
+        );
+        assertTrue(contentItemsSchema.path("properties").has("bookmarkCount"));
+    }
+
+    @Test
+    void board_update_request_schema가_images와_isAnonymous를_노출한다() throws Exception {
+        JsonNode root = apiDocs();
+
+        JsonNode updateRequestSchema = resolveSchema(
+                root,
+                root.path("paths")
+                        .path("/v1/posts/{postId}")
+                        .path("patch")
+                        .path("requestBody")
+                        .path("content")
+                        .path("application/json")
+                        .path("schema")
+        );
+
+        assertTrue(updateRequestSchema.path("properties").has("isAnonymous"));
+        assertTrue(updateRequestSchema.path("properties").has("images"));
+    }
+
+    @Test
+    void notice_comment_update_schema가_success_data_타입을_노출한다() throws Exception {
+        JsonNode root = apiDocs();
+
+        JsonNode commentUpdateResponseSchema = successResponseSchema(root, "/v1/notice-comments/{commentId}", "patch", "200");
+        JsonNode commentDataSchema = resolveSchema(root, commentUpdateResponseSchema.path("properties").path("data"));
+
+        assertTrue(commentDataSchema.path("properties").has("content"));
+        assertTrue(commentDataSchema.path("properties").has("isAnonymous"));
+        assertTrue(commentDataSchema.path("properties").has("updatedAt"));
+    }
+
+    private JsonNode apiDocs() throws Exception {
+        String responseBody = mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return objectMapper.readTree(responseBody);
+    }
+
+    private JsonNode successResponseSchema(JsonNode root, String path, String method, String responseCode) {
+        JsonNode schema = root.path("paths")
+                .path(path)
+                .path(method)
+                .path("responses")
+                .path(responseCode)
+                .path("content")
+                .path("application/json")
+                .path("schema");
+        return resolveSchema(root, schema);
+    }
+
+    private JsonNode resolveSchema(JsonNode root, JsonNode schemaNode) {
+        JsonNode current = schemaNode;
+        while (current != null && current.has("$ref")) {
+            String ref = current.path("$ref").asText();
+            String schemaName = ref.substring(ref.lastIndexOf('/') + 1);
+            current = root.path("components").path("schemas").path(schemaName);
+        }
+        return current;
+    }
+}
