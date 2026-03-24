@@ -13,6 +13,7 @@ import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiNoticeExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiNoticeSchemas;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -56,7 +57,7 @@ public class NoticeController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeSummaryPageApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_LIST_PAGE)
                     )
             ),
@@ -113,7 +114,7 @@ public class NoticeController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeDetailApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_DETAIL)
                     )
             ),
@@ -155,7 +156,7 @@ public class NoticeController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeReadApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_READ)
                     )
             ),
@@ -197,7 +198,7 @@ public class NoticeController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeLikeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_LIKE)
                     )
             ),
@@ -239,7 +240,7 @@ public class NoticeController {
                     description = "처리 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeLikeApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_LIKE)
                     )
             ),
@@ -281,7 +282,7 @@ public class NoticeController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeCommentListApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_COMMENTS_LIST)
                     )
             ),
@@ -323,7 +324,7 @@ public class NoticeController {
                     description = "작성 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeCommentApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_COMMENT_CREATE)
                     )
             ),

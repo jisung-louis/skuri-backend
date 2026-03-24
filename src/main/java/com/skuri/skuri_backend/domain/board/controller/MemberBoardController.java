@@ -6,6 +6,7 @@ import com.skuri.skuri_backend.domain.board.dto.response.PostSummaryResponse;
 import com.skuri.skuri_backend.domain.board.service.BoardService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiBoardExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiBoardSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,7 +44,7 @@ public class MemberBoardController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostSummaryPageApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_MEMBER_POSTS_PAGE)
                     )
             ),
@@ -88,7 +89,7 @@ public class MemberBoardController {
                     description = "조회 성공",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class),
+                            schema = @Schema(implementation = OpenApiBoardSchemas.PostSummaryPageApiResponse.class),
                             examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_MEMBER_POSTS_PAGE)
                     )
             ),
