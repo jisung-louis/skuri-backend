@@ -325,6 +325,12 @@ erDiagram
         datetime updated_at
     }
 
+    app_notice_read_status {
+        varchar(36) user_id PK
+        varchar(36) app_notice_id PK,FK
+        datetime read_at "NOT NULL"
+    }
+
     campus_banners {
         varchar(36) id PK "UUID"
         varchar(50) badge_label "NOT NULL"
@@ -349,6 +355,7 @@ erDiagram
     notices ||--o{ notice_comments : "has"
     notices ||--o{ notice_likes : "has"
     notices ||--o{ notice_bookmarks : "has"
+    app_notices ||--o{ app_notice_read_status : "has"
     notice_comments ||--o{ notice_comments : "parent-child"
 ```
 
@@ -683,6 +690,7 @@ Taxi history 계약 메모:
 | `notice_likes` | 공지 좋아요 | ~200,000 |
 | `notice_bookmarks` | 공지 북마크 | ~100,000 |
 | `app_notices` | 앱 공지 | ~100 |
+| `app_notice_read_status` | 앱 공지 읽음 상태 | ~500,000 |
 
 ### 2.6 Campus 도메인
 
@@ -803,6 +811,7 @@ Taxi history 계약 메모:
 | 공지-댓글 | notices | notice_comments | 1:N | 공지에 여러 댓글 |
 | 공지-좋아요 | notices | notice_likes | 1:N | 공지별 좋아요 |
 | 공지-북마크 | notices | notice_bookmarks | 1:N | 공지별 북마크 |
+| 앱 공지-읽음 | app_notices | app_notice_read_status | 1:N | 앱 공지별 읽음 상태 |
 | 캠퍼스 배너 | campus_banners | (없음) | 독립 테이블 | 홈 배너 콘텐츠/노출 기간/정렬 관리 |
 | 강의-시간 | courses | course_schedules | 1:N | 강의에 여러 시간 슬롯 |
 | 시간표-강의 | user_timetables | user_timetable_courses | 1:N | 시간표에 여러 강의 |
@@ -864,6 +873,10 @@ ALTER TABLE post_interactions
 ALTER TABLE notice_read_status
   ADD CONSTRAINT fk_notice_read_status_notice
   FOREIGN KEY (notice_id) REFERENCES notices(id) ON DELETE CASCADE;
+
+ALTER TABLE app_notice_read_status
+  ADD CONSTRAINT fk_app_notice_read_status_notice
+  FOREIGN KEY (app_notice_id) REFERENCES app_notices(id) ON DELETE CASCADE;
 
 ALTER TABLE notice_comments
   ADD CONSTRAINT fk_notice_comments_notice
@@ -970,6 +983,9 @@ CREATE INDEX idx_notices_content_hash ON notices(content_hash);
 
 -- notice_read_status
 CREATE INDEX idx_notice_read_user ON notice_read_status(user_id);
+
+-- app_notice_read_status
+CREATE INDEX idx_app_notice_read_app_notice ON app_notice_read_status(app_notice_id);
 
 -- notice_comments
 CREATE INDEX idx_notice_comments_notice ON notice_comments(notice_id);

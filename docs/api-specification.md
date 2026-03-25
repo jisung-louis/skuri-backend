@@ -2370,6 +2370,7 @@ Authorization:Bearer <firebase_id_token>
 - `GET /v1/app-notices/{appNoticeId}`
 위 두 API는 모두 Public API이며 인증이 필요 없다.
 - Public 조회는 `publishedAt <= now()`인 앱 공지만 노출한다.
+- 앱 공지 unread count와 읽음 처리는 일반 알림(`GET /v1/notifications/unread-count`)과 별도 source of truth를 사용한다.
 
 **Response:**
 ```json
@@ -2386,6 +2387,44 @@ Authorization:Bearer <firebase_id_token>
     "publishedAt": "2026-02-20T00:00:00Z",
     "createdAt": "2026-02-19T12:00:00Z",
     "updatedAt": "2026-02-19T12:00:00Z"
+  }
+}
+```
+
+#### GET /v1/members/me/app-notices/unread-count
+읽지 않은 앱 공지 수
+
+**정책:**
+- 인증이 필요하다.
+- `publishedAt <= now()`인 앱 공지 중 아직 읽지 않은 공지 개수만 집계한다.
+- 일반 알림 unread count에는 영향을 주지 않는다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "count": 2
+  }
+}
+```
+
+#### POST /v1/members/me/app-notices/{appNoticeId}/read
+앱 공지 읽음 처리
+
+**정책:**
+- 인증이 필요하다.
+- `publishedAt <= now()`인 앱 공지만 읽음 처리할 수 있다.
+- 이미 읽은 공지를 다시 읽음 처리해도 성공 응답을 반환하며, 최초 `readAt`을 유지한다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "appNoticeId": "app_notice_uuid",
+    "isRead": true,
+    "readAt": "2026-03-26T14:30:00"
   }
 }
 ```
