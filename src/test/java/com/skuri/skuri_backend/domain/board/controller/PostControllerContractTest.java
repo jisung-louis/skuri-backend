@@ -122,7 +122,8 @@ class PostControllerContractTest {
                 .andExpect(jsonPath("$.data.content[0].bookmarkCount").value(3))
                 .andExpect(jsonPath("$.data.content[0].isLiked").value(true))
                 .andExpect(jsonPath("$.data.content[0].isBookmarked").value(false))
-                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true));
+                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true))
+                .andExpect(jsonPath("$.data.content[0].thumbnailUrl").value("https://example.com/post-1-thumb.jpg"));
     }
 
     @Test
@@ -412,6 +413,7 @@ class PostControllerContractTest {
                 false,
                 true,
                 false,
+                "https://example.com/post-1-thumb.jpg",
                 false,
                 LocalDateTime.now()
         );

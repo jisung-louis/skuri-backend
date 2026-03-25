@@ -43,6 +43,7 @@ class BoardNoticeOpenApiSchemaIntegrationTest {
         assertTrue(contentItemsSchema.path("properties").has("isLiked"));
         assertTrue(contentItemsSchema.path("properties").has("isBookmarked"));
         assertTrue(contentItemsSchema.path("properties").has("isCommentedByMe"));
+        assertTrue(contentItemsSchema.path("properties").has("thumbnailUrl"));
     }
 
     @Test
@@ -74,6 +75,7 @@ class BoardNoticeOpenApiSchemaIntegrationTest {
         assertTrue(listItemsSchema.path("properties").has("bookmarkCount"));
         assertTrue(listItemsSchema.path("properties").has("isBookmarked"));
         assertTrue(listItemsSchema.path("properties").has("isCommentedByMe"));
+        assertTrue(listItemsSchema.path("properties").has("thumbnailUrl"));
 
         JsonNode detailResponseSchema = successResponseSchema(root, "/v1/notices/{noticeId}", "get", "200");
         JsonNode detailDataSchema = resolveSchema(root, detailResponseSchema.path("properties").path("data"));

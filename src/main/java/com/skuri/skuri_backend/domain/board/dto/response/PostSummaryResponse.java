@@ -39,6 +39,8 @@ public record PostSummaryResponse(
         boolean isCommentedByMe,
         @Schema(description = "이미지 포함 여부", example = "true")
         boolean hasImage,
+        @Schema(description = "목록 카드 썸네일 URL", nullable = true, example = "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg")
+        String thumbnailUrl,
         @Schema(description = "상단 고정 여부", example = "false")
         boolean isPinned,
         @Schema(description = "생성 시각", example = "2026-02-03T12:00:00")

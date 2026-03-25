@@ -35,6 +35,8 @@ public record NoticeSummaryResponse(
         @Schema(description = "내 북마크 여부", example = "true")
         boolean isBookmarked,
         @Schema(description = "내 댓글 작성 여부", example = "true")
-        boolean isCommentedByMe
+        boolean isCommentedByMe,
+        @Schema(description = "목록 카드 썸네일 URL", nullable = true, example = "https://www.sungkyul.ac.kr/upload/notice-thumb.jpg")
+        String thumbnailUrl
 ) {
 }

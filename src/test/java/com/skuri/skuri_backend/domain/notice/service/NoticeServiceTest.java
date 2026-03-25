@@ -36,6 +36,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -209,8 +210,12 @@ class NoticeServiceTest {
 
     @Test
     void getNotices_개인화상태를합성한다() {
-        Notice personalized = notice("notice-1");
-        Notice othersOnly = notice("notice-2");
+        Notice personalized = notice("notice-1", """
+                <p>본문</p>
+                <img src="https://www.sungkyul.ac.kr/upload/notice-1-thumb.jpg" />
+                <img src="https://www.sungkyul.ac.kr/upload/notice-1-second.jpg" />
+                """);
+        Notice othersOnly = notice("notice-2", "<p>이미지 없음</p>");
 
         when(noticeRepository.search(any(), any(), any()))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(personalized, othersOnly)));
@@ -229,10 +234,12 @@ class NoticeServiceTest {
         assertTrue(response.getContent().get(0).isLiked());
         assertTrue(response.getContent().get(0).isBookmarked());
         assertTrue(response.getContent().get(0).isCommentedByMe());
+        assertEquals("https://www.sungkyul.ac.kr/upload/notice-1-thumb.jpg", response.getContent().get(0).thumbnailUrl());
         assertFalse(response.getContent().get(1).isRead());
         assertFalse(response.getContent().get(1).isLiked());
         assertFalse(response.getContent().get(1).isBookmarked());
         assertFalse(response.getContent().get(1).isCommentedByMe());
+        assertNull(response.getContent().get(1).thumbnailUrl());
     }
 
     @Test
@@ -253,6 +260,7 @@ class NoticeServiceTest {
         var response = noticeService.getNotices("member-1", null, null, 0, 20);
 
         assertFalse(response.getContent().get(0).isCommentedByMe());
+        assertNull(response.getContent().get(0).thumbnailUrl());
     }
 
     @Test
@@ -350,6 +358,10 @@ class NoticeServiceTest {
     }
 
     private Notice notice(String id) {
+        return notice(id, "<p>상세</p>");
+    }
+
+    private Notice notice(String id, String bodyHtml) {
         Notice notice = Notice.create(
                 id,
                 "공지 제목",
@@ -365,7 +377,7 @@ class NoticeServiceTest {
                 "content-hash",
                 LocalDateTime.now(),
                 "상세 본문 텍스트",
-                "<p>상세</p>",
+                bodyHtml,
                 List.of()
         );
         ReflectionTestUtils.setField(notice, "createdAt", LocalDateTime.now());

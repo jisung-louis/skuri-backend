@@ -289,7 +289,8 @@ public class NoticeService {
                 isRead,
                 isLiked,
                 isBookmarked,
-                isCommentedByMe
+                isCommentedByMe,
+                NoticeThumbnailExtractor.extract(notice.getBodyHtml())
         );
     }
 
