@@ -21,7 +21,7 @@
 - `domain/taxiparty/entity/SettlementAccountSnapshot.java`, `domain/taxiparty/dto/request/ArrivePartyRequest.java`: ARRIVED 정산 snapshot(account/taxiFare/settlementTargetMemberIds) 계약 정의
 - `domain/board/controller/PostController.java`, `domain/board/service/BoardService.java`: 게시글 summary `bookmarkCount`와 `PATCH /v1/posts/{postId}`의 `isAnonymous` 수정 + `images` 전체 교체 계약을 관리
 - `domain/notice/controller/NoticeCommentController.java`, `domain/notice/service/NoticeService.java`: `PATCH /v1/notice-comments/{commentId}` content 수정 계약과 soft-delete/작성자 권한 규칙을 관리
-- `domain/campus/controller/CampusBannerController.java`, `domain/campus/controller/CampusBannerAdminController.java`, `domain/campus/service/CampusBannerService.java`: `campus_banners` 공개/관리자 API, 노출 기간 필터, `displayOrder` normalize, `actionType` 정합성(`IN_APP`/`EXTERNAL_URL`)을 관리
+- `domain/campus/controller/CampusBannerController.java`, `domain/campus/controller/CampusBannerAdminController.java`, `domain/campus/service/CampusBannerService.java`, `domain/campus/service/CampusBannerOrderLock.java`: `campus_banners` 공개/관리자 API, 노출 기간 필터, `displayOrder` normalize, 빈 테이블 첫 생성 경쟁을 막는 순서 작업 직렬화 lock, `actionType` 정합성(`IN_APP`/`EXTERNAL_URL`)을 관리
 - `domain/*/controller/*AdminController.java`: Phase 11 기준 공통 `@AdminApiAccess`를 사용하고, 상태 변경 엔드포인트는 `@AdminAudit`로 감사 로그 대상 지정
 
 ## Admin 공통 인프라

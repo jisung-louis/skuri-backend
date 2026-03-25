@@ -10,7 +10,7 @@
 - 같은 Firebase UID의 탈퇴 회원은 재활성화하지 않는다. `POST /v1/members`는 활성 회원에만 멱등이고, withdrawn UID에는 `WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환한다.
 - `NOT NULL` lifecycle 컬럼을 운영 DB에 추가할 때는 앱 기동 전에 수동 마이그레이션으로 legacy row를 먼저 채운다.
 - Admin controller는 class-level `@AdminApiAccess`를 사용하고 raw `@PreAuthorize("hasRole('ADMIN')")`를 반복하지 않는다.
-- Campus 배너는 `app-notices`를 재사용하지 않고 별도 `domain/campus`로 관리한다. `displayOrder`는 생성/삭제/재정렬 후에도 1부터 시작하는 연속값을 유지하고, PATCH는 누락 필드와 명시적 `null`을 구분한다.
+- Campus 배너는 `app-notices`를 재사용하지 않고 별도 `domain/campus`로 관리한다. `displayOrder`는 생성/삭제/재정렬 후에도 1부터 시작하는 연속값을 유지하며, 순서 변경 계열 작업(create/delete/reorder)은 빈 테이블 첫 생성 경쟁까지 막기 위해 공통 lock으로 직렬화한다. PATCH는 누락 필드와 명시적 `null`을 구분한다.
 - 상태 변경 Admin API는 `@AdminAudit`로 감사 대상을 선언하고, 감사 로직은 interceptor/filter 공통 계층에서 처리한다.
 - `@AdminAudit`의 `targetId`와 snapshot lookup은 서비스가 쓰는 canonical 키(`semester=2026-1`, `platform=ios`) 기준으로 맞추고, request body 기반 값은 공통 request-body cache를 통해 preHandle 단계에서 복원한다.
 - 감사 로그 실패는 warn 수준으로 남기고 비즈니스 API를 500으로 깨지 않게 best-effort로 처리한다.
