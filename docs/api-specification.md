@@ -830,6 +830,7 @@ FCM 토큰 삭제
 #### GET /v1/members/me/taxi-history/summary
 마이페이지/택시 이용 내역 상단 요약 조회
 
+- `totalRideCount`는 취소 포함 전체 history 항목 수입니다.
 - `completedRideCount`는 위 history 목록과 동일한 기준에서 외부 `status = COMPLETED`인 항목 수입니다.
 - `savedFareAmount`는 동일한 completed 항목에 대해 `(taxiFare - perPersonAmount)`를 합산한 값입니다.
   - 혼자 탔다면 전체 `taxiFare`를 냈을 것으로 가정하고, 동승으로 줄어든 본인 부담 금액만 절약액으로 계산합니다.
@@ -840,6 +841,7 @@ FCM 토큰 삭제
 {
   "success": true,
   "data": {
+    "totalRideCount": 5,
     "completedRideCount": 4,
     "savedFareAmount": 9374
   }

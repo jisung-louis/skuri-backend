@@ -739,6 +739,7 @@ class TaxiPartyServiceTest {
 
         TaxiHistorySummaryResponse response = taxiPartyService.getMyTaxiHistorySummary("member-1");
 
+        assertEquals(3, response.totalRideCount());
         assertEquals(2, response.completedRideCount());
         assertEquals(14000, response.savedFareAmount());
     }

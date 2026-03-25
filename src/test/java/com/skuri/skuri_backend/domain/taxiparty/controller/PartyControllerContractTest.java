@@ -289,13 +289,14 @@ class PartyControllerContractTest {
     void getMyTaxiHistorySummary_정상조회_200() throws Exception {
         mockValidToken();
         when(taxiPartyService.getMyTaxiHistorySummary("firebase-uid"))
-                .thenReturn(new TaxiHistorySummaryResponse(4, 9374));
+                .thenReturn(new TaxiHistorySummaryResponse(5, 4, 9374));
 
         mockMvc.perform(
                         get("/v1/members/me/taxi-history/summary")
                                 .header(AUTHORIZATION, "Bearer valid-token")
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalRideCount").value(5))
                 .andExpect(jsonPath("$.data.completedRideCount").value(4))
                 .andExpect(jsonPath("$.data.savedFareAmount").value(9374));
     }

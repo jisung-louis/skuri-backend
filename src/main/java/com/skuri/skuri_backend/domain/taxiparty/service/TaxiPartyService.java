@@ -179,6 +179,7 @@ public class TaxiPartyService {
     @Transactional(readOnly = true)
     public TaxiHistorySummaryResponse getMyTaxiHistorySummary(String memberId) {
         List<Party> historyParties = findMyTaxiHistoryParties(memberId);
+        int totalRideCount = historyParties.size();
         int completedRideCount = 0;
         int savedFareAmount = 0;
 
@@ -190,7 +191,7 @@ public class TaxiPartyService {
             savedFareAmount += calculateSavedFareAmount(party);
         }
 
-        return new TaxiHistorySummaryResponse(completedRideCount, savedFareAmount);
+        return new TaxiHistorySummaryResponse(totalRideCount, completedRideCount, savedFareAmount);
     }
 
     @Transactional
