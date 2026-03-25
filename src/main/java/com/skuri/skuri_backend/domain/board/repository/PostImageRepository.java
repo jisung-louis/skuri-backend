@@ -12,7 +12,10 @@ public interface PostImageRepository extends JpaRepository<PostImage, Long> {
 
     @Query("""
             select pi.post.id as postId,
-                   coalesce(pi.thumbUrl, pi.url) as thumbnailUrl
+                   case
+                       when pi.thumbUrl is null or trim(pi.thumbUrl) = '' then pi.url
+                       else pi.thumbUrl
+                   end as thumbnailUrl
             from PostImage pi
             where pi.post.id in :postIds
               and not exists (

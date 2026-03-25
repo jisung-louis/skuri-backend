@@ -497,7 +497,7 @@ public class BoardService {
             CreatePostImageRequest image = images.get(index);
             post.appendImage(
                     image.url(),
-                    image.thumbUrl(),
+                    trimToNull(image.thumbUrl()),
                     image.width(),
                     image.height(),
                     image.size(),
