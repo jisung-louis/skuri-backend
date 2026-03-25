@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 public class CampusBannerService {
 
     private final CampusBannerRepository campusBannerRepository;
+    private final CampusBannerOrderLock campusBannerOrderLock;
 
     @Transactional(readOnly = true)
     public List<CampusBannerPublicResponse> getPublicBanners() {
@@ -59,42 +60,47 @@ public class CampusBannerService {
 
     @Transactional
     public CampusBannerAdminResponse createBanner(CreateCampusBannerRequest request) {
-        List<CampusBanner> orderedBanners = campusBannerRepository.findAllAdminOrderedForUpdate();
-        normalizeDisplayOrders(orderedBanners);
+        campusBannerOrderLock.lock();
+        try {
+            List<CampusBanner> orderedBanners = campusBannerRepository.findAllAdminOrderedForUpdate();
+            normalizeDisplayOrders(orderedBanners);
 
-        String badgeLabel = normalizeRequiredText(request.badgeLabel(), "badgeLabel");
-        String titleLabel = normalizeRequiredText(request.titleLabel(), "titleLabel");
-        String descriptionLabel = normalizeRequiredText(request.descriptionLabel(), "descriptionLabel");
-        String buttonLabel = normalizeRequiredText(request.buttonLabel(), "buttonLabel");
-        CampusBannerPaletteKey paletteKey = requireValue(request.paletteKey(), "paletteKey");
-        String imageUrl = normalizeRequiredText(request.imageUrl(), "imageUrl");
-        ActionValues actionValues = normalizeAction(
-                request.actionType(),
-                request.actionTarget(),
-                request.actionParams(),
-                request.actionUrl()
-        );
-        boolean active = requireBoolean(request.isActive(), "isActive");
-        validateDisplayWindow(request.displayStartAt(), request.displayEndAt());
+            String badgeLabel = normalizeRequiredText(request.badgeLabel(), "badgeLabel");
+            String titleLabel = normalizeRequiredText(request.titleLabel(), "titleLabel");
+            String descriptionLabel = normalizeRequiredText(request.descriptionLabel(), "descriptionLabel");
+            String buttonLabel = normalizeRequiredText(request.buttonLabel(), "buttonLabel");
+            CampusBannerPaletteKey paletteKey = requireValue(request.paletteKey(), "paletteKey");
+            String imageUrl = normalizeRequiredText(request.imageUrl(), "imageUrl");
+            ActionValues actionValues = normalizeAction(
+                    request.actionType(),
+                    request.actionTarget(),
+                    request.actionParams(),
+                    request.actionUrl()
+            );
+            boolean active = requireBoolean(request.isActive(), "isActive");
+            validateDisplayWindow(request.displayStartAt(), request.displayEndAt());
 
-        CampusBanner campusBanner = campusBannerRepository.save(CampusBanner.create(
-                badgeLabel,
-                titleLabel,
-                descriptionLabel,
-                buttonLabel,
-                paletteKey,
-                imageUrl,
-                actionValues.actionType(),
-                actionValues.actionTarget(),
-                actionValues.actionParams(),
-                actionValues.actionUrl(),
-                active,
-                request.displayStartAt(),
-                request.displayEndAt(),
-                orderedBanners.size() + 1
-        ));
+            CampusBanner campusBanner = campusBannerRepository.save(CampusBanner.create(
+                    badgeLabel,
+                    titleLabel,
+                    descriptionLabel,
+                    buttonLabel,
+                    paletteKey,
+                    imageUrl,
+                    actionValues.actionType(),
+                    actionValues.actionTarget(),
+                    actionValues.actionParams(),
+                    actionValues.actionUrl(),
+                    active,
+                    request.displayStartAt(),
+                    request.displayEndAt(),
+                    orderedBanners.size() + 1
+            ));
 
-        return toAdminResponse(campusBanner);
+            return toAdminResponse(campusBanner);
+        } finally {
+            campusBannerOrderLock.unlock();
+        }
     }
 
     @Transactional
@@ -166,39 +172,49 @@ public class CampusBannerService {
 
     @Transactional
     public void deleteBanner(String bannerId) {
-        List<CampusBanner> orderedBanners = campusBannerRepository.findAllAdminOrderedForUpdate();
-        normalizeDisplayOrders(orderedBanners);
+        campusBannerOrderLock.lock();
+        try {
+            List<CampusBanner> orderedBanners = campusBannerRepository.findAllAdminOrderedForUpdate();
+            normalizeDisplayOrders(orderedBanners);
 
-        CampusBanner target = orderedBanners.stream()
-                .filter(banner -> banner.getId().equals(bannerId))
-                .findFirst()
-                .orElseThrow(CampusBannerNotFoundException::new);
+            CampusBanner target = orderedBanners.stream()
+                    .filter(banner -> banner.getId().equals(bannerId))
+                    .findFirst()
+                    .orElseThrow(CampusBannerNotFoundException::new);
 
-        campusBannerRepository.delete(target);
-        orderedBanners.remove(target);
-        normalizeDisplayOrders(orderedBanners);
+            campusBannerRepository.delete(target);
+            orderedBanners.remove(target);
+            normalizeDisplayOrders(orderedBanners);
+        } finally {
+            campusBannerOrderLock.unlock();
+        }
     }
 
     @Transactional
     public List<CampusBannerOrderResponse> reorderBanners(ReorderCampusBannersRequest request) {
-        List<CampusBanner> orderedBanners = campusBannerRepository.findAllAdminOrderedForUpdate();
-        normalizeDisplayOrders(orderedBanners);
+        campusBannerOrderLock.lock();
+        try {
+            List<CampusBanner> orderedBanners = campusBannerRepository.findAllAdminOrderedForUpdate();
+            normalizeDisplayOrders(orderedBanners);
 
-        List<String> normalizedBannerIds = normalizeBannerIds(request.bannerIds());
-        validateReorderIds(normalizedBannerIds, orderedBanners);
+            List<String> normalizedBannerIds = normalizeBannerIds(request.bannerIds());
+            validateReorderIds(normalizedBannerIds, orderedBanners);
 
-        Map<String, CampusBanner> campusBannerById = orderedBanners.stream()
-                .collect(Collectors.toMap(CampusBanner::getId, Function.identity()));
+            Map<String, CampusBanner> campusBannerById = orderedBanners.stream()
+                    .collect(Collectors.toMap(CampusBanner::getId, Function.identity()));
 
-        List<CampusBannerOrderResponse> responses = new ArrayList<>();
-        int displayOrder = 1;
-        for (String bannerId : normalizedBannerIds) {
-            CampusBanner campusBanner = campusBannerById.get(bannerId);
-            campusBanner.changeDisplayOrder(displayOrder);
-            responses.add(new CampusBannerOrderResponse(campusBanner.getId(), displayOrder));
-            displayOrder++;
+            List<CampusBannerOrderResponse> responses = new ArrayList<>();
+            int displayOrder = 1;
+            for (String bannerId : normalizedBannerIds) {
+                CampusBanner campusBanner = campusBannerById.get(bannerId);
+                campusBanner.changeDisplayOrder(displayOrder);
+                responses.add(new CampusBannerOrderResponse(campusBanner.getId(), displayOrder));
+                displayOrder++;
+            }
+            return responses;
+        } finally {
+            campusBannerOrderLock.unlock();
         }
-        return responses;
     }
 
     private CampusBannerPublicResponse toPublicResponse(CampusBanner campusBanner) {
