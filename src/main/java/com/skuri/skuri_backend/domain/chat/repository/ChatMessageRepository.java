@@ -21,7 +21,14 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, String
                     or (
                         m.createdAt = :cursorCreatedAt
                         and (
-                            (:cursorMessageOrder is not null and (m.messageOrder is null or m.messageOrder < :cursorMessageOrder))
+                            (
+                                :cursorMessageOrder is not null
+                                and (
+                                    m.messageOrder is null
+                                    or m.messageOrder < :cursorMessageOrder
+                                    or (m.messageOrder = :cursorMessageOrder and m.id < :cursorId)
+                                )
+                            )
                             or (:cursorMessageOrder is null and m.messageOrder is null and m.id < :cursorId)
                         )
                     )

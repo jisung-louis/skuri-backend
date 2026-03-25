@@ -67,6 +67,7 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final MemberRepository memberRepository;
     private final PartyMessageService partyMessageService;
+    private final ChatMessageOrderGenerator chatMessageOrderGenerator;
     private final SimpMessagingTemplate messagingTemplate;
     private final AfterCommitApplicationEventPublisher eventPublisher;
 
@@ -546,6 +547,7 @@ public class ChatService {
                 chatRoomId,
                 senderId,
                 senderName,
+                chatMessageOrderGenerator.nextOrder(),
                 text,
                 type,
                 accountData,

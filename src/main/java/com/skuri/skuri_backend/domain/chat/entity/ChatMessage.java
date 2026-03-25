@@ -23,7 +23,6 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "chat_messages",
         indexes = {
-                @Index(name = "uk_chat_messages_message_order", columnList = "message_order", unique = true),
                 @Index(name = "idx_chat_messages_room_cursor", columnList = "chat_room_id, created_at, message_order, id")
         }
 )
@@ -44,7 +43,7 @@ public class ChatMessage extends BaseTimeEntity {
     @Column(name = "sender_name", length = 50)
     private String senderName;
 
-    @Column(name = "message_order", nullable = false, updatable = false, insertable = false, columnDefinition = "BIGINT AUTO_INCREMENT")
+    @Column(name = "message_order", updatable = false)
     private Long messageOrder;
 
     @Lob
@@ -76,6 +75,7 @@ public class ChatMessage extends BaseTimeEntity {
             String chatRoomId,
             String senderId,
             String senderName,
+            Long messageOrder,
             String text,
             ChatMessageType type,
             ChatAccountData accountData,
@@ -84,6 +84,7 @@ public class ChatMessage extends BaseTimeEntity {
         this.chatRoomId = chatRoomId;
         this.senderId = senderId;
         this.senderName = senderName;
+        this.messageOrder = messageOrder;
         this.text = text;
         this.type = type;
         this.accountData = accountData;
@@ -99,6 +100,28 @@ public class ChatMessage extends BaseTimeEntity {
             ChatAccountData accountData,
             ChatArrivalData arrivalData
     ) {
-        return new ChatMessage(chatRoomId, senderId, senderName, text, type, accountData, arrivalData);
+        return create(
+                chatRoomId,
+                senderId,
+                senderName,
+                null,
+                text,
+                type,
+                accountData,
+                arrivalData
+        );
+    }
+
+    public static ChatMessage create(
+            String chatRoomId,
+            String senderId,
+            String senderName,
+            Long messageOrder,
+            String text,
+            ChatMessageType type,
+            ChatAccountData accountData,
+            ChatArrivalData arrivalData
+    ) {
+        return new ChatMessage(chatRoomId, senderId, senderName, messageOrder, text, type, accountData, arrivalData);
     }
 }
