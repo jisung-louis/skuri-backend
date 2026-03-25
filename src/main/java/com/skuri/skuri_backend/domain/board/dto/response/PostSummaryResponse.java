@@ -31,6 +31,12 @@ public record PostSummaryResponse(
         int commentCount,
         @Schema(description = "북마크 수", example = "3")
         int bookmarkCount,
+        @Schema(description = "내 좋아요 여부", example = "true")
+        boolean isLiked,
+        @Schema(description = "내 북마크 여부", example = "false")
+        boolean isBookmarked,
+        @Schema(description = "내 댓글 작성 여부", example = "true")
+        boolean isCommentedByMe,
         @Schema(description = "이미지 포함 여부", example = "true")
         boolean hasImage,
         @Schema(description = "상단 고정 여부", example = "false")

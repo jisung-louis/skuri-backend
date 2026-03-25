@@ -46,6 +46,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -94,15 +95,13 @@ public class BoardService {
             Integer size
     ) {
         Pageable pageable = resolvePageable(page, size, sort);
-        Page<PostSummaryResponse> postPage = postRepository.searchSummaries(
-                        category,
-                        trimToNull(search),
-                        trimToNull(authorId),
-                        pageable
-                )
-                .map(this::toPostSummaryResponse);
-
-        return PageResponse.from(postPage);
+        Page<PostSummaryProjection> postPage = postRepository.searchSummaries(
+                category,
+                trimToNull(search),
+                trimToNull(authorId),
+                pageable
+        );
+        return toPostSummaryPage(postPage, memberId);
     }
 
     @Transactional
@@ -210,10 +209,8 @@ public class BoardService {
     @Transactional(readOnly = true)
     public PageResponse<PostSummaryResponse> getBookmarkedPosts(String memberId, Integer page, Integer size) {
         Pageable pageable = resolvePageable(page, size, "latest");
-        Page<PostSummaryResponse> postPage = postRepository.findBookmarkedSummaries(memberId, pageable)
-                .map(this::toPostSummaryResponse);
-
-        return PageResponse.from(postPage);
+        Page<PostSummaryProjection> postPage = postRepository.findBookmarkedSummaries(memberId, pageable);
+        return toPostSummaryPage(postPage, memberId);
     }
 
     @Transactional(readOnly = true)
@@ -287,10 +284,8 @@ public class BoardService {
     @Transactional(readOnly = true)
     public PageResponse<PostSummaryResponse> getMyPosts(String memberId, Integer page, Integer size) {
         Pageable pageable = resolvePageable(page, size, "latest");
-        Page<PostSummaryResponse> postPage = postRepository.findActiveSummariesByAuthorId(memberId, pageable)
-                .map(this::toPostSummaryResponse);
-
-        return PageResponse.from(postPage);
+        Page<PostSummaryProjection> postPage = postRepository.findActiveSummariesByAuthorId(memberId, pageable);
+        return toPostSummaryPage(postPage, memberId);
     }
 
     @Transactional(readOnly = true)
@@ -368,7 +363,45 @@ public class BoardService {
         throw new BusinessException(ErrorCode.VALIDATION_ERROR, "지원하지 않는 sort 값입니다: " + normalized);
     }
 
-    private PostSummaryResponse toPostSummaryResponse(PostSummaryProjection post) {
+    private PageResponse<PostSummaryResponse> toPostSummaryPage(Page<PostSummaryProjection> postPage, String memberId) {
+        List<String> postIds = postPage.getContent().stream()
+                .map(PostSummaryProjection::getId)
+                .toList();
+        PostSummaryPersonalization personalization = resolvePostSummaryPersonalization(memberId, postIds);
+
+        return PageResponse.from(postPage.map(post -> toPostSummaryResponse(
+                post,
+                personalization.likedPostIds.contains(post.getId()),
+                personalization.bookmarkedPostIds.contains(post.getId()),
+                personalization.commentedPostIds.contains(post.getId())
+        )));
+    }
+
+    private PostSummaryPersonalization resolvePostSummaryPersonalization(String memberId, List<String> postIds) {
+        if (postIds.isEmpty() || memberId == null || memberId.isBlank()) {
+            return PostSummaryPersonalization.empty();
+        }
+
+        List<PostInteraction> interactions = postInteractionRepository.findById_UserIdAndId_PostIdIn(memberId, postIds);
+        Set<String> likedPostIds = interactions.stream()
+                .filter(PostInteraction::isLiked)
+                .map(PostInteraction::getPostId)
+                .collect(Collectors.toSet());
+        Set<String> bookmarkedPostIds = interactions.stream()
+                .filter(PostInteraction::isBookmarked)
+                .map(PostInteraction::getPostId)
+                .collect(Collectors.toSet());
+        Set<String> commentedPostIds = Set.copyOf(commentRepository.findCommentedPostIds(memberId, postIds));
+
+        return new PostSummaryPersonalization(likedPostIds, bookmarkedPostIds, commentedPostIds);
+    }
+
+    private PostSummaryResponse toPostSummaryResponse(
+            PostSummaryProjection post,
+            boolean isLiked,
+            boolean isBookmarked,
+            boolean isCommentedByMe
+    ) {
         AuthorView authorView = resolveAuthorView(post.isAnonymous(), false, post.getAuthorId(), post.getAuthorName(), post.getAuthorProfileImage(), null);
 
         return new PostSummaryResponse(
@@ -384,6 +417,9 @@ public class BoardService {
                 post.getLikeCount(),
                 post.getCommentCount(),
                 post.getBookmarkCount(),
+                isLiked,
+                isBookmarked,
+                isCommentedByMe,
                 post.isHasImage(),
                 post.isPinned(),
                 post.getCreatedAt()
@@ -639,6 +675,26 @@ public class BoardService {
         private AnonymousMetadata(String anonId, Integer anonymousOrder) {
             this.anonId = anonId;
             this.anonymousOrder = anonymousOrder;
+        }
+    }
+
+    private static final class PostSummaryPersonalization {
+        private final Set<String> likedPostIds;
+        private final Set<String> bookmarkedPostIds;
+        private final Set<String> commentedPostIds;
+
+        private PostSummaryPersonalization(
+                Set<String> likedPostIds,
+                Set<String> bookmarkedPostIds,
+                Set<String> commentedPostIds
+        ) {
+            this.likedPostIds = likedPostIds;
+            this.bookmarkedPostIds = bookmarkedPostIds;
+            this.commentedPostIds = commentedPostIds;
+        }
+
+        private static PostSummaryPersonalization empty() {
+            return new PostSummaryPersonalization(Set.of(), Set.of(), Set.of());
         }
     }
 

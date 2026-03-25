@@ -67,7 +67,10 @@ class NoticeControllerContractTest {
         mockMvc.perform(get("/v1/notices").header(AUTHORIZATION, "Bearer valid-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value("notice-1"))
-                .andExpect(jsonPath("$.data.content[0].rssPreview").value("공지 미리보기"));
+                .andExpect(jsonPath("$.data.content[0].rssPreview").value("공지 미리보기"))
+                .andExpect(jsonPath("$.data.content[0].isLiked").value(false))
+                .andExpect(jsonPath("$.data.content[0].isBookmarked").value(true))
+                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true));
     }
 
     @Test
@@ -292,6 +295,7 @@ class NoticeControllerContractTest {
                 3,
                 true,
                 false,
+                true,
                 true
         );
     }

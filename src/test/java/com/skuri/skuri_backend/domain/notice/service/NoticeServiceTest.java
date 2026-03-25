@@ -16,7 +16,6 @@ import com.skuri.skuri_backend.domain.notice.entity.NoticeBookmark;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeComment;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeLike;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeReadStatus;
-import com.skuri.skuri_backend.domain.notice.entity.NoticeBookmark;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeBookmarkRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeLikeRepository;
@@ -206,6 +205,54 @@ class NoticeServiceTest {
         assertFalse(response.isBookmarked());
         assertEquals(0, response.bookmarkCount());
         verify(noticeBookmarkRepository).delete(bookmark);
+    }
+
+    @Test
+    void getNotices_개인화상태를합성한다() {
+        Notice personalized = notice("notice-1");
+        Notice othersOnly = notice("notice-2");
+
+        when(noticeRepository.search(any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(personalized, othersOnly)));
+        when(noticeReadStatusRepository.findReadNoticeIds("member-1", List.of("notice-1", "notice-2")))
+                .thenReturn(List.of("notice-1"));
+        when(noticeLikeRepository.findLikedNoticeIds("member-1", List.of("notice-1", "notice-2")))
+                .thenReturn(List.of("notice-1"));
+        when(noticeBookmarkRepository.findBookmarkedNoticeIds("member-1", List.of("notice-1", "notice-2")))
+                .thenReturn(List.of("notice-1"));
+        when(noticeCommentRepository.findCommentedNoticeIds("member-1", List.of("notice-1", "notice-2")))
+                .thenReturn(List.of("notice-1"));
+
+        var response = noticeService.getNotices("member-1", null, null, 0, 20);
+
+        assertTrue(response.getContent().get(0).isRead());
+        assertTrue(response.getContent().get(0).isLiked());
+        assertTrue(response.getContent().get(0).isBookmarked());
+        assertTrue(response.getContent().get(0).isCommentedByMe());
+        assertFalse(response.getContent().get(1).isRead());
+        assertFalse(response.getContent().get(1).isLiked());
+        assertFalse(response.getContent().get(1).isBookmarked());
+        assertFalse(response.getContent().get(1).isCommentedByMe());
+    }
+
+    @Test
+    void getNotices_삭제된내댓글만남으면_isCommentedByMe_false() {
+        Notice notice = notice("notice-1");
+
+        when(noticeRepository.search(any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(notice)));
+        when(noticeReadStatusRepository.findReadNoticeIds("member-1", List.of("notice-1")))
+                .thenReturn(List.of());
+        when(noticeLikeRepository.findLikedNoticeIds("member-1", List.of("notice-1")))
+                .thenReturn(List.of());
+        when(noticeBookmarkRepository.findBookmarkedNoticeIds("member-1", List.of("notice-1")))
+                .thenReturn(List.of());
+        when(noticeCommentRepository.findCommentedNoticeIds("member-1", List.of("notice-1")))
+                .thenReturn(List.of());
+
+        var response = noticeService.getNotices("member-1", null, null, 0, 20);
+
+        assertFalse(response.getContent().get(0).isCommentedByMe());
     }
 
     @Test

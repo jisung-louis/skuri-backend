@@ -74,21 +74,26 @@ public class NoticeService {
         Pageable pageable = resolvePageable(page, size);
         Page<Notice> noticePage = noticeRepository.search(resolvedCategory, trimToNull(search), pageable);
         List<String> noticeIds = noticePage.getContent().stream().map(Notice::getId).toList();
-        Set<String> readNoticeIds = noticeIds.isEmpty()
+        boolean hasMemberId = StringUtils.hasText(memberId);
+        Set<String> readNoticeIds = !hasMemberId || noticeIds.isEmpty()
                 ? Set.of()
                 : Set.copyOf(noticeReadStatusRepository.findReadNoticeIds(memberId, noticeIds));
-        Set<String> likedNoticeIds = noticeIds.isEmpty()
+        Set<String> likedNoticeIds = !hasMemberId || noticeIds.isEmpty()
                 ? Set.of()
                 : Set.copyOf(noticeLikeRepository.findLikedNoticeIds(memberId, noticeIds));
-        Set<String> bookmarkedNoticeIds = noticeIds.isEmpty()
+        Set<String> bookmarkedNoticeIds = !hasMemberId || noticeIds.isEmpty()
                 ? Set.of()
                 : Set.copyOf(noticeBookmarkRepository.findBookmarkedNoticeIds(memberId, noticeIds));
+        Set<String> commentedNoticeIds = !hasMemberId || noticeIds.isEmpty()
+                ? Set.of()
+                : Set.copyOf(noticeCommentRepository.findCommentedNoticeIds(memberId, noticeIds));
 
         return PageResponse.from(noticePage.map(notice -> toSummaryResponse(
                 notice,
                 readNoticeIds.contains(notice.getId()),
                 likedNoticeIds.contains(notice.getId()),
-                bookmarkedNoticeIds.contains(notice.getId())
+                bookmarkedNoticeIds.contains(notice.getId()),
+                commentedNoticeIds.contains(notice.getId())
         )));
     }
 
@@ -262,7 +267,13 @@ public class NoticeService {
         noticeReadStatusRepository.deleteById_UserId(memberId);
     }
 
-    private NoticeSummaryResponse toSummaryResponse(Notice notice, boolean isRead, boolean isLiked, boolean isBookmarked) {
+    private NoticeSummaryResponse toSummaryResponse(
+            Notice notice,
+            boolean isRead,
+            boolean isLiked,
+            boolean isBookmarked,
+            boolean isCommentedByMe
+    ) {
         return new NoticeSummaryResponse(
                 notice.getId(),
                 notice.getTitle(),
@@ -277,7 +288,8 @@ public class NoticeService {
                 notice.getBookmarkCount(),
                 isRead,
                 isLiked,
-                isBookmarked
+                isBookmarked,
+                isCommentedByMe
         );
     }
 

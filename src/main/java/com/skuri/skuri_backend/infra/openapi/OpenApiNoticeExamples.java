@@ -24,7 +24,8 @@ public final class OpenApiNoticeExamples {
                     "bookmarkCount": 3,
                     "isRead": true,
                     "isLiked": false,
-                    "isBookmarked": true
+                    "isBookmarked": true,
+                    "isCommentedByMe": true
                   }
                 ],
                 "page": 0,

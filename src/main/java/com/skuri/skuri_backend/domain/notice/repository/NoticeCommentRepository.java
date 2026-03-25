@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,4 +39,13 @@ public interface NoticeCommentRepository extends JpaRepository<NoticeComment, St
     int findMaxAnonymousOrderByNoticeId(@Param("noticeId") String noticeId);
 
     List<NoticeComment> findByUserId(String userId);
+
+    @Query("""
+            select distinct c.notice.id
+            from NoticeComment c
+            where c.userId = :userId
+              and c.deleted = false
+              and c.notice.id in :noticeIds
+            """)
+    List<String> findCommentedNoticeIds(@Param("userId") String userId, @Param("noticeIds") Collection<String> noticeIds);
 }

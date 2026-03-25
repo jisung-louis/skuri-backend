@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,4 +57,14 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
     int findMaxAnonymousOrderByPostId(@Param("postId") String postId);
 
     List<Comment> findByAuthorId(String authorId);
+
+    @Query("""
+            select distinct c.post.id
+            from Comment c
+            where c.authorId = :authorId
+              and c.deleted = false
+              and c.post.deleted = false
+              and c.post.id in :postIds
+            """)
+    List<String> findCommentedPostIds(@Param("authorId") String authorId, @Param("postIds") Collection<String> postIds);
 }

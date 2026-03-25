@@ -119,7 +119,10 @@ class PostControllerContractTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value("post-1"))
-                .andExpect(jsonPath("$.data.content[0].bookmarkCount").value(3));
+                .andExpect(jsonPath("$.data.content[0].bookmarkCount").value(3))
+                .andExpect(jsonPath("$.data.content[0].isLiked").value(true))
+                .andExpect(jsonPath("$.data.content[0].isBookmarked").value(false))
+                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true));
     }
 
     @Test
@@ -405,6 +408,9 @@ class PostControllerContractTest {
                 2,
                 1,
                 3,
+                true,
+                false,
+                true,
                 false,
                 false,
                 LocalDateTime.now()

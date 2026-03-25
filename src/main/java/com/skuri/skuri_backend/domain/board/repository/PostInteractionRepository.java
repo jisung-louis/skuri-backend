@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,8 @@ public interface PostInteractionRepository extends JpaRepository<PostInteraction
     boolean existsById_UserIdAndId_PostIdAndLikedTrue(String userId, String postId);
 
     boolean existsById_UserIdAndId_PostIdAndBookmarkedTrue(String userId, String postId);
+
+    List<PostInteraction> findById_UserIdAndId_PostIdIn(String userId, Collection<String> postIds);
 
     @Query("""
             select pi.id.userId

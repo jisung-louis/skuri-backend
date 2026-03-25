@@ -58,7 +58,9 @@ class MemberBoardControllerContractTest {
                                 .param("size", "20")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].id").value("post-1"));
+                .andExpect(jsonPath("$.data.content[0].id").value("post-1"))
+                .andExpect(jsonPath("$.data.content[0].isLiked").value(true))
+                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true));
     }
 
     @Test
@@ -74,7 +76,8 @@ class MemberBoardControllerContractTest {
                                 .param("size", "20")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].id").value("post-1"));
+                .andExpect(jsonPath("$.data.content[0].id").value("post-1"))
+                .andExpect(jsonPath("$.data.content[0].isBookmarked").value(true));
     }
 
     @Test
@@ -112,6 +115,9 @@ class MemberBoardControllerContractTest {
                 2,
                 1,
                 3,
+                true,
+                true,
+                true,
                 false,
                 false,
                 LocalDateTime.now()
