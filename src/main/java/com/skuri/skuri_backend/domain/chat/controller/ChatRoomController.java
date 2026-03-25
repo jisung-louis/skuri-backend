@@ -331,7 +331,10 @@ public class ChatRoomController {
     }
 
     @GetMapping("/{id}/messages")
-    @Operation(summary = "채팅 메시지 조회", description = "메시지를 createdAt DESC, id DESC 정렬로 커서 기반 조회합니다. 공개방이라도 joined=false면 조회할 수 없습니다.")
+    @Operation(
+            summary = "채팅 메시지 조회",
+            description = "메시지를 createdAt DESC 기준으로 커서 기반 조회합니다. 같은 createdAt에서는 서버 내부 저장 순서 tie-breaker를 사용합니다. 공개방이라도 joined=false면 조회할 수 없습니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",

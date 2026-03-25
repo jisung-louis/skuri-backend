@@ -10,7 +10,7 @@ public record ChatMessagePageResponse(
         List<ChatMessageResponse> messages,
         @Schema(description = "다음 페이지 존재 여부", example = "true")
         boolean hasNext,
-        @Schema(description = "다음 요청 커서 (정렬: createdAt DESC, id DESC)", nullable = true)
+        @Schema(description = "다음 요청 커서 (정렬: createdAt DESC, same createdAt에서는 서버 내부 저장 순서 tie-breaker 사용)", nullable = true)
         ChatMessageCursorResponse nextCursor
 ) {
 }
