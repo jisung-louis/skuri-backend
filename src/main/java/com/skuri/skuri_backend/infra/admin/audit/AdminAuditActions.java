@@ -13,6 +13,10 @@ public final class AdminAuditActions {
     public static final String APP_NOTICE_CREATED = "APP_NOTICE_CREATED";
     public static final String APP_NOTICE_UPDATED = "APP_NOTICE_UPDATED";
     public static final String APP_NOTICE_DELETED = "APP_NOTICE_DELETED";
+    public static final String CAMPUS_BANNER_CREATED = "CAMPUS_BANNER_CREATED";
+    public static final String CAMPUS_BANNER_UPDATED = "CAMPUS_BANNER_UPDATED";
+    public static final String CAMPUS_BANNER_DELETED = "CAMPUS_BANNER_DELETED";
+    public static final String CAMPUS_BANNER_REORDERED = "CAMPUS_BANNER_REORDERED";
     public static final String INQUIRY_STATUS_UPDATED = "INQUIRY_STATUS_UPDATED";
     public static final String REPORT_STATUS_UPDATED = "REPORT_STATUS_UPDATED";
     public static final String APP_VERSION_UPSERTED = "APP_VERSION_UPSERTED";

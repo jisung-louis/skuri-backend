@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> {
                     String mediaUrlPrefix = mediaStorageProperties.normalizedUrlPrefix();
-                    authorize.requestMatchers(HttpMethod.GET, "/v1/app-versions/**", "/v1/app-notices/**").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/v1/app-versions/**", "/v1/app-notices/**", "/v1/campus-banners/**").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll();
                     if (mediaStorageProperties.getProvider() == com.skuri.skuri_backend.infra.storage.StorageProviderType.LOCAL) {
                         authorize.requestMatchers(HttpMethod.GET, mediaUrlPrefix, mediaUrlPrefix + "/**").permitAll();

@@ -1,5 +1,7 @@
 package com.skuri.skuri_backend.infra.admin.audit;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.skuri.skuri_backend.common.config.ObjectMapperConfig;
 import com.skuri.skuri_backend.domain.academic.dto.response.AcademicScheduleResponse;
 import com.skuri.skuri_backend.domain.academic.entity.Course;
 import com.skuri.skuri_backend.domain.academic.entity.CourseSchedule;
@@ -8,6 +10,9 @@ import com.skuri.skuri_backend.domain.academic.repository.CourseRepository;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeResponse;
 import com.skuri.skuri_backend.domain.app.entity.AppNotice;
 import com.skuri.skuri_backend.domain.app.repository.AppNoticeRepository;
+import com.skuri.skuri_backend.domain.campus.dto.response.CampusBannerAdminResponse;
+import com.skuri.skuri_backend.domain.campus.entity.CampusBanner;
+import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
@@ -32,6 +37,7 @@ public class AdminAuditSnapshotFactory {
     private final AcademicScheduleRepository academicScheduleRepository;
     private final CourseRepository courseRepository;
     private final AppNoticeRepository appNoticeRepository;
+    private final CampusBannerRepository campusBannerRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final InquiryRepository inquiryRepository;
     private final ReportRepository reportRepository;
@@ -93,6 +99,22 @@ public class AdminAuditSnapshotFactory {
         return appNoticeRepository.findById(appNoticeId)
                 .map(this::toAppNoticeResponse)
                 .orElse(null);
+    }
+
+    public CampusBannerAdminResponse campusBanner(String bannerId) {
+        return campusBannerRepository.findById(bannerId)
+                .map(this::toCampusBannerResponse)
+                .orElse(null);
+    }
+
+    public List<CampusBannerOrderSnapshot> campusBannerOrder() {
+        return campusBannerRepository.findAllByOrderByDisplayOrderAscCreatedAtDesc().stream()
+                .map(banner -> new CampusBannerOrderSnapshot(
+                        banner.getId(),
+                        banner.getTitleLabel(),
+                        banner.getDisplayOrder()
+                ))
+                .toList();
     }
 
     public InquirySnapshot inquiry(String inquiryId) {
@@ -176,6 +198,34 @@ public class AdminAuditSnapshotFactory {
         );
     }
 
+    private CampusBannerAdminResponse toCampusBannerResponse(CampusBanner campusBanner) {
+        return new CampusBannerAdminResponse(
+                campusBanner.getId(),
+                campusBanner.getBadgeLabel(),
+                campusBanner.getTitleLabel(),
+                campusBanner.getDescriptionLabel(),
+                campusBanner.getButtonLabel(),
+                campusBanner.getPaletteKey(),
+                campusBanner.getImageUrl(),
+                campusBanner.getActionType(),
+                campusBanner.getActionTarget(),
+                campusBanner.getActionParams() == null
+                        ? null
+                        : ObjectMapperConfig.SHARED_OBJECT_MAPPER.convertValue(
+                                campusBanner.getActionParams().deepCopy(),
+                                new TypeReference<Map<String, Object>>() {
+                                }
+                        ),
+                campusBanner.getActionUrl(),
+                campusBanner.isActive(),
+                campusBanner.getDisplayStartAt(),
+                campusBanner.getDisplayEndAt(),
+                campusBanner.getDisplayOrder(),
+                campusBanner.getCreatedAt(),
+                campusBanner.getUpdatedAt()
+        );
+    }
+
     public record CourseSemesterSnapshot(
             String semester,
             int totalCourses,
@@ -252,6 +302,13 @@ public class AdminAuditSnapshotFactory {
             String buttonText,
             String buttonUrl,
             LocalDateTime updatedAt
+    ) {
+    }
+
+    public record CampusBannerOrderSnapshot(
+            String id,
+            String titleLabel,
+            int displayOrder
     ) {
     }
 }

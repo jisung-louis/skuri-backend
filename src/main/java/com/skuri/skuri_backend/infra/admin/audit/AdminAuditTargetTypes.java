@@ -7,6 +7,7 @@ public final class AdminAuditTargetTypes {
     public static final String CHAT_ROOM = "CHAT_ROOM";
     public static final String NOTICE_SYNC = "NOTICE_SYNC";
     public static final String APP_NOTICE = "APP_NOTICE";
+    public static final String CAMPUS_BANNER = "CAMPUS_BANNER";
     public static final String INQUIRY = "INQUIRY";
     public static final String REPORT = "REPORT";
     public static final String APP_VERSION = "APP_VERSION";

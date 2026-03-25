@@ -90,6 +90,7 @@ public enum ErrorCode {
     // 공지, 앱 공지, 공지 댓글 등 공지성 콘텐츠 관리에서 발생하는 오류를 정의한다.
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_NOT_FOUND", "공지사항을 찾을 수 없습니다."),
     APP_NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "APP_NOTICE_NOT_FOUND", "앱 공지를 찾을 수 없습니다."),
+    CAMPUS_BANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "CAMPUS_BANNER_NOT_FOUND", "캠퍼스 홈 배너를 찾을 수 없습니다."),
     NOTICE_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_COMMENT_NOT_FOUND", "공지 댓글을 찾을 수 없습니다."),
     NOT_NOTICE_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_NOTICE_COMMENT_AUTHOR", "공지 댓글 작성자만 수정/삭제할 수 있습니다."),
     COMMENT_ALREADY_DELETED(HttpStatus.CONFLICT, "COMMENT_ALREADY_DELETED", "이미 삭제된 댓글입니다."),

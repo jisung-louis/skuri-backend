@@ -9,6 +9,7 @@ import java.util.Locale;
         "POST_IMAGE",
         "CHAT_IMAGE",
         "APP_NOTICE_IMAGE",
+        "CAMPUS_BANNER_IMAGE",
         "PROFILE_IMAGE"
 })
 public enum ImageUploadContext {
@@ -16,6 +17,7 @@ public enum ImageUploadContext {
     POST_IMAGE("posts", false),
     CHAT_IMAGE("chat", false),
     APP_NOTICE_IMAGE("app-notices", true),
+    CAMPUS_BANNER_IMAGE("campus-banners", true),
     PROFILE_IMAGE("profiles", false);
 
     private final String directoryName;
