@@ -70,7 +70,8 @@ class NoticeControllerContractTest {
                 .andExpect(jsonPath("$.data.content[0].rssPreview").value("공지 미리보기"))
                 .andExpect(jsonPath("$.data.content[0].isLiked").value(false))
                 .andExpect(jsonPath("$.data.content[0].isBookmarked").value(true))
-                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true));
+                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true))
+                .andExpect(jsonPath("$.data.content[0].thumbnailUrl").value("https://www.sungkyul.ac.kr/upload/notice-thumb.jpg"));
     }
 
     @Test
@@ -296,7 +297,8 @@ class NoticeControllerContractTest {
                 true,
                 false,
                 true,
-                true
+                true,
+                "https://www.sungkyul.ac.kr/upload/notice-thumb.jpg"
         );
     }
 

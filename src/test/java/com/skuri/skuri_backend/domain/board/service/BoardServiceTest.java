@@ -16,9 +16,11 @@ import com.skuri.skuri_backend.domain.board.entity.Post;
 import com.skuri.skuri_backend.domain.board.entity.PostCategory;
 import com.skuri.skuri_backend.domain.board.entity.PostInteraction;
 import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
+import com.skuri.skuri_backend.domain.board.repository.PostImageRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostInteractionRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostSummaryProjection;
+import com.skuri.skuri_backend.domain.board.repository.PostThumbnailProjection;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import org.junit.jupiter.api.Test;
@@ -36,6 +38,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,6 +55,9 @@ class BoardServiceTest {
 
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private PostImageRepository postImageRepository;
 
     @Mock
     private PostInteractionRepository postInteractionRepository;
@@ -282,11 +288,14 @@ class BoardServiceTest {
         when(projection.getCreatedAt()).thenReturn(LocalDateTime.now());
         when(postRepository.searchSummaries(any(), any(), any(), any()))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(projection)));
+        when(postImageRepository.findFirstThumbnailByPostIds(List.of("post-1")))
+                .thenReturn(List.of(thumbnailProjection("post-1", "https://example.com/post-1-thumb.jpg")));
 
         var response = boardService.getPosts("member-1", PostCategory.GENERAL, null, null, "latest", 0, 20);
 
         assertEquals(1, response.getContent().size());
         assertEquals(3, response.getContent().get(0).bookmarkCount());
+        assertEquals("https://example.com/post-1-thumb.jpg", response.getContent().get(0).thumbnailUrl());
     }
 
     @Test
@@ -300,6 +309,11 @@ class BoardServiceTest {
 
         when(postRepository.searchSummaries(any(), any(), any(), any()))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(personalized, othersOnly)));
+        when(postImageRepository.findFirstThumbnailByPostIds(List.of("post-1", "post-2")))
+                .thenReturn(List.of(
+                        thumbnailProjection("post-1", "https://example.com/post-1-thumb.jpg"),
+                        thumbnailProjection("post-2", "https://example.com/post-2-thumb.jpg")
+                ));
         when(postInteractionRepository.findById_UserIdAndId_PostIdIn("member-1", List.of("post-1", "post-2")))
                 .thenReturn(List.of(interaction));
         when(commentRepository.findCommentedPostIds("member-1", List.of("post-1", "post-2")))
@@ -310,9 +324,11 @@ class BoardServiceTest {
         assertTrue(response.getContent().get(0).isLiked());
         assertTrue(response.getContent().get(0).isBookmarked());
         assertTrue(response.getContent().get(0).isCommentedByMe());
+        assertEquals("https://example.com/post-1-thumb.jpg", response.getContent().get(0).thumbnailUrl());
         assertFalse(response.getContent().get(1).isLiked());
         assertFalse(response.getContent().get(1).isBookmarked());
         assertFalse(response.getContent().get(1).isCommentedByMe());
+        assertEquals("https://example.com/post-2-thumb.jpg", response.getContent().get(1).thumbnailUrl());
     }
 
     @Test
@@ -321,6 +337,8 @@ class BoardServiceTest {
 
         when(postRepository.searchSummaries(any(), any(), any(), any()))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(projection)));
+        when(postImageRepository.findFirstThumbnailByPostIds(List.of("post-1")))
+                .thenReturn(List.of(thumbnailProjection("post-1", "https://example.com/post-1-thumb.jpg")));
         when(postInteractionRepository.findById_UserIdAndId_PostIdIn("member-1", List.of("post-1")))
                 .thenReturn(List.of());
         when(commentRepository.findCommentedPostIds("member-1", List.of("post-1")))
@@ -329,6 +347,25 @@ class BoardServiceTest {
         var response = boardService.getPosts("member-1", PostCategory.GENERAL, null, null, "latest", 0, 20);
 
         assertFalse(response.getContent().get(0).isCommentedByMe());
+    }
+
+    @Test
+    void getPosts_이미지가없으면_thumbnailUrl은_null이다() {
+        PostSummaryProjection projection = summaryProjection("post-1", 0, false);
+
+        when(postRepository.searchSummaries(any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(projection)));
+        when(postImageRepository.findFirstThumbnailByPostIds(List.of("post-1")))
+                .thenReturn(List.of());
+        when(postInteractionRepository.findById_UserIdAndId_PostIdIn("member-1", List.of("post-1")))
+                .thenReturn(List.of());
+        when(commentRepository.findCommentedPostIds("member-1", List.of("post-1")))
+                .thenReturn(List.of());
+
+        var response = boardService.getPosts("member-1", PostCategory.GENERAL, null, null, "latest", 0, 20);
+
+        assertFalse(response.getContent().get(0).hasImage());
+        assertNull(response.getContent().get(0).thumbnailUrl());
     }
 
     @Test
@@ -488,6 +525,10 @@ class BoardServiceTest {
     }
 
     private PostSummaryProjection summaryProjection(String id, int commentCount) {
+        return summaryProjection(id, commentCount, true);
+    }
+
+    private PostSummaryProjection summaryProjection(String id, int commentCount, boolean hasImage) {
         PostSummaryProjection projection = mock(PostSummaryProjection.class);
         when(projection.getId()).thenReturn(id);
         when(projection.getTitle()).thenReturn("제목 " + id);
@@ -501,10 +542,24 @@ class BoardServiceTest {
         when(projection.getLikeCount()).thenReturn(4);
         when(projection.getCommentCount()).thenReturn(commentCount);
         when(projection.getBookmarkCount()).thenReturn(3);
-        when(projection.isHasImage()).thenReturn(true);
+        when(projection.isHasImage()).thenReturn(hasImage);
         when(projection.isPinned()).thenReturn(false);
         when(projection.getCreatedAt()).thenReturn(LocalDateTime.now());
         return projection;
+    }
+
+    private PostThumbnailProjection thumbnailProjection(String postId, String thumbnailUrl) {
+        return new PostThumbnailProjection() {
+            @Override
+            public String getPostId() {
+                return postId;
+            }
+
+            @Override
+            public String getThumbnailUrl() {
+                return thumbnailUrl;
+            }
+        };
     }
 
     private Comment comment(

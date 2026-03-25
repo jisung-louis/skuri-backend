@@ -60,7 +60,8 @@ class MemberBoardControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value("post-1"))
                 .andExpect(jsonPath("$.data.content[0].isLiked").value(true))
-                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true));
+                .andExpect(jsonPath("$.data.content[0].isCommentedByMe").value(true))
+                .andExpect(jsonPath("$.data.content[0].thumbnailUrl").value("https://example.com/post-1-thumb.jpg"));
     }
 
     @Test
@@ -119,6 +120,7 @@ class MemberBoardControllerContractTest {
                 true,
                 true,
                 false,
+                "https://example.com/post-1-thumb.jpg",
                 false,
                 LocalDateTime.now()
         );
