@@ -229,6 +229,21 @@ endReason 종류:
   - TIMEOUT: 자동 종료 (12시간 초과)
   - WITHDRAWED: 리더 탈퇴로 인한 종료
 
+택시 이용 내역 조회 규칙:
+  - 화면 전용 API는 `/v1/members/me/parties`와 분리한 `/v1/members/me/taxi-history`, `/v1/members/me/taxi-history/summary`로 제공
+  - history 목록은 `OPEN`, `CLOSED`를 제외하고 `ARRIVED`, `ENDED`만 포함
+  - `dateTime`은 persisted data 기준으로 항상 `departureTime` 사용
+  - `role`은 `leaderId == me`면 `LEADER`, 아니면 `MEMBER`
+  - `paymentAmount`는 정산 정보가 있으면 `perPersonAmount`, 없으면 `null`
+  - 외부 history status 매핑:
+    - `ARRIVED`, `ENDED + FORCE_ENDED`, `ENDED + ARRIVED(legacy)` → `COMPLETED`
+    - `ENDED + TIMEOUT` → 정산 snapshot(`settlementStatus`, `taxiFare`, `perPersonAmount`)이 있으면 `COMPLETED`, 없으면 `CANCELLED`
+    - `ENDED + CANCELLED`, `ENDED + WITHDRAWED` → `CANCELLED`
+  - summary는 동일한 history 집합을 사용하고 `completedRideCount = COMPLETED 개수`
+  - `savedFareAmount = Σ(taxiFare - perPersonAmount)` for completed entries
+    - 1회 파티 기준 “혼자 탔다면 `taxiFare`를 냈을 것”이라는 최소 침습 가정을 사용
+    - 취소/정산 미존재 항목은 집계에서 제외
+
 회원 탈퇴 연계 정책:
   - 리더 탈퇴 시 active party는 `ENDED + WITHDRAWED`로 종료
   - 리더 탈퇴와 동시에 해당 파티의 `PENDING` join request는 `DECLINED`로 정리

@@ -8,6 +8,10 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyLocationRespon
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyMemberResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryItemResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryRole;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryStatus;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistorySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyService;
@@ -34,6 +38,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -247,6 +252,59 @@ class PartyControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.memberId").value("member-1"))
                 .andExpect(jsonPath("$.data.allSettled").value(true));
+    }
+
+    @Test
+    void getMyTaxiHistory_정상조회_200() throws Exception {
+        mockValidToken();
+        when(taxiPartyService.getMyTaxiHistory("firebase-uid"))
+                .thenReturn(List.of(
+                        new TaxiHistoryItemResponse(
+                                "party-1",
+                                "성결대학교",
+                                "안양역",
+                                LocalDateTime.of(2026, 3, 4, 21, 0),
+                                3,
+                                5000,
+                                TaxiHistoryRole.LEADER,
+                                TaxiHistoryStatus.COMPLETED
+                        )
+                ));
+
+        mockMvc.perform(
+                        get("/v1/members/me/taxi-history")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].id").value("party-1"))
+                .andExpect(jsonPath("$.data[0].departureLabel").value("성결대학교"))
+                .andExpect(jsonPath("$.data[0].arrivalLabel").value("안양역"))
+                .andExpect(jsonPath("$.data[0].passengerCount").value(3))
+                .andExpect(jsonPath("$.data[0].paymentAmount").value(5000))
+                .andExpect(jsonPath("$.data[0].role").value("LEADER"))
+                .andExpect(jsonPath("$.data[0].status").value("COMPLETED"));
+    }
+
+    @Test
+    void getMyTaxiHistorySummary_정상조회_200() throws Exception {
+        mockValidToken();
+        when(taxiPartyService.getMyTaxiHistorySummary("firebase-uid"))
+                .thenReturn(new TaxiHistorySummaryResponse(4, 9374));
+
+        mockMvc.perform(
+                        get("/v1/members/me/taxi-history/summary")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.completedRideCount").value(4))
+                .andExpect(jsonPath("$.data.savedFareAmount").value(9374));
+    }
+
+    @Test
+    void getMyTaxiHistory_토큰없음_401() throws Exception {
+        mockMvc.perform(get("/v1/members/me/taxi-history"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
     }
 
     private void mockValidToken() {

@@ -27,11 +27,16 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryRespons
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementAccountResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementSummaryResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryItemResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryRole;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryStatus;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistorySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequest;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.MemberSettlement;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.entity.PartyEndReason;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyMember;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
@@ -162,6 +167,30 @@ public class TaxiPartyService {
                         toSettlementSummary(party, memberMap)
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaxiHistoryItemResponse> getMyTaxiHistory(String memberId) {
+        return findMyTaxiHistoryParties(memberId).stream()
+                .map(party -> toTaxiHistoryItemResponse(party, memberId))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TaxiHistorySummaryResponse getMyTaxiHistorySummary(String memberId) {
+        List<Party> historyParties = findMyTaxiHistoryParties(memberId);
+        int completedRideCount = 0;
+        int savedFareAmount = 0;
+
+        for (Party party : historyParties) {
+            if (toTaxiHistoryStatus(party) != TaxiHistoryStatus.COMPLETED) {
+                continue;
+            }
+            completedRideCount++;
+            savedFareAmount += calculateSavedFareAmount(party);
+        }
+
+        return new TaxiHistorySummaryResponse(completedRideCount, savedFareAmount);
     }
 
     @Transactional
@@ -625,6 +654,73 @@ public class TaxiPartyService {
 
     private JoinRequestAcceptResponse toJoinRequestAcceptResponse(JoinRequest joinRequest) {
         return new JoinRequestAcceptResponse(joinRequest.getId(), joinRequest.getStatus(), joinRequest.getParty().getId());
+    }
+
+    private List<Party> findMyTaxiHistoryParties(String memberId) {
+        return partyRepository.findMyParties(memberId).stream()
+                .filter(this::isTaxiHistoryTarget)
+                .sorted(
+                        Comparator.comparing(Party::getDepartureTime, Comparator.reverseOrder())
+                                .thenComparing(Party::getCreatedAt, Comparator.reverseOrder())
+                )
+                .toList();
+    }
+
+    private boolean isTaxiHistoryTarget(Party party) {
+        return party.getStatus() == PartyStatus.ARRIVED || party.getStatus() == PartyStatus.ENDED;
+    }
+
+    private TaxiHistoryItemResponse toTaxiHistoryItemResponse(Party party, String memberId) {
+        return new TaxiHistoryItemResponse(
+                party.getId(),
+                party.getDeparture().getName(),
+                party.getDestination().getName(),
+                party.getDepartureTime(),
+                party.getCurrentMembers(),
+                calculatePaymentAmount(party),
+                party.isLeader(memberId) ? TaxiHistoryRole.LEADER : TaxiHistoryRole.MEMBER,
+                toTaxiHistoryStatus(party)
+        );
+    }
+
+    private Integer calculatePaymentAmount(Party party) {
+        if (!hasSettlementData(party)) {
+            return null;
+        }
+        return party.getPerPersonAmount();
+    }
+
+    private int calculateSavedFareAmount(Party party) {
+        if (!hasSettlementData(party)) {
+            return 0;
+        }
+        return Math.max(party.getTaxiFare() - party.getPerPersonAmount(), 0);
+    }
+
+    private TaxiHistoryStatus toTaxiHistoryStatus(Party party) {
+        if (party.getStatus() == PartyStatus.ARRIVED) {
+            return TaxiHistoryStatus.COMPLETED;
+        }
+        if (party.getStatus() != PartyStatus.ENDED) {
+            throw new IllegalArgumentException("택시 이용 내역 대상이 아닌 파티 상태입니다: " + party.getStatus());
+        }
+
+        PartyEndReason endReason = party.getEndReason();
+        if (endReason == null) {
+            return hasSettlementData(party) ? TaxiHistoryStatus.COMPLETED : TaxiHistoryStatus.CANCELLED;
+        }
+
+        return switch (endReason) {
+            case ARRIVED, FORCE_ENDED -> TaxiHistoryStatus.COMPLETED;
+            case CANCELLED, WITHDRAWED -> TaxiHistoryStatus.CANCELLED;
+            case TIMEOUT -> hasSettlementData(party) ? TaxiHistoryStatus.COMPLETED : TaxiHistoryStatus.CANCELLED;
+        };
+    }
+
+    private boolean hasSettlementData(Party party) {
+        return party.getSettlementStatus() != null
+                && party.getTaxiFare() != null
+                && party.getPerPersonAmount() != null;
     }
 
     private Location toLocation(com.skuri.skuri_backend.domain.taxiparty.dto.request.PartyLocationRequest request) {

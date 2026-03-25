@@ -13,6 +13,8 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryItemResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistorySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
@@ -967,6 +969,68 @@ public class PartyController {
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember
     ) {
         List<MyPartyResponse> response = taxiPartyService.getMyParties(requireAuthenticatedMember(authenticatedMember).uid());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/members/me/taxi-history")
+    @Operation(summary = "내 택시 이용 내역 목록", description = "내가 참여했던 택시 파티 중 history 화면 전용 목록을 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.TaxiHistoryListApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_TAXI_HISTORY_LIST)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<List<TaxiHistoryItemResponse>>> getMyTaxiHistory(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember
+    ) {
+        List<TaxiHistoryItemResponse> response =
+                taxiPartyService.getMyTaxiHistory(requireAuthenticatedMember(authenticatedMember).uid());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/members/me/taxi-history/summary")
+    @Operation(summary = "내 택시 이용 내역 요약", description = "마이페이지/택시 이용 내역 상단 요약 정보를 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = OpenApiTaxiPartySchemas.TaxiHistorySummaryApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_TAXI_HISTORY_SUMMARY)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<TaxiHistorySummaryResponse>> getMyTaxiHistorySummary(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember
+    ) {
+        TaxiHistorySummaryResponse response =
+                taxiPartyService.getMyTaxiHistorySummary(requireAuthenticatedMember(authenticatedMember).uid());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

@@ -16,6 +16,10 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyCreateResponse
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryItemResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryRole;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryStatus;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistorySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequest;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
@@ -42,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -664,6 +669,80 @@ class TaxiPartyServiceTest {
         verify(joinRequestSseService).publishJoinRequestUpdated(joinRequest, JoinRequestStatus.PENDING);
     }
 
+    @Test
+    void getMyTaxiHistory_역할과결제금액을화면계약에맞게매핑한다() {
+        Party leaderParty = sampleParty("party-leader", "member-1", 4, "member-2");
+        leaderParty.updateDepartureTime(LocalDateTime.now().plusHours(1));
+        arrive(leaderParty, 14000, List.of("member-2"));
+
+        Party memberParty = sampleParty("party-member", "leader", 4, true);
+        memberParty.updateDepartureTime(LocalDateTime.now().plusHours(2));
+        arrive(memberParty);
+        memberParty.forceEnd();
+
+        when(partyRepository.findMyParties("member-1")).thenReturn(List.of(memberParty, leaderParty));
+
+        List<TaxiHistoryItemResponse> response = taxiPartyService.getMyTaxiHistory("member-1");
+
+        assertEquals(2, response.size());
+        assertEquals("party-member", response.get(0).id());
+        assertEquals(TaxiHistoryRole.MEMBER, response.get(0).role());
+        assertEquals(TaxiHistoryStatus.COMPLETED, response.get(0).status());
+        assertEquals(7000, response.get(0).paymentAmount());
+        assertEquals(2, response.get(0).passengerCount());
+        assertEquals(TaxiHistoryRole.LEADER, response.get(1).role());
+        assertEquals("성결대학교", response.get(1).departureLabel());
+        assertEquals("안양역", response.get(1).arrivalLabel());
+    }
+
+    @Test
+    void getMyTaxiHistory_상태매핑은완료와취소를명시적으로구분한다() {
+        Party arrivedParty = sampleParty("party-arrived", "leader", 4, true);
+        arrive(arrivedParty);
+
+        Party cancelledParty = sampleParty("party-cancelled", "leader", 4, true);
+        cancelledParty.cancel();
+
+        Party timeoutCompletedParty = sampleParty("party-timeout-completed", "leader", 4, true);
+        arrive(timeoutCompletedParty);
+        timeoutCompletedParty.timeoutEnd();
+
+        Party timeoutCancelledParty = sampleParty("party-timeout-cancelled", "leader", 4, true);
+        timeoutCancelledParty.timeoutEnd();
+
+        when(partyRepository.findMyParties("member-1"))
+                .thenReturn(List.of(arrivedParty, cancelledParty, timeoutCompletedParty, timeoutCancelledParty));
+
+        List<TaxiHistoryItemResponse> response = taxiPartyService.getMyTaxiHistory("member-1");
+
+        assertEquals(TaxiHistoryStatus.COMPLETED, findTaxiHistory(response, "party-arrived").status());
+        assertEquals(TaxiHistoryStatus.CANCELLED, findTaxiHistory(response, "party-cancelled").status());
+        assertEquals(TaxiHistoryStatus.COMPLETED, findTaxiHistory(response, "party-timeout-completed").status());
+        assertEquals(TaxiHistoryStatus.CANCELLED, findTaxiHistory(response, "party-timeout-cancelled").status());
+        assertNull(findTaxiHistory(response, "party-cancelled").paymentAmount());
+    }
+
+    @Test
+    void getMyTaxiHistorySummary_완료건수와절약금액은동일기준으로집계한다() {
+        Party completedLeaderParty = sampleParty("party-completed-1", "member-1", 4, "member-2");
+        arrive(completedLeaderParty, 14000, List.of("member-2"));
+
+        Party completedMemberParty = sampleParty("party-completed-2", "leader", 4, true);
+        arrive(completedMemberParty);
+        completedMemberParty.forceEnd();
+
+        Party cancelledParty = sampleParty("party-cancelled", "leader", 4, true);
+        cancelledParty.cancel();
+
+        when(partyRepository.findMyParties("member-1"))
+                .thenReturn(List.of(completedLeaderParty, completedMemberParty, cancelledParty));
+
+        TaxiHistorySummaryResponse response = taxiPartyService.getMyTaxiHistorySummary("member-1");
+
+        assertEquals(2, response.completedRideCount());
+        assertEquals(14000, response.savedFareAmount());
+    }
+
     private CreatePartyRequest createPartyRequest(int maxMembers) {
         return new CreatePartyRequest(
                 new PartyLocationRequest("성결대학교", 37.38, 126.93),
@@ -676,6 +755,22 @@ class TaxiPartyServiceTest {
     }
 
     private Party sampleParty(String partyId, String leaderId, int maxMembers, boolean includeMember) {
+        if (!includeMember) {
+            return sampleParty(partyId, leaderId, maxMembers);
+        }
+        return sampleParty(partyId, leaderId, maxMembers, "member-1");
+    }
+
+    private Party sampleParty(String partyId, String leaderId, int maxMembers, String... memberIds) {
+        Party party = sampleParty(partyId, leaderId, maxMembers);
+
+        for (String memberId : memberIds) {
+            party.addMember(memberId);
+        }
+        return party;
+    }
+
+    private Party sampleParty(String partyId, String leaderId, int maxMembers) {
         Party party = Party.create(
                 leaderId,
                 Location.of("성결대학교", 37.38, 126.93),
@@ -686,10 +781,6 @@ class TaxiPartyServiceTest {
                 "택시비 나눠요"
         );
         ReflectionTestUtils.setField(party, "id", partyId);
-
-        if (includeMember) {
-            party.addMember("member-1");
-        }
         return party;
     }
 
@@ -717,10 +808,21 @@ class TaxiPartyServiceTest {
     }
 
     private void arrive(Party party) {
+        arrive(party, 14000, List.of("member-1"));
+    }
+
+    private void arrive(Party party, int taxiFare, List<String> settlementTargetMemberIds) {
         party.arrive(
-                14000,
-                List.of("member-1"),
+                taxiFare,
+                settlementTargetMemberIds,
                 SettlementAccountSnapshot.of("카카오뱅크", "3333-01-1234567", "홍길동", true)
         );
+    }
+
+    private TaxiHistoryItemResponse findTaxiHistory(List<TaxiHistoryItemResponse> responses, String partyId) {
+        return responses.stream()
+                .filter(item -> item.id().equals(partyId))
+                .findFirst()
+                .orElseThrow();
     }
 }

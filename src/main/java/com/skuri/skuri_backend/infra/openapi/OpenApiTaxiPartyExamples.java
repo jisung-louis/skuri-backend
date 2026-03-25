@@ -442,6 +442,44 @@ public final class OpenApiTaxiPartyExamples {
             }
             """;
 
+    public static final String SUCCESS_TAXI_HISTORY_LIST = """
+            {
+              "success": true,
+              "data": [
+                {
+                  "id": "party-20260304-001",
+                  "departureLabel": "성결대학교",
+                  "arrivalLabel": "안양역",
+                  "dateTime": "2026-03-04T21:00:00",
+                  "passengerCount": 3,
+                  "paymentAmount": 5000,
+                  "role": "LEADER",
+                  "status": "COMPLETED"
+                },
+                {
+                  "id": "party-20260303-101",
+                  "departureLabel": "성결대학교",
+                  "arrivalLabel": "범계역",
+                  "dateTime": "2026-03-03T18:30:00",
+                  "passengerCount": 2,
+                  "paymentAmount": null,
+                  "role": "MEMBER",
+                  "status": "CANCELLED"
+                }
+              ]
+            }
+            """;
+
+    public static final String SUCCESS_TAXI_HISTORY_SUMMARY = """
+            {
+              "success": true,
+              "data": {
+                "completedRideCount": 4,
+                "savedFareAmount": 9374
+              }
+            }
+            """;
+
     public static final String ERROR_PARTY_NOT_FOUND =
             "{\"success\":false,\"message\":\"파티를 찾을 수 없습니다.\",\"errorCode\":\"PARTY_NOT_FOUND\",\"timestamp\":\"2026-03-04T12:00:00\"}";
 

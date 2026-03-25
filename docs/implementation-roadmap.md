@@ -248,6 +248,8 @@ com.skuri.skuri_backend
 | `GET` | `/v1/members/me/join-requests` | 내 요청 목록 |
 | `PATCH` | `/v1/parties/{id}/settlement/members/{memberId}/confirm` | 개별 정산 확인 (리더) |
 | `GET` | `/v1/members/me/parties` | 내 파티 목록 |
+| `GET` | `/v1/members/me/taxi-history` | 택시 이용 내역 목록 (MyScreen / TaxiHistoryScreen 전용) |
+| `GET` | `/v1/members/me/taxi-history/summary` | 택시 이용 내역 요약 (완료 횟수/절약 금액) |
 | `GET` | `/v1/sse/parties` | 파티 목록/상태 실시간 구독 (SSE) |
 | `GET` | `/v1/sse/parties/{partyId}/join-requests` | 특정 파티 동승 요청 실시간 구독 (SSE, 리더 전용) |
 | `GET` | `/v1/sse/members/me/join-requests` | 내 동승 요청 상태 실시간 구독 (SSE) |

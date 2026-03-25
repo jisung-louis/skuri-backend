@@ -10,6 +10,8 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryItemResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistorySummaryResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -146,6 +148,36 @@ public final class OpenApiTaxiPartySchemas {
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
             List<MyPartyResponse> data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "TaxiPartyHistoryListApiResponse", description = "공통 API 응답 포맷")
+    public record TaxiHistoryListApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            List<TaxiHistoryItemResponse> data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "TaxiPartyHistorySummaryApiResponse", description = "공통 API 응답 포맷")
+    public record TaxiHistorySummaryApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            TaxiHistorySummaryResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
