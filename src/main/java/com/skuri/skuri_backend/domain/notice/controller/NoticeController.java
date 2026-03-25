@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.notice.controller;
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeDetailResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
@@ -43,7 +44,7 @@ import static com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMemberSup
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/notices")
-@Tag(name = "Notice API", description = "학교 공지 조회/댓글/좋아요/읽음 API")
+@Tag(name = "Notice API", description = "학교 공지 조회/댓글/좋아요/북마크/읽음 API")
 @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME_NAME)
 public class NoticeController {
 
@@ -271,6 +272,90 @@ public class NoticeController {
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 noticeService.unlikeNotice(requireAuthenticatedMember(authenticatedMember).uid(), noticeId)
+        ));
+    }
+
+    @PostMapping("/{noticeId}/bookmark")
+    @Operation(summary = "공지 북마크 등록", description = "공지 북마크를 등록합니다. 이미 북마크한 경우에도 멱등하게 성공합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "처리 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeBookmarkApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_BOOKMARK)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "공지 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "notice_not_found", value = OpenApiNoticeExamples.ERROR_NOTICE_NOT_FOUND)
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<NoticeBookmarkResponse>> bookmarkNotice(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
+            @Parameter(description = "공지 ID", example = "bm90aWNlLTE")
+            @PathVariable String noticeId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                noticeService.bookmarkNotice(requireAuthenticatedMember(authenticatedMember).uid(), noticeId)
+        ));
+    }
+
+    @DeleteMapping("/{noticeId}/bookmark")
+    @Operation(summary = "공지 북마크 취소", description = "공지 북마크를 취소합니다. 북마크가 없어도 멱등하게 성공합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "처리 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeBookmarkApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_BOOKMARK_REMOVED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "공지 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "notice_not_found", value = OpenApiNoticeExamples.ERROR_NOTICE_NOT_FOUND)
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<NoticeBookmarkResponse>> unbookmarkNotice(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
+            @Parameter(description = "공지 ID", example = "bm90aWNlLTE")
+            @PathVariable String noticeId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                noticeService.unbookmarkNotice(requireAuthenticatedMember(authenticatedMember).uid(), noticeId)
         ));
     }
 

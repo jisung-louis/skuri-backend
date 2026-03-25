@@ -83,6 +83,9 @@ public class Notice extends BaseTimeEntity {
     @Column(name = "comment_count", nullable = false)
     private int commentCount;
 
+    @Column(name = "bookmark_count", nullable = false)
+    private int bookmarkCount;
+
     private Notice(
             String id,
             String title,
@@ -121,6 +124,7 @@ public class Notice extends BaseTimeEntity {
         this.viewCount = 0;
         this.likeCount = 0;
         this.commentCount = 0;
+        this.bookmarkCount = 0;
     }
 
     public static Notice create(
@@ -213,5 +217,9 @@ public class Notice extends BaseTimeEntity {
 
     public void increaseCommentCount(int delta) {
         this.commentCount = Math.max(0, this.commentCount + delta);
+    }
+
+    public void increaseBookmarkCount(int delta) {
+        this.bookmarkCount = Math.max(0, this.bookmarkCount + delta);
     }
 }

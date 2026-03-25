@@ -9,16 +9,20 @@ import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
 import com.skuri.skuri_backend.domain.notice.dto.request.UpdateNoticeCommentRequest;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkResponse;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkSummaryResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeDetailResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeReadResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeSummaryResponse;
 import com.skuri.skuri_backend.domain.notice.entity.Notice;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeBookmark;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeCategory;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeComment;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeLike;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeReadStatus;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeBookmarkRepository;
 import com.skuri.skuri_backend.domain.notice.exception.NoticeCommentNotFoundException;
 import com.skuri.skuri_backend.domain.notice.exception.NoticeNotFoundException;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentRepository;
@@ -54,6 +58,7 @@ public class NoticeService {
     private final NoticeCommentRepository noticeCommentRepository;
     private final NoticeReadStatusRepository noticeReadStatusRepository;
     private final NoticeLikeRepository noticeLikeRepository;
+    private final NoticeBookmarkRepository noticeBookmarkRepository;
     private final MemberRepository memberRepository;
     private final AfterCommitApplicationEventPublisher eventPublisher;
 
@@ -75,11 +80,15 @@ public class NoticeService {
         Set<String> likedNoticeIds = noticeIds.isEmpty()
                 ? Set.of()
                 : Set.copyOf(noticeLikeRepository.findLikedNoticeIds(memberId, noticeIds));
+        Set<String> bookmarkedNoticeIds = noticeIds.isEmpty()
+                ? Set.of()
+                : Set.copyOf(noticeBookmarkRepository.findBookmarkedNoticeIds(memberId, noticeIds));
 
         return PageResponse.from(noticePage.map(notice -> toSummaryResponse(
                 notice,
                 readNoticeIds.contains(notice.getId()),
-                likedNoticeIds.contains(notice.getId())
+                likedNoticeIds.contains(notice.getId()),
+                bookmarkedNoticeIds.contains(notice.getId())
         )));
     }
 
@@ -93,7 +102,8 @@ public class NoticeService {
         Notice notice = findNoticeOrThrow(noticeId);
         boolean isRead = noticeReadStatusRepository.existsById_UserIdAndId_NoticeIdAndReadTrue(memberId, noticeId);
         boolean isLiked = noticeLikeRepository.existsById_UserIdAndId_NoticeId(memberId, noticeId);
-        return toDetailResponse(notice, isRead, isLiked);
+        boolean isBookmarked = noticeBookmarkRepository.existsById_UserIdAndId_NoticeId(memberId, noticeId);
+        return toDetailResponse(notice, isRead, isLiked, isBookmarked);
     }
 
     @Transactional
@@ -195,6 +205,36 @@ public class NoticeService {
     }
 
     @Transactional
+    public NoticeBookmarkResponse bookmarkNotice(String memberId, String noticeId) {
+        Notice notice = findNoticeForUpdateOrThrow(noticeId);
+        if (noticeBookmarkRepository.existsById_UserIdAndId_NoticeId(memberId, noticeId)) {
+            return new NoticeBookmarkResponse(true, notice.getBookmarkCount());
+        }
+        noticeBookmarkRepository.save(NoticeBookmark.create(notice, memberId));
+        notice.increaseBookmarkCount(1);
+        return new NoticeBookmarkResponse(true, notice.getBookmarkCount());
+    }
+
+    @Transactional
+    public NoticeBookmarkResponse unbookmarkNotice(String memberId, String noticeId) {
+        Notice notice = findNoticeForUpdateOrThrow(noticeId);
+        noticeBookmarkRepository.findById_UserIdAndId_NoticeId(memberId, noticeId)
+                .ifPresent(bookmark -> {
+                    noticeBookmarkRepository.delete(bookmark);
+                    notice.increaseBookmarkCount(-1);
+                });
+        return new NoticeBookmarkResponse(false, notice.getBookmarkCount());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<NoticeBookmarkSummaryResponse> getMyBookmarks(String memberId, Integer page, Integer size) {
+        Pageable pageable = resolvePageable(page, size);
+        Page<NoticeBookmarkSummaryResponse> bookmarkPage = noticeBookmarkRepository.findBookmarkedNotices(memberId, pageable)
+                .map(this::toBookmarkSummaryResponse);
+        return PageResponse.from(bookmarkPage);
+    }
+
+    @Transactional
     public void handleMemberWithdrawal(String memberId) {
         noticeCommentRepository.findByUserId(memberId)
                 .forEach(NoticeComment::anonymizeAuthor);
@@ -209,10 +249,20 @@ public class NoticeService {
             noticeLikeRepository.deleteAllInBatch(likes);
         }
 
+        List<NoticeBookmark> bookmarks = noticeBookmarkRepository.findById_UserId(memberId);
+        if (!bookmarks.isEmpty()) {
+            Map<String, Integer> bookmarkCounts = new LinkedHashMap<>();
+            bookmarks.forEach(bookmark -> bookmarkCounts.merge(bookmark.getId().getNoticeId(), 1, Integer::sum));
+            noticeRepository.findAllById(bookmarkCounts.keySet()).forEach(notice ->
+                    notice.increaseBookmarkCount(-bookmarkCounts.getOrDefault(notice.getId(), 0))
+            );
+            noticeBookmarkRepository.deleteAllInBatch(bookmarks);
+        }
+
         noticeReadStatusRepository.deleteById_UserId(memberId);
     }
 
-    private NoticeSummaryResponse toSummaryResponse(Notice notice, boolean isRead, boolean isLiked) {
+    private NoticeSummaryResponse toSummaryResponse(Notice notice, boolean isRead, boolean isLiked, boolean isBookmarked) {
         return new NoticeSummaryResponse(
                 notice.getId(),
                 notice.getTitle(),
@@ -224,12 +274,14 @@ public class NoticeService {
                 notice.getViewCount(),
                 notice.getLikeCount(),
                 notice.getCommentCount(),
+                notice.getBookmarkCount(),
                 isRead,
-                isLiked
+                isLiked,
+                isBookmarked
         );
     }
 
-    private NoticeDetailResponse toDetailResponse(Notice notice, boolean isRead, boolean isLiked) {
+    private NoticeDetailResponse toDetailResponse(Notice notice, boolean isRead, boolean isLiked, boolean isBookmarked) {
         return new NoticeDetailResponse(
                 notice.getId(),
                 notice.getTitle(),
@@ -244,9 +296,21 @@ public class NoticeService {
                 notice.getViewCount(),
                 notice.getLikeCount(),
                 notice.getCommentCount(),
+                notice.getBookmarkCount(),
                 List.copyOf(notice.getAttachments()),
                 isRead,
-                isLiked
+                isLiked,
+                isBookmarked
+        );
+    }
+
+    private NoticeBookmarkSummaryResponse toBookmarkSummaryResponse(Notice notice) {
+        return new NoticeBookmarkSummaryResponse(
+                notice.getId(),
+                notice.getTitle(),
+                notice.getRssPreview(),
+                notice.getCategory(),
+                notice.getPostedAt()
         );
     }
 
