@@ -56,6 +56,26 @@ public final class OpenApiAppExamples {
 
     public static final String SUCCESS_ADMIN_APP_NOTICE_UPDATE = SUCCESS_APP_NOTICE_DETAIL;
 
+    public static final String SUCCESS_APP_NOTICE_UNREAD_COUNT = """
+            {
+              "success": true,
+              "data": {
+                "count": 2
+              }
+            }
+            """;
+
+    public static final String SUCCESS_APP_NOTICE_MARK_READ = """
+            {
+              "success": true,
+              "data": {
+                "appNoticeId": "app_notice_uuid",
+                "isRead": true,
+                "readAt": "2026-03-26T14:30:00"
+              }
+            }
+            """;
+
     public static final String ERROR_APP_NOTICE_NOT_FOUND =
             "{\"success\":false,\"message\":\"앱 공지를 찾을 수 없습니다.\",\"errorCode\":\"APP_NOTICE_NOT_FOUND\",\"timestamp\":\"2026-03-06T12:00:00\"}";
 }
