@@ -247,6 +247,24 @@ public final class OpenApiChatExamples {
             }
             """;
 
+    public static final String REQUEST_CHAT_READ_UPDATE_LOCAL = """
+            {
+              "lastReadAt": "2026-03-25T21:36:29.837407"
+            }
+            """;
+
+    public static final String REQUEST_CHAT_READ_UPDATE_UTC = """
+            {
+              "lastReadAt": "2026-03-25T12:36:29Z"
+            }
+            """;
+
+    public static final String REQUEST_CHAT_READ_UPDATE_OFFSET = """
+            {
+              "lastReadAt": "2026-03-25T21:36:29+09:00"
+            }
+            """;
+
     public static final String SUCCESS_CHAT_SETTINGS_UPDATE = """
             {
               "success": true,
