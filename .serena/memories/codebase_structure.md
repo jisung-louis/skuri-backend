@@ -21,6 +21,7 @@
 - `domain/taxiparty/entity/SettlementAccountSnapshot.java`, `domain/taxiparty/dto/request/ArrivePartyRequest.java`: ARRIVED 정산 snapshot(account/taxiFare/settlementTargetMemberIds) 계약 정의
 - `domain/board/controller/PostController.java`, `domain/board/service/BoardService.java`: 게시글 summary `bookmarkCount`와 `PATCH /v1/posts/{postId}`의 `isAnonymous` 수정 + `images` 전체 교체 계약을 관리
 - `domain/notice/controller/NoticeCommentController.java`, `domain/notice/service/NoticeService.java`: `PATCH /v1/notice-comments/{commentId}` content 수정 계약과 soft-delete/작성자 권한 규칙을 관리
+- `domain/campus/controller/CampusBannerController.java`, `domain/campus/controller/CampusBannerAdminController.java`, `domain/campus/service/CampusBannerService.java`, `domain/campus/service/CampusBannerOrderLock.java`: `campus_banners` 공개/관리자 API, 노출 기간 필터, `displayOrder` normalize, 빈 테이블 첫 생성 경쟁을 막는 순서 작업 직렬화 lock, `actionType` 정합성(`IN_APP`/`EXTERNAL_URL`)을 관리
 - `domain/*/controller/*AdminController.java`: Phase 11 기준 공통 `@AdminApiAccess`를 사용하고, 상태 변경 엔드포인트는 `@AdminAudit`로 감사 로그 대상 지정
 
 ## Admin 공통 인프라
@@ -31,7 +32,7 @@
 - `infra/admin/audit/AdminAudit.java`: 감사 로그 대상 메서드 선언 어노테이션
 - `infra/admin/audit/AdminAuditHandlerInterceptor.java`, `AdminAuditRequestBodyAdvice.java`, `AdminAuditFilter.java`: 요청/응답 본문과 before/after snapshot을 수집하는 공통 감사 계층
 - `infra/admin/audit/AdminAuditLog.java`, `AdminAuditLogRepository.java`, `AdminAuditLogService.java`: `admin_audit_logs` 저장 모델
-- `infra/admin/audit/AdminAuditSnapshotFactory.java`: Academic/Chat/App/Support 도메인 snapshot 생성기
+- `infra/admin/audit/AdminAuditSnapshotFactory.java`: Academic/Chat/App/Campus/Support 도메인 snapshot 생성기
 
 
 ## 인증 인프라
@@ -42,6 +43,8 @@
 - `common/exception/GlobalExceptionHandler.java`: `AsyncRequestNotUsableException`을 `204 No Content`로 별도 처리해 async SSE 재디스패치가 원래 subscribe 경로로 재진입하지 않게 하고, 종료 직후 `ApiResponse` JSON을 쓰려는 2차 실패도 막는다.
 
 ## 테스트 포인트
+- `src/test/java/com/skuri/skuri_backend/domain/campus/controller/CampusBannerControllerContractTest.java`, `CampusBannerAdminControllerContractTest.java`: 캠퍼스 배너 공개/관리자 contract와 admin guard 회귀 검증
+- `src/test/java/com/skuri/skuri_backend/domain/campus/service/CampusBannerServiceTest.java`, `CampusBannerRepositoryDataJpaTest.java`: action 규칙, 순서 normalize, 공개 노출 쿼리 정렬/필터 검증
 - `src/test/java/com/skuri/skuri_backend/domain/image/controller/ImageControllerContractTest.java`: `/v1/images`의 200/400/401/403/415/422 contract 검증
 - `src/test/java/com/skuri/skuri_backend/domain/image/service/ImageUploadServiceTest.java`: context 권한, 경로 naming, MIME/size/dimension validation, 원본/썸네일 저장 검증
 - `src/test/java/com/skuri/skuri_backend/domain/image/integration/ImageUploadBoardFlowIntegrationTest.java`: 실제 업로드 후 Board 저장 플로우와 공개 업로드 경로 조회 검증

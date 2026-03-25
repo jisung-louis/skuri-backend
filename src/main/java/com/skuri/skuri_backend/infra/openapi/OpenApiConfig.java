@@ -80,6 +80,17 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi campusApi() {
+        return GroupedOpenApi.builder()
+                .group("campus")
+                .pathsToMatch(
+                        "/v1/campus-banners/**",
+                        "/v1/admin/campus-banners/**"
+                )
+                .build();
+    }
+
+    @Bean
     public GroupedOpenApi taxiPartyApi() {
         return GroupedOpenApi.builder()
                 .group("taxiparty")

@@ -11,7 +11,7 @@ public record ImageUploadRequest(
         @Schema(
                 description = "업로드 컨텍스트",
                 example = "POST_IMAGE",
-                allowableValues = {"POST_IMAGE", "CHAT_IMAGE", "APP_NOTICE_IMAGE", "PROFILE_IMAGE"}
+                allowableValues = {"POST_IMAGE", "CHAT_IMAGE", "APP_NOTICE_IMAGE", "CAMPUS_BANNER_IMAGE", "PROFILE_IMAGE"}
         )
         String context
 ) {

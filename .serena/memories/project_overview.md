@@ -19,6 +19,7 @@
 - notice: 학교 공지 수집/상세/댓글/읽음, `PATCH /v1/notice-comments/{id}` content 수정 지원(익명 여부는 생성 시점 값 유지)
 - academic: 강의/시간표/학사 일정
 - app: 앱 공지
+- campus: 캠퍼스 홈 배너 공개/관리자 API, 노출 기간/정렬 normalize, actionType별 이동 규칙, `CAMPUS_BANNER_IMAGE` 업로드 컨텍스트 관리
 - support: 문의/신고/버전/학식
 - notification: 인앱 인박스, FCM 토큰, SSE, 리마인더 스케줄링, 이벤트 기반 알림 처리
 
@@ -43,7 +44,7 @@
 - Phase 11부터 Admin 공통 인프라는 `infra/auth/config/AdminApiAccess`, `ApiAccessDeniedErrorResolver`, `AdminRequestPaths`, `infra/admin/audit`, `infra/admin/list`를 중심으로 정리됐다.
 - 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)는 `admin_audit_logs`에 `actor_id`, `action`, `target_type`, `target_id`, `diff_before`, `diff_after`, `timestamp`를 저장하고, 조회 `GET` Admin API는 감사 로그 대상에서 제외한다.
 - Phase 12부터 공통 이미지 업로드 인프라는 `domain/image` + `infra/storage`로 추가됐다. `/v1/images`는 multipart 업로드 후 `url`, `thumbUrl`, `width`, `height`, `size`, `mime`를 반환하고, 기본 storage provider는 LOCAL 파일시스템이며 `FIREBASE` provider도 선택 가능하다.
-- 업로드 context는 `POST_IMAGE`, `CHAT_IMAGE`, `PROFILE_IMAGE`, `APP_NOTICE_IMAGE`를 사용하며, `APP_NOTICE_IMAGE`만 관리자 전용이다. 업로드 결과 URL은 Board/Chat/AppNotice/Profile의 기존 URL 입력 필드에 그대로 재사용한다.
+- 업로드 context는 `POST_IMAGE`, `CHAT_IMAGE`, `PROFILE_IMAGE`, `APP_NOTICE_IMAGE`, `CAMPUS_BANNER_IMAGE`를 사용하며, `APP_NOTICE_IMAGE`와 `CAMPUS_BANNER_IMAGE`는 관리자 전용이다. 업로드 결과 URL은 Board/Chat/AppNotice/Profile/CampusBanner의 기존 URL 입력 필드에 그대로 재사용한다.
 - LOCAL provider는 `GET /uploads/**`(`media.storage.url-prefix`)로 공개 제공되고 잘못된 Bearer 헤더가 있어도 공개 조회를 막지 않는다. FIREBASE provider는 버킷 업로드 후 tokenized download URL을 반환한다. 이미지 업로드는 10MB, JPEG/PNG/WebP, 최대 5000x5000px 및 총 20,000,000 픽셀 제한을 둔다.
 - Support Admin 목록 API(`GET /v1/admin/inquiries`, `GET /v1/admin/reports`)는 `PageResponse` + `page=0`/`size=20`/`size<=100` + 고정 정렬 `createdAt,DESC` 규약을 따른다.
 - 공통 응답은 `ApiResponse`, 예외는 `GlobalExceptionHandler`, ErrorCode 중심으로 처리한다.

@@ -11,6 +11,12 @@ import com.skuri.skuri_backend.domain.academic.service.CourseService;
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeAdminController;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeCreateResponse;
 import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
+import com.skuri.skuri_backend.domain.campus.controller.CampusBannerAdminController;
+import com.skuri.skuri_backend.domain.campus.dto.response.CampusBannerAdminResponse;
+import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionTarget;
+import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionType;
+import com.skuri.skuri_backend.domain.campus.entity.CampusBannerPaletteKey;
+import com.skuri.skuri_backend.domain.campus.service.CampusBannerService;
 import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
@@ -81,6 +87,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ChatAdminRoomController.class,
         NoticeAdminController.class,
         AppNoticeAdminController.class,
+        CampusBannerAdminController.class,
         InquiryAdminController.class,
         ReportAdminController.class,
         AppVersionAdminController.class,
@@ -112,6 +119,9 @@ class AdminApiGuardIntegrationTest {
 
     @MockitoBean
     private AppNoticeService appNoticeService;
+
+    @MockitoBean
+    private CampusBannerService campusBannerService;
 
     @MockitoBean
     private InquiryService inquiryService;
@@ -244,6 +254,50 @@ class AdminApiGuardIntegrationTest {
                                 .thenReturn(new AppNoticeCreateResponse("app-notice-1", "서버 점검 안내", LocalDateTime.of(2026, 2, 19, 12, 0))),
                         status().isCreated(),
                         jsonPath("$.data.id").value("app-notice-1")
+                ),
+                endpoint(
+                        "campus banner create",
+                        () -> post("/v1/admin/campus-banners")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "badgeLabel": "택시 파티",
+                                          "titleLabel": "택시 동승 매칭",
+                                          "descriptionLabel": "같은 방향 가는 학생과 택시비를 함께 나눠요",
+                                          "buttonLabel": "파티 찾기",
+                                          "paletteKey": "GREEN",
+                                          "imageUrl": "https://cdn.skuri.app/uploads/campus-banners/2026/03/25/banner-1.jpg",
+                                          "actionType": "IN_APP",
+                                          "actionTarget": "TAXI_MAIN",
+                                          "actionParams": null,
+                                          "actionUrl": null,
+                                          "isActive": true,
+                                          "displayStartAt": "2026-03-25T00:00:00",
+                                          "displayEndAt": null
+                                        }
+                                        """),
+                        () -> when(campusBannerService.createBanner(any()))
+                                .thenReturn(new CampusBannerAdminResponse(
+                                        "campus-banner-1",
+                                        "택시 파티",
+                                        "택시 동승 매칭",
+                                        "같은 방향 가는 학생과 택시비를 함께 나눠요",
+                                        "파티 찾기",
+                                        CampusBannerPaletteKey.GREEN,
+                                        "https://cdn.skuri.app/uploads/campus-banners/2026/03/25/banner-1.jpg",
+                                        CampusBannerActionType.IN_APP,
+                                        CampusBannerActionTarget.TAXI_MAIN,
+                                        null,
+                                        null,
+                                        true,
+                                        LocalDateTime.of(2026, 3, 25, 0, 0),
+                                        null,
+                                        1,
+                                        LocalDateTime.of(2026, 3, 25, 10, 0),
+                                        LocalDateTime.of(2026, 3, 25, 10, 0)
+                                )),
+                        status().isCreated(),
+                        jsonPath("$.data.id").value("campus-banner-1")
                 ),
                 endpoint(
                         "inquiry list",
