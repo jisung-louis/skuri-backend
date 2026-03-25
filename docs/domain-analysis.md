@@ -182,6 +182,7 @@ Hooks:
   - `perPersonAmount`는 `taxiFare / (정산대상인원 + 리더 1명)` 정수 나눗셈(버림)으로 계산
   - 정수 나눗셈으로 생기는 잔여 1원 단위 금액은 서버에서 분배하지 않음(리더 현장 정산 정책)
   - 동승 요청 승인, 모집 마감/재개, 멤버 나가기, 도착 처리, 취소/종료는 서버가 파티 채팅방 안내 메시지(`SYSTEM`/`ARRIVED`/`END`)를 생성한다
+  - 동승 요청 승인으로 파티가 정원에 도달하면 `SYSTEM` 메시지는 `합류 안내 -> 모집 마감 안내` 순서로 같은 트랜잭션 안에서 저장되고, 커밋 후 같은 순서로 브로드캐스트된다
 
 상태 머신:
   Party:
@@ -735,7 +736,7 @@ UserNotification 엔티티:
   - `MEMBER_KICKED`: 강퇴된 멤버 대상, 자진 이탈과 리더 제외, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
   - `PARTY_ENDED`: 리더 제외 파티 멤버 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
   - `CHAT_MESSAGE`(공개 채팅): 채팅방 멤버 대상, `allNotifications` + 채팅방 mute 반영, 인앱 인박스 미생성
-  - `CHAT_MESSAGE`(파티 채팅): 파티 멤버 대상, 채팅 mute 중심 parity를 유지하고 전역 토글은 현재 미반영, 인앱 인박스 미생성
+  - `CHAT_MESSAGE`(파티 채팅): 파티 멤버 대상, `TEXT`/`IMAGE`뿐 아니라 `ACCOUNT`/`SYSTEM`/`ARRIVED`/`END`도 포함, 채팅 mute 중심 parity를 유지하고 전역 토글은 현재 미반영, 인앱 인박스 미생성, payload canonical 식별자는 `chatRoomId`
   - `POST_LIKED`: 게시글 작성자 대상, 자기 좋아요 제외, `allNotifications` + `boardLikeNotifications` 반영, 인앱 인박스 생성
   - `COMMENT_CREATED`(게시글): 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 대상, 자기 자신 제외, `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` 반영, 중복 대상자는 1회 dedupe 후 인앱 인박스 생성
   - `COMMENT_CREATED`(공지): 현재 `Notice.author`는 문자열 필드만 있어 공지 작성자 식별이 불가능하므로, 부모 댓글 작성자 대상 답글 알림만 발송하며 `allNotifications` + `commentNotifications`를 반영
@@ -1317,6 +1318,7 @@ public enum MessageDirection {
   - 동승 요청 승인, 모집 마감, 모집 재개, 멤버 나가기 → `SYSTEM` 메시지 생성
   - 도착 처리 → 정산 snapshot이 포함된 `ARRIVED` 메시지 생성
   - 리더 취소/종료/탈퇴 종료 → `END` 메시지 생성
+- 위 서버 생성 메시지는 모두 `GET /v1/chat-rooms/{chatRoomId}/messages`와 `/topic/chat/{chatRoomId}`의 동일 계약으로 전달된다.
 - 파티 상태 변경과 서버 생성 채팅 메시지는 같은 트랜잭션 안에서 저장하고, WebSocket 브로드캐스트는 커밋 후 수행한다.
 
 ---
