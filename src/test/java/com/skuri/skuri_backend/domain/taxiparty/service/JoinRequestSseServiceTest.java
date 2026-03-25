@@ -2,14 +2,11 @@ package com.skuri.skuri_backend.domain.taxiparty.service;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
-import com.skuri.skuri_backend.domain.member.entity.Member;
-import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestListItemResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequest;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
-import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
-import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -22,7 +19,6 @@ import java.lang.reflect.Constructor;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -35,37 +31,25 @@ import static org.mockito.Mockito.when;
 class JoinRequestSseServiceTest {
 
     @Mock
-    private PartyRepository partyRepository;
-
-    @Mock
-    private JoinRequestRepository joinRequestRepository;
-
-    @Mock
-    private MemberRepository memberRepository;
+    private JoinRequestSseSnapshotService joinRequestSseSnapshotService;
 
     @Test
-    void subscribePartyJoinRequests_스냅샷조회수행() {
-        JoinRequestSseService service = new JoinRequestSseService(partyRepository, joinRequestRepository, memberRepository);
-        Party party = sampleParty("party-1", "leader-1");
-        JoinRequest request = sampleJoinRequest("request-1", party, "requester-1");
-        Member requester = Member.create("requester-1", "requester@sungkyul.ac.kr", "요청자", LocalDateTime.now());
-
-        when(partyRepository.findById("party-1")).thenReturn(Optional.of(party));
-        when(joinRequestRepository.findByParty_IdOrderByCreatedAtDesc("party-1")).thenReturn(List.of(request));
-        when(memberRepository.findAllById(List.of("requester-1"))).thenReturn(List.of(requester));
+    void subscribePartyJoinRequests_스냅샷준비수행() {
+        JoinRequestSseService service = new JoinRequestSseService(joinRequestSseSnapshotService);
+        when(joinRequestSseSnapshotService.createPartyJoinRequestsSnapshotPayload("leader-1", "party-1"))
+                .thenReturn(Map.of("partyId", "party-1", "requests", List.of()));
 
         SseEmitter emitter = service.subscribePartyJoinRequests("leader-1", "party-1");
 
         assertNotNull(emitter);
-        verify(joinRequestRepository).findByParty_IdOrderByCreatedAtDesc("party-1");
-        verify(memberRepository).findAllById(List.of("requester-1"));
+        verify(joinRequestSseSnapshotService).createPartyJoinRequestsSnapshotPayload("leader-1", "party-1");
     }
 
     @Test
     void subscribePartyJoinRequests_리더아니면_NOT_PARTY_LEADER() {
-        JoinRequestSseService service = new JoinRequestSseService(partyRepository, joinRequestRepository, memberRepository);
-        Party party = sampleParty("party-1", "leader-1");
-        when(partyRepository.findById("party-1")).thenReturn(Optional.of(party));
+        JoinRequestSseService service = new JoinRequestSseService(joinRequestSseSnapshotService);
+        when(joinRequestSseSnapshotService.createPartyJoinRequestsSnapshotPayload("member-2", "party-1"))
+                .thenThrow(new BusinessException(ErrorCode.NOT_PARTY_LEADER));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -76,49 +60,37 @@ class JoinRequestSseServiceTest {
     }
 
     @Test
-    void subscribeMyJoinRequests_status없음이면_전체스냅샷조회() {
-        JoinRequestSseService service = new JoinRequestSseService(partyRepository, joinRequestRepository, memberRepository);
-        Party party = sampleParty("party-1", "leader-1");
-        JoinRequest request = sampleJoinRequest("request-1", party, "requester-1");
-        Member requester = Member.create("requester-1", "requester@sungkyul.ac.kr", "요청자", LocalDateTime.now());
-
-        when(joinRequestRepository.findByRequesterIdOrderByCreatedAtDesc("requester-1")).thenReturn(List.of(request));
-        when(memberRepository.findAllById(List.of("requester-1"))).thenReturn(List.of(requester));
+    void subscribeMyJoinRequests_status없음이면_전체스냅샷준비() {
+        JoinRequestSseService service = new JoinRequestSseService(joinRequestSseSnapshotService);
+        when(joinRequestSseSnapshotService.createMyJoinRequestsSnapshotPayload("requester-1", null))
+                .thenReturn(Map.of("requests", List.of()));
 
         SseEmitter emitter = service.subscribeMyJoinRequests("requester-1", null);
 
         assertNotNull(emitter);
-        verify(joinRequestRepository).findByRequesterIdOrderByCreatedAtDesc("requester-1");
-        verify(memberRepository).findAllById(List.of("requester-1"));
+        verify(joinRequestSseSnapshotService).createMyJoinRequestsSnapshotPayload("requester-1", null);
     }
 
     @Test
-    void subscribeMyJoinRequests_status지정이면_필터스냅샷조회() {
-        JoinRequestSseService service = new JoinRequestSseService(partyRepository, joinRequestRepository, memberRepository);
-        Party party = sampleParty("party-1", "leader-1");
-        JoinRequest request = sampleJoinRequest("request-1", party, "requester-1");
-        request.accept();
-        Member requester = Member.create("requester-1", "requester@sungkyul.ac.kr", "요청자", LocalDateTime.now());
-
-        when(joinRequestRepository.findByRequesterIdAndStatusOrderByCreatedAtDesc("requester-1", JoinRequestStatus.ACCEPTED))
-                .thenReturn(List.of(request));
-        when(memberRepository.findAllById(List.of("requester-1"))).thenReturn(List.of(requester));
+    void subscribeMyJoinRequests_status지정이면_필터스냅샷준비() {
+        JoinRequestSseService service = new JoinRequestSseService(joinRequestSseSnapshotService);
+        when(joinRequestSseSnapshotService.createMyJoinRequestsSnapshotPayload("requester-1", JoinRequestStatus.ACCEPTED))
+                .thenReturn(Map.of("requests", List.of()));
 
         SseEmitter emitter = service.subscribeMyJoinRequests("requester-1", JoinRequestStatus.ACCEPTED);
 
         assertNotNull(emitter);
-        verify(joinRequestRepository).findByRequesterIdAndStatusOrderByCreatedAtDesc("requester-1", JoinRequestStatus.ACCEPTED);
-        verify(memberRepository).findAllById(List.of("requester-1"));
+        verify(joinRequestSseSnapshotService)
+                .createMyJoinRequestsSnapshotPayload("requester-1", JoinRequestStatus.ACCEPTED);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void publishJoinRequestCreated_대상구독자에게만전송() throws Exception {
-        JoinRequestSseService service = new JoinRequestSseService(partyRepository, joinRequestRepository, memberRepository);
+        JoinRequestSseService service = new JoinRequestSseService(joinRequestSseSnapshotService);
         Party party = sampleParty("party-1", "leader-1");
         JoinRequest request = sampleJoinRequest("request-1", party, "requester-1");
-        Member requester = Member.create("requester-1", "requester@sungkyul.ac.kr", "요청자", LocalDateTime.now());
-        when(memberRepository.findById("requester-1")).thenReturn(Optional.of(requester));
+        when(joinRequestSseSnapshotService.toSseItem(request)).thenReturn(sampleResponse(request));
 
         CountingEmitter partyMatchedEmitter = new CountingEmitter();
         CountingEmitter partyOtherEmitter = new CountingEmitter();
@@ -148,13 +120,12 @@ class JoinRequestSseServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void publishJoinRequestUpdated_이전상태현재상태필터로전송() throws Exception {
-        JoinRequestSseService service = new JoinRequestSseService(partyRepository, joinRequestRepository, memberRepository);
+        JoinRequestSseService service = new JoinRequestSseService(joinRequestSseSnapshotService);
         Party party = sampleParty("party-1", "leader-1");
         JoinRequest request = sampleJoinRequest("request-1", party, "requester-1");
         request.accept();
 
-        Member requester = Member.create("requester-1", "requester@sungkyul.ac.kr", "요청자", LocalDateTime.now());
-        when(memberRepository.findById("requester-1")).thenReturn(Optional.of(requester));
+        when(joinRequestSseSnapshotService.toSseItem(request)).thenReturn(sampleResponse(request));
 
         CountingEmitter partyEmitter = new CountingEmitter();
         CountingEmitter myPendingEmitter = new CountingEmitter();
@@ -179,7 +150,7 @@ class JoinRequestSseServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void publishHeartbeat_전송실패시_구독해제() throws Exception {
-        JoinRequestSseService service = new JoinRequestSseService(partyRepository, joinRequestRepository, memberRepository);
+        JoinRequestSseService service = new JoinRequestSseService(joinRequestSseSnapshotService);
         Map<String, Object> partySubscribers = (Map<String, Object>) ReflectionTestUtils.getField(service, "partyJoinRequestSubscribers");
         Map<String, Object> mySubscribers = (Map<String, Object>) ReflectionTestUtils.getField(service, "myJoinRequestSubscribers");
 
@@ -203,7 +174,7 @@ class JoinRequestSseServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void publishHeartbeat_양채널전송동작() throws Exception {
-        JoinRequestSseService service = new JoinRequestSseService(partyRepository, joinRequestRepository, memberRepository);
+        JoinRequestSseService service = new JoinRequestSseService(joinRequestSseSnapshotService);
         Map<String, Object> partySubscribers = (Map<String, Object>) ReflectionTestUtils.getField(service, "partyJoinRequestSubscribers");
         Map<String, Object> mySubscribers = (Map<String, Object>) ReflectionTestUtils.getField(service, "myJoinRequestSubscribers");
 
@@ -251,6 +222,18 @@ class JoinRequestSseServiceTest {
         ReflectionTestUtils.setField(request, "id", requestId);
         ReflectionTestUtils.setField(request, "createdAt", LocalDateTime.now());
         return request;
+    }
+
+    private JoinRequestListItemResponse sampleResponse(JoinRequest request) {
+        return new JoinRequestListItemResponse(
+                request.getId(),
+                request.getParty().getId(),
+                request.getRequesterId(),
+                "요청자",
+                "https://example.com/profile.jpg",
+                request.getStatus(),
+                request.getCreatedAt()
+        );
     }
 
     private static final class CountingEmitter extends SseEmitter {
