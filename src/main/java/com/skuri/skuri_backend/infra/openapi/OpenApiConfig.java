@@ -43,6 +43,7 @@ public class OpenApiConfig {
                 .pathsToExclude(
                         "/v1/members/me/posts",
                         "/v1/members/me/bookmarks",
+                        "/v1/members/me/notice-bookmarks",
                         "/v1/members/me/fcm-tokens"
                 )
                 .build();
@@ -72,6 +73,7 @@ public class OpenApiConfig {
                 .pathsToMatch(
                         "/v1/notices/**",
                         "/v1/notice-comments/**",
+                        "/v1/members/me/notice-bookmarks",
                         "/v1/app-notices/**",
                         "/v1/admin/notices/**",
                         "/v1/admin/app-notices/**"
