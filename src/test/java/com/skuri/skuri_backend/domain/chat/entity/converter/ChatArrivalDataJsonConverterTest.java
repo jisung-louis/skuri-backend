@@ -39,4 +39,39 @@ class ChatArrivalDataJsonConverterTest {
         assertNotNull(arrivalData.getAccountData());
         assertEquals("카카오뱅크", arrivalData.getAccountData().getBankName());
     }
+
+    @Test
+    void convertToEntityAttribute_정산대상상태필드도역직렬화한다() {
+        String json = """
+                {
+                  "taxiFare": 14000,
+                  "perPersonAmount": 7000,
+                  "splitMemberCount": 2,
+                  "settlementTargetMemberIds": ["member-2"],
+                  "memberSettlements": [
+                    {
+                      "memberId": "member-2",
+                      "displayName": "김철수",
+                      "settled": false,
+                      "settledAt": null,
+                      "leftParty": true,
+                      "leftAt": "2026-03-25T21:10:00"
+                    }
+                  ],
+                  "accountData": {
+                    "bankName": "카카오뱅크",
+                    "accountNumber": "3333-03-1234567",
+                    "accountHolder": "홍*동",
+                    "hideName": true
+                  }
+                }
+                """;
+
+        ChatArrivalData arrivalData = converter.convertToEntityAttribute(json);
+
+        assertNotNull(arrivalData);
+        assertEquals(1, arrivalData.getMemberSettlements().size());
+        assertEquals("김철수", arrivalData.getMemberSettlements().get(0).getDisplayName());
+        assertEquals(true, arrivalData.getMemberSettlements().get(0).isLeftParty());
+    }
 }
