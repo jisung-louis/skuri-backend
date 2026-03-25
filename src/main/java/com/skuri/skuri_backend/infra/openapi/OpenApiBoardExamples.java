@@ -58,6 +58,9 @@ public final class OpenApiBoardExamples {
                     "likeCount": 10,
                     "commentCount": 5,
                     "bookmarkCount": 3,
+                    "isLiked": true,
+                    "isBookmarked": false,
+                    "isCommentedByMe": true,
                     "hasImage": true,
                     "isPinned": false,
                     "createdAt": "2026-02-03T12:00:00"
@@ -206,6 +209,9 @@ public final class OpenApiBoardExamples {
                     "likeCount": 10,
                     "commentCount": 5,
                     "bookmarkCount": 4,
+                    "isLiked": true,
+                    "isBookmarked": true,
+                    "isCommentedByMe": false,
                     "hasImage": false,
                     "isPinned": false,
                     "createdAt": "2026-02-03T12:00:00"
