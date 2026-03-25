@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeDetailResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
@@ -155,6 +156,41 @@ class NoticeControllerContractTest {
     }
 
     @Test
+    void postBookmark_정상요청_200() throws Exception {
+        mockValidToken();
+        when(noticeService.bookmarkNotice("firebase-uid", "notice-1"))
+                .thenReturn(new NoticeBookmarkResponse(true, 4));
+
+        mockMvc.perform(post("/v1/notices/notice-1/bookmark").header(AUTHORIZATION, "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isBookmarked").value(true))
+                .andExpect(jsonPath("$.data.bookmarkCount").value(4));
+    }
+
+    @Test
+    void postBookmark_공지없음_404() throws Exception {
+        mockValidToken();
+        when(noticeService.bookmarkNotice("firebase-uid", "not-found"))
+                .thenThrow(new BusinessException(ErrorCode.NOTICE_NOT_FOUND));
+
+        mockMvc.perform(post("/v1/notices/not-found/bookmark").header(AUTHORIZATION, "Bearer valid-token"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("NOTICE_NOT_FOUND"));
+    }
+
+    @Test
+    void deleteBookmark_정상요청_200() throws Exception {
+        mockValidToken();
+        when(noticeService.unbookmarkNotice("firebase-uid", "notice-1"))
+                .thenReturn(new NoticeBookmarkResponse(false, 3));
+
+        mockMvc.perform(delete("/v1/notices/notice-1/bookmark").header(AUTHORIZATION, "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isBookmarked").value(false))
+                .andExpect(jsonPath("$.data.bookmarkCount").value(3));
+    }
+
+    @Test
     void getComments_정상요청_200() throws Exception {
         mockValidToken();
         when(noticeService.getComments("firebase-uid", "notice-1"))
@@ -253,8 +289,10 @@ class NoticeControllerContractTest {
                 100,
                 10,
                 5,
+                3,
                 true,
-                false
+                false,
+                true
         );
     }
 
@@ -273,7 +311,9 @@ class NoticeControllerContractTest {
                 101,
                 11,
                 5,
+                4,
                 List.of(new NoticeAttachment("첨부.pdf", "https://download", "https://preview")),
+                true,
                 true,
                 true
         );

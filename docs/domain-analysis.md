@@ -407,7 +407,7 @@ Hooks:
     - contentHash (실제 내용 기반 dedup용)
     - bodyText (plain text), bodyHtml (HTML), attachments[]
     - detailCheckedAt (상세 재검증 시각)
-    - viewCount, likeCount, commentCount
+    - viewCount, likeCount, commentCount, bookmarkCount
   - NoticeComment
     - id, noticeId, userId, userDisplayName
     - content, isAnonymous, anonId (= "{noticeId}:{userId}")
@@ -421,11 +421,20 @@ Hooks:
   - NoticeLike
     - userId, noticeId
     - 공지 좋아요 중복 방지 및 likeCount 동기화 용도
+  - NoticeBookmark
+    - userId, noticeId
+    - 공지 북마크 중복 방지 및 내 북마크 목록 조회 용도
   - AppNotice
     - id, title, content
     - category (UPDATE, MAINTENANCE, EVENT, GENERAL)
     - priority (HIGH, NORMAL, LOW)
     - imageUrls[], actionUrl, publishedAt
+
+조회/응답 정책:
+  - 내 북마크 공지: GET /v1/members/me/notice-bookmarks
+  - 목록 item은 공개 Notice API와 naming parity를 유지하기 위해 `rssPreview`, `postedAt`를 그대로 사용
+  - 북마크 등록/취소는 `NoticeLike`와 별도 저장 모델을 사용하며 idempotent 하게 처리
+  - 공개 Notice 목록/상세는 `bookmarkCount`와 현재 사용자 기준 `isBookmarked`를 함께 반환
 
 동기화 정책:
   - 스케줄: 평일 08:00~19:50, 10분 주기, Asia/Seoul
@@ -449,7 +458,7 @@ Hooks:
 회원 탈퇴 연계 정책:
   - 공지 본문은 회원과 독립적인 외부 데이터이므로 영향 없음
   - `NoticeComment`는 본문을 유지하고 `userId`, `userDisplayName`만 익명화
-  - `NoticeLike`, `NoticeReadStatus`는 탈퇴 회원 기준으로 정리
+  - `NoticeLike`, `NoticeBookmark`, `NoticeReadStatus`는 탈퇴 회원 기준으로 정리
 
 댓글 수정 정책:
   - `PATCH /v1/notice-comments/{commentId}`는 `content`만 수정 가능
@@ -1357,3 +1366,4 @@ public enum MessageDirection {
 > - 2026-03-08: Phase 8 Notification 인프라 반영 — RDB 저장 모델(`user_notifications`, `fcm_tokens`), after-commit 이벤트, 학사 일정 알림 설정, `PARTY_*` canonical enum 동기화
 > - 2026-03-09: Phase 10 Member 라이프사이클 반영 — soft delete tombstone, 동일 UID 재가입 차단, TaxiParty/Chat/Board/Notice/Support/Notification/Academic 탈퇴 정합성 정책 추가
 > - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `AdminAuditLog` 엔티티를 `actorId/action/targetType/targetId/diffBefore/diffAfter/timestamp` 구조로 구체화하고, Support 운영 목록/인가 공통 규약을 반영
+> - 2026-03-25: Notice 북마크 구현 반영 — `NoticeBookmark` 저장 모델, 내 북마크 공지 목록 naming parity(`rssPreview`, `postedAt`), withdrawal cleanup 정책 추가

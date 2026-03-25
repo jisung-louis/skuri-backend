@@ -21,8 +21,10 @@ public final class OpenApiNoticeExamples {
                     "viewCount": 500,
                     "likeCount": 10,
                     "commentCount": 10,
+                    "bookmarkCount": 3,
                     "isRead": true,
-                    "isLiked": false
+                    "isLiked": false,
+                    "isBookmarked": true
                   }
                 ],
                 "page": 0,
@@ -52,6 +54,7 @@ public final class OpenApiNoticeExamples {
                 "viewCount": 501,
                 "likeCount": 11,
                 "commentCount": 10,
+                "bookmarkCount": 4,
                 "attachments": [
                   {
                     "name": "수강신청 안내.pdf",
@@ -60,7 +63,8 @@ public final class OpenApiNoticeExamples {
                   }
                 ],
                 "isRead": true,
-                "isLiked": true
+                "isLiked": true,
+                "isBookmarked": true
               }
             }
             """;
@@ -82,6 +86,49 @@ public final class OpenApiNoticeExamples {
               "data": {
                 "isLiked": true,
                 "likeCount": 11
+              }
+            }
+            """;
+
+    public static final String SUCCESS_NOTICE_BOOKMARK = """
+            {
+              "success": true,
+              "data": {
+                "isBookmarked": true,
+                "bookmarkCount": 4
+              }
+            }
+            """;
+
+    public static final String SUCCESS_NOTICE_BOOKMARK_REMOVED = """
+            {
+              "success": true,
+              "data": {
+                "isBookmarked": false,
+                "bookmarkCount": 3
+              }
+            }
+            """;
+
+    public static final String SUCCESS_NOTICE_BOOKMARK_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "content": [
+                  {
+                    "id": "bm90aWNlLTE",
+                    "title": "2026학년도 1학기 수강신청 안내",
+                    "rssPreview": "수강신청 일정, 대상 학년, 유의사항을 안내합니다.",
+                    "category": "학사",
+                    "postedAt": "2026-02-01T09:00:00"
+                  }
+                ],
+                "page": 0,
+                "size": 20,
+                "totalElements": 1,
+                "totalPages": 1,
+                "hasNext": false,
+                "hasPrevious": false
               }
             }
             """;

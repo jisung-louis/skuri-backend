@@ -272,6 +272,7 @@ erDiagram
         int view_count "DEFAULT 0"
         int like_count "DEFAULT 0"
         int comment_count "DEFAULT 0"
+        int bookmark_count "DEFAULT 0"
         datetime created_at
         datetime updated_at
     }
@@ -299,6 +300,11 @@ erDiagram
     }
 
     notice_likes {
+        varchar(36) user_id PK "회원 ID"
+        varchar(120) notice_id PK,FK
+    }
+
+    notice_bookmarks {
         varchar(36) user_id PK "회원 ID"
         varchar(120) notice_id PK,FK
     }
@@ -339,6 +345,7 @@ erDiagram
     notices ||--o{ notice_read_status : "has"
     notices ||--o{ notice_comments : "has"
     notices ||--o{ notice_likes : "has"
+    notices ||--o{ notice_bookmarks : "has"
     notice_comments ||--o{ notice_comments : "parent-child"
 ```
 
@@ -653,6 +660,7 @@ erDiagram
 | `notice_read_status` | 읽음 상태 | ~500,000 |
 | `notice_comments` | 공지 댓글 | ~5,000/년 |
 | `notice_likes` | 공지 좋아요 | ~200,000 |
+| `notice_bookmarks` | 공지 북마크 | ~100,000 |
 | `app_notices` | 앱 공지 | ~100 |
 
 ### 2.6 Campus 도메인
@@ -773,6 +781,7 @@ erDiagram
 | 공지-읽음 | notices | notice_read_status | 1:N | 공지별 읽음 상태 |
 | 공지-댓글 | notices | notice_comments | 1:N | 공지에 여러 댓글 |
 | 공지-좋아요 | notices | notice_likes | 1:N | 공지별 좋아요 |
+| 공지-북마크 | notices | notice_bookmarks | 1:N | 공지별 북마크 |
 | 캠퍼스 배너 | campus_banners | (없음) | 독립 테이블 | 홈 배너 콘텐츠/노출 기간/정렬 관리 |
 | 강의-시간 | courses | course_schedules | 1:N | 강의에 여러 시간 슬롯 |
 | 시간표-강의 | user_timetables | user_timetable_courses | 1:N | 시간표에 여러 강의 |
@@ -829,6 +838,27 @@ ALTER TABLE comments
 ALTER TABLE post_interactions
   ADD CONSTRAINT fk_post_interactions_post
   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE;
+
+-- Notice 도메인
+ALTER TABLE notice_read_status
+  ADD CONSTRAINT fk_notice_read_status_notice
+  FOREIGN KEY (notice_id) REFERENCES notices(id) ON DELETE CASCADE;
+
+ALTER TABLE notice_comments
+  ADD CONSTRAINT fk_notice_comments_notice
+  FOREIGN KEY (notice_id) REFERENCES notices(id) ON DELETE CASCADE;
+
+ALTER TABLE notice_comments
+  ADD CONSTRAINT fk_notice_comments_parent
+  FOREIGN KEY (parent_id) REFERENCES notice_comments(id) ON DELETE SET NULL;
+
+ALTER TABLE notice_likes
+  ADD CONSTRAINT fk_notice_likes_notice
+  FOREIGN KEY (notice_id) REFERENCES notices(id) ON DELETE CASCADE;
+
+ALTER TABLE notice_bookmarks
+  ADD CONSTRAINT fk_notice_bookmarks_notice
+  FOREIGN KEY (notice_id) REFERENCES notices(id) ON DELETE CASCADE;
 ```
 
 ---
@@ -926,6 +956,9 @@ CREATE INDEX idx_notice_comments_parent ON notice_comments(parent_id);
 
 -- notice_likes
 CREATE INDEX idx_notice_likes_user ON notice_likes(user_id);
+
+-- notice_bookmarks
+CREATE INDEX idx_notice_bookmarks_user ON notice_bookmarks(user_id);
 ```
 
 ### 4.6 Campus 도메인
@@ -998,3 +1031,4 @@ CREATE INDEX idx_audit_logs_timestamp ON admin_audit_logs(timestamp DESC);
 > - 2026-03-08: Phase 8 Notification 인프라 반영 — members 학사 일정 알림 컬럼, `user_notifications`/`fcm_tokens` 상세, notification type canonical enum 동기화
 > - 2026-03-25: Campus Banner 테이블 추가 — `campus_banners` 컬럼/인덱스/독립 도메인 분류 반영
 > - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `admin_audit_logs` 상세 컬럼(`diff_before`, `diff_after`, `timestamp`)과 운영 식별자/저장 범위 정책을 문서화
+> - 2026-03-25: Notice 북마크 테이블 추가 — `notice_bookmarks` 관계/FK/인덱스 및 Notice 도메인 예상 레코드 수 반영

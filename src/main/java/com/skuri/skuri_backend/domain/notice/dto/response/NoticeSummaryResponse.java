@@ -26,9 +26,13 @@ public record NoticeSummaryResponse(
         int likeCount,
         @Schema(description = "댓글 수", example = "10")
         int commentCount,
+        @Schema(description = "북마크 수", example = "3")
+        int bookmarkCount,
         @Schema(description = "읽음 여부", example = "true")
         boolean isRead,
         @Schema(description = "내 좋아요 여부", example = "false")
-        boolean isLiked
+        boolean isLiked,
+        @Schema(description = "내 북마크 여부", example = "true")
+        boolean isBookmarked
 ) {
 }

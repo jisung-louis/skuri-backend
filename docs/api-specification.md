@@ -1897,8 +1897,10 @@ Authorization:Bearer <firebase_id_token>
         "viewCount": 500,
         "likeCount": 10,
         "commentCount": 10,
+        "bookmarkCount": 3,
         "isRead": true,
-        "isLiked": false
+        "isLiked": false,
+        "isBookmarked": true
       }
     ],
     "page": 0,
@@ -1916,6 +1918,7 @@ Authorization:Bearer <firebase_id_token>
 - `page < 0` 또는 `size < 1 || size > 100`이면 `422 VALIDATION_ERROR`
 - `rssPreview`는 RSS의 `description/content/contentSnippet` fallback으로 수집한 미리보기 텍스트다.
 - `rssPreview`는 RSS 길이 제한 때문에 잘린 텍스트일 수 있으며, AI 요약이 아니다.
+- `bookmarkCount`는 공지 누적 북마크 수이고, `isBookmarked`는 현재 인증 사용자의 북마크 여부다.
 
 #### GET /v1/notices/{noticeId}
 공지사항 상세
@@ -1938,6 +1941,7 @@ Authorization:Bearer <firebase_id_token>
     "viewCount": 501,
     "likeCount": 11,
     "commentCount": 10,
+    "bookmarkCount": 4,
     "attachments": [
       {
         "name": "수강신청 안내.pdf",
@@ -1946,7 +1950,8 @@ Authorization:Bearer <firebase_id_token>
       }
     ],
     "isRead": true,
-    "isLiked": true
+    "isLiked": true,
+    "isBookmarked": true
   }
 }
 ```
@@ -2001,6 +2006,39 @@ Authorization:Bearer <firebase_id_token>
   }
 }
 ```
+
+#### POST /v1/notices/{noticeId}/bookmark
+공지 북마크 등록
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isBookmarked": true,
+    "bookmarkCount": 4
+  }
+}
+```
+
+- `NoticeLike`와 분리된 `notice_bookmarks` 저장 모델을 사용한다.
+- 이미 북마크한 공지에 다시 요청해도 `200 OK`와 `isBookmarked=true`를 반환한다.
+
+#### DELETE /v1/notices/{noticeId}/bookmark
+공지 북마크 취소
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isBookmarked": false,
+    "bookmarkCount": 3
+  }
+}
+```
+
+- 북마크가 없는 공지에 요청해도 `200 OK`와 `isBookmarked=false`를 반환한다.
 
 ### 6.2 공지 댓글
 
@@ -2128,7 +2166,41 @@ Authorization:Bearer <firebase_id_token>
 #### DELETE /v1/notice-comments/{commentId}
 공지 댓글 삭제
 
-### 6.3 앱 공지
+### 6.3 내 공지 북마크
+
+#### GET /v1/members/me/notice-bookmarks
+
+- 내 북마크 공지 페이징 조회.
+- `page < 0` 또는 `size < 1 || size > 100`이면 `422 VALIDATION_ERROR`
+- 목록 item은 기존 Notice 공개 계약과 화면 필드 naming을 맞추기 위해 `rssPreview`, `postedAt`를 그대로 사용한다.
+- `summary`, `createdAt` 같은 새 이름은 도입하지 않는다.
+- 정렬은 `postedAt DESC, createdAt DESC` 기준이다.
+
+**Response**
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": "notice_id",
+        "title": "2026학년도 1학기 수강신청 안내",
+        "rssPreview": "수강신청 일정, 대상 학년, 유의사항을 안내합니다.",
+        "category": "학사",
+        "postedAt": "2026-02-01T00:00:00"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 3,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  }
+}
+```
+
+### 6.4 앱 공지
 
 #### GET /v1/app-notices
 앱 공지 목록 **(Public API — 인증 불필요)**
@@ -2182,7 +2254,7 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-### 6.4 에러 코드
+### 6.5 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
@@ -4603,3 +4675,4 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-08: Phase 8 Notification 계약 반영 — `PARTY_*` canonical enum 정렬, Notification API pagination/FCM token/SSE strict DTO(`ACADEMIC_SCHEDULE`, `academicScheduleId`) 동기화, 학사 일정 알림 설정 필드 추가
 > - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `@AdminApiAccess` 공통화, `admin_audit_logs` 저장 규약, Support Admin 목록 고정 정렬/페이지 정책, CSV 보류 및 운영 데이터 노출 정책 문서화
 > - 2026-03-10: Image 계약 구현 반영 — `/v1/images`를 런타임 계약으로 승격하고, context enum(`POST/CHAT/APP_NOTICE/PROFILE`), LOCAL storage 기본 전략, Board/Chat/AppNotice/Profile 재사용 플로우를 `/v3/api-docs` 기준으로 동기화
+> - 2026-03-25: Notice 북마크 계약 추가 — `GET /v1/members/me/notice-bookmarks`, `POST/DELETE /v1/notices/{noticeId}/bookmark`와 `rssPreview`/`postedAt` 기반 목록 naming을 `/v3/api-docs` 기준으로 동기화

@@ -43,6 +43,41 @@ class BoardNoticeOpenApiSchemaIntegrationTest {
     }
 
     @Test
+    void notice_bookmark_success_schema와_목록응답이_구체타입을노출한다() throws Exception {
+        JsonNode root = apiDocs();
+
+        JsonNode bookmarkResponseSchema = successResponseSchema(root, "/v1/notices/{noticeId}/bookmark", "post", "200");
+        JsonNode bookmarkDataSchema = resolveSchema(root, bookmarkResponseSchema.path("properties").path("data"));
+        assertTrue(bookmarkDataSchema.path("properties").has("isBookmarked"));
+        assertTrue(bookmarkDataSchema.path("properties").has("bookmarkCount"));
+
+        JsonNode bookmarkPageResponseSchema = successResponseSchema(root, "/v1/members/me/notice-bookmarks", "get", "200");
+        JsonNode bookmarkPageDataSchema = resolveSchema(root, bookmarkPageResponseSchema.path("properties").path("data"));
+        JsonNode contentItemsSchema = resolveSchema(
+                root,
+                bookmarkPageDataSchema.path("properties").path("content").path("items")
+        );
+        assertTrue(contentItemsSchema.path("properties").has("rssPreview"));
+        assertTrue(contentItemsSchema.path("properties").has("postedAt"));
+    }
+
+    @Test
+    void notice_list와_detail_schema가_bookmark필드를_노출한다() throws Exception {
+        JsonNode root = apiDocs();
+
+        JsonNode listResponseSchema = successResponseSchema(root, "/v1/notices", "get", "200");
+        JsonNode listDataSchema = resolveSchema(root, listResponseSchema.path("properties").path("data"));
+        JsonNode listItemsSchema = resolveSchema(root, listDataSchema.path("properties").path("content").path("items"));
+        assertTrue(listItemsSchema.path("properties").has("bookmarkCount"));
+        assertTrue(listItemsSchema.path("properties").has("isBookmarked"));
+
+        JsonNode detailResponseSchema = successResponseSchema(root, "/v1/notices/{noticeId}", "get", "200");
+        JsonNode detailDataSchema = resolveSchema(root, detailResponseSchema.path("properties").path("data"));
+        assertTrue(detailDataSchema.path("properties").has("bookmarkCount"));
+        assertTrue(detailDataSchema.path("properties").has("isBookmarked"));
+    }
+
+    @Test
     void board_update_request_schema가_images와_isAnonymous를_노출한다() throws Exception {
         JsonNode root = apiDocs();
 

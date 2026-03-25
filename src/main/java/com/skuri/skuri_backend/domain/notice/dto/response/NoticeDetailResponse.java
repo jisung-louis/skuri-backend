@@ -34,11 +34,15 @@ public record NoticeDetailResponse(
         int likeCount,
         @Schema(description = "댓글 수", example = "10")
         int commentCount,
+        @Schema(description = "북마크 수", example = "4")
+        int bookmarkCount,
         @Schema(description = "첨부파일 목록")
         List<NoticeAttachment> attachments,
         @Schema(description = "읽음 여부", example = "true")
         boolean isRead,
         @Schema(description = "내 좋아요 여부", example = "true")
-        boolean isLiked
+        boolean isLiked,
+        @Schema(description = "내 북마크 여부", example = "true")
+        boolean isBookmarked
 ) {
 }

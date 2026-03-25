@@ -16,6 +16,7 @@ import com.skuri.skuri_backend.domain.notification.controller.NotificationContro
 import com.skuri.skuri_backend.domain.notification.controller.NotificationSseController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeAdminController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeCommentController;
+import com.skuri.skuri_backend.domain.notice.controller.MemberNoticeController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeController;
 import com.skuri.skuri_backend.domain.support.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.support.controller.AppVersionAdminController;
@@ -52,6 +53,7 @@ class OpenApiResponseExamplesConventionTest {
             NoticeController.class,
             NoticeCommentController.class,
             NoticeAdminController.class,
+            MemberNoticeController.class,
             PostController.class,
             CommentController.class,
             MemberBoardController.class,
