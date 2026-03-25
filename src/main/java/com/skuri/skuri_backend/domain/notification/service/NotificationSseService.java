@@ -1,13 +1,11 @@
 package com.skuri.skuri_backend.domain.notification.service;
 
 import com.skuri.skuri_backend.domain.notification.dto.response.NotificationResponse;
-import com.skuri.skuri_backend.domain.notification.dto.response.NotificationSnapshotResponse;
 import com.skuri.skuri_backend.domain.notification.dto.response.NotificationUnreadCountResponse;
-import com.skuri.skuri_backend.domain.notification.repository.UserNotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -24,31 +22,29 @@ public class NotificationSseService {
     private static final long SSE_TIMEOUT_MILLIS = 60L * 60L * 1000L;
     private static final long SSE_RETRY_MILLIS = 3_000L;
 
-    private final UserNotificationRepository userNotificationRepository;
+    private static final String NOTIFICATION_SSE_ENDPOINT = "/v1/sse/notifications";
+
+    private final NotificationSseSnapshotService notificationSseSnapshotService;
 
     private final Map<String, SseSubscriber> subscribers = new ConcurrentHashMap<>();
 
-    @Transactional(readOnly = true)
     public SseEmitter subscribe(String memberId) {
+        Object snapshotResponse = notificationSseSnapshotService.createSnapshotResponse(memberId);
         String emitterId = memberId + ":" + UUID.randomUUID();
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MILLIS);
         subscribers.put(emitterId, new SseSubscriber(memberId, emitter));
 
-        emitter.onCompletion(() -> subscribers.remove(emitterId));
-        emitter.onTimeout(() -> {
-            subscribers.remove(emitterId);
-            safeComplete(emitter);
-        });
-        emitter.onError(ex -> {
-            subscribers.remove(emitterId);
-            log.debug("알림 SSE 연결 오류로 구독 해제: emitterId={}", emitterId, ex);
-        });
-
-        sendToOne(
+        registerSubscriberLifecycle(emitterId, memberId, emitter);
+        log.info(
+                "SSE subscribe: endpoint={}, emitterId={}, memberId={}, subscribers={}, txActive={}",
+                NOTIFICATION_SSE_ENDPOINT,
                 emitterId,
-                "SNAPSHOT",
-                new NotificationSnapshotResponse(userNotificationRepository.countByUserIdAndReadFalse(memberId))
+                memberId,
+                subscribers.size(),
+                TransactionSynchronizationManager.isActualTransactionActive()
         );
+
+        sendToOne(emitterId, "SNAPSHOT", snapshotResponse);
         return emitter;
     }
 
@@ -74,6 +70,7 @@ public class NotificationSseService {
                 return;
             }
             subscribers.remove(emitterId);
+            logLifecycle("close", emitterId, memberId, null);
             try {
                 subscriber.emitter().complete();
             } catch (Exception ignored) {
@@ -118,12 +115,54 @@ public class NotificationSseService {
         }
     }
 
+    private void registerSubscriberLifecycle(String emitterId, String memberId, SseEmitter emitter) {
+        emitter.onCompletion(() -> {
+            SseSubscriber removed = subscribers.remove(emitterId);
+            if (removed == null) {
+                return;
+            }
+            logLifecycle("complete", emitterId, memberId, null);
+        });
+        emitter.onTimeout(() -> {
+            subscribers.remove(emitterId);
+            logLifecycle("timeout", emitterId, memberId, null);
+            safeComplete(emitter);
+        });
+        emitter.onError(ex -> {
+            subscribers.remove(emitterId);
+            logLifecycle("error", emitterId, memberId, ex);
+        });
+    }
+
     private void safeComplete(SseEmitter emitter) {
         try {
             emitter.complete();
         } catch (Exception ignored) {
             // no-op
         }
+    }
+
+    private void logLifecycle(String action, String emitterId, String memberId, Throwable throwable) {
+        if (throwable == null) {
+            log.info(
+                    "SSE lifecycle: endpoint={}, action={}, emitterId={}, memberId={}, subscribers={}",
+                    NOTIFICATION_SSE_ENDPOINT,
+                    action,
+                    emitterId,
+                    memberId,
+                    subscribers.size()
+            );
+            return;
+        }
+        log.warn(
+                "SSE lifecycle: endpoint={}, action={}, emitterId={}, memberId={}, subscribers={}, error={}",
+                NOTIFICATION_SSE_ENDPOINT,
+                action,
+                emitterId,
+                memberId,
+                subscribers.size(),
+                throwable.toString()
+        );
     }
 
     private record SseSubscriber(

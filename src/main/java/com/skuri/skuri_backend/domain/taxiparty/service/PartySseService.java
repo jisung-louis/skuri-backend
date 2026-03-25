@@ -1,15 +1,10 @@
 package com.skuri.skuri_backend.domain.taxiparty.service;
 
 import com.skuri.skuri_backend.domain.member.entity.Member;
-import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
-import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyLocationResponse;
-import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
-import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -18,7 +13,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,32 +25,30 @@ public class PartySseService {
     private static final long SSE_TIMEOUT_MILLIS = 60L * 60L * 1000L;
     private static final long SSE_RETRY_MILLIS = 3_000L;
 
-    private final PartyRepository partyRepository;
-    private final MemberRepository memberRepository;
+    private static final String PARTY_SSE_ENDPOINT = "/v1/sse/parties";
+
+    private final PartySseSnapshotService partySseSnapshotService;
 
     private final Map<String, SseSubscriber> subscribers = new ConcurrentHashMap<>();
 
-    @Transactional(readOnly = true)
     public SseEmitter subscribeParties(String memberId) {
+        Map<String, Object> snapshotPayload = partySseSnapshotService.createSnapshotPayload();
         String emitterId = memberId + ":" + UUID.randomUUID();
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MILLIS);
         subscribers.put(emitterId, new SseSubscriber(memberId, emitter));
 
-        emitter.onCompletion(() -> subscribers.remove(emitterId));
-        emitter.onTimeout(() -> {
-            subscribers.remove(emitterId);
-            safeComplete(emitter);
-        });
-        emitter.onError(ex -> {
-            subscribers.remove(emitterId);
-            log.debug("파티 SSE 연결 오류로 구독 해제: emitterId={}", emitterId, ex);
-        });
-
-        sendToOne(
+        registerSubscriberLifecycle(emitterId, memberId, emitter);
+        log.info(
+                "SSE subscribe: endpoint={}, emitterId={}, memberId={}, subscribers={}, txActive={}, snapshotKeys={}",
+                PARTY_SSE_ENDPOINT,
                 emitterId,
-                "SNAPSHOT",
-                Map.of("parties", getSnapshotParties())
+                memberId,
+                subscribers.size(),
+                TransactionSynchronizationManager.isActualTransactionActive(),
+                snapshotPayload.keySet()
         );
+
+        sendToOne(emitterId, "SNAPSHOT", snapshotPayload);
         return emitter;
     }
 
@@ -73,6 +65,7 @@ public class PartySseService {
                 return;
             }
             subscribers.remove(emitterId);
+            logLifecycle("close", emitterId, memberId, null);
             try {
                 subscriber.emitter().complete();
             } catch (Exception ignored) {
@@ -82,11 +75,11 @@ public class PartySseService {
     }
 
     public void publishPartyCreated(Party party, Member leader) {
-        publishAfterCommit("PARTY_CREATED", toPartySummaryResponse(party, leader));
+        publishAfterCommit("PARTY_CREATED", partySseSnapshotService.toPartySummaryResponse(party, leader));
     }
 
     public void publishPartyUpdated(Party party, Member leader) {
-        publishAfterCommit("PARTY_UPDATED", toPartySummaryResponse(party, leader));
+        publishAfterCommit("PARTY_UPDATED", partySseSnapshotService.toPartySummaryResponse(party, leader));
     }
 
     public void publishPartyStatusChanged(Party party) {
@@ -196,6 +189,25 @@ public class PartySseService {
         }
     }
 
+    private void registerSubscriberLifecycle(String emitterId, String memberId, SseEmitter emitter) {
+        emitter.onCompletion(() -> {
+            SseSubscriber removed = subscribers.remove(emitterId);
+            if (removed == null) {
+                return;
+            }
+            logLifecycle("complete", emitterId, memberId, null);
+        });
+        emitter.onTimeout(() -> {
+            subscribers.remove(emitterId);
+            logLifecycle("timeout", emitterId, memberId, null);
+            safeComplete(emitter);
+        });
+        emitter.onError(ex -> {
+            subscribers.remove(emitterId);
+            logLifecycle("error", emitterId, memberId, ex);
+        });
+    }
+
     private void safeComplete(SseEmitter emitter) {
         try {
             emitter.complete();
@@ -204,32 +216,26 @@ public class PartySseService {
         }
     }
 
-    private List<PartySummaryResponse> getSnapshotParties() {
-        List<Party> parties = partyRepository.findSseSnapshotParties();
-        List<String> leaderIds = parties.stream().map(Party::getLeaderId).distinct().toList();
-        Map<String, Member> leaderMap = new HashMap<>();
-        memberRepository.findAllById(leaderIds).forEach(member -> leaderMap.put(member.getId(), member));
-
-        return parties.stream()
-                .map(party -> toPartySummaryResponse(party, leaderMap.get(party.getLeaderId())))
-                .toList();
-    }
-
-    private PartySummaryResponse toPartySummaryResponse(Party party, Member leader) {
-        return new PartySummaryResponse(
-                party.getId(),
-                party.getLeaderId(),
-                leader != null ? leader.getNickname() : null,
-                leader != null ? leader.getPhotoUrl() : null,
-                new PartyLocationResponse(party.getDeparture().getName(), party.getDeparture().getLat(), party.getDeparture().getLng()),
-                new PartyLocationResponse(party.getDestination().getName(), party.getDestination().getLat(), party.getDestination().getLng()),
-                party.getDepartureTime(),
-                party.getMaxMembers(),
-                party.getCurrentMembers(),
-                party.getTagsText(),
-                party.getDetail(),
-                party.getStatus(),
-                party.getCreatedAt()
+    private void logLifecycle(String action, String emitterId, String memberId, Throwable throwable) {
+        if (throwable == null) {
+            log.info(
+                    "SSE lifecycle: endpoint={}, action={}, emitterId={}, memberId={}, subscribers={}",
+                    PARTY_SSE_ENDPOINT,
+                    action,
+                    emitterId,
+                    memberId,
+                    subscribers.size()
+            );
+            return;
+        }
+        log.warn(
+                "SSE lifecycle: endpoint={}, action={}, emitterId={}, memberId={}, subscribers={}, error={}",
+                PARTY_SSE_ENDPOINT,
+                action,
+                emitterId,
+                memberId,
+                subscribers.size(),
+                throwable.toString()
         );
     }
 
