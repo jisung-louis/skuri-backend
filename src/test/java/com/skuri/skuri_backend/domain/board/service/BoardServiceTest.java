@@ -290,6 +290,48 @@ class BoardServiceTest {
     }
 
     @Test
+    void getPosts_개인화상태를합성한다() {
+        PostSummaryProjection personalized = summaryProjection("post-1", 2);
+        PostSummaryProjection othersOnly = summaryProjection("post-2", 5);
+        PostInteraction interaction = mock(PostInteraction.class);
+        when(interaction.getPostId()).thenReturn("post-1");
+        when(interaction.isLiked()).thenReturn(true);
+        when(interaction.isBookmarked()).thenReturn(true);
+
+        when(postRepository.searchSummaries(any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(personalized, othersOnly)));
+        when(postInteractionRepository.findById_UserIdAndId_PostIdIn("member-1", List.of("post-1", "post-2")))
+                .thenReturn(List.of(interaction));
+        when(commentRepository.findCommentedPostIds("member-1", List.of("post-1", "post-2")))
+                .thenReturn(List.of("post-1"));
+
+        var response = boardService.getPosts("member-1", PostCategory.GENERAL, null, null, "latest", 0, 20);
+
+        assertTrue(response.getContent().get(0).isLiked());
+        assertTrue(response.getContent().get(0).isBookmarked());
+        assertTrue(response.getContent().get(0).isCommentedByMe());
+        assertFalse(response.getContent().get(1).isLiked());
+        assertFalse(response.getContent().get(1).isBookmarked());
+        assertFalse(response.getContent().get(1).isCommentedByMe());
+    }
+
+    @Test
+    void getPosts_삭제된내댓글만남으면_isCommentedByMe_false() {
+        PostSummaryProjection projection = summaryProjection("post-1", 3);
+
+        when(postRepository.searchSummaries(any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(projection)));
+        when(postInteractionRepository.findById_UserIdAndId_PostIdIn("member-1", List.of("post-1")))
+                .thenReturn(List.of());
+        when(commentRepository.findCommentedPostIds("member-1", List.of("post-1")))
+                .thenReturn(List.of());
+
+        var response = boardService.getPosts("member-1", PostCategory.GENERAL, null, null, "latest", 0, 20);
+
+        assertFalse(response.getContent().get(0).isCommentedByMe());
+    }
+
+    @Test
     void handleMemberWithdrawal_작성자익명화와인터랙션카운트정리를수행한다() {
         Post authoredPost = post("post-authored", "member-1");
         Post likedPost = post("post-liked", "author-2");
@@ -443,6 +485,26 @@ class BoardServiceTest {
         ReflectionTestUtils.setField(post, "createdAt", LocalDateTime.now());
         ReflectionTestUtils.setField(post, "updatedAt", LocalDateTime.now());
         return post;
+    }
+
+    private PostSummaryProjection summaryProjection(String id, int commentCount) {
+        PostSummaryProjection projection = mock(PostSummaryProjection.class);
+        when(projection.getId()).thenReturn(id);
+        when(projection.getTitle()).thenReturn("제목 " + id);
+        when(projection.getContent()).thenReturn("본문 " + id);
+        when(projection.getAuthorId()).thenReturn("author-" + id);
+        when(projection.getAuthorName()).thenReturn("작성자");
+        when(projection.getAuthorProfileImage()).thenReturn("https://example.com/profile.jpg");
+        when(projection.isAnonymous()).thenReturn(false);
+        when(projection.getCategory()).thenReturn(PostCategory.GENERAL);
+        when(projection.getViewCount()).thenReturn(10);
+        when(projection.getLikeCount()).thenReturn(4);
+        when(projection.getCommentCount()).thenReturn(commentCount);
+        when(projection.getBookmarkCount()).thenReturn(3);
+        when(projection.isHasImage()).thenReturn(true);
+        when(projection.isPinned()).thenReturn(false);
+        when(projection.getCreatedAt()).thenReturn(LocalDateTime.now());
+        return projection;
     }
 
     private Comment comment(
