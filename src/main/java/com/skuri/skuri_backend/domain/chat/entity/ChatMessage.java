@@ -10,6 +10,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Index;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
@@ -19,7 +20,13 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "chat_messages")
+@Table(
+        name = "chat_messages",
+        indexes = {
+                @Index(name = "uk_chat_messages_message_order", columnList = "message_order", unique = true),
+                @Index(name = "idx_chat_messages_room_cursor", columnList = "chat_room_id, created_at, message_order, id")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatMessage extends BaseTimeEntity {
 
@@ -36,6 +43,9 @@ public class ChatMessage extends BaseTimeEntity {
 
     @Column(name = "sender_name", length = 50)
     private String senderName;
+
+    @Column(name = "message_order", nullable = false, updatable = false, insertable = false, columnDefinition = "BIGINT AUTO_INCREMENT")
+    private Long messageOrder;
 
     @Lob
     private String text;

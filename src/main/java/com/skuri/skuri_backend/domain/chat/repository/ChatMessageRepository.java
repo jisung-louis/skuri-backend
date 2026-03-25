@@ -18,14 +18,25 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, String
               and (
                     :cursorCreatedAt is null
                     or m.createdAt < :cursorCreatedAt
-                    or (m.createdAt = :cursorCreatedAt and m.id < :cursorId)
+                    or (
+                        m.createdAt = :cursorCreatedAt
+                        and (
+                            (:cursorMessageOrder is not null and (m.messageOrder is null or m.messageOrder < :cursorMessageOrder))
+                            or (:cursorMessageOrder is null and m.messageOrder is null and m.id < :cursorId)
+                        )
+                    )
                   )
-            order by m.createdAt desc, m.id desc
+            order by
+                m.createdAt desc,
+                case when m.messageOrder is null then 0 else 1 end desc,
+                m.messageOrder desc,
+                m.id desc
             """)
     List<ChatMessage> findByCursor(
             @Param("chatRoomId") String chatRoomId,
             @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
             @Param("cursorId") String cursorId,
+            @Param("cursorMessageOrder") Long cursorMessageOrder,
             Pageable pageable
     );
 
