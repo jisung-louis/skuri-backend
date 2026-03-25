@@ -227,10 +227,11 @@ public class TaxiPartyService {
         Party party = findPartyDetailOrThrow(partyId);
         requireLeader(party, actorId);
         PartyStatus beforeStatus = party.getStatus();
-        Map<String, Member> settlementTargetMemberMap = getMemberMap(request.settlementTargetMemberIds());
+        List<String> normalizedSettlementTargetMemberIds = normalizeMemberIds(request.settlementTargetMemberIds());
+        Map<String, Member> settlementTargetMemberMap = getMemberMap(normalizedSettlementTargetMemberIds);
         party.arriveWithSnapshots(
                 request.taxiFare(),
-                toSettlementTargetSnapshots(request.settlementTargetMemberIds(), settlementTargetMemberMap),
+                toSettlementTargetSnapshots(normalizedSettlementTargetMemberIds, settlementTargetMemberMap),
                 toSettlementAccountSnapshot(request.account())
         );
         savePartyWithLockHandling(party);
@@ -448,6 +449,7 @@ public class TaxiPartyService {
 
         boolean allSettled = party.confirmSettlement(memberId);
         savePartyWithLockHandling(party);
+        chatService.syncPartyArrivalMessageSnapshot(party);
         if (allSettled) {
             eventPublisher.publish(new NotificationDomainEvent.PartySettlementCompleted(party.getId()));
         }
@@ -790,6 +792,15 @@ public class TaxiPartyService {
                 .toList();
     }
 
+    private List<String> normalizeMemberIds(List<String> memberIds) {
+        if (memberIds == null) {
+            return List.of();
+        }
+        return memberIds.stream()
+                .map(this::normalizeMemberId)
+                .toList();
+    }
+
     private String resolveSettlementDisplayName(MemberSettlement settlement, Member profile) {
         if (settlement.getDisplayName() != null && !settlement.getDisplayName().isBlank()) {
             return settlement.getDisplayName();
@@ -802,6 +813,10 @@ public class TaxiPartyService {
             return member.getNickname();
         }
         return fallback;
+    }
+
+    private String normalizeMemberId(String memberId) {
+        return memberId == null ? null : memberId.trim();
     }
 
     private Collection<String> getVisibleMemberIds(Party party) {

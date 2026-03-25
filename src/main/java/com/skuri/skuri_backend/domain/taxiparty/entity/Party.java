@@ -168,7 +168,10 @@ public class Party extends BaseTimeEntity {
         List<SettlementTargetSnapshot> settlementTargets = settlementTargetMemberIds == null
                 ? null
                 : settlementTargetMemberIds.stream()
-                .map(memberId -> new SettlementTargetSnapshot(memberId, memberId))
+                .map(memberId -> {
+                    String normalizedMemberId = normalizeSettlementMemberId(memberId);
+                    return new SettlementTargetSnapshot(normalizedMemberId, normalizedMemberId);
+                })
                 .toList();
         arriveWithSnapshots(taxiFare, settlementTargets, settlementAccount);
     }
@@ -189,15 +192,10 @@ public class Party extends BaseTimeEntity {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "정산 계좌 정보를 모두 입력해야 합니다.");
         }
 
-        List<SettlementTargetSnapshot> settlementTargets = settlementTargetSnapshots == null
-                ? List.of()
-                : settlementTargetSnapshots.stream()
-                .filter(Objects::nonNull)
-                .toList();
+        List<SettlementTargetSnapshot> settlementTargets = normalizeSettlementTargets(settlementTargetSnapshots);
         List<String> settlementTargetMemberIds = settlementTargets.stream()
                 .map(SettlementTargetSnapshot::memberId)
                 .filter(Objects::nonNull)
-                .map(String::trim)
                 .filter(value -> !value.isBlank())
                 .toList();
         if (settlementTargetMemberIds.isEmpty()) {
@@ -223,6 +221,29 @@ public class Party extends BaseTimeEntity {
         settlementTargets.forEach(target -> this.memberSettlements.add(
                 MemberSettlement.create(this, target.memberId(), target.displayName())
         ));
+    }
+
+    private List<SettlementTargetSnapshot> normalizeSettlementTargets(
+            List<SettlementTargetSnapshot> settlementTargetSnapshots
+    ) {
+        if (settlementTargetSnapshots == null) {
+            return List.of();
+        }
+        return settlementTargetSnapshots.stream()
+                .filter(Objects::nonNull)
+                .map(target -> {
+                    String normalizedMemberId = normalizeSettlementMemberId(target.memberId());
+                    String displayName = target.displayName();
+                    if (displayName == null || displayName.isBlank()) {
+                        displayName = normalizedMemberId;
+                    }
+                    return new SettlementTargetSnapshot(normalizedMemberId, displayName);
+                })
+                .toList();
+    }
+
+    private String normalizeSettlementMemberId(String memberId) {
+        return memberId == null ? null : memberId.trim();
     }
 
     public boolean confirmSettlement(String memberId) {
