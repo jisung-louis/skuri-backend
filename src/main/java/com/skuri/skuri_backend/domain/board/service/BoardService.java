@@ -19,6 +19,7 @@ import com.skuri.skuri_backend.domain.board.entity.Comment;
 import com.skuri.skuri_backend.domain.board.entity.Post;
 import com.skuri.skuri_backend.domain.board.entity.PostCategory;
 import com.skuri.skuri_backend.domain.board.entity.PostImage;
+import com.skuri.skuri_backend.domain.board.repository.PostImageRepository;
 import com.skuri.skuri_backend.domain.board.entity.PostInteraction;
 import com.skuri.skuri_backend.domain.board.exception.CommentNotFoundException;
 import com.skuri.skuri_backend.domain.board.exception.PostNotFoundException;
@@ -26,6 +27,7 @@ import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostInteractionRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostSummaryProjection;
+import com.skuri.skuri_backend.domain.board.repository.PostThumbnailProjection;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
@@ -56,6 +58,7 @@ public class BoardService {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final PostRepository postRepository;
+    private final PostImageRepository postImageRepository;
     private final CommentRepository commentRepository;
     private final PostInteractionRepository postInteractionRepository;
     private final MemberRepository memberRepository;
@@ -367,14 +370,30 @@ public class BoardService {
         List<String> postIds = postPage.getContent().stream()
                 .map(PostSummaryProjection::getId)
                 .toList();
+        Map<String, String> thumbnailUrlsByPostId = resolvePostSummaryThumbnailUrls(postIds);
         PostSummaryPersonalization personalization = resolvePostSummaryPersonalization(memberId, postIds);
 
         return PageResponse.from(postPage.map(post -> toPostSummaryResponse(
                 post,
+                thumbnailUrlsByPostId.get(post.getId()),
                 personalization.likedPostIds.contains(post.getId()),
                 personalization.bookmarkedPostIds.contains(post.getId()),
                 personalization.commentedPostIds.contains(post.getId())
         )));
+    }
+
+    private Map<String, String> resolvePostSummaryThumbnailUrls(List<String> postIds) {
+        if (postIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return postImageRepository.findFirstThumbnailByPostIds(postIds).stream()
+                .collect(Collectors.toMap(
+                        PostThumbnailProjection::getPostId,
+                        PostThumbnailProjection::getThumbnailUrl,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
     }
 
     private PostSummaryPersonalization resolvePostSummaryPersonalization(String memberId, List<String> postIds) {
@@ -398,6 +417,7 @@ public class BoardService {
 
     private PostSummaryResponse toPostSummaryResponse(
             PostSummaryProjection post,
+            String thumbnailUrl,
             boolean isLiked,
             boolean isBookmarked,
             boolean isCommentedByMe
@@ -421,6 +441,7 @@ public class BoardService {
                 isBookmarked,
                 isCommentedByMe,
                 post.isHasImage(),
+                thumbnailUrl,
                 post.isPinned(),
                 post.getCreatedAt()
         );
