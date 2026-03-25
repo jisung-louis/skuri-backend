@@ -689,7 +689,10 @@ public class PartyController {
     }
 
     @DeleteMapping("/parties/{id}/members/me")
-    @Operation(summary = "파티 탈퇴", description = "본인이 파티에서 탈퇴합니다. 성공 시 파티 채팅에 서버 생성 SYSTEM 메시지가 추가됩니다.")
+    @Operation(
+            summary = "파티 탈퇴",
+            description = "본인이 파티에서 탈퇴합니다. ARRIVED 상태에서도 일반 멤버는 탈퇴할 수 있으며, 이 경우 현재 멤버십만 제거되고 정산 snapshot은 유지됩니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -729,16 +732,12 @@ public class PartyController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409",
-                    description = "리더 탈퇴 불가/허용되지 않은 파티 상태/동시성 충돌",
+                    description = "리더 탈퇴 불가/종료된 파티/동시성 충돌",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
                             examples = {
                                     @ExampleObject(name = "leader_cannot_leave", value = OpenApiTaxiPartyExamples.ERROR_LEADER_CANNOT_LEAVE),
-                                    @ExampleObject(
-                                            name = "cannot_leave_arrived_party",
-                                            value = OpenApiTaxiPartyExamples.ERROR_CANNOT_LEAVE_ARRIVED_PARTY
-                                    ),
                                     @ExampleObject(name = "party_ended", value = OpenApiTaxiPartyExamples.ERROR_PARTY_ENDED),
                                     @ExampleObject(
                                             name = "party_concurrent_modification",
