@@ -330,6 +330,28 @@ class TaxiPartyServiceTest {
     }
 
     @Test
+    void arriveParty_공백이포함된정산대상ID도_정규화해저장한다() {
+        Party party = sampleParty("party-1", "leader", 4, true);
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberRepository.findAllById(any())).thenReturn(List.of(member("leader"), member("member-1", "홍길동")));
+
+        PartyDetailResponse response = taxiPartyService.arriveParty(
+                "leader",
+                "party-1",
+                arriveRequest(14000, List.of(" member-1 "))
+        );
+
+        assertEquals(List.of("member-1"), response.settlement().settlementTargetMemberIds());
+        assertEquals("member-1", response.settlement().memberSettlements().getFirst().memberId());
+
+        SettlementConfirmResponse confirmResponse = taxiPartyService.confirmSettlement("leader", "party-1", "member-1");
+
+        assertTrue(confirmResponse.settled());
+        assertEquals("member-1", party.getSettlementItems().iterator().next().getMemberId());
+    }
+
+    @Test
     void createJoinRequest_정상생성() {
         Party party = sampleParty("party-1", "leader", 4, false);
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
@@ -649,7 +671,24 @@ class TaxiPartyServiceTest {
         assertTrue(response.allSettled());
         assertEquals(PartyStatus.ARRIVED, party.getStatus());
         assertEquals(SettlementStatus.COMPLETED, party.getSettlementStatus());
+        verify(chatService).syncPartyArrivalMessageSnapshot(party);
         verify(partySseService, never()).publishPartyStatusChanged(any(Party.class));
+    }
+
+    @Test
+    void confirmSettlement_부분정산이어도_ARRIVED메시지스냅샷을동기화한다() {
+        Party party = sampleParty("party-1", "leader", 4, "member-1", "member-2");
+        arrive(party, 21000, List.of("member-1", "member-2"));
+
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SettlementConfirmResponse response = taxiPartyService.confirmSettlement("leader", "party-1", "member-1");
+
+        assertFalse(response.allSettled());
+        assertEquals(SettlementStatus.PENDING, party.getSettlementStatus());
+        verify(chatService).syncPartyArrivalMessageSnapshot(party);
+        verify(eventPublisher, never()).publish(any());
     }
 
     @Test
