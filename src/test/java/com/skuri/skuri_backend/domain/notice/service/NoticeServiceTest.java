@@ -7,13 +7,17 @@ import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
 import com.skuri.skuri_backend.domain.notice.dto.request.UpdateNoticeCommentRequest;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeReadResponse;
 import com.skuri.skuri_backend.domain.notice.entity.Notice;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeBookmark;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeComment;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeLike;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeReadStatus;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeBookmark;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeBookmarkRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeLikeRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeReadStatusRepository;
@@ -36,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +58,9 @@ class NoticeServiceTest {
 
     @Mock
     private NoticeLikeRepository noticeLikeRepository;
+
+    @Mock
+    private NoticeBookmarkRepository noticeBookmarkRepository;
 
     @Mock
     private MemberRepository memberRepository;
@@ -159,6 +167,48 @@ class NoticeServiceTest {
     }
 
     @Test
+    void bookmarkNotice_처음등록하면_저장된다() {
+        Notice notice = notice("notice-1");
+        when(noticeRepository.findByIdForUpdate("notice-1")).thenReturn(Optional.of(notice));
+        when(noticeBookmarkRepository.existsById_UserIdAndId_NoticeId("member-1", "notice-1")).thenReturn(false);
+
+        NoticeBookmarkResponse response = noticeService.bookmarkNotice("member-1", "notice-1");
+
+        assertTrue(response.isBookmarked());
+        assertEquals(1, response.bookmarkCount());
+        assertEquals(1, notice.getBookmarkCount());
+        verify(noticeBookmarkRepository).save(any(NoticeBookmark.class));
+    }
+
+    @Test
+    void bookmarkNotice_중복등록이면_멱등하게성공한다() {
+        Notice notice = notice("notice-1");
+        when(noticeRepository.findByIdForUpdate("notice-1")).thenReturn(Optional.of(notice));
+        when(noticeBookmarkRepository.existsById_UserIdAndId_NoticeId("member-1", "notice-1")).thenReturn(true);
+
+        NoticeBookmarkResponse response = noticeService.bookmarkNotice("member-1", "notice-1");
+
+        assertTrue(response.isBookmarked());
+        assertEquals(0, response.bookmarkCount());
+        verify(noticeBookmarkRepository, never()).save(any(NoticeBookmark.class));
+    }
+
+    @Test
+    void unbookmarkNotice_기존북마크가있으면_삭제된다() {
+        Notice notice = notice("notice-1");
+        NoticeBookmark bookmark = NoticeBookmark.create(notice, "member-1");
+        when(noticeRepository.findByIdForUpdate("notice-1")).thenReturn(Optional.of(notice));
+        when(noticeBookmarkRepository.findById_UserIdAndId_NoticeId("member-1", "notice-1"))
+                .thenReturn(Optional.of(bookmark));
+
+        NoticeBookmarkResponse response = noticeService.unbookmarkNotice("member-1", "notice-1");
+
+        assertFalse(response.isBookmarked());
+        assertEquals(0, response.bookmarkCount());
+        verify(noticeBookmarkRepository).delete(bookmark);
+    }
+
+    @Test
     void deleteComment_작성자위반이면_예외() {
         Notice notice = notice("notice-1");
         CommentFixture fixture = comment("comment-1", notice, null, "author-1", false, null);
@@ -231,11 +281,14 @@ class NoticeServiceTest {
     void handleMemberWithdrawal_댓글익명화와좋아요읽음기록삭제를수행한다() {
         Notice notice = notice("notice-1");
         ReflectionTestUtils.setField(notice, "likeCount", 2);
+        ReflectionTestUtils.setField(notice, "bookmarkCount", 3);
         CommentFixture commentFixture = comment("comment-1", notice, null, "member-1", false, null);
         NoticeLike like = NoticeLike.create(notice, "member-1");
+        NoticeBookmark bookmark = NoticeBookmark.create(notice, "member-1");
 
         when(noticeCommentRepository.findByUserId("member-1")).thenReturn(List.of(commentFixture.comment));
         when(noticeLikeRepository.findById_UserId("member-1")).thenReturn(List.of(like));
+        when(noticeBookmarkRepository.findById_UserId("member-1")).thenReturn(List.of(bookmark));
         when(noticeRepository.findAllById(any())).thenReturn(List.of(notice));
 
         noticeService.handleMemberWithdrawal("member-1");
@@ -243,7 +296,9 @@ class NoticeServiceTest {
         assertEquals("withdrawn-member", commentFixture.comment.getUserId());
         assertEquals("탈퇴한 사용자", commentFixture.comment.getUserDisplayName());
         assertEquals(1, notice.getLikeCount());
+        assertEquals(2, notice.getBookmarkCount());
         verify(noticeLikeRepository).deleteAllInBatch(List.of(like));
+        verify(noticeBookmarkRepository).deleteAllInBatch(List.of(bookmark));
         verify(noticeReadStatusRepository).deleteById_UserId("member-1");
     }
 
