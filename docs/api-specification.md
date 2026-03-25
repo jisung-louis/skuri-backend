@@ -1669,9 +1669,9 @@ Authorization:Bearer <firebase_id_token>
 | `TEXT` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 안녕하세요` | `chatRoomId=party:party_uuid` |
 | `IMAGE` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 사진을 보냈어요.` | `chatRoomId=party:party_uuid` |
 | `ACCOUNT` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)` | `chatRoomId=party:party_uuid` |
-| `SYSTEM` (일반 안내) | `파티 안내 메시지` | `모집이 재개되었어요.` | `chatRoomId=party:party_uuid` |
+| `SYSTEM` (일반 안내) | `파티 안내 메시지` | `김철수님이 파티에서 나갔어요.` | `chatRoomId=party:party_uuid` |
 
-> `SYSTEM`의 `"모집이 마감되었어요."`, `ARRIVED`, `END` 메시지는 각각 `PARTY_CLOSED`, `PARTY_ARRIVED`, `PARTY_ENDED` 도메인 알림으로만 푸시되며, 중복 `CHAT_MESSAGE` push는 보내지 않습니다.
+> `SYSTEM`의 `"모집이 마감되었어요."`, `"모집이 재개되었어요."`, `ARRIVED`, `END` 메시지는 각각 `PARTY_CLOSED`, `PARTY_REOPENED`, `PARTY_ARRIVED`, `PARTY_ENDED` 도메인 알림으로만 푸시되며, 중복 `CHAT_MESSAGE` push는 보내지 않습니다.
 
 **수신 포맷 (서버 → 클라이언트):**
 ```json
@@ -2989,12 +2989,12 @@ Authorization:Bearer <firebase_id_token>
 | `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | `allNotifications` + `partyNotifications` | X |
 | `PARTY_JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | `allNotifications` + `partyNotifications` | O |
 | `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED` | 요청 상태 변경 | 요청자 | `allNotifications` + `partyNotifications` | O |
-| `PARTY_CLOSED` / `PARTY_ARRIVED` | 파티 상태 변경 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | `PARTY_CLOSED`: X / `PARTY_ARRIVED`: O |
+| `PARTY_CLOSED` / `PARTY_REOPENED` / `PARTY_ARRIVED` | 파티 상태 변경 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | `PARTY_CLOSED`: X / `PARTY_REOPENED`: X / `PARTY_ARRIVED`: O |
 | `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | `allNotifications` + `partyNotifications` | O |
 | `MEMBER_KICKED` | 강퇴 감지 | 강퇴된 멤버 | `allNotifications` + `partyNotifications` | O |
 | `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | O |
 | `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 | 채팅방 멤버(송신자 제외) | `allNotifications` + 채팅방 mute | X |
-| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 (`TEXT`, `IMAGE`, `ACCOUNT`, 일반 `SYSTEM`) | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외, `data`는 `chatRoomId` canonical 사용. `모집 마감`/`도착`/`종료`는 `PARTY_*` 알림으로 전송 | X |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 (`TEXT`, `IMAGE`, `ACCOUNT`, 일반 `SYSTEM`) | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외, `data`는 `chatRoomId` canonical 사용. `모집 마감`/`모집 재개`/`도착`/`종료`는 `PARTY_*` 알림으로 전송 | X |
 | `POST_LIKED` | 게시글 좋아요 | 게시글 작성자 | `allNotifications` + `boardLikeNotifications` | O |
 | `COMMENT_CREATED` (게시글) | 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` (중복 수신자는 1회 dedupe) | O |
 | `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `allNotifications` + `commentNotifications` | O |
