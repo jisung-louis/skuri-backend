@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -164,6 +165,19 @@ public class Party extends BaseTimeEntity {
     }
 
     public void arrive(int taxiFare, List<String> settlementTargetMemberIds, SettlementAccountSnapshot settlementAccount) {
+        List<SettlementTargetSnapshot> settlementTargets = settlementTargetMemberIds == null
+                ? null
+                : settlementTargetMemberIds.stream()
+                .map(memberId -> new SettlementTargetSnapshot(memberId, memberId))
+                .toList();
+        arriveWithSnapshots(taxiFare, settlementTargets, settlementAccount);
+    }
+
+    public void arriveWithSnapshots(
+            int taxiFare,
+            List<SettlementTargetSnapshot> settlementTargetSnapshots,
+            SettlementAccountSnapshot settlementAccount
+    ) {
         if (this.status != PartyStatus.OPEN && this.status != PartyStatus.CLOSED) {
             throw new BusinessException(ErrorCode.PARTY_NOT_ARRIVABLE);
         }
@@ -175,20 +189,24 @@ public class Party extends BaseTimeEntity {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "정산 계좌 정보를 모두 입력해야 합니다.");
         }
 
-        List<String> settlementTargets = settlementTargetMemberIds == null
+        List<SettlementTargetSnapshot> settlementTargets = settlementTargetSnapshots == null
                 ? List.of()
-                : settlementTargetMemberIds.stream()
+                : settlementTargetSnapshots.stream()
+                .filter(Objects::nonNull)
+                .toList();
+        List<String> settlementTargetMemberIds = settlementTargets.stream()
+                .map(SettlementTargetSnapshot::memberId)
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(value -> !value.isBlank())
                 .toList();
-        if (settlementTargets.isEmpty()) {
+        if (settlementTargetMemberIds.isEmpty()) {
             throw new BusinessException(ErrorCode.NO_MEMBERS_TO_SETTLE);
         }
 
         Set<String> expectedTargets = getNonLeaderMemberIds().stream().collect(Collectors.toSet());
-        Set<String> normalizedTargets = settlementTargets.stream().collect(Collectors.toSet());
-        if (normalizedTargets.size() != settlementTargets.size()
+        Set<String> normalizedTargets = settlementTargetMemberIds.stream().collect(Collectors.toSet());
+        if (normalizedTargets.size() != settlementTargetMemberIds.size()
                 || !expectedTargets.containsAll(normalizedTargets)) {
             throw new BusinessException(
                     ErrorCode.VALIDATION_ERROR,
@@ -200,9 +218,11 @@ public class Party extends BaseTimeEntity {
         this.settlementStatus = SettlementStatus.PENDING;
         this.taxiFare = taxiFare;
         this.settlementAccount = settlementAccount;
-        this.perPersonAmount = taxiFare / (settlementTargets.size() + 1);
+        this.perPersonAmount = taxiFare / (settlementTargetMemberIds.size() + 1);
         this.memberSettlements.clear();
-        settlementTargets.forEach(memberId -> this.memberSettlements.add(MemberSettlement.create(this, memberId)));
+        settlementTargets.forEach(target -> this.memberSettlements.add(
+                MemberSettlement.create(this, target.memberId(), target.displayName())
+        ));
     }
 
     public boolean confirmSettlement(String memberId) {
@@ -285,14 +305,13 @@ public class Party extends BaseTimeEntity {
     }
 
     public void removeMember(String memberId) {
-        PartyMember member = this.members.stream()
-                .filter(item -> item.getMemberId().equals(memberId))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_PARTY_MEMBER));
-
-        this.members.remove(member);
-        this.currentMembers = Math.max(0, this.currentMembers - 1);
+        removePartyMember(memberId);
         this.memberSettlements.removeIf(item -> item.getMemberId().equals(memberId));
+    }
+
+    public void leaveArrivedMember(String memberId) {
+        removePartyMember(memberId);
+        findSettlement(memberId).ifPresent(MemberSettlement::markLeftParty);
     }
 
     public boolean isLeader(String memberId) {
@@ -340,6 +359,22 @@ public class Party extends BaseTimeEntity {
     private void addMemberInternal(String memberId) {
         this.members.add(PartyMember.create(this, memberId, LocalDateTime.now()));
         this.currentMembers++;
+    }
+
+    private void removePartyMember(String memberId) {
+        PartyMember member = this.members.stream()
+                .filter(item -> item.getMemberId().equals(memberId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_PARTY_MEMBER));
+
+        this.members.remove(member);
+        this.currentMembers = Math.max(0, this.currentMembers - 1);
+    }
+
+    private Optional<MemberSettlement> findSettlement(String memberId) {
+        return this.memberSettlements.stream()
+                .filter(item -> item.getMemberId().equals(memberId))
+                .findFirst();
     }
 
     private void end(PartyEndReason reason) {

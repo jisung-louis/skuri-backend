@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.domain.chat.repository;
 
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessage;
+import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -52,4 +53,9 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, String
     long countByChatRoomIdAndCreatedAtAfter(String chatRoomId, LocalDateTime createdAt);
 
     long deleteByChatRoomId(String chatRoomId);
+
+    java.util.Optional<ChatMessage> findTopByChatRoomIdAndTypeOrderByCreatedAtDescMessageOrderDescIdDesc(
+            String chatRoomId,
+            ChatMessageType type
+    );
 }

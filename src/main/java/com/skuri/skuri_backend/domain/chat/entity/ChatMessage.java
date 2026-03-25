@@ -124,4 +124,8 @@ public class ChatMessage extends BaseTimeEntity {
     ) {
         return new ChatMessage(chatRoomId, senderId, senderName, messageOrder, text, type, accountData, arrivalData);
     }
+
+    public void updateArrivalData(ChatArrivalData arrivalData) {
+        this.arrivalData = arrivalData;
+    }
 }

@@ -10,8 +10,10 @@ public record ChatArrivalDataResponse(
         Integer splitMemberCount,
         @Schema(description = "1인당 금액", example = "3500", nullable = true)
         Integer perPersonAmount,
-        @Schema(description = "정산 대상 멤버 ID 목록(leader 제외)", nullable = true)
+        @Schema(description = "ARRIVED 시점에 확정된 정산 대상 멤버 ID 목록(leader 제외)", nullable = true)
         java.util.List<String> settlementTargetMemberIds,
+        @Schema(description = "정산 대상 멤버 상태 snapshot", nullable = true)
+        java.util.List<ChatArrivalSettlementMemberResponse> memberSettlements,
         @Schema(description = "송금 계좌 정보", nullable = true)
         ChatAccountDataResponse accountData
 ) {

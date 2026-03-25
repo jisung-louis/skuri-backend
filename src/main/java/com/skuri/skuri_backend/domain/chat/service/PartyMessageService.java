@@ -6,10 +6,12 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.dto.request.SendChatMessageRequest;
 import com.skuri.skuri_backend.domain.chat.entity.ChatAccountData;
 import com.skuri.skuri_backend.domain.chat.entity.ChatArrivalData;
+import com.skuri.skuri_backend.domain.chat.entity.ChatArrivalSettlementMemberData;
 import com.skuri.skuri_backend.domain.member.entity.BankAccount;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.taxiparty.entity.MemberSettlement;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
@@ -58,19 +60,7 @@ public class PartyMessageService {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "정산 계좌 정보를 모두 입력해야 합니다.");
         }
 
-        ChatAccountData accountData = toChatAccountData(
-                settlementAccount.getBankName(),
-                settlementAccount.getAccountNumber(),
-                settlementAccount.getAccountHolder(),
-                settlementAccount.getHideName()
-        );
-        ChatArrivalData arrivalData = new ChatArrivalData(
-                party.getTaxiFare(),
-                party.getPerPersonAmount(),
-                party.getSplitMemberCount(),
-                party.getSettlementTargetMemberIds(),
-                accountData
-        );
+        ChatArrivalData arrivalData = buildArrivalData(party);
 
         Integer taxiFare = party.getTaxiFare();
         Integer perPersonAmount = party.getPerPersonAmount();
@@ -82,6 +72,32 @@ public class PartyMessageService {
                 + splitMemberCount + "명 정산, 1인당 "
                 + perPersonAmount + "원입니다.";
         return new PartySpecialMessagePayload(text, null, arrivalData);
+    }
+
+    @Transactional(readOnly = true)
+    ChatArrivalData buildArrivalData(Party party) {
+        SettlementAccountSnapshot settlementAccount = party.getSettlementAccount();
+        if (settlementAccount == null || !settlementAccount.isComplete()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "정산 계좌 정보를 모두 입력해야 합니다.");
+        }
+
+        ChatAccountData accountData = toChatAccountData(
+                settlementAccount.getBankName(),
+                settlementAccount.getAccountNumber(),
+                settlementAccount.getAccountHolder(),
+                settlementAccount.getHideName()
+        );
+
+        return new ChatArrivalData(
+                party.getTaxiFare(),
+                party.getPerPersonAmount(),
+                party.getSplitMemberCount(),
+                party.getSettlementTargetMemberIds(),
+                party.getSettlementItems().stream()
+                        .map(this::toArrivalSettlementMemberData)
+                        .toList(),
+                accountData
+        );
     }
 
     @Transactional(readOnly = true)
@@ -137,6 +153,17 @@ public class PartyMessageService {
                 accountNumber,
                 AccountHolderMasker.mask(accountHolder, hideName),
                 hideName
+        );
+    }
+
+    private ChatArrivalSettlementMemberData toArrivalSettlementMemberData(MemberSettlement settlement) {
+        return new ChatArrivalSettlementMemberData(
+                settlement.getMemberId(),
+                settlement.getDisplayName(),
+                settlement.isSettled(),
+                settlement.getSettledAt(),
+                settlement.isLeftParty(),
+                settlement.getLeftAt()
         );
     }
 

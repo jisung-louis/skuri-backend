@@ -23,5 +23,6 @@ public class ChatArrivalData {
     @JsonAlias("memberCount")
     private Integer splitMemberCount;
     private List<String> settlementTargetMemberIds;
+    private List<ChatArrivalSettlementMemberData> memberSettlements;
     private ChatAccountData accountData;
 }
