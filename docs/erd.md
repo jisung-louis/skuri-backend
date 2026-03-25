@@ -606,6 +606,12 @@ erDiagram
 | created_at | DATETIME | NOT NULL | 생성일 |
 | updated_at | DATETIME | NOT NULL | 수정일 |
 
+Taxi history 계약 메모:
+- `/v1/members/me/taxi-history`는 추가 테이블 없이 `parties` + `party_members`만으로 계산한다.
+- `dateTime`은 `departure_time`, `passengerCount`는 `current_members`를 사용한다.
+- `paymentAmount`는 `per_person_amount`, `completedRideCount/savedFareAmount` 판정은 `status`, `end_reason`, `settlement_status`, `taxi_fare`, `per_person_amount` 조합으로 계산한다.
+- `ended_at`은 history 노출 시각의 source of truth로 쓰지 않고 종료 이력 보존용으로 유지한다.
+
 **join_requests 테이블 상세:**
 
 | 컬럼 | 타입 | 제약조건 | 설명 |

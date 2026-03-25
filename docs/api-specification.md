@@ -743,39 +743,105 @@ FCM 토큰 삭제
 ```json
 {
   "success": true,
-  "data": {
-    "id": "uuid",
-    "status": "ARRIVED",
-    "departure": { ... },
-    "destination": { ... },
-    "isLeader": true,
-    "settlement": {
-      "status": "PENDING",
-      "taxiFare": 14000,
-      "splitMemberCount": 4,
-      "perPersonAmount": 3500,
-      "settlementTargetMemberIds": ["uuid", "uuid2", "uuid3"],
-      "account": {
-        "bankName": "카카오뱅크",
-        "accountNumber": "3333-01-1234567",
-        "accountHolder": "홍*동",
-        "hideName": true
-      },
-      "memberSettlements": [
-        {
-          "memberId": "uuid",
-          "memberName": "홍길동",
-          "settled": true,
-          "settledAt": "2026-02-03T14:30:00Z"
+  "data": [
+    {
+      "id": "uuid",
+      "status": "ARRIVED",
+      "departure": { ... },
+      "destination": { ... },
+      "isLeader": true,
+      "settlement": {
+        "status": "PENDING",
+        "taxiFare": 14000,
+        "splitMemberCount": 4,
+        "perPersonAmount": 3500,
+        "settlementTargetMemberIds": ["uuid", "uuid2", "uuid3"],
+        "account": {
+          "bankName": "카카오뱅크",
+          "accountNumber": "3333-01-1234567",
+          "accountHolder": "홍*동",
+          "hideName": true
         },
-        {
-          "memberId": "uuid2",
-          "memberName": "김철수",
-          "settled": false,
-          "settledAt": null
-        }
-      ]
+        "memberSettlements": [
+          {
+            "memberId": "uuid",
+            "memberName": "홍길동",
+            "settled": true,
+            "settledAt": "2026-02-03T14:30:00Z"
+          },
+          {
+            "memberId": "uuid2",
+            "memberName": "김철수",
+            "settled": false,
+            "settledAt": null
+          }
+        ]
+      }
     }
+  ]
+}
+```
+
+#### GET /v1/members/me/taxi-history
+택시 이용 내역 화면 전용 목록 조회
+
+- `OPEN`, `CLOSED` 파티는 제외하고 `ARRIVED`, `ENDED` 상태만 반환합니다.
+- `departureLabel`은 `parties.departure_name`, `arrivalLabel`은 `parties.destination_name`을 사용합니다.
+- `dateTime`은 모든 history 항목에서 `parties.departure_time`을 사용합니다.
+- `passengerCount`는 현재 파티 멤버 수(`parties.current_members`, 리더 포함)입니다.
+- `paymentAmount`는 정산 정보가 있는 경우 `parties.per_person_amount`, 없으면 `null`입니다.
+- `role`은 서버가 `leader_id == me` 여부로 `LEADER` / `MEMBER`를 최종 판단합니다.
+- 외부 `status` 매핑:
+  - `ARRIVED` → `COMPLETED`
+  - `ENDED + FORCE_ENDED` → `COMPLETED`
+  - `ENDED + ARRIVED`(레거시 종료 사유) → `COMPLETED`
+  - `ENDED + TIMEOUT` → `settlement_status/taxi_fare/per_person_amount`가 있으면 `COMPLETED`, 없으면 `CANCELLED`
+  - `ENDED + CANCELLED` / `ENDED + WITHDRAWED` → `CANCELLED`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "party-20260304-001",
+      "departureLabel": "성결대학교",
+      "arrivalLabel": "안양역",
+      "dateTime": "2026-03-04T21:00:00",
+      "passengerCount": 3,
+      "paymentAmount": 5000,
+      "role": "LEADER",
+      "status": "COMPLETED"
+    },
+    {
+      "id": "party-20260303-101",
+      "departureLabel": "성결대학교",
+      "arrivalLabel": "범계역",
+      "dateTime": "2026-03-03T18:30:00",
+      "passengerCount": 2,
+      "paymentAmount": null,
+      "role": "MEMBER",
+      "status": "CANCELLED"
+    }
+  ]
+}
+```
+
+#### GET /v1/members/me/taxi-history/summary
+마이페이지/택시 이용 내역 상단 요약 조회
+
+- `completedRideCount`는 위 history 목록과 동일한 기준에서 외부 `status = COMPLETED`인 항목 수입니다.
+- `savedFareAmount`는 동일한 completed 항목에 대해 `(taxiFare - perPersonAmount)`를 합산한 값입니다.
+  - 혼자 탔다면 전체 `taxiFare`를 냈을 것으로 가정하고, 동승으로 줄어든 본인 부담 금액만 절약액으로 계산합니다.
+  - 취소 항목과 정산 정보가 없는 항목은 합산하지 않습니다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "completedRideCount": 4,
+    "savedFareAmount": 9374
   }
 }
 ```
