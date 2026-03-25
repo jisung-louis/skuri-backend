@@ -33,6 +33,8 @@ public record NoticeSummaryResponse(
         @Schema(description = "내 좋아요 여부", example = "false")
         boolean isLiked,
         @Schema(description = "내 북마크 여부", example = "true")
-        boolean isBookmarked
+        boolean isBookmarked,
+        @Schema(description = "내 댓글 작성 여부", example = "true")
+        boolean isCommentedByMe
 ) {
 }
