@@ -282,13 +282,6 @@ public class NotificationEventHandler {
     }
 
     private void handlePartyChatMessage(ChatRoom room, ChatMessage message) {
-        if (message.getType() == ChatMessageType.SYSTEM
-                || message.getType() == ChatMessageType.ACCOUNT
-                || message.getType() == ChatMessageType.ARRIVED
-                || message.getType() == ChatMessageType.END) {
-            return;
-        }
-
         List<String> recipients = chatRoomMemberRepository.findById_ChatRoomId(room.getId()).stream()
                 .filter(member -> !member.getMemberId().equals(message.getSenderId()))
                 .filter(member -> !member.isMuted())
@@ -298,8 +291,8 @@ public class NotificationEventHandler {
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.CHAT_MESSAGE,
                 recipients,
-                message.getSenderName() + "님의 메시지",
-                preview(message.getText(), 50),
+                formatPartyChatNotificationTitle(message),
+                formatPartyChatNotificationBody(message),
                 NotificationData.ofChatRoom(room.getId()),
                 true,
                 false
@@ -613,8 +606,37 @@ public class NotificationEventHandler {
         };
     }
 
+    private String formatPartyChatNotificationTitle(ChatMessage message) {
+        String senderName = displaySenderName(message.getSenderName());
+        return switch (message.getType()) {
+            case ACCOUNT -> senderName + "님이 계좌 정보를 공유했어요";
+            case SYSTEM -> "파티 안내 메시지";
+            case ARRIVED -> "택시가 목적지에 도착했어요";
+            case END -> "파티가 종료되었어요";
+            default -> senderName + "님의 메시지";
+        };
+    }
+
+    private String formatPartyChatNotificationBody(ChatMessage message) {
+        String body = preview(message.getText(), 50);
+        if (!body.isBlank()) {
+            return body;
+        }
+        return switch (message.getType()) {
+            case ACCOUNT -> "계좌 정보를 확인해보세요.";
+            case SYSTEM -> "파티 안내 메시지가 도착했어요.";
+            case ARRIVED -> "정산 정보를 확인해보세요.";
+            case END -> "파티 종료 안내를 확인해보세요.";
+            default -> "";
+        };
+    }
+
     private String formatChatMessageBody(ChatMessage message) {
-        return (message.getSenderName() == null ? "익명" : message.getSenderName()) + ": " + preview(message.getText(), 50);
+        return displaySenderName(message.getSenderName()) + ": " + preview(message.getText(), 50);
+    }
+
+    private String displaySenderName(String senderName) {
+        return senderName == null || senderName.isBlank() ? "익명" : senderName;
     }
 
     private String preview(String value, int maxLength) {

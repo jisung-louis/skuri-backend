@@ -665,7 +665,7 @@ SSE 운영 제약:
 | `MEMBER_KICKED` | 파티 멤버 강퇴 | 강퇴된 멤버 | 자진 이탈(`_selfLeaveMemberId`)과 리더 제외 | `allNotifications` + `partyNotifications` | O |
 | `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | 리더만 남은 파티는 제외 | `allNotifications` + `partyNotifications` | O |
 | `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 생성 | 채팅방 멤버(송신자 제외) | 채팅방 mute 대상 제외 | `allNotifications` + 채팅방 mute | X |
-| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 생성 | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외 | 채팅 mute 중심 parity 우선, 전역 토글은 현재 미반영 | X |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 생성 (`TEXT`, `IMAGE`, `ACCOUNT`, `SYSTEM`, `ARRIVED`, `END`) | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외, payload는 `chatRoomId` canonical 사용 | 채팅 mute 중심 parity 우선, 전역 토글은 현재 미반영 | X |
 | `POST_LIKED` | 게시글 좋아요 생성 | 게시글 작성자 | 자기 글 좋아요 제외 | `allNotifications` + `boardLikeNotifications` | O |
 | `COMMENT_CREATED` (게시글) | 게시글 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | 자기 자신 대상 제외, 동일 사용자 중복 수신은 1회로 dedupe | `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` | O |
 | `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `Notice.author`가 회원 식별자가 아니어서 루트 공지 작성자 알림은 현재 미지원 | `allNotifications` + `commentNotifications` | O |

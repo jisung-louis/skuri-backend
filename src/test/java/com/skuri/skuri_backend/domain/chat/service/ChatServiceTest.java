@@ -46,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -68,6 +69,9 @@ class ChatServiceTest {
 
     @Mock
     private PartyMessageService partyMessageService;
+
+    @Mock
+    private ChatMessageOrderGenerator chatMessageOrderGenerator;
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
@@ -371,6 +375,51 @@ class ChatServiceTest {
         assertEquals("카카오뱅크", response.accountData().bankName());
         verify(messagingTemplate).convertAndSend(eq("/topic/chat/party:party-1"), any(ChatMessageResponse.class));
         verify(messagingTemplate).convertAndSendToUser(eq("member-1"), eq("/queue/chat-rooms"), any());
+    }
+
+    @Test
+    void createPartySystemMessage_저장후_파티채팅히스토리와브로드캐스트에사용한다() {
+        Party party = Party.create(
+                "leader-1",
+                Location.of("성결대학교", 37.38, 126.93),
+                Location.of("안양역", 37.40, 126.92),
+                LocalDateTime.now().plusHours(2),
+                4,
+                List.of("빠른출발"),
+                "테스트"
+        );
+        ReflectionTestUtils.setField(party, "id", "party-1");
+        ChatRoom room = ChatRoom.createPartyRoom("party-1");
+        ChatRoomMember leaderMember = membership(room, "party:party-1", "leader-1");
+        Member leader = Member.create("leader-1", "leader-1@sungkyul.ac.kr", "파티 리더", LocalDateTime.now().minusDays(1));
+
+        when(memberRepository.findById("leader-1")).thenReturn(Optional.of(leader));
+        when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
+        when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", "message-system-1");
+            ReflectionTestUtils.setField(message, "createdAt", LocalDateTime.of(2026, 3, 5, 21, 10, 0));
+            return message;
+        });
+        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMemberRepository.findById_ChatRoomId("party:party-1")).thenReturn(List.of(leaderMember));
+        when(chatMessageOrderGenerator.nextOrder()).thenReturn(42L);
+
+        ChatMessageResponse response = chatService.createPartySystemMessage(party, "leader-1", "모집이 마감되었어요.");
+
+        assertEquals(ChatMessageType.SYSTEM, response.type());
+        assertEquals("모집이 마감되었어요.", response.text());
+        verify(chatMessageRepository).save(argThat(message ->
+                Long.valueOf(42L).equals(message.getMessageOrder())
+                        && message.getType() == ChatMessageType.SYSTEM
+        ));
+        verify(messagingTemplate).convertAndSend(eq("/topic/chat/party:party-1"), any(ChatMessageResponse.class));
+        verify(messagingTemplate).convertAndSendToUser(eq("leader-1"), eq("/queue/chat-rooms"), any());
+        verify(eventPublisher).publish(argThat(event ->
+                event instanceof com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent.ChatMessageCreated created
+                        && created.chatRoomId().equals("party:party-1")
+                        && created.messageId().equals("message-system-1")
+        ));
     }
 
     @Test

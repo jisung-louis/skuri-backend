@@ -10,6 +10,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Index;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
@@ -19,7 +20,12 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "chat_messages")
+@Table(
+        name = "chat_messages",
+        indexes = {
+                @Index(name = "idx_chat_messages_room_cursor", columnList = "chat_room_id, created_at, message_order, id")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatMessage extends BaseTimeEntity {
 
@@ -36,6 +42,9 @@ public class ChatMessage extends BaseTimeEntity {
 
     @Column(name = "sender_name", length = 50)
     private String senderName;
+
+    @Column(name = "message_order", updatable = false)
+    private Long messageOrder;
 
     @Lob
     private String text;
@@ -66,6 +75,7 @@ public class ChatMessage extends BaseTimeEntity {
             String chatRoomId,
             String senderId,
             String senderName,
+            Long messageOrder,
             String text,
             ChatMessageType type,
             ChatAccountData accountData,
@@ -74,6 +84,7 @@ public class ChatMessage extends BaseTimeEntity {
         this.chatRoomId = chatRoomId;
         this.senderId = senderId;
         this.senderName = senderName;
+        this.messageOrder = messageOrder;
         this.text = text;
         this.type = type;
         this.accountData = accountData;
@@ -89,6 +100,28 @@ public class ChatMessage extends BaseTimeEntity {
             ChatAccountData accountData,
             ChatArrivalData arrivalData
     ) {
-        return new ChatMessage(chatRoomId, senderId, senderName, text, type, accountData, arrivalData);
+        return create(
+                chatRoomId,
+                senderId,
+                senderName,
+                null,
+                text,
+                type,
+                accountData,
+                arrivalData
+        );
+    }
+
+    public static ChatMessage create(
+            String chatRoomId,
+            String senderId,
+            String senderName,
+            Long messageOrder,
+            String text,
+            ChatMessageType type,
+            ChatAccountData accountData,
+            ChatArrivalData arrivalData
+    ) {
+        return new ChatMessage(chatRoomId, senderId, senderName, messageOrder, text, type, accountData, arrivalData);
     }
 }

@@ -67,6 +67,7 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final MemberRepository memberRepository;
     private final PartyMessageService partyMessageService;
+    private final ChatMessageOrderGenerator chatMessageOrderGenerator;
     private final SimpMessagingTemplate messagingTemplate;
     private final AfterCommitApplicationEventPublisher eventPublisher;
 
@@ -144,6 +145,7 @@ public class ChatService {
                 chatRoomId,
                 cursorCreatedAt,
                 cursorId,
+                resolveCursorMessageOrder(chatRoomId, cursorId),
                 PageRequest.of(0, pageSize + 1)
         );
 
@@ -545,6 +547,7 @@ public class ChatService {
                 chatRoomId,
                 senderId,
                 senderName,
+                chatMessageOrderGenerator.nextOrder(),
                 text,
                 type,
                 accountData,
@@ -585,6 +588,16 @@ public class ChatService {
         if (createdAtProvided != idProvided) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "cursorCreatedAt와 cursorId는 함께 전달해야 합니다.");
         }
+    }
+
+    private Long resolveCursorMessageOrder(String chatRoomId, String cursorId) {
+        if (!StringUtils.hasText(cursorId)) {
+            return null;
+        }
+        return chatMessageRepository.findById(cursorId)
+                .filter(message -> chatRoomId.equals(message.getChatRoomId()))
+                .map(ChatMessage::getMessageOrder)
+                .orElse(null);
     }
 
     private ChatRoomAccess findAccessibleRoom(String memberId, String chatRoomId) {

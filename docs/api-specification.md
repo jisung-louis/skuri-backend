@@ -530,9 +530,9 @@ FCM 토큰 삭제
 |---|---|---|
 | `contractVersion` | push payload 계약 버전. 현재 `"1"` | X |
 | `type` | canonical 알림 타입 enum | X |
-| `partyId` | 파티 상세/파티 채팅 이동 식별자 | O |
+| `partyId` | 파티 알림 계열 이동 식별자 (`CHAT_MESSAGE`는 사용하지 않음) | O |
 | `requestId` | 동승 요청 식별자 | O |
-| `chatRoomId` | 채팅방 식별자 | O |
+| `chatRoomId` | 채팅방 식별자 (`CHAT_MESSAGE` canonical 식별자, 파티 채팅도 동일) | O |
 | `postId` | 게시글 식별자 | O |
 | `commentId` | 댓글 식별자 | O |
 | `noticeId` | 학교 공지 식별자 | O |
@@ -1178,6 +1178,10 @@ FCM 토큰 삭제
 동승 요청 수락 (리더만)
 
 - 요청 수락으로 파티 인원이 정원(`maxMembers`)에 도달하면 파티 상태는 자동으로 `CLOSED` 전이됩니다.
+- 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"{requesterName}님이 파티에 합류했어요."`가 추가됩니다. 닉네임을 찾지 못하면 `"새 멤버가 파티에 합류했어요."`를 사용합니다.
+- 정원 도달로 자동 `CLOSED` 되면 같은 트랜잭션 안에서 위 합류 안내 뒤에 `"모집이 마감되었어요."` `SYSTEM` 메시지가 추가됩니다.
+- 실시간 브로드캐스트는 `합류 안내 -> 모집 마감 안내` 순서로 수행됩니다.
+- history 조회는 기본 정렬이 `createdAt DESC`라서 더 나중에 저장된 모집 마감 메시지가 먼저 보일 수 있으며, 같은 `createdAt`인 경우에도 서버가 저장 순서를 기준으로 결정적으로 tie-break 합니다.
 
 **Response:**
 ```json
@@ -1435,10 +1439,10 @@ FCM 토큰 삭제
 | `size` | int | 페이지 크기 (기본 50, 최대 100) |
 
 **정렬/커서 규칙:**
-- 정렬은 `createdAt DESC, id DESC` 고정입니다.
+- 정렬은 `createdAt DESC` 고정이며, 같은 `createdAt`에서는 서버 내부 저장 순서 tie-breaker를 사용해 결정적으로 정렬합니다.
 - 다음 페이지 조회 조건은 아래와 같습니다.
   - `createdAt < cursorCreatedAt`
-  - 또는 `createdAt == cursorCreatedAt AND id < cursorId`
+  - 또는 `createdAt == cursorCreatedAt AND cursorId`가 가리키는 메시지보다 내부 저장 순서상 더 오래된 메시지
 - `nextCursor`는 현재 페이지의 마지막 메시지 `(createdAt, id)`로 생성됩니다.
 
 **Response:**
@@ -1527,6 +1531,8 @@ FCM 토큰 삭제
 - 파티 채팅 이력 조회는 `GET /v1/chat-rooms/{chatRoomId}/messages`를 사용합니다.
   - 예: `chatRoomId = party:{partyId}`
 - 서버 생성 안내 메시지(`SYSTEM`/`ARRIVED`/`END`)도 동일한 조회/구독 경로로 전달됩니다.
+- 동승 요청 수락/멤버 나가기 안내도 서버 생성 `SYSTEM` 메시지로만 저장/브로드캐스트되며, 클라이언트가 직접 전송하지 않습니다.
+- 동승 요청 수락으로 파티가 정원에 도달하면 `SYSTEM` 메시지는 `합류 안내 -> 모집 마감 안내` 순서로 저장되고, 같은 순서로 브로드캐스트됩니다.
 
 ### 4.5 WebSocket (STOMP)
 
@@ -1619,6 +1625,7 @@ Authorization:Bearer <firebase_id_token>
 - 서버가 생성하는 타입: `SYSTEM`, `ARRIVED`, `END`
 - 파티 채팅의 `SYSTEM`/`ARRIVED`/`END`는 도메인 이벤트(동승 승인, 멤버 나가기, 도착 처리, 취소/종료) 기준으로만 생성됨
 - `SYSTEM` 메시지 예: 동승 승인, 모집 마감, 모집 재개, 멤버 나가기
+- 파티 채팅 `CHAT_MESSAGE` push payload의 canonical 식별자는 항상 `chatRoomId`이며, 파티 채팅이라고 해서 별도 `partyId`를 추가하지 않습니다.
 
 **전송 포맷:**
 ```json
@@ -1637,6 +1644,15 @@ Authorization:Bearer <firebase_id_token>
 > `ACCOUNT` 타입: 계좌 snapshot을 payload로 전달합니다.
 > `remember=true`이면 전송한 snapshot을 회원 프로필 계좌 정보에도 함께 저장합니다.
 > 클라이언트가 `SYSTEM`, `ARRIVED`, `END`를 직접 보내면 `INVALID_REQUEST`로 거부됩니다.
+
+**파티 채팅 `CHAT_MESSAGE` 알림 포맷 정책:**
+
+| 메시지 타입 | title 예시 | body 예시 | data |
+|---|---|---|---|
+| `ACCOUNT` | `홍길동님이 계좌 정보를 공유했어요` | `계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)` | `chatRoomId=party:party_uuid` |
+| `SYSTEM` | `파티 안내 메시지` | `모집이 마감되었어요.` | `chatRoomId=party:party_uuid` |
+| `ARRIVED` | `택시가 목적지에 도착했어요` | `택시가 목적지에 도착했어요. 총 15000원, 3명 정산, 1인당 5000원입니다.` | `chatRoomId=party:party_uuid` |
+| `END` | `파티가 종료되었어요` | `리더가 파티를 종료했어요.` | `chatRoomId=party:party_uuid` |
 
 **수신 포맷 (서버 → 클라이언트):**
 ```json
@@ -2941,7 +2957,7 @@ Authorization:Bearer <firebase_id_token>
 | `MEMBER_KICKED` | 강퇴 감지 | 강퇴된 멤버 | `allNotifications` + `partyNotifications` | O |
 | `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | O |
 | `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 | 채팅방 멤버(송신자 제외) | `allNotifications` + 채팅방 mute | X |
-| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 | 파티 멤버(송신자 제외) | 채팅 mute 중심 parity 우선, 전역 토글은 현재 미반영 | X |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 (`TEXT`, `IMAGE`, `ACCOUNT`, `SYSTEM`, `ARRIVED`, `END`) | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외, `data`는 `chatRoomId` canonical 사용 | X |
 | `POST_LIKED` | 게시글 좋아요 | 게시글 작성자 | `allNotifications` + `boardLikeNotifications` | O |
 | `COMMENT_CREATED` (게시글) | 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` (중복 수신자는 1회 dedupe) | O |
 | `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `allNotifications` + `commentNotifications` | O |

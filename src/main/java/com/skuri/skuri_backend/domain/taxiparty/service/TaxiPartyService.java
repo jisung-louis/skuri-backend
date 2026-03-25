@@ -384,6 +384,9 @@ public class TaxiPartyService {
                         ? requesterName + "님이 파티에 합류했어요."
                         : "새 멤버가 파티에 합류했어요."
         );
+        if (beforeStatus == PartyStatus.OPEN && party.getStatus() == PartyStatus.CLOSED) {
+            chatService.createPartySystemMessage(party, leaderId, "모집이 마감되었어요.");
+        }
         partySseService.publishPartyMemberJoined(party, requesterId, requesterName, party.getMemberIds());
         joinRequestSseService.publishJoinRequestUpdated(joinRequest, previousStatus);
         if (beforeStatus != party.getStatus()) {
