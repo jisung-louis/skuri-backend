@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.member.service;
 
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.domain.academic.service.TimetableService;
+import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
 import com.skuri.skuri_backend.domain.board.service.BoardService;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberWithdrawResponse;
@@ -50,6 +51,9 @@ class MemberLifecycleServiceTest {
     private BoardService boardService;
 
     @Mock
+    private AppNoticeService appNoticeService;
+
+    @Mock
     private NoticeService noticeService;
 
     @Mock
@@ -85,6 +89,7 @@ class MemberLifecycleServiceTest {
         verify(taxiPartyService).handleMemberWithdrawal("member-1");
         verify(chatService).removeMemberFromAllChatRooms("member-1");
         verify(boardService).handleMemberWithdrawal("member-1");
+        verify(appNoticeService).deleteAllReadStatusesByUserId("member-1");
         verify(noticeService).handleMemberWithdrawal("member-1");
         verify(notificationService).deleteAllByUserId("member-1");
         verify(fcmTokenService).deleteAllByUserId("member-1");

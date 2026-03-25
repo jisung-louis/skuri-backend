@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeController;
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeAdminController;
+import com.skuri.skuri_backend.domain.app.controller.MemberAppNoticeController;
 import com.skuri.skuri_backend.domain.academic.controller.AcademicScheduleAdminController;
 import com.skuri.skuri_backend.domain.academic.controller.CourseAdminController;
 import com.skuri.skuri_backend.domain.board.controller.CommentController;
@@ -48,6 +49,7 @@ class OpenApiResponseExamplesConventionTest {
             AppVersionAdminController.class,
             AppNoticeController.class,
             AppNoticeAdminController.class,
+            MemberAppNoticeController.class,
             AcademicScheduleAdminController.class,
             CourseAdminController.class,
             NoticeController.class,
