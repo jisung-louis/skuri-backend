@@ -7,11 +7,11 @@ import java.util.Map;
 
 @Schema(description = "알림 추가 데이터")
 public record NotificationData(
-        @Schema(description = "파티 ID", example = "party-uuid", nullable = true)
+        @Schema(description = "파티 ID (파티 알림 계열에서 사용, CHAT_MESSAGE는 chatRoomId를 canonical로 사용)", example = "party-uuid", nullable = true)
         String partyId,
         @Schema(description = "동승 요청 ID", example = "request-uuid", nullable = true)
         String requestId,
-        @Schema(description = "채팅방 ID", example = "room:university", nullable = true)
+        @Schema(description = "채팅방 ID (CHAT_MESSAGE canonical 식별자)", example = "party:party-uuid", nullable = true)
         String chatRoomId,
         @Schema(description = "게시글 ID", example = "post-uuid", nullable = true)
         String postId,

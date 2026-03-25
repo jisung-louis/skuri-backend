@@ -43,7 +43,10 @@ public class JoinRequestController {
     private final TaxiPartyService taxiPartyService;
 
     @PatchMapping("/join-requests/{id}/accept")
-    @Operation(summary = "동승 요청 수락", description = "리더가 동승 요청을 수락합니다.")
+    @Operation(
+            summary = "동승 요청 수락",
+            description = "리더가 동승 요청을 수락합니다. 성공 시 파티 채팅에 서버 생성 SYSTEM 메시지가 추가되며, 정원 도달로 자동 CLOSED 되면 합류 안내 뒤에 모집 마감 안내가 같은 순서로 저장/브로드캐스트됩니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
