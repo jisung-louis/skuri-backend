@@ -2903,6 +2903,10 @@ Authorization:Bearer <firebase_id_token>
 #### GET /v1/notifications
 알림 목록
 
+**정책:**
+- 목록 `content`는 기존 인박스 알림을 그대로 반환하며 `APP_NOTICE` 타입도 포함될 수 있다.
+- 다만 응답의 `unreadCount`는 일반 알림 unread 집계값으로, `APP_NOTICE`를 제외한다.
+
 **Query Parameters:**
 
 | 파라미터 | 타입 | 기본값 | 설명 |
@@ -2943,6 +2947,10 @@ Authorization:Bearer <firebase_id_token>
 
 #### GET /v1/notifications/unread-count
 읽지 않은 알림 수
+
+**정책:**
+- 이 값은 일반 알림 unread 집계이며 `APP_NOTICE`는 제외한다.
+- 앱 공지 unread count는 `GET /v1/members/me/app-notices/unread-count`로 별도 조회한다.
 
 **Response:**
 ```json
@@ -3510,8 +3518,11 @@ Cache-Control: no-cache
 |-----------|---------|
 | `SNAPSHOT` | 연결 직후/재연결 직후 현재 상태 스냅샷 전송 |
 | `NOTIFICATION` | 새 알림 도착 (모든 알림 타입 공통) |
-| `UNREAD_COUNT_CHANGED` | 읽지 않은 알림 수 변경 |
+| `UNREAD_COUNT_CHANGED` | 읽지 않은 일반 알림 수 변경 (`APP_NOTICE` 제외) |
 | `HEARTBEAT` | 30초 주기 연결 유지 |
+
+- `SNAPSHOT.unreadCount`와 `UNREAD_COUNT_CHANGED.count`는 모두 일반 알림 unread 집계이며 `APP_NOTICE`를 제외합니다.
+- 앱 공지 unread count는 `GET /v1/members/me/app-notices/unread-count`로 별도 조회합니다.
 
 **RN 파싱 기준 DTO (strict)**
 
