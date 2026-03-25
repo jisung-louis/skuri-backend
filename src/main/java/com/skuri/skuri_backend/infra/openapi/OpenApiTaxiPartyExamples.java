@@ -474,6 +474,7 @@ public final class OpenApiTaxiPartyExamples {
             {
               "success": true,
               "data": {
+                "totalRideCount": 5,
                 "completedRideCount": 4,
                 "savedFareAmount": 9374
               }
