@@ -32,6 +32,7 @@ import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -52,6 +53,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -406,11 +408,37 @@ class TaxiPartyServiceTest {
         assertEquals(2, party.getCurrentMembers());
         assertEquals(PartyStatus.CLOSED, party.getStatus());
         assertTrue(party.isMember("requester-1"));
-        verify(chatService).syncPartyChatRoomMembers(party);
-        verify(chatService).createPartySystemMessage(party, "leader", "스쿠리 유저님이 파티에 합류했어요.");
+        InOrder chatInOrder = inOrder(chatService);
+        chatInOrder.verify(chatService).syncPartyChatRoomMembers(party);
+        chatInOrder.verify(chatService).createPartySystemMessage(party, "leader", "스쿠리 유저님이 파티에 합류했어요.");
+        chatInOrder.verify(chatService).createPartySystemMessage(party, "leader", "모집이 마감되었어요.");
         verify(partySseService).publishPartyMemberJoined(party, "requester-1", "스쿠리 유저", party.getMemberIds());
         verify(joinRequestSseService).publishJoinRequestUpdated(joinRequest, JoinRequestStatus.PENDING);
         verify(partySseService).publishPartyStatusChanged(party);
+    }
+
+    @Test
+    void acceptJoinRequest_정원미도달이면_합류SYSTEM메시지만생성한다() {
+        Party party = sampleParty("party-1", "leader", 3, false);
+        JoinRequest joinRequest = JoinRequest.create(party, "requester-1");
+        ReflectionTestUtils.setField(joinRequest, "id", "request-1");
+        Member requester = member("requester-1");
+
+        when(joinRequestRepository.findDetailById("request-1")).thenReturn(Optional.of(joinRequest));
+        when(memberRepository.findActiveByIdForUpdate("requester-1")).thenReturn(Optional.of(requester));
+        when(memberRepository.findById("requester-1")).thenReturn(Optional.of(requester));
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), eq("party-1"))).thenReturn(false);
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        JoinRequestAcceptResponse response = taxiPartyService.acceptJoinRequest("leader", "request-1");
+
+        assertEquals(JoinRequestStatus.ACCEPTED, response.status());
+        assertEquals(2, party.getCurrentMembers());
+        assertEquals(PartyStatus.OPEN, party.getStatus());
+        verify(chatService).createPartySystemMessage(party, "leader", "스쿠리 유저님이 파티에 합류했어요.");
+        verify(chatService, never()).createPartySystemMessage(party, "leader", "모집이 마감되었어요.");
+        verify(partySseService, never()).publishPartyStatusChanged(party);
     }
 
     @Test

@@ -13,6 +13,8 @@ import com.skuri.skuri_backend.domain.board.repository.PostRepository;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessage;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoomMember;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoomMemberId;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
@@ -31,6 +33,9 @@ import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -41,6 +46,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -193,15 +199,24 @@ class NotificationEventHandlerTest {
         verify(pushNotificationService, times(0)).send(org.mockito.ArgumentMatchers.any());
     }
 
-    @Test
-    void handleChatMessageCreated_파티ARRIVED메시지는일반채팅알림을보내지않는다() {
+    @ParameterizedTest(name = "[파티 CHAT_MESSAGE] {0}")
+    @MethodSource("partySpecialMessages")
+    void handleChatMessageCreated_파티특수메시지도_CHAT_MESSAGE알림을보낸다(
+            ChatMessageType messageType,
+            String text,
+            String expectedTitle,
+            String expectedBody
+    ) {
         ChatRoom room = ChatRoom.createPartyRoom("party-1");
+        ChatRoomMember actor = membership(room, "party:party-1", "leader-1", false);
+        ChatRoomMember recipient = membership(room, "party:party-1", "member-1", false);
+        ChatRoomMember mutedRecipient = membership(room, "party:party-1", "member-2", true);
         ChatMessage message = ChatMessage.create(
                 "party:party-1",
                 "leader-1",
                 "리더",
-                "택시가 목적지에 도착했어요.",
-                ChatMessageType.ARRIVED,
+                text,
+                messageType,
                 null,
                 null
         );
@@ -209,11 +224,21 @@ class NotificationEventHandlerTest {
 
         when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
         when(chatMessageRepository.findById("message-1")).thenReturn(Optional.of(message));
+        when(chatRoomMemberRepository.findById_ChatRoomId("party:party-1"))
+                .thenReturn(List.of(actor, recipient, mutedRecipient));
 
         notificationEventHandler.handle(new NotificationDomainEvent.ChatMessageCreated("party:party-1", "message-1"));
 
-        verify(notificationService, never()).createInboxNotifications(org.mockito.ArgumentMatchers.any());
-        verify(pushNotificationService, never()).send(org.mockito.ArgumentMatchers.any());
+        ArgumentCaptor<NotificationDispatchRequest> captor = ArgumentCaptor.forClass(NotificationDispatchRequest.class);
+        verify(notificationService).createInboxNotifications(captor.capture());
+        verify(pushNotificationService).send(captor.getValue());
+        assertEquals(NotificationType.CHAT_MESSAGE, captor.getValue().type());
+        assertEquals(List.of("member-1"), captor.getValue().recipientIds().stream().toList());
+        assertEquals(expectedTitle, captor.getValue().title());
+        assertEquals(expectedBody, captor.getValue().message());
+        assertEquals("party:party-1", captor.getValue().data().chatRoomId());
+        assertEquals(null, captor.getValue().data().partyId());
+        assertFalse(captor.getValue().inboxEnabled());
     }
 
     @Test
@@ -251,5 +276,41 @@ class NotificationEventHandlerTest {
         verify(pushNotificationService).send(captor.getValue());
         assertEquals(NotificationType.PARTY_ARRIVED, captor.getValue().type());
         assertEquals(List.of("member-1"), captor.getValue().recipientIds().stream().toList());
+    }
+
+    private static Stream<Arguments> partySpecialMessages() {
+        return Stream.of(
+                Arguments.of(
+                        ChatMessageType.ACCOUNT,
+                        "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)",
+                        "리더님이 계좌 정보를 공유했어요",
+                        "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)"
+                ),
+                Arguments.of(
+                        ChatMessageType.SYSTEM,
+                        "모집이 마감되었어요.",
+                        "파티 안내 메시지",
+                        "모집이 마감되었어요."
+                ),
+                Arguments.of(
+                        ChatMessageType.ARRIVED,
+                        "택시가 목적지에 도착했어요.",
+                        "택시가 목적지에 도착했어요",
+                        "택시가 목적지에 도착했어요."
+                ),
+                Arguments.of(
+                        ChatMessageType.END,
+                        "리더가 파티를 종료했어요.",
+                        "파티가 종료되었어요",
+                        "리더가 파티를 종료했어요."
+                )
+        );
+    }
+
+    private ChatRoomMember membership(ChatRoom room, String chatRoomId, String memberId, boolean muted) {
+        ChatRoomMember membership = ChatRoomMember.create(room, memberId, LocalDateTime.now().minusMinutes(5));
+        ReflectionTestUtils.setField(membership, "id", ChatRoomMemberId.of(chatRoomId, memberId));
+        membership.updateMuted(muted);
+        return membership;
     }
 }

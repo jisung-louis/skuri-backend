@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.chat.integration;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessage;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomMember;
@@ -9,8 +10,11 @@ import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
+import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
+import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenClaims;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenVerifier;
 import org.junit.jupiter.api.AfterEach;
@@ -70,6 +74,9 @@ class ChatWebSocketIntegrationTest {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    @Autowired
+    private ChatService chatService;
 
     @MockitoBean
     private FirebaseTokenVerifier firebaseTokenVerifier;
@@ -206,6 +213,65 @@ class ChatWebSocketIntegrationTest {
         } finally {
             nativeStompClient.stop();
         }
+    }
+
+    @Test
+    void server생성_partySystem메시지는_history와_topic으로전달된다() throws Exception {
+        ChatRoom partyRoom = ChatRoom.createPartyRoom("party-1");
+        chatRoomRepository.save(partyRoom);
+
+        ChatRoomMember partyMember = ChatRoomMember.create(partyRoom, "ws-member", LocalDateTime.now().minusMinutes(10));
+        chatRoomMemberRepository.save(partyMember);
+        partyRoom.increaseMemberCount();
+        chatRoomRepository.save(partyRoom);
+
+        String url = "http://localhost:" + port + "/ws";
+        StompHeaders connectHeaders = new StompHeaders();
+        connectHeaders.add("Authorization", "Bearer valid-token");
+
+        StompSession session = stompClient
+                .connectAsync(url, new WebSocketHttpHeaders(), connectHeaders, new StompSessionHandlerAdapter() {})
+                .get(5, TimeUnit.SECONDS);
+
+        LinkedBlockingQueue<Map<String, Object>> received = new LinkedBlockingQueue<>();
+        session.subscribe("/topic/chat/party:party-1", new StompFrameHandler() {
+            @Override
+            public Type getPayloadType(StompHeaders headers) {
+                return Map.class;
+            }
+
+            @Override
+            public void handleFrame(StompHeaders headers, Object payload) {
+                received.offer((Map<String, Object>) payload);
+            }
+        });
+        Thread.sleep(300);
+
+        Party party = Party.create(
+                "ws-member",
+                Location.of("성결대학교", 37.382742, 126.928031),
+                Location.of("안양역", 37.401000, 126.922000),
+                LocalDateTime.now().plusHours(1),
+                4,
+                List.of("정문"),
+                "테스트 파티"
+        );
+        org.springframework.test.util.ReflectionTestUtils.setField(party, "id", "party-1");
+
+        chatService.createPartySystemMessage(party, "ws-member", "모집이 마감되었어요.");
+
+        Map<String, Object> payload = received.poll(5, TimeUnit.SECONDS);
+        assertNotNull(payload);
+        assertEquals("SYSTEM", payload.get("type"));
+        assertEquals("party:party-1", payload.get("chatRoomId"));
+        assertEquals("모집이 마감되었어요.", payload.get("text"));
+
+        ChatMessagePageResponse page = chatService.getMessages("ws-member", "party:party-1", null, null, 50);
+        assertEquals(1, page.messages().size());
+        assertEquals("SYSTEM", page.messages().get(0).type().name());
+        assertEquals("모집이 마감되었어요.", page.messages().get(0).text());
+
+        session.disconnect();
     }
 
     @Test
