@@ -36,18 +36,23 @@ class PostImageRepositoryDataJpaTest {
         fallbackToOriginal.appendImage("https://example.com/post-2-original.jpg", null, 800, 600, 1024, "image/jpeg", 0);
         fallbackToOriginal.appendImage("https://example.com/post-2-second.jpg", "https://example.com/post-2-second-thumb.jpg", 800, 600, 1024, "image/jpeg", 1);
 
+        Post blankThumbFallback = post("빈 문자열 fallback");
+        blankThumbFallback.appendImage("https://example.com/post-3-original.jpg", "   ", 800, 600, 1024, "image/jpeg", 0);
+        blankThumbFallback.appendImage("https://example.com/post-3-second.jpg", "https://example.com/post-3-second-thumb.jpg", 800, 600, 1024, "image/jpeg", 1);
+
         Post noImage = post("이미지 없음");
 
-        postRepository.saveAll(List.of(thumbPreferred, fallbackToOriginal, noImage));
+        postRepository.saveAll(List.of(thumbPreferred, fallbackToOriginal, blankThumbFallback, noImage));
         postRepository.flush();
 
         Map<String, String> thumbnailByPostId = postImageRepository.findFirstThumbnailByPostIds(
-                        List.of(thumbPreferred.getId(), fallbackToOriginal.getId(), noImage.getId())
+                        List.of(thumbPreferred.getId(), fallbackToOriginal.getId(), blankThumbFallback.getId(), noImage.getId())
                 ).stream()
                 .collect(Collectors.toMap(PostThumbnailProjection::getPostId, PostThumbnailProjection::getThumbnailUrl, (left, right) -> left));
 
         assertEquals("https://example.com/post-1-thumb.jpg", thumbnailByPostId.get(thumbPreferred.getId()));
         assertEquals("https://example.com/post-2-original.jpg", thumbnailByPostId.get(fallbackToOriginal.getId()));
+        assertEquals("https://example.com/post-3-original.jpg", thumbnailByPostId.get(blankThumbFallback.getId()));
         assertFalse(thumbnailByPostId.containsKey(noImage.getId()));
     }
 

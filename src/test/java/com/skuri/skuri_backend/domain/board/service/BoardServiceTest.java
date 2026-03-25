@@ -100,6 +100,33 @@ class BoardServiceTest {
     }
 
     @Test
+    void createPost_thumbUrl이_빈문자열이면_null로_정규화한다() {
+        Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "사용자", LocalDateTime.now());
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
+        when(postRepository.save(any(Post.class))).thenAnswer(invocation -> {
+            Post saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", "post-1");
+            ReflectionTestUtils.setField(saved, "createdAt", LocalDateTime.now());
+            ReflectionTestUtils.setField(saved, "updatedAt", LocalDateTime.now());
+            return saved;
+        });
+
+        PostDetailResponse response = boardService.createPost(
+                "member-1",
+                new CreatePostRequest(
+                        "게시글 제목",
+                        "게시글 내용",
+                        PostCategory.GENERAL,
+                        false,
+                        List.of(new CreatePostImageRequest("https://example.com/image.jpg", "   ", 800, 600, 12345, "image/jpeg"))
+                )
+        );
+
+        assertEquals(1, response.images().size());
+        assertNull(response.images().get(0).thumbUrl());
+    }
+
+    @Test
     void createPost_images항목에_null이있으면_VALIDATION_ERROR() {
         BusinessException exception = assertThrows(
                 BusinessException.class,
