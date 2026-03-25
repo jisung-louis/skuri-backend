@@ -3,17 +3,22 @@ package com.skuri.skuri_backend.domain.taxiparty.controller;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.MemberSettlementResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.MyPartyResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyLocationResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyMemberResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementAccountResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementSummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryItemResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryRole;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryStatus;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistorySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementStatus;
 import com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
@@ -37,6 +42,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -230,6 +236,56 @@ class PartyControllerContractTest {
                 )
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.errorCode").value("NOT_PARTY_LEADER"));
+    }
+
+    @Test
+    void leaveParty_정상요청_200() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        delete("/v1/parties/party-1/members/me")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void getMyParties_정산이탈필드노출() throws Exception {
+        mockValidToken();
+        when(taxiPartyService.getMyParties("firebase-uid"))
+                .thenReturn(List.of(new MyPartyResponse(
+                        "party-1",
+                        PartyStatus.ARRIVED,
+                        new PartyLocationResponse("성결대학교", 37.38, 126.93),
+                        new PartyLocationResponse("안양역", 37.40, 126.92),
+                        true,
+                        new SettlementSummaryResponse(
+                                SettlementStatus.PENDING,
+                                14000,
+                                2,
+                                7000,
+                                List.of("member-1"),
+                                new SettlementAccountResponse("카카오뱅크", "3333-01-1234567", "홍*동", true),
+                                List.of(new MemberSettlementResponse(
+                                        "member-1",
+                                        "홍길동",
+                                        false,
+                                        null,
+                                        true,
+                                        LocalDateTime.of(2026, 3, 25, 21, 10)
+                                ))
+                        )
+                )));
+
+        mockMvc.perform(
+                        get("/v1/members/me/parties")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].settlement.memberSettlements[0].displayName").value("홍길동"))
+                .andExpect(jsonPath("$.data[0].settlement.memberSettlements[0].leftParty").value(true))
+                .andExpect(jsonPath("$.data[0].settlement.memberSettlements[0].leftAt").exists());
     }
 
     @Test

@@ -218,15 +218,19 @@ public final class OpenApiTaxiPartyExamples {
                   "memberSettlements": [
                     {
                       "memberId": "member-2",
-                      "memberName": "김철수",
+                      "displayName": "김철수",
                       "settled": false,
-                      "settledAt": null
+                      "settledAt": null,
+                      "leftParty": false,
+                      "leftAt": null
                     },
                     {
                       "memberId": "member-3",
-                      "memberName": "이영희",
+                      "displayName": "이영희",
                       "settled": true,
-                      "settledAt": "2026-03-04T21:20:00"
+                      "settledAt": "2026-03-04T21:20:00",
+                      "leftParty": false,
+                      "leftAt": null
                     }
                   ]
                 },
@@ -425,15 +429,19 @@ public final class OpenApiTaxiPartyExamples {
                     "memberSettlements": [
                       {
                         "memberId": "member-2",
-                        "memberName": "김철수",
+                        "displayName": "김철수",
                         "settled": false,
-                        "settledAt": null
+                        "settledAt": null,
+                        "leftParty": false,
+                        "leftAt": null
                       },
                       {
                         "memberId": "member-3",
-                        "memberName": "이영희",
+                        "displayName": "이영희",
                         "settled": true,
-                        "settledAt": "2026-03-04T21:12:00"
+                        "settledAt": "2026-03-04T21:12:00",
+                        "leftParty": true,
+                        "leftAt": "2026-03-04T21:18:00"
                       }
                     ]
                   }
@@ -534,9 +542,6 @@ public final class OpenApiTaxiPartyExamples {
 
     public static final String ERROR_LEADER_CANNOT_LEAVE =
             "{\"success\":false,\"message\":\"리더는 파티에서 나갈 수 없습니다.\",\"errorCode\":\"LEADER_CANNOT_LEAVE\",\"timestamp\":\"2026-03-04T12:00:00\"}";
-
-    public static final String ERROR_CANNOT_LEAVE_ARRIVED_PARTY =
-            "{\"success\":false,\"message\":\"ARRIVED 상태에서는 파티를 나갈 수 없습니다.\",\"errorCode\":\"CANNOT_LEAVE_ARRIVED_PARTY\",\"timestamp\":\"2026-03-04T12:00:00\"}";
 
     public static final String ERROR_INVALID_PARTY_STATE_TRANSITION_OPEN_CLOSED_ONLY =
             "{\"success\":false,\"message\":\"OPEN/CLOSED 상태에서만 수정할 수 있습니다.\",\"errorCode\":\"INVALID_PARTY_STATE_TRANSITION\",\"timestamp\":\"2026-03-04T12:00:00\"}";

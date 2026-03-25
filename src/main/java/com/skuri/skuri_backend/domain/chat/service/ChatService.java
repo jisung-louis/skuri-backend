@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.domain.chat.dto.request.CreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.request.SendChatMessageRequest;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatAccountDataResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatArrivalDataResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatArrivalSettlementMemberResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageCursorResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
@@ -32,6 +33,7 @@ import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -317,6 +319,19 @@ public class ChatService {
     }
 
     @Transactional
+    public void syncPartyArrivalMessageSnapshot(Party party) {
+        if (party.getStatus() != PartyStatus.ARRIVED) {
+            return;
+        }
+
+        chatMessageRepository.findTopByChatRoomIdAndTypeOrderByCreatedAtDescMessageOrderDescIdDesc(
+                        "party:" + party.getId(),
+                        ChatMessageType.ARRIVED
+                )
+                .ifPresent(message -> message.updateArrivalData(partyMessageService.buildArrivalData(party)));
+    }
+
+    @Transactional
     public ChatMessageResponse createPartyEndMessage(Party party, String senderId) {
         Member sender = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
         PartySpecialMessagePayload payload = partyMessageService.buildEndPayload(party, senderId);
@@ -505,6 +520,18 @@ public class ChatService {
                     message.getArrivalData().getSplitMemberCount(),
                     message.getArrivalData().getPerPersonAmount(),
                     message.getArrivalData().getSettlementTargetMemberIds(),
+                    message.getArrivalData().getMemberSettlements() != null
+                            ? message.getArrivalData().getMemberSettlements().stream()
+                            .map(item -> new ChatArrivalSettlementMemberResponse(
+                                    item.getMemberId(),
+                                    item.getDisplayName(),
+                                    item.isSettled(),
+                                    item.getSettledAt(),
+                                    item.isLeftParty(),
+                                    item.getLeftAt()
+                            ))
+                            .toList()
+                            : null,
                     message.getArrivalData().getAccountData() != null
                             ? new ChatAccountDataResponse(
                             message.getArrivalData().getAccountData().getBankName(),

@@ -36,14 +36,25 @@ public class MemberSettlement {
     @Column(name = "settled_at")
     private LocalDateTime settledAt;
 
-    private MemberSettlement(Party party, String memberId) {
+    @Column(name = "display_name", length = 50)
+    private String displayName;
+
+    @Column(name = "left_party", nullable = false)
+    private boolean leftParty;
+
+    @Column(name = "left_at")
+    private LocalDateTime leftAt;
+
+    private MemberSettlement(Party party, String memberId, String displayName) {
         this.id = MemberSettlementId.of(null, memberId);
         this.party = party;
+        this.displayName = displayName;
         this.settled = false;
+        this.leftParty = false;
     }
 
-    public static MemberSettlement create(Party party, String memberId) {
-        return new MemberSettlement(party, memberId);
+    public static MemberSettlement create(Party party, String memberId, String displayName) {
+        return new MemberSettlement(party, memberId, displayName);
     }
 
     public void markSettled() {
@@ -52,6 +63,14 @@ public class MemberSettlement {
         }
         this.settled = true;
         this.settledAt = LocalDateTime.now();
+    }
+
+    public void markLeftParty() {
+        if (this.leftParty) {
+            return;
+        }
+        this.leftParty = true;
+        this.leftAt = LocalDateTime.now();
     }
 
     public String getMemberId() {

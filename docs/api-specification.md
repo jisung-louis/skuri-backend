@@ -765,15 +765,19 @@ FCM 토큰 삭제
         "memberSettlements": [
           {
             "memberId": "uuid",
-            "memberName": "홍길동",
+            "displayName": "홍길동",
             "settled": true,
-            "settledAt": "2026-02-03T14:30:00Z"
+            "settledAt": "2026-02-03T14:30:00Z",
+            "leftParty": false,
+            "leftAt": null
           },
           {
             "memberId": "uuid2",
-            "memberName": "김철수",
+            "displayName": "김철수",
             "settled": false,
-            "settledAt": null
+            "settledAt": null,
+            "leftParty": true,
+            "leftAt": "2026-02-03T14:40:00Z"
           }
         ]
       }
@@ -1008,6 +1012,10 @@ FCM 토큰 삭제
 }
 ```
 
+- `memberSettlements[*].displayName`은 ARRIVED 시점에 확정된 표시 이름 snapshot입니다.
+- `memberSettlements[*].leftParty=true`이면 현재 파티 멤버에서는 제거되었지만 정산 대상에는 남아 있는 멤버입니다.
+- ARRIVED 이후 멤버가 나가더라도 `taxiFare`, `perPersonAmount`, `splitMemberCount`, `settlementTargetMemberIds`는 재계산하지 않습니다.
+
 **에러 코드 (arrive 전용):**
 
 | 에러 코드 | HTTP | 설명 |
@@ -1090,7 +1098,12 @@ FCM 토큰 삭제
 파티 나가기 (멤버)
 
 - 리더는 나가기 불가 (취소 또는 위임 불가 정책)
-- ARRIVED 상태에서는 나가기 불가 (정산 진행/완료 여부와 무관)
+- 일반 멤버는 `OPEN`, `CLOSED`, `ARRIVED` 상태에서 나갈 수 있음
+- `ENDED` 상태에서는 나가기 불가
+- `ARRIVED` 상태에서 나가면 현재 파티 멤버에서는 제거되지만, ARRIVED 시점에 확정된 정산 snapshot은 유지됩니다.
+  - `settlementTargetMemberIds`, `taxiFare`, `perPersonAmount`, `splitMemberCount` 재계산 없음
+  - `memberSettlements[*].leftParty`, `leftAt`, `displayName`으로 이탈 멤버를 식별
+  - 리더는 나간 정산 대상 멤버에 대해서도 계속 `confirmSettlement` 가능
 - 리더가 탈퇴(회원탈퇴)하면 파티 강제 종료 (`endReason: WITHDRAWED`)
 - 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"홍길동님이 파티에서 나갔어요."`가 추가됩니다. 닉네임을 찾지 못하면 `"멤버가 파티에서 나갔어요."`를 사용합니다.
 
@@ -1106,7 +1119,7 @@ FCM 토큰 삭제
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
 | `LEADER_CANNOT_LEAVE` | 409 | 리더는 나가기 불가 |
-| `CANNOT_LEAVE_ARRIVED_PARTY` | 409 | ARRIVED 상태에서 나가기 불가 |
+| `PARTY_ENDED` | 409 | 이미 종료된 파티에서는 나갈 수 없음 |
 
 #### DELETE /v1/parties/{partyId}/members/{memberId}
 멤버 강퇴 (리더만)
@@ -1243,7 +1256,6 @@ FCM 토큰 삭제
 | `PARTY_NOT_CANCELABLE` | ARRIVED 상태에서 취소 불가 |
 | `NO_MEMBERS_TO_SETTLE` | 정산 대상 멤버 없음 (리더만 남은 파티) |
 | `LEADER_CANNOT_LEAVE` | 리더는 파티 나가기 불가 |
-| `CANNOT_LEAVE_ARRIVED_PARTY` | ARRIVED 상태에서 나가기 불가 |
 | `CANNOT_KICK_IN_ARRIVED` | ARRIVED 상태에서 강퇴 불가 |
 | `CANNOT_KICK_LEADER` | 리더 본인 강퇴 불가 |
 | `INVALID_PARTY_STATE_TRANSITION` | 허용되지 않는 파티 상태 전이 |
@@ -1654,10 +1666,12 @@ Authorization:Bearer <firebase_id_token>
 
 | 메시지 타입 | title 예시 | body 예시 | data |
 |---|---|---|---|
-| `ACCOUNT` | `홍길동님이 계좌 정보를 공유했어요` | `계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)` | `chatRoomId=party:party_uuid` |
-| `SYSTEM` | `파티 안내 메시지` | `모집이 마감되었어요.` | `chatRoomId=party:party_uuid` |
-| `ARRIVED` | `택시가 목적지에 도착했어요` | `택시가 목적지에 도착했어요. 총 15000원, 3명 정산, 1인당 5000원입니다.` | `chatRoomId=party:party_uuid` |
-| `END` | `파티가 종료되었어요` | `리더가 파티를 종료했어요.` | `chatRoomId=party:party_uuid` |
+| `TEXT` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 안녕하세요` | `chatRoomId=party:party_uuid` |
+| `IMAGE` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 사진을 보냈어요.` | `chatRoomId=party:party_uuid` |
+| `ACCOUNT` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)` | `chatRoomId=party:party_uuid` |
+| `SYSTEM` (일반 안내) | `파티 안내 메시지` | `김철수님이 파티에서 나갔어요.` | `chatRoomId=party:party_uuid` |
+
+> `SYSTEM`의 `"모집이 마감되었어요."`, `"모집이 재개되었어요."`, `ARRIVED`, `END` 메시지는 각각 `PARTY_CLOSED`, `PARTY_REOPENED`, `PARTY_ARRIVED`, `PARTY_ENDED` 도메인 알림으로만 푸시되며, 중복 `CHAT_MESSAGE` push는 보내지 않습니다.
 
 **수신 포맷 (서버 → 클라이언트):**
 ```json
@@ -1691,6 +1705,24 @@ Authorization:Bearer <firebase_id_token>
     "splitMemberCount": 3,
     "perPersonAmount": 4666,
     "settlementTargetMemberIds": ["member-2", "member-3"],
+    "memberSettlements": [
+      {
+        "memberId": "member-2",
+        "displayName": "김철수",
+        "settled": false,
+        "settledAt": null,
+        "leftParty": false,
+        "leftAt": null
+      },
+      {
+        "memberId": "member-3",
+        "displayName": "이영희",
+        "settled": true,
+        "settledAt": "2026-02-03T12:12:00Z",
+        "leftParty": true,
+        "leftAt": "2026-02-03T12:20:00Z"
+      }
+    ],
     "accountData": {
       "bankName": "카카오뱅크",
       "accountNumber": "3333-01-1234567",
@@ -2957,12 +2989,12 @@ Authorization:Bearer <firebase_id_token>
 | `PARTY_CREATED` | 새 파티 생성 | 생성자 제외 전체 사용자 | `allNotifications` + `partyNotifications` | X |
 | `PARTY_JOIN_REQUEST` | 동승 요청 생성 | 파티 리더 | `allNotifications` + `partyNotifications` | O |
 | `PARTY_JOIN_ACCEPTED` / `PARTY_JOIN_DECLINED` | 요청 상태 변경 | 요청자 | `allNotifications` + `partyNotifications` | O |
-| `PARTY_CLOSED` / `PARTY_ARRIVED` | 파티 상태 변경 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | `PARTY_CLOSED`: X / `PARTY_ARRIVED`: O |
+| `PARTY_CLOSED` / `PARTY_REOPENED` / `PARTY_ARRIVED` | 파티 상태 변경 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | `PARTY_CLOSED`: X / `PARTY_REOPENED`: X / `PARTY_ARRIVED`: O |
 | `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | `allNotifications` + `partyNotifications` | O |
 | `MEMBER_KICKED` | 강퇴 감지 | 강퇴된 멤버 | `allNotifications` + `partyNotifications` | O |
 | `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | O |
 | `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 | 채팅방 멤버(송신자 제외) | `allNotifications` + 채팅방 mute | X |
-| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 (`TEXT`, `IMAGE`, `ACCOUNT`, `SYSTEM`, `ARRIVED`, `END`) | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외, `data`는 `chatRoomId` canonical 사용 | X |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 (`TEXT`, `IMAGE`, `ACCOUNT`, 일반 `SYSTEM`) | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외, `data`는 `chatRoomId` canonical 사용. `모집 마감`/`모집 재개`/`도착`/`종료`는 `PARTY_*` 알림으로 전송 | X |
 | `POST_LIKED` | 게시글 좋아요 | 게시글 작성자 | `allNotifications` + `boardLikeNotifications` | O |
 | `COMMENT_CREATED` (게시글) | 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` (중복 수신자는 1회 dedupe) | O |
 | `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `allNotifications` + `commentNotifications` | O |

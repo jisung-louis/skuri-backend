@@ -36,6 +36,7 @@ public class NotificationService {
             NotificationType.PARTY_JOIN_ACCEPTED,
             NotificationType.PARTY_JOIN_DECLINED,
             NotificationType.PARTY_CLOSED,
+            NotificationType.PARTY_REOPENED,
             NotificationType.PARTY_ARRIVED,
             NotificationType.PARTY_ENDED,
             NotificationType.MEMBER_KICKED,

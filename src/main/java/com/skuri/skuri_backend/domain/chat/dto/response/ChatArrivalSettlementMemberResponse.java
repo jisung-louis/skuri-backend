@@ -1,11 +1,11 @@
-package com.skuri.skuri_backend.domain.taxiparty.dto.response;
+package com.skuri.skuri_backend.domain.chat.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
-@Schema(description = "멤버 정산 상태 응답")
-public record MemberSettlementResponse(
+@Schema(description = "ARRIVED 메시지 정산 대상 상태")
+public record ChatArrivalSettlementMemberResponse(
         @Schema(description = "회원 ID", example = "member_uuid")
         String memberId,
         @Schema(description = "정산 대상 표시 이름 snapshot", example = "홍길동")

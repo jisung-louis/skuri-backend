@@ -27,6 +27,7 @@ import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyEndReason;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementTargetSnapshot;
 import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementStatus;
 import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
@@ -45,6 +46,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -307,7 +309,7 @@ class TaxiPartyServiceTest {
         Party party = sampleParty("party-1", "leader", 4, true);
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
         when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(memberRepository.findAllById(any())).thenReturn(List.of(member("leader"), member("member-1")));
+        when(memberRepository.findAllById(any())).thenReturn(List.of(member("leader"), member("member-1", "홍길동")));
 
         PartyDetailResponse response = taxiPartyService.arriveParty(
                 "leader",
@@ -320,9 +322,33 @@ class TaxiPartyServiceTest {
         assertEquals(2, response.settlement().splitMemberCount());
         assertEquals(7000, response.settlement().perPersonAmount());
         assertEquals(List.of("member-1"), response.settlement().settlementTargetMemberIds());
+        assertEquals("홍길동", response.settlement().memberSettlements().get(0).displayName());
+        assertFalse(response.settlement().memberSettlements().get(0).leftParty());
         assertEquals("홍*동", response.settlement().account().accountHolder());
         verify(chatService).createPartyArrivalMessage(party, "leader");
         verify(partySseService).publishPartyStatusChanged(party);
+    }
+
+    @Test
+    void arriveParty_공백이포함된정산대상ID도_정규화해저장한다() {
+        Party party = sampleParty("party-1", "leader", 4, true);
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberRepository.findAllById(any())).thenReturn(List.of(member("leader"), member("member-1", "홍길동")));
+
+        PartyDetailResponse response = taxiPartyService.arriveParty(
+                "leader",
+                "party-1",
+                arriveRequest(14000, List.of(" member-1 "))
+        );
+
+        assertEquals(List.of("member-1"), response.settlement().settlementTargetMemberIds());
+        assertEquals("member-1", response.settlement().memberSettlements().getFirst().memberId());
+
+        SettlementConfirmResponse confirmResponse = taxiPartyService.confirmSettlement("leader", "party-1", "member-1");
+
+        assertTrue(confirmResponse.settled());
+        assertEquals("member-1", party.getSettlementItems().iterator().next().getMemberId());
     }
 
     @Test
@@ -529,7 +555,7 @@ class TaxiPartyServiceTest {
     }
 
     @Test
-    void leaveParty_일반멤버는_탈퇴성공() {
+    void leaveParty_OPEN상태일반멤버는_탈퇴성공() {
         Party party = sampleParty("party-1", "leader", 4, true);
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
         when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -539,6 +565,39 @@ class TaxiPartyServiceTest {
 
         assertFalse(party.isMember("member-1"));
         verify(chatService).syncPartyChatRoomMembers(party);
+        verify(chatService).createPartySystemMessage(party, "member-1", "홍길동님이 파티에서 나갔어요.");
+        verify(partySseService).publishPartyMemberLeft(party, "member-1", "LEFT", party.getMemberIds());
+    }
+
+    @Test
+    void leaveParty_ARRIVED상태일반멤버는_정산스냅샷유지하며_탈퇴성공() {
+        Party party = sampleParty("party-1", "leader", 4, true);
+        arrive(party);
+
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member("member-1", "홍길동")));
+
+        taxiPartyService.leaveParty("member-1", "party-1");
+
+        assertFalse(party.isMember("member-1"));
+        assertEquals(1, party.getCurrentMembers());
+        assertEquals(1, party.getSettlementItems().size());
+        assertEquals(List.of("member-1"), party.getSettlementTargetMemberIds());
+        assertEquals(2, party.getSplitMemberCount());
+        assertEquals(14000, party.getTaxiFare());
+        assertEquals(7000, party.getPerPersonAmount());
+
+        var settlement = party.getSettlementItems().stream()
+                .filter(item -> item.getMemberId().equals("member-1"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("홍길동", settlement.getDisplayName());
+        assertTrue(settlement.isLeftParty());
+        assertNotNull(settlement.getLeftAt());
+
+        verify(chatService).syncPartyChatRoomMembers(party);
+        verify(chatService).syncPartyArrivalMessageSnapshot(party);
         verify(chatService).createPartySystemMessage(party, "member-1", "홍길동님이 파티에서 나갔어요.");
         verify(partySseService).publishPartyMemberLeft(party, "member-1", "LEFT", party.getMemberIds());
     }
@@ -586,6 +645,20 @@ class TaxiPartyServiceTest {
     }
 
     @Test
+    void leaveParty_ENDED상태는_실패() {
+        Party party = sampleParty("party-1", "leader", 4, true);
+        party.cancel();
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> taxiPartyService.leaveParty("member-1", "party-1")
+        );
+
+        assertEquals(ErrorCode.PARTY_ENDED, exception.getErrorCode());
+    }
+
+    @Test
     void confirmSettlement_마지막멤버확인시_정산만완료되고파티는ARRIVED유지() {
         Party party = sampleParty("party-1", "leader", 4, true);
         arrive(party);
@@ -598,7 +671,41 @@ class TaxiPartyServiceTest {
         assertTrue(response.allSettled());
         assertEquals(PartyStatus.ARRIVED, party.getStatus());
         assertEquals(SettlementStatus.COMPLETED, party.getSettlementStatus());
+        verify(chatService).syncPartyArrivalMessageSnapshot(party);
         verify(partySseService, never()).publishPartyStatusChanged(any(Party.class));
+    }
+
+    @Test
+    void confirmSettlement_부분정산이어도_ARRIVED메시지스냅샷을동기화한다() {
+        Party party = sampleParty("party-1", "leader", 4, "member-1", "member-2");
+        arrive(party, 21000, List.of("member-1", "member-2"));
+
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SettlementConfirmResponse response = taxiPartyService.confirmSettlement("leader", "party-1", "member-1");
+
+        assertFalse(response.allSettled());
+        assertEquals(SettlementStatus.PENDING, party.getSettlementStatus());
+        verify(chatService).syncPartyArrivalMessageSnapshot(party);
+        verify(eventPublisher, never()).publish(any());
+    }
+
+    @Test
+    void confirmSettlement_ARRIVED에서나간멤버도_정산확인가능() {
+        Party party = sampleParty("party-1", "leader", 4, true);
+        arrive(party);
+        party.leaveArrivedMember("member-1");
+
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SettlementConfirmResponse response = taxiPartyService.confirmSettlement("leader", "party-1", "member-1");
+
+        assertEquals("member-1", response.memberId());
+        assertTrue(response.settled());
+        assertTrue(response.allSettled());
+        assertTrue(party.getSettlementItems().stream().findFirst().orElseThrow().isLeftParty());
     }
 
     @Test
@@ -657,6 +764,63 @@ class TaxiPartyServiceTest {
         );
 
         assertEquals(ErrorCode.PARTY_NOT_CANCELABLE, exception.getErrorCode());
+    }
+
+    @Test
+    void leaveParty_ARRIVED탈퇴후_다른파티생성과동승요청이가능하다() {
+        Party arrivedParty = sampleParty("arrived-party", "leader", 4, true);
+        arrive(arrivedParty);
+
+        Party openParty = sampleParty("open-party", "other-leader", 4, false);
+
+        when(partyRepository.findDetailById("arrived-party")).thenReturn(Optional.of(arrivedParty));
+        when(partyRepository.findDetailById("open-party")).thenReturn(Optional.of(openParty));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member("member-1", "홍길동")));
+        when(memberRepository.findActiveByIdForUpdate("member-1")).thenReturn(Optional.of(member("member-1", "홍길동")));
+        when(partyRepository.existsActivePartyByMemberId(eq("member-1"), anySet(), isNull())).thenReturn(false);
+        when(joinRequestRepository.existsByParty_IdAndRequesterIdAndStatus("open-party", "member-1", JoinRequestStatus.PENDING))
+                .thenReturn(false);
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> {
+            JoinRequest saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", "request-after-leave");
+            return saved;
+        });
+        when(partyRepository.save(any(Party.class))).thenAnswer(invocation -> {
+            Party saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", "new-party");
+            return saved;
+        });
+
+        taxiPartyService.leaveParty("member-1", "arrived-party");
+        JoinRequestResponse joinRequestResponse = taxiPartyService.createJoinRequest("member-1", "open-party");
+        PartyCreateResponse createPartyResponse = taxiPartyService.createParty("member-1", createPartyRequest(4));
+
+        assertEquals("request-after-leave", joinRequestResponse.id());
+        assertEquals("new-party", createPartyResponse.id());
+    }
+
+    @Test
+    void acceptJoinRequest_ARRIVED탈퇴한멤버는_ALREADY_IN_PARTY로막히지않는다() {
+        Party arrivedParty = sampleParty("arrived-party", "leader", 4, true);
+        arrive(arrivedParty);
+        Party targetParty = sampleParty("target-party", "target-leader", 4, false);
+        JoinRequest joinRequest = JoinRequest.create(targetParty, "member-1");
+        ReflectionTestUtils.setField(joinRequest, "id", "request-after-leave");
+
+        when(partyRepository.findDetailById("arrived-party")).thenReturn(Optional.of(arrivedParty));
+        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member("member-1", "홍길동")));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(joinRequestRepository.findDetailById("request-after-leave")).thenReturn(Optional.of(joinRequest));
+        when(memberRepository.findActiveByIdForUpdate("member-1")).thenReturn(Optional.of(member("member-1", "홍길동")));
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(partyRepository.existsActivePartyByMemberId(eq("member-1"), anySet(), eq("target-party"))).thenReturn(false);
+
+        taxiPartyService.leaveParty("member-1", "arrived-party");
+        JoinRequestAcceptResponse response = taxiPartyService.acceptJoinRequest("target-leader", "request-after-leave");
+
+        assertEquals(JoinRequestStatus.ACCEPTED, response.status());
+        assertTrue(targetParty.isMember("member-1"));
     }
 
     @Test
@@ -841,11 +1005,22 @@ class TaxiPartyServiceTest {
     }
 
     private void arrive(Party party, int taxiFare, List<String> settlementTargetMemberIds) {
-        party.arrive(
+        party.arriveWithSnapshots(
                 taxiFare,
-                settlementTargetMemberIds,
+                settlementTargetMemberIds.stream()
+                        .map(memberId -> new SettlementTargetSnapshot(memberId, displayNameFor(memberId)))
+                        .toList(),
                 SettlementAccountSnapshot.of("카카오뱅크", "3333-01-1234567", "홍길동", true)
         );
+    }
+
+    private String displayNameFor(String memberId) {
+        return switch (memberId) {
+            case "member-1" -> "홍길동";
+            case "member-2" -> "김철수";
+            case "requester-1" -> "스쿠리 유저";
+            default -> memberId;
+        };
     }
 
     private TaxiHistoryItemResponse findTaxiHistory(List<TaxiHistoryItemResponse> responses, String partyId) {

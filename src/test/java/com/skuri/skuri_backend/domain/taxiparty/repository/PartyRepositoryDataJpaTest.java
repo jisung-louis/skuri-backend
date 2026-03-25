@@ -9,10 +9,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -53,6 +55,42 @@ class PartyRepositoryDataJpaTest {
         assertEquals(2, found.getMembers().size());
         assertEquals(1, found.getSettlementItems().size());
         assertEquals(List.of("빠른출발"), found.getTagsText());
+    }
+
+    @Test
+    void existsActivePartyByMemberId_정산스냅샷만남은ARRIVED탈퇴멤버는_false() {
+        String partyId = seedArrivedParty("party-3", "leader-3", "member-1");
+        entityManager.createNativeQuery("""
+                delete from party_members
+                where party_id = :partyId
+                  and member_id = :memberId
+                """)
+                .setParameter("partyId", partyId)
+                .setParameter("memberId", "member-1")
+                .executeUpdate();
+        entityManager.createNativeQuery("""
+                update member_settlements
+                set left_party = true,
+                    left_at = :leftAt
+                where party_id = :partyId
+                  and member_id = :memberId
+                """)
+                .setParameter("partyId", partyId)
+                .setParameter("memberId", "member-1")
+                .setParameter("leftAt", LocalDateTime.now())
+                .executeUpdate();
+
+        boolean exists = partyRepository.existsActivePartyByMemberId(
+                "member-1",
+                EnumSet.of(
+                        com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus.OPEN,
+                        com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus.CLOSED,
+                        com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus.ARRIVED
+                ),
+                null
+        );
+
+        assertFalse(exists);
     }
 
     private String seedArrivedParty(String partyId, String leaderId, String memberId) {
@@ -114,13 +152,18 @@ class PartyRepositoryDataJpaTest {
                 .executeUpdate();
 
         entityManager.createNativeQuery("""
-                insert into member_settlements (party_id, member_id, settled, settled_at)
-                values (:partyId, :memberId, :settled, :settledAt)
+                insert into member_settlements (
+                    party_id, member_id, settled, settled_at, display_name, left_party, left_at
+                )
+                values (:partyId, :memberId, :settled, :settledAt, :displayName, :leftParty, :leftAt)
                 """)
                 .setParameter("partyId", partyId)
                 .setParameter("memberId", memberId)
                 .setParameter("settled", false)
                 .setParameter("settledAt", null)
+                .setParameter("displayName", "김철수")
+                .setParameter("leftParty", false)
+                .setParameter("leftAt", null)
                 .executeUpdate();
 
         entityManager.createNativeQuery("""

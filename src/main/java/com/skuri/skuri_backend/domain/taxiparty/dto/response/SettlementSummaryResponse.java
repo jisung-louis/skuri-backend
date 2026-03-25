@@ -15,11 +15,11 @@ public record SettlementSummaryResponse(
         Integer splitMemberCount,
         @Schema(description = "1인당 금액", example = "3500", nullable = true)
         Integer perPersonAmount,
-        @Schema(description = "정산 대상 non-leader 멤버 ID 목록", nullable = true)
+        @Schema(description = "ARRIVED 시점에 확정된 정산 대상 non-leader 멤버 ID 목록", nullable = true)
         List<String> settlementTargetMemberIds,
         @Schema(description = "정산 계좌 snapshot", nullable = true)
         SettlementAccountResponse account,
-        @Schema(description = "멤버별 정산 상태", nullable = true)
+        @Schema(description = "멤버별 정산 상태 및 이탈 snapshot", nullable = true)
         List<MemberSettlementResponse> memberSettlements
 ) {
 }

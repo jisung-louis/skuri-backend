@@ -117,6 +117,7 @@ class NotificationEventHandlerTest {
         verify(pushNotificationService).send(captor.getValue());
         assertEquals(NotificationType.PARTY_CREATED, captor.getValue().type());
         assertEquals(List.of("member-1"), captor.getValue().recipientIds().stream().toList());
+        assertEquals("정문 → 역 택시 파티 등장", captor.getValue().title());
         assertFalse(captor.getValue().inboxEnabled());
     }
 
@@ -200,14 +201,15 @@ class NotificationEventHandlerTest {
     }
 
     @ParameterizedTest(name = "[파티 CHAT_MESSAGE] {0}")
-    @MethodSource("partySpecialMessages")
-    void handleChatMessageCreated_파티특수메시지도_CHAT_MESSAGE알림을보낸다(
+    @MethodSource("partyChatMessages")
+    void handleChatMessageCreated_파티일반메시지는_경로제목과발신자본문으로보낸다(
             ChatMessageType messageType,
             String text,
             String expectedTitle,
             String expectedBody
     ) {
         ChatRoom room = ChatRoom.createPartyRoom("party-1");
+        Party party = party("party-1", "명학역", "성결대학교");
         ChatRoomMember actor = membership(room, "party:party-1", "leader-1", false);
         ChatRoomMember recipient = membership(room, "party:party-1", "member-1", false);
         ChatRoomMember mutedRecipient = membership(room, "party:party-1", "member-2", true);
@@ -222,6 +224,7 @@ class NotificationEventHandlerTest {
         );
         ReflectionTestUtils.setField(message, "id", "message-1");
 
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
         when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
         when(chatMessageRepository.findById("message-1")).thenReturn(Optional.of(message));
         when(chatRoomMemberRepository.findById_ChatRoomId("party:party-1"))
@@ -239,6 +242,138 @@ class NotificationEventHandlerTest {
         assertEquals("party:party-1", captor.getValue().data().chatRoomId());
         assertEquals(null, captor.getValue().data().partyId());
         assertFalse(captor.getValue().inboxEnabled());
+    }
+
+    @ParameterizedTest(name = "[파티 상태중복 CHAT_MESSAGE 억제] {0}")
+    @MethodSource("duplicatedPartyStatusMessages")
+    void handleChatMessageCreated_파티상태변화메시지는_CHAT_MESSAGE푸시를생략한다(
+            ChatMessageType messageType,
+            String text
+    ) {
+        ChatRoom room = ChatRoom.createPartyRoom("party-1");
+        ChatRoomMember actor = membership(room, "party:party-1", "leader-1", false);
+        ChatRoomMember recipient = membership(room, "party:party-1", "member-1", false);
+        ChatMessage message = ChatMessage.create(
+                "party:party-1",
+                "leader-1",
+                "리더",
+                text,
+                messageType,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(message, "id", "message-1");
+
+        when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
+        when(chatMessageRepository.findById("message-1")).thenReturn(Optional.of(message));
+
+        notificationEventHandler.handle(new NotificationDomainEvent.ChatMessageCreated("party:party-1", "message-1"));
+
+        verify(notificationService, never()).createInboxNotifications(org.mockito.ArgumentMatchers.any());
+        verify(pushNotificationService, never()).send(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void handleChatMessageCreated_중복이아닌파티안내시스템메시지는_CHAT_MESSAGE알림을보낸다() {
+        ChatRoom room = ChatRoom.createPartyRoom("party-1");
+        ChatRoomMember actor = membership(room, "party:party-1", "leader-1", false);
+        ChatRoomMember recipient = membership(room, "party:party-1", "member-1", false);
+        ChatMessage message = ChatMessage.create(
+                "party:party-1",
+                "leader-1",
+                "리더",
+                "김철수님이 파티에서 나갔어요.",
+                ChatMessageType.SYSTEM,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(message, "id", "message-1");
+
+        when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
+        when(chatMessageRepository.findById("message-1")).thenReturn(Optional.of(message));
+        when(chatRoomMemberRepository.findById_ChatRoomId("party:party-1"))
+                .thenReturn(List.of(actor, recipient));
+
+        notificationEventHandler.handle(new NotificationDomainEvent.ChatMessageCreated("party:party-1", "message-1"));
+
+        ArgumentCaptor<NotificationDispatchRequest> captor = ArgumentCaptor.forClass(NotificationDispatchRequest.class);
+        verify(notificationService).createInboxNotifications(captor.capture());
+        verify(pushNotificationService).send(captor.getValue());
+        assertEquals(NotificationType.CHAT_MESSAGE, captor.getValue().type());
+        assertEquals("파티 안내 메시지", captor.getValue().title());
+        assertEquals("김철수님이 파티에서 나갔어요.", captor.getValue().message());
+    }
+
+    @Test
+    void handlePartyStatusChanged_CLOSED알림을별도도메인알림으로보낸다() {
+        Party party = party("party-1", "명학역", "성결대학교");
+        party.addMember("member-1");
+
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(memberRepository.findPartyNotificationRecipientIds(List.of("member-1")))
+                .thenReturn(List.of("member-1"));
+
+        notificationEventHandler.handle(new NotificationDomainEvent.PartyStatusChanged(
+                "party-1",
+                PartyStatus.OPEN,
+                PartyStatus.CLOSED
+        ));
+
+        ArgumentCaptor<NotificationDispatchRequest> captor = ArgumentCaptor.forClass(NotificationDispatchRequest.class);
+        verify(notificationService).createInboxNotifications(captor.capture());
+        assertEquals(NotificationType.PARTY_CLOSED, captor.getValue().type());
+        assertEquals("파티 모집이 마감되었어요", captor.getValue().title());
+        assertEquals("리더가 파티 모집을 마감했습니다.", captor.getValue().message());
+        assertFalse(captor.getValue().inboxEnabled());
+    }
+
+    @Test
+    void handlePartyStatusChanged_REOPENED알림을별도도메인알림으로보낸다() {
+        Party party = party("party-1", "명학역", "성결대학교");
+        party.addMember("member-1");
+        party.close();
+        party.reopen();
+
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(memberRepository.findPartyNotificationRecipientIds(List.of("member-1")))
+                .thenReturn(List.of("member-1"));
+
+        notificationEventHandler.handle(new NotificationDomainEvent.PartyStatusChanged(
+                "party-1",
+                PartyStatus.CLOSED,
+                PartyStatus.OPEN
+        ));
+
+        ArgumentCaptor<NotificationDispatchRequest> captor = ArgumentCaptor.forClass(NotificationDispatchRequest.class);
+        verify(notificationService).createInboxNotifications(captor.capture());
+        assertEquals(NotificationType.PARTY_REOPENED, captor.getValue().type());
+        assertEquals("파티 모집이 재개되었어요", captor.getValue().title());
+        assertEquals("리더가 파티 모집을 다시 시작했습니다.", captor.getValue().message());
+        assertFalse(captor.getValue().inboxEnabled());
+    }
+
+    @Test
+    void handlePartyStatusChanged_CANCELLED종료알림은사유를보존한다() {
+        Party party = party("party-1", "명학역", "성결대학교");
+        party.addMember("member-1");
+        party.cancel();
+
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(memberRepository.findPartyNotificationRecipientIds(List.of("member-1")))
+                .thenReturn(List.of("member-1"));
+
+        notificationEventHandler.handle(new NotificationDomainEvent.PartyStatusChanged(
+                "party-1",
+                PartyStatus.CLOSED,
+                PartyStatus.ENDED
+        ));
+
+        ArgumentCaptor<NotificationDispatchRequest> captor = ArgumentCaptor.forClass(NotificationDispatchRequest.class);
+        verify(notificationService).createInboxNotifications(captor.capture());
+        assertEquals(NotificationType.PARTY_ENDED, captor.getValue().type());
+        assertEquals("파티가 해체되었어요", captor.getValue().title());
+        assertEquals("리더가 파티를 취소했어요.", captor.getValue().message());
+        assertTrue(captor.getValue().inboxEnabled());
     }
 
     @Test
@@ -278,33 +413,50 @@ class NotificationEventHandlerTest {
         assertEquals(List.of("member-1"), captor.getValue().recipientIds().stream().toList());
     }
 
-    private static Stream<Arguments> partySpecialMessages() {
+    private static Stream<Arguments> partyChatMessages() {
         return Stream.of(
+                Arguments.of(
+                        ChatMessageType.TEXT,
+                        "안녕하세요",
+                        "명학역 → 성결대학교 파티 채팅방",
+                        "리더 : 안녕하세요"
+                ),
+                Arguments.of(
+                        ChatMessageType.IMAGE,
+                        "https://cdn.skuri.app/chat/image-1.jpg",
+                        "명학역 → 성결대학교 파티 채팅방",
+                        "리더 : 사진을 보냈어요."
+                ),
                 Arguments.of(
                         ChatMessageType.ACCOUNT,
                         "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)",
-                        "리더님이 계좌 정보를 공유했어요",
-                        "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)"
-                ),
-                Arguments.of(
-                        ChatMessageType.SYSTEM,
-                        "모집이 마감되었어요.",
-                        "파티 안내 메시지",
-                        "모집이 마감되었어요."
-                ),
-                Arguments.of(
-                        ChatMessageType.ARRIVED,
-                        "택시가 목적지에 도착했어요.",
-                        "택시가 목적지에 도착했어요",
-                        "택시가 목적지에 도착했어요."
-                ),
-                Arguments.of(
-                        ChatMessageType.END,
-                        "리더가 파티를 종료했어요.",
-                        "파티가 종료되었어요",
-                        "리더가 파티를 종료했어요."
+                        "명학역 → 성결대학교 파티 채팅방",
+                        "리더 : 계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)"
                 )
         );
+    }
+
+    private static Stream<Arguments> duplicatedPartyStatusMessages() {
+        return Stream.of(
+                Arguments.of(ChatMessageType.SYSTEM, "모집이 마감되었어요."),
+                Arguments.of(ChatMessageType.SYSTEM, "모집이 재개되었어요."),
+                Arguments.of(ChatMessageType.ARRIVED, "택시가 목적지에 도착했어요."),
+                Arguments.of(ChatMessageType.END, "리더가 파티를 취소했어요.")
+        );
+    }
+
+    private Party party(String id, String departureName, String destinationName) {
+        Party party = Party.create(
+                "leader-1",
+                Location.of(departureName, null, null),
+                Location.of(destinationName, null, null),
+                LocalDateTime.of(2026, 3, 8, 18, 30),
+                4,
+                List.of(destinationName),
+                "상세"
+        );
+        ReflectionTestUtils.setField(party, "id", id);
+        return party;
     }
 
     private ChatRoomMember membership(ChatRoom room, String chatRoomId, String memberId, boolean muted) {

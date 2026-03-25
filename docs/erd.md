@@ -113,6 +113,9 @@ erDiagram
         varchar(36) member_id PK,FK
         boolean settled "DEFAULT false"
         datetime settled_at
+        varchar(50) display_name
+        boolean left_party "DEFAULT false"
+        datetime left_at
     }
 
     join_requests {
@@ -611,6 +614,18 @@ Taxi history 계약 메모:
 - `dateTime`은 `departure_time`, `passengerCount`는 `current_members`를 사용한다.
 - `paymentAmount`는 `per_person_amount`, `completedRideCount/savedFareAmount` 판정은 `status`, `end_reason`, `settlement_status`, `taxi_fare`, `per_person_amount` 조합으로 계산한다.
 - `ended_at`은 history 노출 시각의 source of truth로 쓰지 않고 종료 이력 보존용으로 유지한다.
+
+**member_settlements 테이블 상세:**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| party_id | VARCHAR(36) | PK, FK | 파티 ID |
+| member_id | VARCHAR(36) | PK, FK | 정산 대상 멤버 ID |
+| settled | BOOLEAN | DEFAULT false | 정산 완료 여부 |
+| settled_at | DATETIME | | 정산 완료 시각 |
+| display_name | VARCHAR(50) | | ARRIVED 시점 표시 이름 snapshot |
+| left_party | BOOLEAN | DEFAULT false | ARRIVED 이후 파티 이탈 여부 |
+| left_at | DATETIME | | ARRIVED 이후 파티 이탈 시각 |
 
 **join_requests 테이블 상세:**
 

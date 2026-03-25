@@ -40,6 +40,7 @@ import com.skuri.skuri_backend.domain.taxiparty.entity.PartyEndReason;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyMember;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementTargetSnapshot;
 import com.skuri.skuri_backend.domain.taxiparty.exception.JoinRequestNotFoundException;
 import com.skuri.skuri_backend.domain.taxiparty.exception.PartyNotFoundException;
 import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
@@ -53,6 +54,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -118,7 +120,7 @@ public class TaxiPartyService {
     @Transactional(readOnly = true)
     public PartyDetailResponse getPartyDetail(String partyId) {
         Party party = findPartyDetailOrThrow(partyId);
-        Map<String, Member> memberMap = getMemberMap(party.getMemberIds());
+        Map<String, Member> memberMap = getMemberMap(getVisibleMemberIds(party));
         return toPartyDetailResponse(party, memberMap);
     }
 
@@ -142,7 +144,7 @@ public class TaxiPartyService {
         }
 
         savePartyWithLockHandling(party);
-        Map<String, Member> memberMap = getMemberMap(party.getMemberIds());
+        Map<String, Member> memberMap = getMemberMap(getVisibleMemberIds(party));
         partySseService.publishPartyUpdated(party, memberMap.get(party.getLeaderId()));
         return toPartyDetailResponse(party, memberMap);
     }
@@ -152,7 +154,7 @@ public class TaxiPartyService {
         List<Party> parties = partyRepository.findMyParties(memberId);
         Map<String, Member> memberMap = getMemberMap(
                 parties.stream()
-                        .flatMap(party -> party.getMemberIds().stream())
+                        .flatMap(party -> getVisibleMemberIds(party).stream())
                         .distinct()
                         .toList()
         );
@@ -225,9 +227,11 @@ public class TaxiPartyService {
         Party party = findPartyDetailOrThrow(partyId);
         requireLeader(party, actorId);
         PartyStatus beforeStatus = party.getStatus();
-        party.arrive(
+        List<String> normalizedSettlementTargetMemberIds = normalizeMemberIds(request.settlementTargetMemberIds());
+        Map<String, Member> settlementTargetMemberMap = getMemberMap(normalizedSettlementTargetMemberIds);
+        party.arriveWithSnapshots(
                 request.taxiFare(),
-                request.settlementTargetMemberIds(),
+                toSettlementTargetSnapshots(normalizedSettlementTargetMemberIds, settlementTargetMemberMap),
                 toSettlementAccountSnapshot(request.account())
         );
         savePartyWithLockHandling(party);
@@ -235,7 +239,7 @@ public class TaxiPartyService {
         partySseService.publishPartyStatusChanged(party);
         eventPublisher.publish(new NotificationDomainEvent.PartyStatusChanged(party.getId(), beforeStatus, party.getStatus()));
 
-        Map<String, Member> memberMap = getMemberMap(party.getMemberIds());
+        Map<String, Member> memberMap = getMemberMap(getVisibleMemberIds(party));
         return toPartyDetailResponse(party, memberMap);
     }
 
@@ -298,9 +302,6 @@ public class TaxiPartyService {
         if (party.isLeader(memberId)) {
             throw new BusinessException(ErrorCode.LEADER_CANNOT_LEAVE);
         }
-        if (party.getStatus() == PartyStatus.ARRIVED) {
-            throw new BusinessException(ErrorCode.CANNOT_LEAVE_ARRIVED_PARTY);
-        }
         if (party.getStatus() == PartyStatus.ENDED) {
             throw new BusinessException(ErrorCode.PARTY_ENDED);
         }
@@ -310,11 +311,12 @@ public class TaxiPartyService {
                 ? leavingMember.getNickname() + "님이 파티에서 나갔어요."
                 : "멤버가 파티에서 나갔어요.";
 
-        party.removeMember(memberId);
-        savePartyWithLockHandling(party);
-        chatService.syncPartyChatRoomMembers(party);
-        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
-        partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
+        if (party.getStatus() == PartyStatus.ARRIVED) {
+            leaveArrivedParty(party, memberId, leaveSystemMessage);
+            return;
+        }
+
+        leaveOpenOrClosedParty(party, memberId, leaveSystemMessage);
     }
 
     @Transactional
@@ -447,6 +449,7 @@ public class TaxiPartyService {
 
         boolean allSettled = party.confirmSettlement(memberId);
         savePartyWithLockHandling(party);
+        chatService.syncPartyArrivalMessageSnapshot(party);
         if (allSettled) {
             eventPublisher.publish(new NotificationDomainEvent.PartySettlementCompleted(party.getId()));
         }
@@ -625,14 +628,15 @@ public class TaxiPartyService {
         }
 
         List<MemberSettlementResponse> settlements = party.getSettlementItems().stream()
-                .sorted(Comparator.comparing(MemberSettlement::getMemberId))
                 .map(item -> {
                     Member profile = memberMap.get(item.getMemberId());
                     return new MemberSettlementResponse(
                             item.getMemberId(),
-                            profile != null ? profile.getNickname() : null,
+                            resolveSettlementDisplayName(item, profile),
                             item.isSettled(),
-                            item.getSettledAt()
+                            item.getSettledAt(),
+                            item.isLeftParty(),
+                            item.getLeftAt()
                     );
                 })
                 .toList();
@@ -754,6 +758,71 @@ public class TaxiPartyService {
                 settlementAccount.getDisplayAccountHolder(),
                 settlementAccount.getHideName()
         );
+    }
+
+    private void leaveOpenOrClosedParty(Party party, String memberId, String leaveSystemMessage) {
+        party.removeMember(memberId);
+        savePartyWithLockHandling(party);
+        chatService.syncPartyChatRoomMembers(party);
+        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
+        partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
+    }
+
+    private void leaveArrivedParty(Party party, String memberId, String leaveSystemMessage) {
+        party.leaveArrivedMember(memberId);
+        savePartyWithLockHandling(party);
+        chatService.syncPartyChatRoomMembers(party);
+        chatService.syncPartyArrivalMessageSnapshot(party);
+        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
+        partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
+    }
+
+    private List<SettlementTargetSnapshot> toSettlementTargetSnapshots(
+            List<String> settlementTargetMemberIds,
+            Map<String, Member> memberMap
+    ) {
+        if (settlementTargetMemberIds == null) {
+            return List.of();
+        }
+        return settlementTargetMemberIds.stream()
+                .map(memberId -> new SettlementTargetSnapshot(
+                        memberId,
+                        resolveDisplayName(memberMap.get(memberId), memberId)
+                ))
+                .toList();
+    }
+
+    private List<String> normalizeMemberIds(List<String> memberIds) {
+        if (memberIds == null) {
+            return List.of();
+        }
+        return memberIds.stream()
+                .map(this::normalizeMemberId)
+                .toList();
+    }
+
+    private String resolveSettlementDisplayName(MemberSettlement settlement, Member profile) {
+        if (settlement.getDisplayName() != null && !settlement.getDisplayName().isBlank()) {
+            return settlement.getDisplayName();
+        }
+        return resolveDisplayName(profile, settlement.getMemberId());
+    }
+
+    private String resolveDisplayName(Member member, String fallback) {
+        if (member != null && member.getNickname() != null && !member.getNickname().isBlank()) {
+            return member.getNickname();
+        }
+        return fallback;
+    }
+
+    private String normalizeMemberId(String memberId) {
+        return memberId == null ? null : memberId.trim();
+    }
+
+    private Collection<String> getVisibleMemberIds(Party party) {
+        List<String> visibleMemberIds = new ArrayList<>(party.getMemberIds());
+        visibleMemberIds.addAll(party.getSettlementTargetMemberIds());
+        return visibleMemberIds;
     }
 
     private Map<String, Member> getMemberMap(Collection<String> memberIds) {

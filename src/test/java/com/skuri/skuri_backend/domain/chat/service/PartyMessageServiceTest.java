@@ -6,6 +6,7 @@ import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementAccountSnapshot;
+import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementTargetSnapshot;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,9 +74,9 @@ class PartyMessageServiceTest {
     @Test
     void buildArrivalPayload_정산스냅샷을포함한다() {
         Party party = sampleParty("leader-1", true);
-        party.arrive(
+        party.arriveWithSnapshots(
                 14000,
-                List.of("member-2"),
+                List.of(new SettlementTargetSnapshot("member-2", "김철수")),
                 SettlementAccountSnapshot.of("카카오뱅크", "3333-01-1234567", "홍길동", true)
         );
 
@@ -87,8 +88,28 @@ class PartyMessageServiceTest {
         assertEquals(7000, payload.arrivalData().getPerPersonAmount());
         assertEquals(2, payload.arrivalData().getSplitMemberCount());
         assertEquals(List.of("member-2"), payload.arrivalData().getSettlementTargetMemberIds());
+        assertEquals(1, payload.arrivalData().getMemberSettlements().size());
+        assertEquals("김철수", payload.arrivalData().getMemberSettlements().get(0).getDisplayName());
+        assertFalse(payload.arrivalData().getMemberSettlements().get(0).isLeftParty());
         assertEquals("홍*동", payload.arrivalData().getAccountData().getAccountHolder());
         assertTrue(payload.arrivalData().getAccountData().getHideName());
+    }
+
+    @Test
+    void buildArrivalPayload_ARRIVED이후나간정산대상도표시한다() {
+        Party party = sampleParty("leader-1", true);
+        party.arriveWithSnapshots(
+                14000,
+                List.of(new SettlementTargetSnapshot("member-2", "김철수")),
+                SettlementAccountSnapshot.of("카카오뱅크", "3333-01-1234567", "홍길동", true)
+        );
+        party.leaveArrivedMember("member-2");
+
+        PartySpecialMessagePayload payload = partyMessageService.buildArrivalPayload(party, "leader-1");
+
+        assertEquals(List.of("member-2"), payload.arrivalData().getSettlementTargetMemberIds());
+        assertTrue(payload.arrivalData().getMemberSettlements().get(0).isLeftParty());
+        assertNotNull(payload.arrivalData().getMemberSettlements().get(0).getLeftAt());
     }
 
     @Test

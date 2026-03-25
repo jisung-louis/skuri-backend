@@ -211,6 +211,24 @@ public final class OpenApiChatExamples {
                       "splitMemberCount": 3,
                       "perPersonAmount": 5000,
                       "settlementTargetMemberIds": ["member-2", "member-3"],
+                      "memberSettlements": [
+                        {
+                          "memberId": "member-2",
+                          "displayName": "김철수",
+                          "settled": false,
+                          "settledAt": null,
+                          "leftParty": false,
+                          "leftAt": null
+                        },
+                        {
+                          "memberId": "member-3",
+                          "displayName": "이영희",
+                          "settled": true,
+                          "settledAt": "2026-03-05T21:32:00",
+                          "leftParty": true,
+                          "leftAt": "2026-03-05T21:40:00"
+                        }
+                      ],
                       "accountData": {
                         "bankName": "카카오뱅크",
                         "accountNumber": "3333-01-1234567",
