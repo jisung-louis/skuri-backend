@@ -100,6 +100,8 @@ public class OpenApiConfig {
                         "/v1/parties/**",
                         "/v1/join-requests/**",
                         "/v1/members/me/parties",
+                        "/v1/members/me/taxi-history",
+                        "/v1/members/me/taxi-history/summary",
                         "/v1/members/me/join-requests",
                         "/v1/sse/parties/**",
                         "/v1/sse/members/me/join-requests"
