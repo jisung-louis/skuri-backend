@@ -28,6 +28,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -250,6 +252,21 @@ class CampusBannerAdminControllerContractTest {
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
     }
 
+    @Test
+    void reorderCampusBanners_101개배너도_검증통과() throws Exception {
+        mockToken("admin-token", true);
+        when(campusBannerService.reorderBanners(any())).thenReturn(List.of());
+
+        mockMvc.perform(
+                        put("/v1/admin/campus-banners/order")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(reorderRequest(101))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
     private String validCreateRequest() {
         return """
                 {
@@ -268,6 +285,17 @@ class CampusBannerAdminControllerContractTest {
                   "displayEndAt": null
                 }
                 """;
+    }
+
+    private String reorderRequest(int count) {
+        String bannerIds = IntStream.rangeClosed(1, count)
+                .mapToObj(index -> "\"banner-" + index + "\"")
+                .collect(Collectors.joining(", "));
+        return """
+                {
+                  "bannerIds": [%s]
+                }
+                """.formatted(bannerIds);
     }
 
     private CampusBannerAdminResponse adminResponse(String id) {

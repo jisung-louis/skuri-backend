@@ -41,6 +41,9 @@ class CampusBannerServiceTest {
     @Mock
     private CampusBannerRepository campusBannerRepository;
 
+    @Mock
+    private CampusBannerOrderLock campusBannerOrderLock;
+
     @InjectMocks
     private CampusBannerService campusBannerService;
 
@@ -78,6 +81,35 @@ class CampusBannerServiceTest {
         assertEquals(2, second.getDisplayOrder());
         assertEquals(3, response.displayOrder());
         assertEquals("택시 파티", response.badgeLabel());
+        verify(campusBannerOrderLock).lock();
+        verify(campusBannerOrderLock).unlock();
+    }
+
+    @Test
+    void createBanner_검증예외가발생해도_락을해제한다() {
+        when(campusBannerRepository.findAllAdminOrderedForUpdate()).thenReturn(new ArrayList<>());
+
+        assertThrows(
+                BusinessException.class,
+                () -> campusBannerService.createBanner(new CreateCampusBannerRequest(
+                        "택시 파티",
+                        "택시 동승 매칭",
+                        "같은 방향 가는 학생과 택시비를 함께 나눠요",
+                        "파티 찾기",
+                        CampusBannerPaletteKey.GREEN,
+                        "https://cdn.skuri.app/uploads/campus-banners/2026/03/25/banner-1.jpg",
+                        CampusBannerActionType.IN_APP,
+                        CampusBannerActionTarget.TAXI_MAIN,
+                        null,
+                        null,
+                        true,
+                        LocalDateTime.of(2026, 3, 25, 1, 0),
+                        LocalDateTime.of(2026, 3, 25, 0, 0)
+                ))
+        );
+
+        verify(campusBannerOrderLock).lock();
+        verify(campusBannerOrderLock).unlock();
     }
 
     @Test
@@ -118,6 +150,8 @@ class CampusBannerServiceTest {
         verify(campusBannerRepository).delete(second);
         assertEquals(1, first.getDisplayOrder());
         assertEquals(2, third.getDisplayOrder());
+        verify(campusBannerOrderLock).lock();
+        verify(campusBannerOrderLock).unlock();
     }
 
     @Test
@@ -135,6 +169,8 @@ class CampusBannerServiceTest {
         assertEquals(1, second.getDisplayOrder());
         assertEquals(2, third.getDisplayOrder());
         assertEquals(3, first.getDisplayOrder());
+        verify(campusBannerOrderLock).lock();
+        verify(campusBannerOrderLock).unlock();
     }
 
     @Test
