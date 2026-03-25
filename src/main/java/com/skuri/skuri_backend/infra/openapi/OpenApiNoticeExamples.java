@@ -25,7 +25,8 @@ public final class OpenApiNoticeExamples {
                     "isRead": true,
                     "isLiked": false,
                     "isBookmarked": true,
-                    "isCommentedByMe": true
+                    "isCommentedByMe": true,
+                    "thumbnailUrl": "https://www.sungkyul.ac.kr/upload/notice-thumb.jpg"
                   }
                 ],
                 "page": 0,

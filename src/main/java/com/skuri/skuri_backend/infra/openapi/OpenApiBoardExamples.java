@@ -62,6 +62,7 @@ public final class OpenApiBoardExamples {
                     "isBookmarked": false,
                     "isCommentedByMe": true,
                     "hasImage": true,
+                    "thumbnailUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg",
                     "isPinned": false,
                     "createdAt": "2026-02-03T12:00:00"
                   }
@@ -213,6 +214,7 @@ public final class OpenApiBoardExamples {
                     "isBookmarked": true,
                     "isCommentedByMe": false,
                     "hasImage": false,
+                    "thumbnailUrl": null,
                     "isPinned": false,
                     "createdAt": "2026-02-03T12:00:00"
                   }
