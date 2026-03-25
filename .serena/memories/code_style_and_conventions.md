@@ -4,6 +4,7 @@
 - Controller는 요청 검증과 응답 변환만 담당한다.
 - Service가 비즈니스 규칙, 상태 전이, 권한 판단을 담당한다.
 - 부가효과(알림, SSE fan-out, push)는 핵심 트랜잭션과 분리한다.
+- SSE subscribe 메서드는 long-lived request 수명을 트랜잭션/JPA 세션 수명과 섞지 않는다. 초기 snapshot은 전용 read-only 서비스에서 DTO payload로 계산한 뒤 emitter를 생성/등록/전송한다.
 - 상태 변경 후 알림 발행은 `AfterCommitApplicationEventPublisher`로 after-commit semantics를 보장한다.
 - 회원 탈퇴는 hard delete 대신 tombstone(`status=WITHDRAWN`, `withdrawnAt`) + 개인정보 스크럽을 기본으로 한다.
 - 탈퇴로 인한 외부 후처리(Firebase 삭제, SSE 연결 종료)는 핵심 트랜잭션 안에서 직접 처리하지 않고 after-commit 리스너로 분리한다.
@@ -28,6 +29,7 @@
 ## 운영/환경변수
 - 프로필 파일은 정책, `.env`/Secrets는 실제 값을 담당한다.
 - `application.yaml`은 공통 설정과 datasource 공통 인증정보(username/password/driver-class), `application-local.yaml`/`application-local-emulator.yaml`/`application-prod.yaml`은 프로필별 `datasource.url`과 인증 정책을 담당한다.
+- 공통 JPA 정책은 `spring.jpa.open-in-view=false`이며, 커넥션 진단 기본값은 `spring.datasource.hikari.connection-timeout=30000`, `spring.datasource.hikari.leak-detection-threshold=20000`이다. 환경별 override는 `DB_CONNECTION_TIMEOUT_MS`, `DB_LEAK_DETECTION_THRESHOLD_MS`를 사용한다.
 - `application-local.yaml`, `application-local-emulator.yaml`은 민감값 없이 정책만 담고 Git으로 추적한다.
 - 로컬 기본 프로필은 `local`, Firebase Emulator 검증은 `local-emulator`, 운영은 `prod`, 자동 테스트는 `test`를 사용한다.
 - `local`은 실제 Firebase 기반 통합 테스트용이므로 `FIREBASE_PROJECT_ID`와 서비스 계정 파일 경로를 환경변수로 받아야 한다.

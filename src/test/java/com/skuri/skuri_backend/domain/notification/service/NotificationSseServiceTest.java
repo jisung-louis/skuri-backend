@@ -1,6 +1,6 @@
 package com.skuri.skuri_backend.domain.notification.service;
 
-import com.skuri.skuri_backend.domain.notification.repository.UserNotificationRepository;
+import com.skuri.skuri_backend.domain.notification.dto.response.NotificationSnapshotResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -14,18 +14,33 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationSseServiceTest {
 
     @Mock
-    private UserNotificationRepository userNotificationRepository;
+    private NotificationSseSnapshotService notificationSseSnapshotService;
+
+    @Test
+    void subscribe_호출시_스냅샷준비수행() {
+        NotificationSseService notificationSseService = new NotificationSseService(notificationSseSnapshotService);
+        when(notificationSseSnapshotService.createSnapshotResponse("member-1"))
+                .thenReturn(new NotificationSnapshotResponse(3L));
+
+        SseEmitter emitter = notificationSseService.subscribe("member-1");
+
+        assertNotNull(emitter);
+        verify(notificationSseSnapshotService).createSnapshotResponse("member-1");
+    }
 
     @Test
     @SuppressWarnings("unchecked")
     void publishHeartbeat_전송실패시_complete없이_구독해제한다() throws Exception {
-        NotificationSseService notificationSseService = new NotificationSseService(userNotificationRepository);
+        NotificationSseService notificationSseService = new NotificationSseService(notificationSseSnapshotService);
         Map<String, Object> subscribers = (Map<String, Object>) ReflectionTestUtils.getField(notificationSseService, "subscribers");
         AtomicInteger completeCount = new AtomicInteger();
 

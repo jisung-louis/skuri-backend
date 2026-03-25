@@ -285,6 +285,8 @@ com.skuri.skuri_backend
 
 SSE 운영 제약:
 - 현재 구현은 인스턴스 메모리(`ConcurrentHashMap`) 기반 구독 관리(단일 인스턴스 전제)
+- SSE subscribe 경로는 전용 read-only snapshot 서비스에서 DTO payload를 먼저 계산한 뒤 `SseEmitter`를 생성/등록한다. `spring.jpa.open-in-view=false`를 공통으로 강제해 long-lived SSE 요청이 JDBC connection을 요청 수명 동안 붙잡지 않게 유지한다.
+- JDBC connection 진단은 Hikari `connection-timeout`(기본 30초) + `leak-detection-threshold`(기본 20초, `DB_LEAK_DETECTION_THRESHOLD_MS` override 가능)를 source of truth로 사용한다.
 - 수평 확장 시 Redis Pub/Sub 또는 메시지 브로커 기반 fan-out 구조로 전환 필요
 
 #### 2-6. 테스트 구현 기준 (고정 규칙)

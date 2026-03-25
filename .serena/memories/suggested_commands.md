@@ -30,6 +30,8 @@ SPRING_PROFILES_ACTIVE=local ./gradlew test --tests "com.skuri.skuri_backend.dom
 
 ## 서버 실행
 ```bash
+# SSE connection leak 진단이 필요하면 아래 환경변수로 Hikari 경고 임계값을 조정
+# DB_CONNECTION_TIMEOUT_MS=30000 DB_LEAK_DETECTION_THRESHOLD_MS=20000 SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 docker compose up -d mysql redis
 MEDIA_STORAGE_BASE_DIR=$(pwd)/var/media MEDIA_STORAGE_PUBLIC_BASE_URL=http://localhost:8080/uploads SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 MEDIA_STORAGE_PROVIDER=FIREBASE MEDIA_STORAGE_FIREBASE_BUCKET=gs://sktaxi-acb4c.firebasestorage.app FIREBASE_PROJECT_ID=sktaxi-acb4c FIREBASE_CREDENTIALS_PATH=/Users/<user>/skuri-backend/serviceAccountKey.json SPRING_PROFILES_ACTIVE=local ./gradlew bootRun

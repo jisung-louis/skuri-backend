@@ -405,7 +405,10 @@ public class ChatRoomController {
     }
 
     @PatchMapping("/{id}/read")
-    @Operation(summary = "읽음 처리", description = "JS/React Native의 new Date().toISOString() 형태 ISO 8601 UTC 문자열을 받아 lastReadAt 단조 증가를 보장하며 읽음 시각을 갱신합니다.")
+    @Operation(
+            summary = "읽음 처리",
+            description = "채팅 메시지 createdAt처럼 timezone 없는 LocalDateTime 문자열과 ISO 8601 Z/offset 문자열을 모두 받아 읽음 시각을 갱신합니다. timezone 없는 값은 Asia/Seoul 기준으로 해석하고, 응답은 기존처럼 UTC Instant로 반환합니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -453,6 +456,18 @@ public class ChatRoomController {
                     )
             )
     })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            description = "읽음 처리 요청. 프론트가 메시지 createdAt을 그대로 전달해도 되며, timezone 없는 값은 Asia/Seoul 기준으로 해석됩니다.",
+            content = @Content(
+                    schema = @Schema(implementation = UpdateChatRoomReadRequest.class),
+                    examples = {
+                            @ExampleObject(name = "local_datetime_microseconds", value = OpenApiChatExamples.REQUEST_CHAT_READ_UPDATE_LOCAL),
+                            @ExampleObject(name = "utc_datetime", value = OpenApiChatExamples.REQUEST_CHAT_READ_UPDATE_UTC),
+                            @ExampleObject(name = "offset_datetime", value = OpenApiChatExamples.REQUEST_CHAT_READ_UPDATE_OFFSET)
+                    }
+            )
+    )
     public ResponseEntity<ApiResponse<ChatReadUpdateResponse>> markAsRead(
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @PathVariable("id") String chatRoomId,

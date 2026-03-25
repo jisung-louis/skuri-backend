@@ -1495,8 +1495,13 @@ FCM 토큰 삭제
 읽음 처리
 
 - 클라이언트는 채팅방 포커스 획득/이탈, 앱 백그라운드 전환 시점마다 `lastReadAt`을 갱신합니다.
-- 요청 `lastReadAt`은 JS/React Native의 `new Date().toISOString()` 형태와 같은 ISO 8601 UTC 문자열(`...Z`)을 사용합니다.
+- 요청 `lastReadAt`은 아래 형식을 모두 허용합니다.
+  - timezone 없는 `LocalDateTime` 문자열: `2026-03-25T21:36:29`, `2026-03-25T21:36:29.837`, `2026-03-25T21:36:29.837407`
+  - UTC/Z 문자열: `2026-03-25T12:36:29Z`, `2026-03-25T12:36:29.837Z`
+  - offset 포함 ISO 8601 문자열: `2026-03-25T21:36:29+09:00`
+- 프론트가 채팅 메시지 `createdAt` 값을 그대로 `lastReadAt`으로 보내는 현재 앱 입력도 서버가 그대로 수용합니다.
 - 서버는 요청 문자열을 절대 시각으로 해석한 뒤 `Asia/Seoul` 기준 `LocalDateTime`으로 정규화하여 비교/저장합니다.
+- timezone 없는 값은 `Asia/Seoul` 기준 로컬 시각으로 해석하고, `Z`/offset 값은 해당 절대 시각을 그대로 사용합니다.
 - 서버는 저장된 `lastReadAt`보다 과거 시각 요청을 무시해 단조 증가를 보장하고, 미래 시각 요청은 서버 현재 시각과 마지막 메시지 시각을 상한으로 clamp합니다.
 - 미읽음 계산 기준은 `message.createdAt > lastReadAt` 입니다. (`==` 는 읽음으로 간주)
 - `PATCH /read` 응답과 채팅방 detail의 `lastReadAt`도 ISO 8601 UTC 문자열로 반환합니다.
@@ -1504,7 +1509,7 @@ FCM 토큰 삭제
 **Request:**
 ```json
 {
-  "lastReadAt": "2026-02-03T12:00:00Z"
+  "lastReadAt": "2026-03-25T21:36:29.837407"
 }
 ```
 
@@ -1514,7 +1519,7 @@ FCM 토큰 삭제
   "success": true,
   "data": {
     "chatRoomId": "public:university",
-    "lastReadAt": "2026-02-03T12:00:00Z",
+    "lastReadAt": "2026-03-25T12:36:29.837407Z",
     "updated": true
   }
 }
@@ -1716,7 +1721,7 @@ Authorization:Bearer <firebase_id_token>
 |------|------------|
 | 메시지 전송 (STOMP 핸들러) | 메시지 DB 저장 + ChatRoom.messageCount 증가 → 커밋 후 구독자 브로드캐스트 |
 | 채팅방 목록 요약 이벤트 | 메시지 저장/멤버수 변경 커밋 후 `/user/queue/chat-rooms`로 요약 이벤트 전송 |
-| 읽음 처리 (`PATCH /v1/chat-rooms/{chatRoomId}/read`) | ISO 8601 UTC `lastReadAt` 단조 증가 갱신 + 미래 시각 clamp |
+| 읽음 처리 (`PATCH /v1/chat-rooms/{chatRoomId}/read`) | timezone 없는 `LocalDateTime` 또는 ISO 8601 `Z`/offset `lastReadAt` 허용, 단조 증가 갱신 + 미래 시각 clamp |
 | 설정 수정 (`PATCH /v1/chat-rooms/{chatRoomId}/settings`) | ChatRoomMember.muted 갱신 |
 | ACCOUNT 메시지 | payload snapshot 검증 + 선택적 회원 계좌 저장(`remember=true`) + 메시지 DB 저장 → 커밋 후 브로드캐스트 |
 | 파티 상태 기반 서버 메시지 | party 상태/정산 snapshot 저장 후 `SYSTEM`/`ARRIVED`/`END` 메시지 DB 저장 → 커밋 후 브로드캐스트 |

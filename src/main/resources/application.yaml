@@ -15,11 +15,15 @@ spring:
     username: ${DB_USERNAME:}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+      leak-detection-threshold: ${DB_LEAK_DETECTION_THRESHOLD_MS:20000}
 
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
-    show-sql: ${JPA_SHOW_SQL:true}
+    show-sql: ${JPA_SHOW_SQL:false}
+    open-in-view: false
     properties:
       hibernate:
         format_sql: ${JPA_FORMAT_SQL:true}

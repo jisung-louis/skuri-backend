@@ -30,6 +30,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -280,20 +281,32 @@ class ChatRoomControllerContractTest {
 
     @Test
     void markAsRead_정상요청_200() throws Exception {
-        mockValidToken();
-        when(chatService.markAsRead(eq("firebase-uid"), eq("room-1"), any()))
-                .thenReturn(new ChatReadUpdateResponse("room-1", Instant.parse("2026-03-05T12:10:00Z"), true));
+        assertMarkAsReadAccepted("2026-03-05T12:10:00Z", Instant.parse("2026-03-05T12:10:00Z"));
+    }
 
-        mockMvc.perform(
-                        patch("/v1/chat-rooms/room-1/read")
-                                .header(AUTHORIZATION, "Bearer valid-token")
-                                .contentType(APPLICATION_JSON)
-                                .content("{\"lastReadAt\":\"2026-03-05T12:10:00Z\"}")
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.chatRoomId").value("room-1"))
-                .andExpect(jsonPath("$.data.lastReadAt").value("2026-03-05T12:10:00Z"))
-                .andExpect(jsonPath("$.data.updated").value(true));
+    @Test
+    void markAsRead_로컬시각초단위요청_200() throws Exception {
+        assertMarkAsReadAccepted("2026-03-25T21:36:29", Instant.parse("2026-03-25T12:36:29Z"));
+    }
+
+    @Test
+    void markAsRead_로컬시각밀리초요청_200() throws Exception {
+        assertMarkAsReadAccepted("2026-03-25T21:36:29.837", Instant.parse("2026-03-25T12:36:29.837Z"));
+    }
+
+    @Test
+    void markAsRead_로컬시각마이크로초요청_200() throws Exception {
+        assertMarkAsReadAccepted("2026-03-25T21:36:29.837407", Instant.parse("2026-03-25T12:36:29.837407Z"));
+    }
+
+    @Test
+    void markAsRead_UTC요청_200() throws Exception {
+        assertMarkAsReadAccepted("2026-03-25T12:36:29Z", Instant.parse("2026-03-25T12:36:29Z"));
+    }
+
+    @Test
+    void markAsRead_Offset요청_200() throws Exception {
+        assertMarkAsReadAccepted("2026-03-25T21:36:29+09:00", Instant.parse("2026-03-25T12:36:29Z"));
     }
 
     @Test
@@ -348,5 +361,24 @@ class ChatRoomControllerContractTest {
                 false,
                 joined ? Instant.parse("2026-03-05T12:05:00Z") : null
         );
+    }
+
+    private void assertMarkAsReadAccepted(String requestLastReadAt, Instant expectedLastReadAt) throws Exception {
+        mockValidToken();
+        when(chatService.markAsRead(eq("firebase-uid"), eq("room-1"), eq(expectedLastReadAt)))
+                .thenReturn(new ChatReadUpdateResponse("room-1", expectedLastReadAt, true));
+
+        mockMvc.perform(
+                        patch("/v1/chat-rooms/room-1/read")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("{\"lastReadAt\":\"" + requestLastReadAt + "\"}")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.chatRoomId").value("room-1"))
+                .andExpect(jsonPath("$.data.lastReadAt").value(expectedLastReadAt.toString()))
+                .andExpect(jsonPath("$.data.updated").value(true));
+
+        verify(chatService).markAsRead("firebase-uid", "room-1", expectedLastReadAt);
     }
 }

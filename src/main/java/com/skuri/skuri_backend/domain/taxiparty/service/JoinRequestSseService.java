@@ -1,27 +1,17 @@
 package com.skuri.skuri_backend.domain.taxiparty.service;
 
-import com.skuri.skuri_backend.common.exception.BusinessException;
-import com.skuri.skuri_backend.common.exception.ErrorCode;
-import com.skuri.skuri_backend.domain.member.entity.Member;
-import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestListItemResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequest;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
-import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
-import com.skuri.skuri_backend.domain.taxiparty.exception.PartyNotFoundException;
-import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
-import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,9 +29,10 @@ public class JoinRequestSseService {
     private static final int FAILURE_RATE_WINDOW_MINUTES = 5;
     private static final double FAILURE_RATE_WARNING_THRESHOLD = 5.0;
 
-    private final PartyRepository partyRepository;
-    private final JoinRequestRepository joinRequestRepository;
-    private final MemberRepository memberRepository;
+    private static final String PARTY_JOIN_REQUESTS_ENDPOINT = "/v1/sse/parties/{partyId}/join-requests";
+    private static final String MY_JOIN_REQUESTS_ENDPOINT = "/v1/sse/members/me/join-requests";
+
+    private final JoinRequestSseSnapshotService joinRequestSseSnapshotService;
 
     private final Map<String, PartyJoinRequestSubscriber> partyJoinRequestSubscribers = new ConcurrentHashMap<>();
     private final Map<String, MyJoinRequestSubscriber> myJoinRequestSubscribers = new ConcurrentHashMap<>();
@@ -50,49 +41,55 @@ public class JoinRequestSseService {
     private final AtomicLong windowFailureCount = new AtomicLong();
     private volatile LocalDateTime failureRateWindowStartedAt = LocalDateTime.now();
 
-    @Transactional(readOnly = true)
     public SseEmitter subscribePartyJoinRequests(String actorId, String partyId) {
-        Party party = partyRepository.findById(partyId).orElseThrow(PartyNotFoundException::new);
-        if (!party.isLeader(actorId)) {
-            throw new BusinessException(ErrorCode.NOT_PARTY_LEADER);
-        }
-
+        Map<String, Object> snapshotPayload =
+                joinRequestSseSnapshotService.createPartyJoinRequestsSnapshotPayload(actorId, partyId);
         String emitterId = "party:" + partyId + ":leader:" + actorId + ":" + UUID.randomUUID();
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MILLIS);
         partyJoinRequestSubscribers.put(emitterId, new PartyJoinRequestSubscriber(partyId, actorId, emitter));
         registerPartySubscriberLifecycle(emitterId, emitter);
-        logSubscriberSize("subscribe", emitterId);
-
-        sendToPartySubscriber(
+        logSubscriberLifecycle(PARTY_JOIN_REQUESTS_ENDPOINT, "subscribe", emitterId, actorId, partyId, null, null);
+        log.info(
+                "SSE subscribe snapshot prepared: endpoint={}, emitterId={}, memberId={}, partyId={}, partySubscribers={}, mySubscribers={}, txActive={}",
+                PARTY_JOIN_REQUESTS_ENDPOINT,
                 emitterId,
-                "SNAPSHOT",
-                Map.of(
-                        "partyId", partyId,
-                        "requests", getPartyJoinRequestSnapshot(partyId)
-                )
+                actorId,
+                partyId,
+                partyJoinRequestSubscribers.size(),
+                myJoinRequestSubscribers.size(),
+                TransactionSynchronizationManager.isActualTransactionActive()
         );
+
+        sendToPartySubscriber(emitterId, "SNAPSHOT", snapshotPayload);
         return emitter;
     }
 
-    @Transactional(readOnly = true)
     public SseEmitter subscribeMyJoinRequests(String memberId, JoinRequestStatus status) {
+        Map<String, Object> snapshotPayload =
+                joinRequestSseSnapshotService.createMyJoinRequestsSnapshotPayload(memberId, status);
         String statusOrAll = status == null ? "ALL" : status.name();
         String emitterId = "my-requests:" + memberId + ":" + statusOrAll + ":" + UUID.randomUUID();
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MILLIS);
         myJoinRequestSubscribers.put(emitterId, new MyJoinRequestSubscriber(memberId, status, emitter));
         registerMySubscriberLifecycle(emitterId, emitter);
-        logSubscriberSize("subscribe", emitterId);
-
-        sendToMySubscriber(
+        logSubscriberLifecycle(MY_JOIN_REQUESTS_ENDPOINT, "subscribe", emitterId, memberId, null, status, null);
+        log.info(
+                "SSE subscribe snapshot prepared: endpoint={}, emitterId={}, memberId={}, statusFilter={}, partySubscribers={}, mySubscribers={}, txActive={}",
+                MY_JOIN_REQUESTS_ENDPOINT,
                 emitterId,
-                "SNAPSHOT",
-                Map.of("requests", getMyJoinRequestSnapshot(memberId, status))
+                memberId,
+                statusOrAll,
+                partyJoinRequestSubscribers.size(),
+                myJoinRequestSubscribers.size(),
+                TransactionSynchronizationManager.isActualTransactionActive()
         );
+
+        sendToMySubscriber(emitterId, "SNAPSHOT", snapshotPayload);
         return emitter;
     }
 
     public void publishJoinRequestCreated(JoinRequest joinRequest) {
-        JoinRequestListItemResponse payload = toSseItem(joinRequest);
+        JoinRequestListItemResponse payload = joinRequestSseSnapshotService.toSseItem(joinRequest);
         publishAfterCommit(() -> {
             int leaderRecipients = broadcastToPartyLeaders(
                     joinRequest.getParty().getId(),
@@ -113,7 +110,7 @@ public class JoinRequestSseService {
     }
 
     public void publishJoinRequestUpdated(JoinRequest joinRequest, JoinRequestStatus previousStatus) {
-        JoinRequestListItemResponse payload = toSseItem(joinRequest);
+        JoinRequestListItemResponse payload = joinRequestSseSnapshotService.toSseItem(joinRequest);
         publishAfterCommit(() -> {
             int leaderRecipients = broadcastToPartyLeaders(
                     joinRequest.getParty().getId(),
@@ -161,6 +158,7 @@ public class JoinRequestSseService {
                 return;
             }
             partyJoinRequestSubscribers.remove(emitterId);
+            logSubscriberLifecycle(PARTY_JOIN_REQUESTS_ENDPOINT, "close", emitterId, memberId, subscriber.partyId(), null, null);
             safeComplete(subscriber.emitter());
         });
 
@@ -169,6 +167,15 @@ public class JoinRequestSseService {
                 return;
             }
             myJoinRequestSubscribers.remove(emitterId);
+            logSubscriberLifecycle(
+                    MY_JOIN_REQUESTS_ENDPOINT,
+                    "close",
+                    emitterId,
+                    memberId,
+                    null,
+                    subscriber.statusFilter(),
+                    null
+            );
             safeComplete(subscriber.emitter());
         });
     }
@@ -184,52 +191,6 @@ public class JoinRequestSseService {
             return;
         }
         publisher.run();
-    }
-
-    private List<JoinRequestListItemResponse> getPartyJoinRequestSnapshot(String partyId) {
-        List<JoinRequest> requests = joinRequestRepository.findByParty_IdOrderByCreatedAtDesc(partyId);
-        return toSseItems(requests);
-    }
-
-    private List<JoinRequestListItemResponse> getMyJoinRequestSnapshot(String memberId, JoinRequestStatus status) {
-        List<JoinRequest> requests = status == null
-                ? joinRequestRepository.findByRequesterIdOrderByCreatedAtDesc(memberId)
-                : joinRequestRepository.findByRequesterIdAndStatusOrderByCreatedAtDesc(memberId, status);
-        return toSseItems(requests);
-    }
-
-    private List<JoinRequestListItemResponse> toSseItems(List<JoinRequest> requests) {
-        Map<String, Member> requesterMap = getMemberMap(requests.stream().map(JoinRequest::getRequesterId).toList());
-        return requests.stream()
-                .map(request -> toSseItem(request, requesterMap.get(request.getRequesterId())))
-                .toList();
-    }
-
-    private JoinRequestListItemResponse toSseItem(JoinRequest joinRequest) {
-        Member requester = memberRepository.findById(joinRequest.getRequesterId()).orElse(null);
-        return toSseItem(joinRequest, requester);
-    }
-
-    private JoinRequestListItemResponse toSseItem(JoinRequest joinRequest, Member requester) {
-        return new JoinRequestListItemResponse(
-                joinRequest.getId(),
-                joinRequest.getParty().getId(),
-                joinRequest.getRequesterId(),
-                requester != null ? requester.getNickname() : null,
-                requester != null ? requester.getPhotoUrl() : null,
-                joinRequest.getStatus(),
-                joinRequest.getCreatedAt()
-        );
-    }
-
-    private Map<String, Member> getMemberMap(List<String> memberIds) {
-        List<String> ids = memberIds.stream().distinct().toList();
-        if (ids.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, Member> memberMap = new HashMap<>();
-        memberRepository.findAllById(ids).forEach(member -> memberMap.put(member.getId(), member));
-        return memberMap;
     }
 
     private int broadcastToPartyLeaders(String partyId, String leaderId, String eventType, Object payload) {
@@ -309,7 +270,15 @@ public class JoinRequestSseService {
             safeComplete(subscriber.emitter());
             recordSendResult(false);
             log.warn("JoinRequest SSE 전송 실패(파티 구독 해제): emitterId={}, eventType={}", emitterId, eventType);
-            logSubscriberSize("cleanup-on-send-fail", emitterId);
+            logSubscriberLifecycle(
+                    PARTY_JOIN_REQUESTS_ENDPOINT,
+                    "cleanup-on-send-fail",
+                    emitterId,
+                    subscriber.leaderId(),
+                    subscriber.partyId(),
+                    null,
+                    null
+            );
             return false;
         }
     }
@@ -335,41 +304,103 @@ public class JoinRequestSseService {
             safeComplete(subscriber.emitter());
             recordSendResult(false);
             log.warn("JoinRequest SSE 전송 실패(내 요청 구독 해제): emitterId={}, eventType={}", emitterId, eventType);
-            logSubscriberSize("cleanup-on-send-fail", emitterId);
+            logSubscriberLifecycle(
+                    MY_JOIN_REQUESTS_ENDPOINT,
+                    "cleanup-on-send-fail",
+                    emitterId,
+                    subscriber.memberId(),
+                    null,
+                    subscriber.statusFilter(),
+                    null
+            );
             return false;
         }
     }
 
     private void registerPartySubscriberLifecycle(String emitterId, SseEmitter emitter) {
         emitter.onCompletion(() -> {
-            partyJoinRequestSubscribers.remove(emitterId);
-            logSubscriberSize("complete", emitterId);
+            PartyJoinRequestSubscriber subscriber = partyJoinRequestSubscribers.remove(emitterId);
+            if (subscriber == null) {
+                return;
+            }
+            logSubscriberLifecycle(
+                    PARTY_JOIN_REQUESTS_ENDPOINT,
+                    "complete",
+                    emitterId,
+                    subscriber != null ? subscriber.leaderId() : null,
+                    subscriber != null ? subscriber.partyId() : null,
+                    null,
+                    null
+            );
         });
         emitter.onTimeout(() -> {
-            partyJoinRequestSubscribers.remove(emitterId);
-            logSubscriberSize("timeout", emitterId);
+            PartyJoinRequestSubscriber subscriber = partyJoinRequestSubscribers.remove(emitterId);
+            logSubscriberLifecycle(
+                    PARTY_JOIN_REQUESTS_ENDPOINT,
+                    "timeout",
+                    emitterId,
+                    subscriber != null ? subscriber.leaderId() : null,
+                    subscriber != null ? subscriber.partyId() : null,
+                    null,
+                    null
+            );
             safeComplete(emitter);
         });
         emitter.onError(ex -> {
-            partyJoinRequestSubscribers.remove(emitterId);
-            logSubscriberSize("error", emitterId);
+            PartyJoinRequestSubscriber subscriber = partyJoinRequestSubscribers.remove(emitterId);
+            logSubscriberLifecycle(
+                    PARTY_JOIN_REQUESTS_ENDPOINT,
+                    "error",
+                    emitterId,
+                    subscriber != null ? subscriber.leaderId() : null,
+                    subscriber != null ? subscriber.partyId() : null,
+                    null,
+                    ex
+            );
             safeCompleteWithError(emitter, ex);
         });
     }
 
     private void registerMySubscriberLifecycle(String emitterId, SseEmitter emitter) {
         emitter.onCompletion(() -> {
-            myJoinRequestSubscribers.remove(emitterId);
-            logSubscriberSize("complete", emitterId);
+            MyJoinRequestSubscriber subscriber = myJoinRequestSubscribers.remove(emitterId);
+            if (subscriber == null) {
+                return;
+            }
+            logSubscriberLifecycle(
+                    MY_JOIN_REQUESTS_ENDPOINT,
+                    "complete",
+                    emitterId,
+                    subscriber != null ? subscriber.memberId() : null,
+                    null,
+                    subscriber != null ? subscriber.statusFilter() : null,
+                    null
+            );
         });
         emitter.onTimeout(() -> {
-            myJoinRequestSubscribers.remove(emitterId);
-            logSubscriberSize("timeout", emitterId);
+            MyJoinRequestSubscriber subscriber = myJoinRequestSubscribers.remove(emitterId);
+            logSubscriberLifecycle(
+                    MY_JOIN_REQUESTS_ENDPOINT,
+                    "timeout",
+                    emitterId,
+                    subscriber != null ? subscriber.memberId() : null,
+                    null,
+                    subscriber != null ? subscriber.statusFilter() : null,
+                    null
+            );
             safeComplete(emitter);
         });
         emitter.onError(ex -> {
-            myJoinRequestSubscribers.remove(emitterId);
-            logSubscriberSize("error", emitterId);
+            MyJoinRequestSubscriber subscriber = myJoinRequestSubscribers.remove(emitterId);
+            logSubscriberLifecycle(
+                    MY_JOIN_REQUESTS_ENDPOINT,
+                    "error",
+                    emitterId,
+                    subscriber != null ? subscriber.memberId() : null,
+                    null,
+                    subscriber != null ? subscriber.statusFilter() : null,
+                    ex
+            );
             safeCompleteWithError(emitter, ex);
         });
     }
@@ -390,30 +421,73 @@ public class JoinRequestSseService {
         }
     }
 
-    private void logSubscriberSize(String action, String emitterId) {
+    private void logSubscriberLifecycle(
+            String endpoint,
+            String action,
+            String emitterId,
+            String memberId,
+            String partyId,
+            JoinRequestStatus statusFilter,
+            Throwable throwable
+    ) {
         int partySize = partyJoinRequestSubscribers.size();
         int mySize = myJoinRequestSubscribers.size();
-        if (partySize > SUBSCRIBER_WARNING_THRESHOLD || mySize > SUBSCRIBER_WARNING_THRESHOLD) {
+        if (throwable == null && (partySize > SUBSCRIBER_WARNING_THRESHOLD || mySize > SUBSCRIBER_WARNING_THRESHOLD)) {
             log.warn(
-                    "JoinRequest SSE subscriber threshold exceeded: action={}, emitterId={}, partySubscribers={}, mySubscribers={}",
+                    "JoinRequest SSE subscriber threshold exceeded: endpoint={}, action={}, emitterId={}, memberId={}, partyId={}, statusFilter={}, partySubscribers={}, mySubscribers={}",
+                    endpoint,
                     action,
                     emitterId,
+                    memberId,
+                    partyId,
+                    statusFilter,
                     partySize,
                     mySize
             );
             return;
         }
-        log.debug(
-                "JoinRequest SSE subscriber changed: action={}, emitterId={}, partySubscribers={}, mySubscribers={}",
+
+        if (throwable == null) {
+            log.info(
+                    "JoinRequest SSE lifecycle: endpoint={}, action={}, emitterId={}, memberId={}, partyId={}, statusFilter={}, partySubscribers={}, mySubscribers={}",
+                    endpoint,
+                    action,
+                    emitterId,
+                    memberId,
+                    partyId,
+                    statusFilter,
+                    partySize,
+                    mySize
+            );
+            return;
+        }
+
+        log.warn(
+                "JoinRequest SSE lifecycle: endpoint={}, action={}, emitterId={}, memberId={}, partyId={}, statusFilter={}, partySubscribers={}, mySubscribers={}, error={}",
+                endpoint,
                 action,
                 emitterId,
+                memberId,
+                partyId,
+                statusFilter,
                 partySize,
-                mySize
+                mySize,
+                throwable.toString()
         );
     }
 
     private void logEventPublish(String eventType, int recipients) {
-        log.info("JoinRequest SSE publish: eventType={}, recipients={}", eventType, recipients);
+        if ("HEARTBEAT".equals(eventType)) {
+            log.debug("JoinRequest SSE publish: eventType={}, recipients={}", eventType, recipients);
+            return;
+        }
+        log.info(
+                "JoinRequest SSE publish: eventType={}, recipients={}, partySubscribers={}, mySubscribers={}",
+                eventType,
+                recipients,
+                partyJoinRequestSubscribers.size(),
+                myJoinRequestSubscribers.size()
+        );
     }
 
     private void recordSendResult(boolean success) {

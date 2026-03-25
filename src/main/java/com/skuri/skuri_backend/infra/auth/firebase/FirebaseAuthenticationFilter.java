@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -33,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
@@ -83,9 +85,14 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         Authentication asyncAuthentication = resolveAsyncAuthentication(request);
         if (asyncAuthentication != null) {
+            log.debug("Firebase auth cache hit: dispatcherType={}, uri={}", request.getDispatcherType(), request.getRequestURI());
             setAuthentication(asyncAuthentication);
             filterChain.doFilter(request, response);
             return;
+        }
+
+        if (isAsyncDispatch(request)) {
+            log.debug("Firebase auth cache miss on async dispatch: uri={}", request.getRequestURI());
         }
 
         String idToken = resolveIdToken(request);
@@ -100,6 +107,13 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
 
             AuthenticatedMember principal = AuthenticatedMember.from(claims);
             Member persistedMember = resolvePersistedMember(principal.uid());
+            log.debug(
+                    "Firebase auth resolved persisted member: uri={}, uid={}, dispatcherType={}, memberPresent={}",
+                    request.getRequestURI(),
+                    principal.uid(),
+                    request.getDispatcherType(),
+                    persistedMember != null
+            );
             ensureMemberAccessAllowed(request, persistedMember);
             Collection<? extends GrantedAuthority> authorities = resolveAuthorities(persistedMember);
             UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.authenticated(

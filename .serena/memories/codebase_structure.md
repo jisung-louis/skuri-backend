@@ -15,7 +15,7 @@
 - `domain/member/service/MemberLifecycleEventListener.java`: after-commit 기반 Firebase 삭제/SSE 종료 처리
 - `domain/chat/websocket/ChatWebSocketConfig.java`: STOMP endpoint를 `/ws`(SockJS)와 `/ws-native`(native WebSocket)로 분리 등록
 - `domain/chat/service/PublicChatRoomSeedMigration.java`: 앱 기동 시 공식 공개방(학교 전체/마인크래프트/학과방)을 MySQL `INSERT IGNORE` 기반으로 idempotent + multi-instance safe seed
-- `domain/chat/service/ChatService.java`, `ChatMessageOrderGenerator.java`: 공개방 visibility(joined/not joined summary, 학과방 노출 제한), 공개방 create/join/leave, active member 검증, 메시지/summary 실시간 fan-out, 학과방 membership 정리, 서버 저장 시 `messageOrder`를 부여하고 `getMessages`의 `createdAt DESC + messageOrder` 커서 tie-breaker 해석을 담당한다
+- `domain/chat/service/ChatService.java`, `ChatMessageOrderGenerator.java`, `domain/chat/controller/ChatRoomController.java`, `domain/chat/dto/request/UpdateChatRoomReadRequest.java`: 공개방 visibility(joined/not joined summary, 학과방 노출 제한), 공개방 create/join/leave, active member 검증, 메시지/summary 실시간 fan-out, 학과방 membership 정리, 서버 저장 시 `messageOrder`를 부여하고 `getMessages`의 `createdAt DESC + messageOrder` 커서 tie-breaker 해석을 담당한다. `PATCH /v1/chat-rooms/{id}/read`는 메시지 `createdAt`처럼 timezone 없는 `LocalDateTime` 문자열과 ISO 8601 `Z`/offset 문자열을 모두 받고, timezone 없는 입력은 `Asia/Seoul` 기준으로 `Instant`로 변환해 서비스로 전달한다.
 - `domain/chat/websocket/ChatWebSocketSessionRegistry.java`, `ChatSubscriptionAccessInterceptor.java`: 탈퇴 회원 WebSocket 세션 추적/차단
 - `domain/chat/service/PartyMessageService.java`: 파티 채팅 특수 payload와 서버 생성 메시지 텍스트 정책(ACCOUNT snapshot, ARRIVED/END)을 담당한다. join/close/reopen/member leave SYSTEM 메시지 생성 시점과 자동 CLOSED 시 `합류 안내 -> 모집 마감 안내` 순서는 `domain/taxiparty/service/TaxiPartyService.java`가 오케스트레이션한다.
 - `domain/taxiparty/entity/SettlementAccountSnapshot.java`, `domain/taxiparty/dto/request/ArrivePartyRequest.java`: ARRIVED 정산 snapshot(account/taxiFare/settlementTargetMemberIds) 계약 정의
@@ -40,7 +40,10 @@
 - `infra/auth/firebase/FirebaseAuthenticationFilter.java`: Bearer 토큰을 `AuthenticatedMember`로 변환하고, SSE 스트림의 async 재디스패치에서도 다시 실행되어 Spring Security `AuthorizationFilter`가 동일한 인증 컨텍스트를 보도록 유지한다.
 
 ## SSE 운영
-- `domain/notification/service/NotificationSseService.java`, `domain/taxiparty/service/PartySseService.java`: 하트비트/이벤트 전송 실패 시 subscriber만 제거하고 이미 깨진 `SseEmitter`에 `complete()`를 다시 호출하지 않는다.
+- `domain/taxiparty/service/PartySseSnapshotService.java`, `domain/taxiparty/service/JoinRequestSseSnapshotService.java`, `domain/notification/service/NotificationSseSnapshotService.java`: subscribe 시점의 초기 snapshot을 짧은 read-only 트랜잭션에서 DTO payload로 계산한다.
+- `domain/notification/service/NotificationSseService.java`, `domain/taxiparty/service/PartySseService.java`, `domain/taxiparty/service/JoinRequestSseService.java`: `SseEmitter` 생성/등록/전송을 snapshot 계산과 분리하고 subscribe/complete/timeout/error + subscriber count 로그를 남긴다.
+- `infra/auth/firebase/FirebaseAuthenticationFilter.java`: SSE async 재디스패치에서 request attribute에 캐시한 Authentication을 재사용하고, cache hit/miss를 debug 로그로 남긴다.
+- `infra/auth/config/SseDisconnectRequestSupport.java`, `SecurityConfig.java`: disconnected client 예외가 붙은 SSE ERROR dispatch만 security matcher로 permit 처리해 committed-response 상태의 `AccessDenied`/`/error` 재디스패치 로그 노이즈를 줄인다. `/error` 전역 permitAll은 하지 않는다.
 - `common/exception/GlobalExceptionHandler.java`: `AsyncRequestNotUsableException`을 `204 No Content`로 별도 처리해 async SSE 재디스패치가 원래 subscribe 경로로 재진입하지 않게 하고, 종료 직후 `ApiResponse` JSON을 쓰려는 2차 실패도 막는다.
 
 ## 테스트 포인트
