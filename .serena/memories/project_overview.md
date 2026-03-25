@@ -32,6 +32,7 @@
 - 운영은 `prod` 프로필 + `OCI 단일 인스턴스에서 docker-compose.prod.yml(app + MySQL + Redis)` 구조를 사용하며, app 컨테이너는 compose 내부 주소 `mysql:3306`으로 MySQL에 접속한다.
 - OpenAPI는 `local/local-emulator`에서 노출하고 `prod`에서는 기본 비노출로 운영한다.
 - SSE subscribe는 전용 read-only snapshot 서비스에서 DTO payload를 먼저 계산한 뒤 `SseEmitter`를 생성/등록한다. `spring.jpa.open-in-view=false`를 공통으로 강제해 long-lived SSE 요청과 JDBC connection 수명을 분리한다.
+- 끊긴 SSE 연결의 ERROR dispatch는 `/error`를 전역 허용하지 않고, 원래 요청이 `/v1/sse/**`이며 disconnected client 계열 예외가 확인된 경우에만 security authorize 단계에서 좁게 우회한다. 일반 API와 SSE 시작 단계의 인증/인가 실패는 그대로 유지한다.
 - 공통 Hikari 진단 정책은 `connection-timeout=30s`, `leak-detection-threshold=20s` 기본값이며 `DB_CONNECTION_TIMEOUT_MS`, `DB_LEAK_DETECTION_THRESHOLD_MS`로 환경별 override 한다.
 - GitHub Actions CD는 `production` 환경 승인 기반 반자동 배포를 사용하며, `linux/amd64`와 `linux/arm64` 멀티플랫폼 이미지를 빌드한다.
 - CD workflow는 `concurrency.group = production-deploy`, `cancel-in-progress = true`로 최신 `main` push만 남기고 이전 run을 자동 취소한다.

@@ -43,6 +43,7 @@
 - `domain/taxiparty/service/PartySseSnapshotService.java`, `domain/taxiparty/service/JoinRequestSseSnapshotService.java`, `domain/notification/service/NotificationSseSnapshotService.java`: subscribe 시점의 초기 snapshot을 짧은 read-only 트랜잭션에서 DTO payload로 계산한다.
 - `domain/notification/service/NotificationSseService.java`, `domain/taxiparty/service/PartySseService.java`, `domain/taxiparty/service/JoinRequestSseService.java`: `SseEmitter` 생성/등록/전송을 snapshot 계산과 분리하고 subscribe/complete/timeout/error + subscriber count 로그를 남긴다.
 - `infra/auth/firebase/FirebaseAuthenticationFilter.java`: SSE async 재디스패치에서 request attribute에 캐시한 Authentication을 재사용하고, cache hit/miss를 debug 로그로 남긴다.
+- `infra/auth/config/SseDisconnectRequestSupport.java`, `SecurityConfig.java`: disconnected client 예외가 붙은 SSE ERROR dispatch만 security matcher로 permit 처리해 committed-response 상태의 `AccessDenied`/`/error` 재디스패치 로그 노이즈를 줄인다. `/error` 전역 permitAll은 하지 않는다.
 - `common/exception/GlobalExceptionHandler.java`: `AsyncRequestNotUsableException`을 `204 No Content`로 별도 처리해 async SSE 재디스패치가 원래 subscribe 경로로 재진입하지 않게 하고, 종료 직후 `ApiResponse` JSON을 쓰려는 2차 실패도 막는다.
 
 ## 테스트 포인트
