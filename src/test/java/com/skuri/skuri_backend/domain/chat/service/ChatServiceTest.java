@@ -71,6 +71,9 @@ class ChatServiceTest {
     private PartyMessageService partyMessageService;
 
     @Mock
+    private ChatMessageOrderGenerator chatMessageOrderGenerator;
+
+    @Mock
     private SimpMessagingTemplate messagingTemplate;
 
     @Mock
@@ -400,11 +403,16 @@ class ChatServiceTest {
         });
         when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(chatRoomMemberRepository.findById_ChatRoomId("party:party-1")).thenReturn(List.of(leaderMember));
+        when(chatMessageOrderGenerator.nextOrder()).thenReturn(42L);
 
         ChatMessageResponse response = chatService.createPartySystemMessage(party, "leader-1", "모집이 마감되었어요.");
 
         assertEquals(ChatMessageType.SYSTEM, response.type());
         assertEquals("모집이 마감되었어요.", response.text());
+        verify(chatMessageRepository).save(argThat(message ->
+                Long.valueOf(42L).equals(message.getMessageOrder())
+                        && message.getType() == ChatMessageType.SYSTEM
+        ));
         verify(messagingTemplate).convertAndSend(eq("/topic/chat/party:party-1"), any(ChatMessageResponse.class));
         verify(messagingTemplate).convertAndSendToUser(eq("leader-1"), eq("/queue/chat-rooms"), any());
         verify(eventPublisher).publish(argThat(event ->

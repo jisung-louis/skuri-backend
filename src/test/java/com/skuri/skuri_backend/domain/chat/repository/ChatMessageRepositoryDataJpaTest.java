@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -30,8 +29,8 @@ class ChatMessageRepositoryDataJpaTest {
     @Test
     void findByCursor_같은createdAt이면_messageOrder로저장순서를안정적으로정렬한다() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 3, 25, 18, 0, 0);
-        String joinMessageId = insertChatMessage("party:party-1", "김철수님이 파티에 합류했어요.", createdAt);
-        String closedMessageId = insertChatMessage("party:party-1", "모집이 마감되었어요.", createdAt);
+        String joinMessageId = insertChatMessage("party:party-1", "김철수님이 파티에 합류했어요.", createdAt, 100L);
+        String closedMessageId = insertChatMessage("party:party-1", "모집이 마감되었어요.", createdAt, 101L);
         entityManager.flush();
         entityManager.clear();
 
@@ -44,15 +43,15 @@ class ChatMessageRepositoryDataJpaTest {
         );
 
         assertEquals(List.of(closedMessageId, joinMessageId), messages.stream().map(ChatMessage::getId).toList());
-        assertNotNull(messages.get(0).getMessageOrder());
-        assertNotNull(messages.get(1).getMessageOrder());
+        assertEquals(101L, messages.get(0).getMessageOrder());
+        assertEquals(100L, messages.get(1).getMessageOrder());
     }
 
     @Test
     void findByCursor_같은createdAt커서페이지네이션도_messageOrder를사용한다() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 3, 25, 18, 0, 0);
-        insertChatMessage("party:party-1", "김철수님이 파티에 합류했어요.", createdAt);
-        insertChatMessage("party:party-1", "모집이 마감되었어요.", createdAt);
+        insertChatMessage("party:party-1", "김철수님이 파티에 합류했어요.", createdAt, 100L);
+        insertChatMessage("party:party-1", "모집이 마감되었어요.", createdAt, 101L);
         entityManager.flush();
         entityManager.clear();
 
@@ -79,13 +78,45 @@ class ChatMessageRepositoryDataJpaTest {
         assertEquals("김철수님이 파티에 합류했어요.", secondPage.get(0).getText());
     }
 
-    private String insertChatMessage(String chatRoomId, String text, LocalDateTime createdAt) {
-        String id = UUID.randomUUID().toString();
+    @Test
+    void findByCursor_같은createdAt과messageOrder가겹치면_id로추가tieBreaker한다() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 3, 25, 18, 0, 0);
+        insertChatMessage("message-1", "party:party-1", "첫 번째", createdAt, 100L);
+        insertChatMessage("message-2", "party:party-1", "두 번째", createdAt, 100L);
+        entityManager.flush();
+        entityManager.clear();
+
+        List<ChatMessage> firstPage = chatMessageRepository.findByCursor(
+                "party:party-1",
+                null,
+                null,
+                null,
+                PageRequest.of(0, 1)
+        );
+
+        ChatMessage cursor = firstPage.get(0);
+        List<ChatMessage> secondPage = chatMessageRepository.findByCursor(
+                "party:party-1",
+                cursor.getCreatedAt(),
+                cursor.getId(),
+                cursor.getMessageOrder(),
+                PageRequest.of(0, 1)
+        );
+
+        assertEquals("message-2", firstPage.get(0).getId());
+        assertEquals("message-1", secondPage.get(0).getId());
+    }
+
+    private String insertChatMessage(String chatRoomId, String text, LocalDateTime createdAt, Long messageOrder) {
+        return insertChatMessage(UUID.randomUUID().toString(), chatRoomId, text, createdAt, messageOrder);
+    }
+
+    private String insertChatMessage(String id, String chatRoomId, String text, LocalDateTime createdAt, Long messageOrder) {
         entityManager.createNativeQuery("""
                 insert into chat_messages (
-                    id, chat_room_id, sender_id, sender_name, text, type, created_at, updated_at
+                    id, chat_room_id, sender_id, sender_name, text, type, created_at, updated_at, message_order
                 ) values (
-                    :id, :chatRoomId, :senderId, :senderName, :text, :type, :createdAt, :updatedAt
+                    :id, :chatRoomId, :senderId, :senderName, :text, :type, :createdAt, :updatedAt, :messageOrder
                 )
                 """)
                 .setParameter("id", id)
@@ -96,6 +127,7 @@ class ChatMessageRepositoryDataJpaTest {
                 .setParameter("type", "SYSTEM")
                 .setParameter("createdAt", createdAt)
                 .setParameter("updatedAt", createdAt)
+                .setParameter("messageOrder", messageOrder)
                 .executeUpdate();
         return id;
     }
