@@ -688,6 +688,7 @@ Hooks:
   - `/v1/sse/parties/{partyId}/join-requests` (파티 리더용 동승요청 목록/상태)
   - `/v1/sse/members/me/join-requests` (요청자 본인 동승요청 상태)
   - 알림, 게시물 목록/조회수
+  - subscribe 시점의 초기 snapshot은 전용 read-only 서비스에서 DTO로 계산한 뒤 emitter에 전송하며, `spring.jpa.open-in-view=false`를 전제로 long-lived 연결과 JPA/커넥션 수명을 분리한다.
 - WebSocket: 채팅(목록 요약 `/user/queue/chat-rooms`, 상세 메시지 `/topic/chat/{chatRoomId}`, 전송 `/app/chat/{chatRoomId}`)
   - 파티 멤버 변화(수락/탈퇴/강퇴)는 `chat_room_members`와 `chat_rooms.member_count`를 즉시 동기화한다.
 
