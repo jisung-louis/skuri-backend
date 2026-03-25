@@ -4,6 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.skuri.skuri_backend.domain.academic.entity.Course;
 import com.skuri.skuri_backend.domain.academic.repository.AcademicScheduleRepository;
 import com.skuri.skuri_backend.domain.academic.repository.CourseRepository;
+import com.skuri.skuri_backend.domain.campus.entity.CampusBanner;
+import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionTarget;
+import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionType;
+import com.skuri.skuri_backend.domain.campus.entity.CampusBannerPaletteKey;
+import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.entity.AppVersion;
@@ -64,6 +69,9 @@ class AdminAuditIntegrationTest {
     private AppVersionRepository appVersionRepository;
 
     @Autowired
+    private CampusBannerRepository campusBannerRepository;
+
+    @Autowired
     private AcademicScheduleRepository academicScheduleRepository;
 
     @MockitoBean
@@ -79,6 +87,7 @@ class AdminAuditIntegrationTest {
         courseRepository.deleteAll();
         inquiryRepository.deleteAll();
         academicScheduleRepository.deleteAll();
+        campusBannerRepository.deleteAll();
         memberRepository.deleteAll();
         reset(adminAuditSnapshotFactory);
     }
@@ -157,6 +166,45 @@ class AdminAuditIntegrationTest {
         assertThat(auditLog.getDiffBefore()).isNull();
         assertThat(auditLog.getDiffAfter().get("title").asText()).isEqualTo("중간고사");
         assertThat(auditLog.getDiffAfter().get("startDate").asText()).isEqualTo(LocalDate.of(2026, 4, 15).toString());
+    }
+
+    @Test
+    void 캠퍼스배너생성_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        post("/v1/admin/campus-banners")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "badgeLabel": "택시 파티",
+                                          "titleLabel": "택시 동승 매칭",
+                                          "descriptionLabel": "같은 방향 가는 학생과 택시비를 함께 나눠요",
+                                          "buttonLabel": "파티 찾기",
+                                          "paletteKey": "GREEN",
+                                          "imageUrl": "https://cdn.skuri.app/uploads/campus-banners/2026/03/25/banner-1.jpg",
+                                          "actionType": "IN_APP",
+                                          "actionTarget": "TAXI_MAIN",
+                                          "actionParams": null,
+                                          "actionUrl": null,
+                                          "isActive": true,
+                                          "displayStartAt": "2026-03-25T00:00:00",
+                                          "displayEndAt": null
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getActorId()).isEqualTo("admin-uid");
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.CAMPUS_BANNER_CREATED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.CAMPUS_BANNER);
+        assertThat(auditLog.getTargetId()).isNotBlank();
+        assertThat(auditLog.getDiffBefore()).isNull();
+        assertThat(auditLog.getDiffAfter().get("titleLabel").asText()).isEqualTo("택시 동승 매칭");
+        assertThat(auditLog.getDiffAfter().get("displayOrder").asInt()).isEqualTo(1);
     }
 
     @Test
@@ -289,6 +337,45 @@ class AdminAuditIntegrationTest {
     }
 
     @Test
+    void 캠퍼스배너순서변경_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        CampusBanner first = campusBannerRepository.saveAndFlush(campusBanner("택시 동승 매칭", 1));
+        CampusBanner second = campusBannerRepository.saveAndFlush(campusBanner("학교 공지사항", 2));
+        CampusBanner third = campusBannerRepository.saveAndFlush(campusBanner("나의 시간표", 3));
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        put("/v1/admin/campus-banners/order")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "bannerIds": [
+                                            "%s",
+                                            "%s",
+                                            "%s"
+                                          ]
+                                        }
+                                        """.formatted(second.getId(), first.getId(), third.getId()))
+                )
+                .andExpect(status().isOk());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getActorId()).isEqualTo("admin-uid");
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.CAMPUS_BANNER_REORDERED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.CAMPUS_BANNER);
+        assertThat(auditLog.getTargetId()).isEqualTo("display-order");
+
+        JsonNode before = auditLog.getDiffBefore();
+        JsonNode after = auditLog.getDiffAfter();
+        assertThat(before.isArray()).isTrue();
+        assertThat(after.isArray()).isTrue();
+        assertThat(before.get(0).get("id").asText()).isEqualTo(first.getId());
+        assertThat(after.get(0).get("id").asText()).isEqualTo(second.getId());
+        assertThat(after.get(0).get("displayOrder").asInt()).isEqualTo(1);
+    }
+
+    @Test
     void 비관리자403에서는_before_snapshot을_조회하지않는다() throws Exception {
         Member member = saveMember("member-uid", false);
         Inquiry inquiry = inquiryRepository.save(Inquiry.create(
@@ -351,5 +438,24 @@ class AdminAuditIntegrationTest {
         return adminAuditLogRepository.findAll().stream()
                 .reduce((first, second) -> second)
                 .orElseThrow();
+    }
+
+    private CampusBanner campusBanner(String titleLabel, int displayOrder) {
+        return CampusBanner.create(
+                "배지",
+                titleLabel,
+                "설명",
+                "바로가기",
+                CampusBannerPaletteKey.GREEN,
+                "https://cdn.skuri.app/uploads/campus-banners/2026/03/25/banner.jpg",
+                CampusBannerActionType.IN_APP,
+                CampusBannerActionTarget.TAXI_MAIN,
+                null,
+                null,
+                true,
+                LocalDateTime.of(2026, 3, 25, 0, 0),
+                null,
+                displayOrder
+        );
     }
 }
