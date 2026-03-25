@@ -6,6 +6,7 @@ public enum NotificationType {
     PARTY_JOIN_ACCEPTED,
     PARTY_JOIN_DECLINED,
     PARTY_CLOSED,
+    PARTY_REOPENED,
     PARTY_ARRIVED,
     PARTY_ENDED,
     MEMBER_KICKED,

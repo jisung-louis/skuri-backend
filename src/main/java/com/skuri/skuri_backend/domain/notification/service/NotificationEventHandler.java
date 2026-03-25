@@ -31,6 +31,7 @@ import com.skuri.skuri_backend.domain.notification.model.NotificationData;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequest;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.entity.PartyEndReason;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
@@ -171,6 +172,19 @@ public class NotificationEventHandler {
             return;
         }
 
+        if (event.afterStatus() == PartyStatus.OPEN && event.beforeStatus() == PartyStatus.CLOSED) {
+            dispatch(NotificationDispatchRequest.of(
+                    NotificationType.PARTY_REOPENED,
+                    findPartyRecipients(party.getNonLeaderMemberIds()),
+                    "파티 모집이 재개되었어요",
+                    "리더가 파티 모집을 다시 시작했습니다.",
+                    NotificationData.ofParty(party.getId()),
+                    true,
+                    false
+            ));
+            return;
+        }
+
         if (event.afterStatus() == PartyStatus.ARRIVED && event.beforeStatus() != PartyStatus.ARRIVED) {
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_ARRIVED,
@@ -188,15 +202,11 @@ public class NotificationEventHandler {
             List<String> allMembers = party.getMemberIds();
             allMembers.forEach(memberId -> notificationService.deletePartyRelatedNotifications(memberId, party.getId()));
 
-            String message = party.getEndReason() == com.skuri.skuri_backend.domain.taxiparty.entity.PartyEndReason.WITHDRAWED
-                    ? "리더 탈퇴로 파티가 종료되었습니다."
-                    : "리더가 파티를 해체했습니다.";
-
             dispatch(NotificationDispatchRequest.of(
                     NotificationType.PARTY_ENDED,
                     findPartyRecipients(party.getNonLeaderMemberIds()),
-                    "파티가 해체되었어요",
-                    message,
+                    formatPartyEndedTitle(party),
+                    formatPartyEndedMessage(party),
                     NotificationData.ofParty(party.getId()),
                     true,
                     true
@@ -282,6 +292,10 @@ public class NotificationEventHandler {
     }
 
     private void handlePartyChatMessage(ChatRoom room, ChatMessage message) {
+        if (shouldSuppressPartyChatNotification(message)) {
+            return;
+        }
+
         List<String> recipients = chatRoomMemberRepository.findById_ChatRoomId(room.getId()).stream()
                 .filter(member -> !member.getMemberId().equals(message.getSenderId()))
                 .filter(member -> !member.isMuted())
@@ -291,7 +305,7 @@ public class NotificationEventHandler {
         dispatch(NotificationDispatchRequest.of(
                 NotificationType.CHAT_MESSAGE,
                 recipients,
-                formatPartyChatNotificationTitle(message),
+                formatPartyChatNotificationTitle(room, message),
                 formatPartyChatNotificationBody(message),
                 NotificationData.ofChatRoom(room.getId()),
                 true,
@@ -578,7 +592,7 @@ public class NotificationEventHandler {
     }
 
     private String formatPartyCreatedTitle(Party party) {
-        return party.getDeparture().getName() + " -> " + party.getDestination().getName() + " 택시 파티 등장";
+        return party.getDeparture().getName() + " → " + party.getDestination().getName() + " 택시 파티 등장";
     }
 
     private String formatPartyCreatedMessage(Party party) {
@@ -606,10 +620,10 @@ public class NotificationEventHandler {
         };
     }
 
-    private String formatPartyChatNotificationTitle(ChatMessage message) {
+    private String formatPartyChatNotificationTitle(ChatRoom room, ChatMessage message) {
         String senderName = displaySenderName(message.getSenderName());
         return switch (message.getType()) {
-            case ACCOUNT -> senderName + "님이 계좌 정보를 공유했어요";
+            case TEXT, IMAGE, ACCOUNT -> resolvePartyChatRoomTitle(room);
             case SYSTEM -> "파티 안내 메시지";
             case ARRIVED -> "택시가 목적지에 도착했어요";
             case END -> "파티가 종료되었어요";
@@ -618,21 +632,93 @@ public class NotificationEventHandler {
     }
 
     private String formatPartyChatNotificationBody(ChatMessage message) {
-        String body = preview(message.getText(), 50);
-        if (!body.isBlank()) {
-            return body;
-        }
         return switch (message.getType()) {
-            case ACCOUNT -> "계좌 정보를 확인해보세요.";
-            case SYSTEM -> "파티 안내 메시지가 도착했어요.";
-            case ARRIVED -> "정산 정보를 확인해보세요.";
-            case END -> "파티 종료 안내를 확인해보세요.";
+            case TEXT -> formatPartyMemberChatBody(message, "메시지를 보냈어요.");
+            case IMAGE -> formatPartyMemberChatBody(message, "사진을 보냈어요.");
+            case ACCOUNT -> formatPartyMemberChatBody(message, "계좌 정보를 공유했어요.");
+            case SYSTEM -> previewOrFallback(message.getText(), "파티 안내 메시지가 도착했어요.");
+            case ARRIVED -> previewOrFallback(message.getText(), "정산 정보를 확인해보세요.");
+            case END -> previewOrFallback(message.getText(), "파티 종료 안내를 확인해보세요.");
             default -> "";
         };
     }
 
+    private String formatPartyMemberChatBody(ChatMessage message, String fallback) {
+        String senderName = displaySenderName(message.getSenderName());
+        String content = switch (message.getType()) {
+            case IMAGE -> fallback;
+            default -> previewOrFallback(message.getText(), fallback);
+        };
+        return senderName + " : " + content;
+    }
+
     private String formatChatMessageBody(ChatMessage message) {
         return displaySenderName(message.getSenderName()) + ": " + preview(message.getText(), 50);
+    }
+
+    private String resolvePartyChatRoomTitle(ChatRoom room) {
+        return resolvePartyForChatRoom(room)
+                .map(party -> party.getDeparture().getName() + " → " + party.getDestination().getName() + " 파티 채팅방")
+                .orElse(room.getName());
+    }
+
+    private java.util.Optional<Party> resolvePartyForChatRoom(ChatRoom room) {
+        if (room.getType() != ChatRoomType.PARTY || room.getId() == null || !room.getId().startsWith("party:")) {
+            return java.util.Optional.empty();
+        }
+
+        String partyId = room.getId().substring("party:".length());
+        if (partyId.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        return partyRepository.findDetailById(partyId);
+    }
+
+    private boolean shouldSuppressPartyChatNotification(ChatMessage message) {
+        return switch (message.getType()) {
+            case ARRIVED, END -> true;
+            case SYSTEM -> isDuplicatedPartyStatusMessage(message.getText());
+            default -> false;
+        };
+    }
+
+    private boolean isDuplicatedPartyStatusMessage(String text) {
+        if (text == null) {
+            return false;
+        }
+
+        String normalized = text.trim();
+        return normalized.equals("모집이 마감되었어요.")
+                || normalized.equals("모집이 마감되었어요")
+                || normalized.equals("모집이 재개되었어요.")
+                || normalized.equals("모집이 재개되었어요");
+    }
+
+    private String formatPartyEndedTitle(Party party) {
+        return switch (party.getEndReason()) {
+            case FORCE_ENDED, ARRIVED, WITHDRAWED, TIMEOUT -> "파티가 종료되었어요";
+            case CANCELLED -> "파티가 해체되었어요";
+            case null -> "파티가 해체되었어요";
+        };
+    }
+
+    private String formatPartyEndedMessage(Party party) {
+        PartyEndReason endReason = party.getEndReason();
+        return switch (endReason) {
+            case CANCELLED -> "리더가 파티를 취소했어요.";
+            case FORCE_ENDED -> party.getSettlementStatus() == com.skuri.skuri_backend.domain.taxiparty.entity.SettlementStatus.COMPLETED
+                    ? "모든 정산 확인 후 파티를 종료했어요."
+                    : "리더가 파티를 종료했어요.";
+            case TIMEOUT -> "파티가 자동 종료되었어요.";
+            case WITHDRAWED -> "리더 탈퇴로 파티가 종료되었어요.";
+            case ARRIVED -> "파티가 종료되었어요.";
+            case null -> "파티가 종료되었어요.";
+        };
+    }
+
+    private String previewOrFallback(String value, String fallback) {
+        String preview = preview(value, 50);
+        return preview.isBlank() ? fallback : preview;
     }
 
     private String displaySenderName(String senderName) {
