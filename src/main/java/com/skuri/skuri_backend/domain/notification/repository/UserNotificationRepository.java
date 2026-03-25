@@ -18,7 +18,7 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
 
     Page<UserNotification> findByUserIdAndReadFalseOrderByCreatedAtDesc(String userId, Pageable pageable);
 
-    long countByUserIdAndReadFalse(String userId);
+    long countByUserIdAndReadFalseAndTypeNot(String userId, NotificationType excludedType);
 
     List<UserNotification> findByUserIdAndReadFalseOrderByCreatedAtDesc(String userId);
 
@@ -31,9 +31,13 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
             from UserNotification n
             where n.userId in :userIds
               and n.read = false
+              and n.type <> :excludedType
             group by n.userId
             """)
-    List<UnreadCountProjection> countUnreadByUserIds(@Param("userIds") Collection<String> userIds);
+    List<UnreadCountProjection> countUnreadByUserIds(
+            @Param("userIds") Collection<String> userIds,
+            @Param("excludedType") NotificationType excludedType
+    );
 
     long deleteByUserId(String userId);
 }

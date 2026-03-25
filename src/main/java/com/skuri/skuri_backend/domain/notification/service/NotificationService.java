@@ -30,6 +30,7 @@ public class NotificationService {
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 100;
+    private static final NotificationType UNREAD_COUNT_EXCLUDED_TYPE = NotificationType.APP_NOTICE;
     private static final List<NotificationType> PARTY_RELATED_TYPES = List.of(
             NotificationType.PARTY_CREATED,
             NotificationType.PARTY_JOIN_REQUEST,
@@ -61,13 +62,13 @@ public class NotificationService {
                 notifications.getTotalPages(),
                 notifications.hasNext(),
                 notifications.hasPrevious(),
-                userNotificationRepository.countByUserIdAndReadFalse(memberId)
+                countUnreadNotifications(memberId)
         );
     }
 
     @Transactional(readOnly = true)
     public NotificationUnreadCountResponse getUnreadCount(String memberId) {
-        return new NotificationUnreadCountResponse(userNotificationRepository.countByUserIdAndReadFalse(memberId));
+        return new NotificationUnreadCountResponse(countUnreadNotifications(memberId));
     }
 
     @Transactional
@@ -189,7 +190,7 @@ public class NotificationService {
     private void publishUnreadCountChangedAfterCommit(String memberId) {
         runAfterCommit(() -> notificationSseService.publishUnreadCountChanged(
                 memberId,
-                userNotificationRepository.countByUserIdAndReadFalse(memberId)
+                countUnreadNotifications(memberId)
         ));
     }
 
@@ -228,7 +229,7 @@ public class NotificationService {
 
         Map<String, Long> unreadCounts = new java.util.LinkedHashMap<>();
         memberIds.forEach(memberId -> unreadCounts.put(memberId, 0L));
-        userNotificationRepository.countUnreadByUserIds(memberIds)
+        userNotificationRepository.countUnreadByUserIds(memberIds, UNREAD_COUNT_EXCLUDED_TYPE)
                 .forEach(count -> unreadCounts.put(count.getUserId(), count.getUnreadCount()));
         return unreadCounts;
     }
@@ -242,5 +243,9 @@ public class NotificationService {
                 .map(UserNotification::getUserId)
                 .distinct()
                 .toList();
+    }
+
+    private long countUnreadNotifications(String memberId) {
+        return userNotificationRepository.countByUserIdAndReadFalseAndTypeNot(memberId, UNREAD_COUNT_EXCLUDED_TYPE);
     }
 }

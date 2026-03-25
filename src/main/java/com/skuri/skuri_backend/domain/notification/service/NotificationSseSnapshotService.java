@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.domain.notification.service;
 
 import com.skuri.skuri_backend.domain.notification.dto.response.NotificationSnapshotResponse;
+import com.skuri.skuri_backend.domain.notification.entity.NotificationType;
 import com.skuri.skuri_backend.domain.notification.repository.UserNotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,8 @@ public class NotificationSseSnapshotService {
     private final UserNotificationRepository userNotificationRepository;
 
     public NotificationSnapshotResponse createSnapshotResponse(String memberId) {
-        return new NotificationSnapshotResponse(userNotificationRepository.countByUserIdAndReadFalse(memberId));
+        return new NotificationSnapshotResponse(
+                userNotificationRepository.countByUserIdAndReadFalseAndTypeNot(memberId, NotificationType.APP_NOTICE)
+        );
     }
 }

@@ -20,7 +20,7 @@ public record NotificationListResponse(
         boolean hasNext,
         @Schema(description = "이전 페이지 존재 여부", example = "false")
         boolean hasPrevious,
-        @Schema(description = "전체 미읽음 수", example = "5")
+        @Schema(description = "전체 미읽음 일반 알림 수 (APP_NOTICE 제외)", example = "5")
         long unreadCount
 ) {
 }
