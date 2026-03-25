@@ -1783,6 +1783,7 @@ Authorization:Bearer <firebase_id_token>
         "isBookmarked": false,
         "isCommentedByMe": true,
         "hasImage": true,
+        "thumbnailUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg",
         "isPinned": false,
         "createdAt": "2026-02-03T12:00:00Z"
       }
@@ -1800,6 +1801,8 @@ Authorization:Bearer <firebase_id_token>
 - 목록 summary의 `bookmarkCount`는 상세 응답의 `bookmarkCount`와 동일한 게시글 누적 북마크 수입니다.
 - `isLiked`, `isBookmarked`, `isCommentedByMe`는 모두 현재 인증 사용자 기준 개인화 상태입니다.
 - `isCommentedByMe`는 현재 사용자가 삭제되지 않은 댓글 또는 대댓글을 1개 이상 작성한 경우에만 `true`입니다.
+- `thumbnailUrl`은 첫 번째 게시글 이미지의 목록용 URL이며, `thumbUrl`이 있으면 이를 우선 사용하고 없으면 원본 `url`로 fallback 합니다.
+- 게시글에 이미지가 없으면 `thumbnailUrl`은 `null`입니다.
 
 #### GET /v1/posts/{postId}
 
@@ -1920,12 +1923,12 @@ Authorization:Bearer <firebase_id_token>
 #### GET /v1/members/me/posts
 
 - 내 작성글 페이징 조회.
-- 응답 아이템은 `GET /v1/posts`와 같은 summary 스키마를 사용하며 `isLiked`, `isBookmarked`, `isCommentedByMe`를 포함한다.
+- 응답 아이템은 `GET /v1/posts`와 같은 summary 스키마를 사용하며 `isLiked`, `isBookmarked`, `isCommentedByMe`, `thumbnailUrl`을 포함한다.
 
 #### GET /v1/members/me/bookmarks
 
 - 내 북마크 페이징 조회.
-- 응답 아이템은 `GET /v1/posts`와 같은 summary 스키마를 사용하며 `isLiked`, `isBookmarked`, `isCommentedByMe`를 포함한다.
+- 응답 아이템은 `GET /v1/posts`와 같은 summary 스키마를 사용하며 `isLiked`, `isBookmarked`, `isCommentedByMe`, `thumbnailUrl`을 포함한다.
 
 ### 5.7 에러 코드
 
@@ -1976,7 +1979,8 @@ Authorization:Bearer <firebase_id_token>
         "isRead": true,
         "isLiked": false,
         "isBookmarked": true,
-        "isCommentedByMe": true
+        "isCommentedByMe": true,
+        "thumbnailUrl": "https://www.sungkyul.ac.kr/upload/notice-thumb.jpg"
       }
     ],
     "page": 0,
@@ -1997,6 +2001,7 @@ Authorization:Bearer <firebase_id_token>
 - `bookmarkCount`는 공지 누적 북마크 수이고, `isBookmarked`는 현재 인증 사용자의 북마크 여부다.
 - `isLiked`는 현재 인증 사용자의 공지 좋아요 여부다.
 - `isCommentedByMe`는 현재 사용자가 삭제되지 않은 공지 댓글 또는 대댓글을 1개 이상 작성한 경우에만 `true`다.
+- `thumbnailUrl`은 `body_html`에서 첫 번째 `<img>` 태그의 `src`를 추출한 값이며, 이미지가 없으면 `null`이다.
 
 #### GET /v1/notices/{noticeId}
 공지사항 상세
