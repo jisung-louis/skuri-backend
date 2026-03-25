@@ -21,7 +21,7 @@
 - app: 앱 공지, 회원별 앱 공지 읽음 상태(`app_notice_read_status`)와 `/v1/members/me/app-notices/unread-count`, `POST /v1/members/me/app-notices/{appNoticeId}/read`를 제공한다. 이 unread count는 일반 알림 `/v1/notifications/unread-count`와 별도 source of truth다.
 - campus: 캠퍼스 홈 배너 공개/관리자 API, 노출 기간/정렬 normalize, actionType별 이동 규칙, `CAMPUS_BANNER_IMAGE` 업로드 컨텍스트 관리
 - support: 문의/신고/버전/학식
-- notification: 인앱 인박스, FCM 토큰, SSE, 리마인더 스케줄링, 이벤트 기반 알림 처리
+- notification: 인앱 인박스, FCM 토큰, SSE, 리마인더 스케줄링, 이벤트 기반 알림 처리. 일반 알림 unread 집계(`/v1/notifications/unread-count`, 목록 `unreadCount`, SSE snapshot/change)는 `APP_NOTICE`를 제외하고, 앱 공지는 `/v1/members/me/app-notices/unread-count`에서 별도 집계한다.
 
 ## 인프라/공통
 - Phase 9 기준 실행/배포는 `application`, `local`, `local-emulator`, `prod`, `test` 5개 정책 파일 + `.env` 중심으로 정리되었다.
