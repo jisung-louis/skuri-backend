@@ -144,7 +144,7 @@ class MemberAdminServiceTest {
                         recentPageable,
                         12
                 ));
-        when(commentRepository.findByAuthorIdAndDeletedFalse(eq("member-1"), any()))
+        when(commentRepository.findActiveByAuthorId(eq("member-1"), any()))
                 .thenReturn(new PageImpl<>(
                         List.of(
                                 comment("comment-1", "post-1", "택시 파티 구해요", "저도 참여하고 싶어요", "member-1",
@@ -218,6 +218,13 @@ class MemberAdminServiceTest {
         assertEquals(AdminMemberActivityResponse.PartyRole.JOINED, response.recentParties().get(0).role());
         assertEquals("party-1", response.recentParties().get(1).id());
         verify(postRepository).findActiveSummariesByAuthorId(
+                eq("member-1"),
+                argThat(pageable -> pageable.getPageNumber() == 0
+                        && pageable.getPageSize() == 5
+                        && pageable.getSort().getOrderFor("createdAt") != null
+                        && pageable.getSort().getOrderFor("createdAt").isDescending())
+        );
+        verify(commentRepository).findActiveByAuthorId(
                 eq("member-1"),
                 argThat(pageable -> pageable.getPageNumber() == 0
                         && pageable.getPageSize() == 5

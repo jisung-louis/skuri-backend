@@ -6,9 +6,14 @@ import com.skuri.skuri_backend.domain.board.entity.PostCategory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -46,6 +51,36 @@ class CommentRepositoryDataJpaTest {
         );
 
         assertEquals(Set.of(directCommented.getId(), repliedPost.getId()), Set.copyOf(result));
+    }
+
+    @Test
+    void findActiveByAuthorId_삭제된게시글의댓글을제외하고최신순으로반환한다() {
+        Post activePost = postRepository.save(post("활성 게시글"));
+        Post deletedPost = postRepository.save(post("삭제된 게시글"));
+
+        Comment visibleOlder = commentRepository.save(comment(activePost, null, "member-1"));
+        Comment hiddenOnDeletedPost = commentRepository.save(comment(deletedPost, null, "member-1"));
+        Comment visibleNewer = commentRepository.save(comment(activePost, null, "member-1"));
+        commentRepository.flush();
+
+        ReflectionTestUtils.setField(visibleOlder, "createdAt", LocalDateTime.of(2026, 3, 29, 10, 0));
+        ReflectionTestUtils.setField(hiddenOnDeletedPost, "createdAt", LocalDateTime.of(2026, 3, 29, 11, 0));
+        ReflectionTestUtils.setField(visibleNewer, "createdAt", LocalDateTime.of(2026, 3, 29, 12, 0));
+
+        deletedPost.markDeleted();
+        postRepository.flush();
+        commentRepository.flush();
+
+        Page<Comment> result = commentRepository.findActiveByAuthorId(
+                "member-1",
+                PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals(List.of(visibleNewer.getId(), visibleOlder.getId()),
+                result.getContent().stream().map(Comment::getId).toList());
+        assertEquals(List.of(activePost.getId(), activePost.getId()),
+                result.getContent().stream().map(comment -> comment.getPost().getId()).toList());
     }
 
     private Post post(String title) {
