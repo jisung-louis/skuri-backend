@@ -46,6 +46,7 @@ import com.skuri.skuri_backend.domain.taxiparty.exception.JoinRequestNotFoundExc
 import com.skuri.skuri_backend.domain.taxiparty.exception.PartyNotFoundException;
 import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyTagRepository;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -72,6 +73,7 @@ public class TaxiPartyService {
     private static final Set<PartyStatus> ACTIVE_PARTY_STATUSES = EnumSet.of(PartyStatus.OPEN, PartyStatus.CLOSED, PartyStatus.ARRIVED);
 
     private final PartyRepository partyRepository;
+    private final PartyTagRepository partyTagRepository;
     private final JoinRequestRepository joinRequestRepository;
     private final MemberRepository memberRepository;
     private final ChatService chatService;
@@ -115,6 +117,7 @@ public class TaxiPartyService {
     ) {
         Page<Party> page = partyRepository.search(status, departureTime, departureName, destinationName, pageable);
         Map<String, Party> detailedPartyMap = getDetailedPartyMap(page.getContent());
+        Map<String, List<String>> partyTagMap = getPartyTagMap(detailedPartyMap.keySet());
         Map<String, Member> memberMap = getMemberMap(
                 detailedPartyMap.values().stream()
                         .flatMap(party -> party.getMemberIds().stream())
@@ -123,7 +126,8 @@ public class TaxiPartyService {
 
         return PageResponse.from(page.map(party -> toPartySummaryResponse(
                 detailedPartyMap.getOrDefault(party.getId(), party),
-                memberMap
+                memberMap,
+                partyTagMap.getOrDefault(party.getId(), List.of())
         )));
     }
 
@@ -580,7 +584,11 @@ public class TaxiPartyService {
         }
     }
 
-    private PartySummaryResponse toPartySummaryResponse(Party party, Map<String, Member> memberMap) {
+    private PartySummaryResponse toPartySummaryResponse(
+            Party party,
+            Map<String, Member> memberMap,
+            List<String> tags
+    ) {
         Member leader = memberMap.get(party.getLeaderId());
         return new PartySummaryResponse(
                 party.getId(),
@@ -593,7 +601,7 @@ public class TaxiPartyService {
                 party.getDepartureTime(),
                 party.getMaxMembers(),
                 party.getCurrentMembers(),
-                party.getTagsText(),
+                tags,
                 party.getDetail(),
                 party.getStatus(),
                 party.getCreatedAt()
@@ -880,6 +888,20 @@ public class TaxiPartyService {
 
         Map<String, Party> result = new HashMap<>();
         partyRepository.findDetailsByIds(ids).forEach(party -> result.put(party.getId(), party));
+        return result;
+    }
+
+    private Map<String, List<String>> getPartyTagMap(Collection<String> partyIds) {
+        List<String> ids = partyIds.stream().distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, List<String>> result = new HashMap<>();
+        partyTagRepository.findTagSummariesByPartyIds(ids).forEach(tagSummary ->
+                result.computeIfAbsent(tagSummary.getPartyId(), unused -> new ArrayList<>())
+                        .add(tagSummary.getTag())
+        );
         return result;
     }
 

@@ -30,7 +30,7 @@ public interface PartyRepository extends JpaRepository<Party, String> {
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"members", "tags"})
+    @EntityGraph(attributePaths = {"members"})
     @Query("""
             select distinct p
             from Party p
@@ -88,11 +88,10 @@ public interface PartyRepository extends JpaRepository<Party, String> {
             """)
     List<String> findTimeoutTargetIds(@Param("threshold") LocalDateTime threshold);
 
-    @EntityGraph(attributePaths = {"tags", "members"})
+    @EntityGraph(attributePaths = {"members"})
     @Query("""
-            select distinct p
+            select p
             from Party p
-            left join p.tags t
             where p.status <> com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus.ENDED
             order by p.departureTime asc, p.createdAt desc
             """)
