@@ -34,6 +34,7 @@ import com.skuri.skuri_backend.domain.support.dto.response.AdminInquiryResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.AdminReportResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.AppVersionAdminUpdateResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
+import com.skuri.skuri_backend.domain.support.entity.InquiryAttachment;
 import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
 import com.skuri.skuri_backend.domain.support.entity.InquiryType;
 import com.skuri.skuri_backend.domain.support.entity.ReportStatus;
@@ -311,6 +312,14 @@ class AdminApiGuardIntegrationTest {
                                                 "채팅 오류",
                                                 "앱이 종료됩니다.",
                                                 InquiryStatus.PENDING,
+                                                java.util.List.of(new InquiryAttachment(
+                                                        "https://cdn.skuri.app/uploads/inquiries/2026/03/28/image.jpg",
+                                                        "https://cdn.skuri.app/uploads/inquiries/2026/03/28/image_thumb.jpg",
+                                                        800,
+                                                        600,
+                                                        245123,
+                                                        "image/jpeg"
+                                                )),
                                                 null,
                                                 "user@sungkyul.ac.kr",
                                                 "스쿠리유저",

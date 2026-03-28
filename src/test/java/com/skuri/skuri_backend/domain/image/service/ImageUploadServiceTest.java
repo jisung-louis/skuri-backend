@@ -142,7 +142,8 @@ class ImageUploadServiceTest {
             "POST_IMAGE,false,/posts/",
             "CHAT_IMAGE,false,/chat/",
             "PROFILE_IMAGE,false,/profiles/",
-            "APP_NOTICE_IMAGE,true,/app-notices/"
+            "APP_NOTICE_IMAGE,true,/app-notices/",
+            "INQUIRY_IMAGE,false,/inquiries/"
     })
     void upload_context별_경로prefix를적용한다(ImageUploadContext context, boolean admin, String expectedSegment) throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "sample.png", "image/png", createImageBytes("png", 120, 120, BufferedImage.TYPE_INT_ARGB));
