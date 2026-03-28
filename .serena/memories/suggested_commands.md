@@ -6,6 +6,13 @@
 ./gradlew compileJava compileTestJava
 ```
 
+## Inquiry Attachment 작업 검증
+```bash
+./gradlew test --tests "com.skuri.skuri_backend.domain.support.controller.InquiryControllerContractTest" --tests "com.skuri.skuri_backend.domain.support.controller.InquiryAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.support.service.InquiryServiceTest" --tests "com.skuri.skuri_backend.domain.image.service.ImageUploadServiceTest"
+./gradlew test --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest" --tests "com.skuri.skuri_backend.infra.admin.audit.AdminAuditIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest"
+./gradlew build
+```
+
 ## Legal Document 작업 검증
 ```bash
 ./gradlew test --tests "com.skuri.skuri_backend.domain.support.controller.LegalDocumentControllerContractTest" --tests "com.skuri.skuri_backend.domain.support.controller.LegalDocumentAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.support.service.LegalDocumentServiceTest" --tests "com.skuri.skuri_backend.domain.support.service.LegalDocumentSeedMigrationTest"

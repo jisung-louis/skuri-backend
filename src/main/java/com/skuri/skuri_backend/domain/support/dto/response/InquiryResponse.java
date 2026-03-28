@@ -1,10 +1,12 @@
 package com.skuri.skuri_backend.domain.support.dto.response;
 
+import com.skuri.skuri_backend.domain.support.entity.InquiryAttachment;
 import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
 import com.skuri.skuri_backend.domain.support.entity.InquiryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Schema(description = "내 문의 응답")
 public record InquiryResponse(
@@ -22,6 +24,9 @@ public record InquiryResponse(
 
         @Schema(description = "문의 상태", example = "PENDING")
         InquiryStatus status,
+
+        @Schema(description = "문의 첨부 이미지 목록", example = "[]")
+        List<InquiryAttachment> attachments,
 
         @Schema(description = "생성 시각", example = "2026-02-03T12:00:00")
         LocalDateTime createdAt,

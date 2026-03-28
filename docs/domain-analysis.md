@@ -569,9 +569,13 @@ Hooks:
 엔티티:
   - Inquiry
     - id, type (FEATURE, BUG, ACCOUNT, SERVICE, OTHER)
-    - subject, content, userId, userEmail, userName
+    - subject, content, attachments[] (url, thumbUrl, width, height, size, mime)
+    - userId, userEmail, userName
     - userRealname, userStudentId
     - status (PENDING, IN_PROGRESS, RESOLVED), adminMemo
+    - attachments는 최대 3개, JPEG/PNG/WebP만 허용
+    - 요청에서 attachments 생략/null은 허용하고 서버에서 빈 배열로 정규화
+    - 응답은 항상 `attachments: []` 형태를 유지하며 null을 반환하지 않음
   - Report
     - id, targetType (POST, COMMENT, MEMBER)
     - targetId, targetAuthorId, category, reason
@@ -605,10 +609,12 @@ Hooks:
   - `/v1/admin/**`는 공통 인가 어노테이션(`@AdminApiAccess`)과 `ADMIN_REQUIRED` 표준 응답으로 보호
   - 문의/신고 목록은 `AdminPageRequestPolicy` 기준 `page=0`, `size=20`, `size<=100`, 정렬 `createdAt DESC`를 사용
   - CSV export와 자유 검색은 Phase 11에서 문서 규약만 정리하고 런타임 API는 추가하지 않음
+  - 문의 첨부 이미지는 `POST /v1/images?context=INQUIRY_IMAGE` 업로드 결과 메타데이터를 그대로 재사용한다.
 
 회원 탈퇴 연계 정책:
   - inquiry/report record는 운영 추적 목적상 보존
   - inquiry의 구조화 개인정보(`userEmail`, `userName`, `userRealname`, `userStudentId`)만 마스킹
+  - inquiry 첨부 이미지 메타데이터와 업로드된 이미지는 탈퇴 후에도 보존
   - 자유서술 `content` 전체 자동 마스킹은 Phase 10 범위에서 제외
 ```
 

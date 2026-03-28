@@ -10,7 +10,8 @@ import java.util.Locale;
         "CHAT_IMAGE",
         "APP_NOTICE_IMAGE",
         "CAMPUS_BANNER_IMAGE",
-        "PROFILE_IMAGE"
+        "PROFILE_IMAGE",
+        "INQUIRY_IMAGE"
 })
 public enum ImageUploadContext {
 
@@ -18,7 +19,8 @@ public enum ImageUploadContext {
     CHAT_IMAGE("chat", false),
     APP_NOTICE_IMAGE("app-notices", true),
     CAMPUS_BANNER_IMAGE("campus-banners", true),
-    PROFILE_IMAGE("profiles", false);
+    PROFILE_IMAGE("profiles", false),
+    INQUIRY_IMAGE("inquiries", false);
 
     private final String directoryName;
     private final boolean adminOnly;

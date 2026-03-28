@@ -26,6 +26,16 @@ public final class OpenApiSupportExamples {
                   "subject": "앱 오류 문의",
                   "content": "채팅 화면에서 오류가 발생합니다.",
                   "status": "PENDING",
+                  "attachments": [
+                    {
+                      "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0.jpg",
+                      "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0_thumb.jpg",
+                      "width": 800,
+                      "height": 600,
+                      "size": 245123,
+                      "mime": "image/jpeg"
+                    }
+                  ],
                   "createdAt": "2026-02-03T12:00:00",
                   "updatedAt": "2026-02-03T12:00:00"
                 }
@@ -90,6 +100,16 @@ public final class OpenApiSupportExamples {
                     "subject": "채팅 화면 오류",
                     "content": "채팅 진입 시 앱이 종료됩니다.",
                     "status": "PENDING",
+                    "attachments": [
+                      {
+                        "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0.jpg",
+                        "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0_thumb.jpg",
+                        "width": 800,
+                        "height": 600,
+                        "size": 245123,
+                        "mime": "image/jpeg"
+                      }
+                    ],
                     "memo": null,
                     "userEmail": "user@sungkyul.ac.kr",
                     "userName": "스쿠리유저",
@@ -119,6 +139,16 @@ public final class OpenApiSupportExamples {
                 "subject": "채팅 화면 오류",
                 "content": "채팅 진입 시 앱이 종료됩니다.",
                 "status": "RESOLVED",
+                "attachments": [
+                  {
+                    "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0.jpg",
+                    "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0_thumb.jpg",
+                    "width": 800,
+                    "height": 600,
+                    "size": 245123,
+                    "mime": "image/jpeg"
+                  }
+                ],
                 "memo": "재현 후 수정 배포 완료",
                 "userEmail": "user@sungkyul.ac.kr",
                 "userName": "스쿠리유저",

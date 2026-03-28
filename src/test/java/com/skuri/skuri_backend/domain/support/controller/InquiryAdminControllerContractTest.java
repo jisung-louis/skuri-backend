@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.dto.request.UpdateInquiryStatusRequest;
 import com.skuri.skuri_backend.domain.support.dto.response.AdminInquiryResponse;
+import com.skuri.skuri_backend.domain.support.entity.InquiryAttachment;
 import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
 import com.skuri.skuri_backend.domain.support.entity.InquiryType;
 import com.skuri.skuri_backend.domain.support.service.InquiryService;
@@ -79,6 +80,7 @@ class InquiryAdminControllerContractTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value("inquiry-1"))
+                .andExpect(jsonPath("$.data.content[0].attachments[0].mime").value("image/jpeg"))
                 .andExpect(jsonPath("$.data.totalPages").value(1));
     }
 
@@ -190,6 +192,14 @@ class InquiryAdminControllerContractTest {
                 "채팅 오류 문의",
                 "채팅 진입 시 앱이 종료됩니다.",
                 status,
+                java.util.List.of(new InquiryAttachment(
+                        "https://cdn.skuri.app/uploads/inquiries/2026/03/28/image.jpg",
+                        "https://cdn.skuri.app/uploads/inquiries/2026/03/28/image_thumb.jpg",
+                        800,
+                        600,
+                        245123,
+                        "image/jpeg"
+                )),
                 memo,
                 "user@sungkyul.ac.kr",
                 "스쿠리유저",

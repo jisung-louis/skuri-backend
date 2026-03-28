@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.support.controller;
 import com.skuri.skuri_backend.domain.support.dto.request.CreateInquiryRequest;
 import com.skuri.skuri_backend.domain.support.dto.response.InquiryCreateResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.InquiryResponse;
+import com.skuri.skuri_backend.domain.support.entity.InquiryAttachment;
 import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
 import com.skuri.skuri_backend.domain.support.entity.InquiryType;
 import com.skuri.skuri_backend.domain.support.service.InquiryService;
@@ -73,6 +74,29 @@ class InquiryControllerContractTest {
     }
 
     @Test
+    void createInquiry_attachmentsNull허용_201() throws Exception {
+        mockUserToken("user-token");
+        when(inquiryService.createInquiry(any(), any(CreateInquiryRequest.class)))
+                .thenReturn(new InquiryCreateResponse("inquiry-1", InquiryStatus.PENDING, LocalDateTime.of(2026, 2, 3, 12, 0)));
+
+        mockMvc.perform(
+                        post("/v1/inquiries")
+                                .header(AUTHORIZATION, "Bearer user-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "type": "BUG",
+                                          "subject": "앱 오류 문의",
+                                          "content": "채팅 화면에서 오류가 발생합니다.",
+                                          "attachments": null
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.id").value("inquiry-1"));
+    }
+
+    @Test
     void createInquiry_토큰없음_401() throws Exception {
         mockMvc.perform(
                         post("/v1/inquiries")
@@ -110,6 +134,36 @@ class InquiryControllerContractTest {
     }
 
     @Test
+    void createInquiry_첨부구조검증실패_422() throws Exception {
+        mockUserToken("user-token");
+
+        mockMvc.perform(
+                        post("/v1/inquiries")
+                                .header(AUTHORIZATION, "Bearer user-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "type": "BUG",
+                                          "subject": "앱 오류 문의",
+                                          "content": "채팅 화면에서 오류가 발생합니다.",
+                                          "attachments": [
+                                            {
+                                              "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/image.jpg",
+                                              "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/image_thumb.jpg",
+                                              "width": 800,
+                                              "height": 600,
+                                              "size": 245123,
+                                              "mime": "application/pdf"
+                                            }
+                                          ]
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void getMyInquiries_정상요청_200() throws Exception {
         mockUserToken("user-token");
         when(inquiryService.getMyInquiries("user-uid"))
@@ -119,13 +173,22 @@ class InquiryControllerContractTest {
                         "앱 오류 문의",
                         "채팅 화면에서 오류가 발생합니다.",
                         InquiryStatus.PENDING,
+                        List.of(new InquiryAttachment(
+                                "https://cdn.skuri.app/uploads/inquiries/2026/03/28/image.jpg",
+                                "https://cdn.skuri.app/uploads/inquiries/2026/03/28/image_thumb.jpg",
+                                800,
+                                600,
+                                245123,
+                                "image/jpeg"
+                        )),
                         LocalDateTime.of(2026, 2, 3, 12, 0),
                         LocalDateTime.of(2026, 2, 3, 12, 0)
                 )));
 
         mockMvc.perform(get("/v1/inquiries/my").header(AUTHORIZATION, "Bearer user-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].id").value("inquiry-1"));
+                .andExpect(jsonPath("$.data[0].id").value("inquiry-1"))
+                .andExpect(jsonPath("$.data[0].attachments[0].mime").value("image/jpeg"));
     }
 
     @Test
