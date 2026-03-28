@@ -16,6 +16,8 @@ public record PartySummaryResponse(
         String leaderName,
         @Schema(description = "리더 프로필 이미지", nullable = true)
         String leaderPhotoUrl,
+        @Schema(description = "현재 파티 멤버 요약 목록")
+        List<PartyParticipantSummaryResponse> participantSummaries,
         @Schema(description = "출발지")
         PartyLocationResponse departure,
         @Schema(description = "목적지")

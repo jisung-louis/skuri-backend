@@ -2,9 +2,11 @@ package com.skuri.skuri_backend.domain.taxiparty.service;
 
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyTagRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -14,9 +16,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,26 +33,61 @@ class PartySseSnapshotServiceTest {
     @Mock
     private MemberRepository memberRepository;
 
+    @Mock
+    private PartyTagRepository partyTagRepository;
+
     @Test
     @SuppressWarnings("unchecked")
     void createSnapshotPayload_파티와리더정보를DTO로계산한다() {
-        PartySseSnapshotService snapshotService = new PartySseSnapshotService(partyRepository, memberRepository);
-        Party party = sampleParty("party-1", "leader-1");
+        PartySseSnapshotService snapshotService = new PartySseSnapshotService(partyRepository, memberRepository, partyTagRepository);
+        Party party = sampleParty("party-1", "leader-1", "member-1");
         Member leader = Member.create("leader-1", "leader@sungkyul.ac.kr", "리더", LocalDateTime.now());
+        leader.updateProfile("리더", null, null, "https://cdn.skuri.app/uploads/profiles/leader.jpg");
+        Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "멤버", LocalDateTime.now());
+        member.updateProfile("김민수", null, null, null);
 
         when(partyRepository.findSseSnapshotParties()).thenReturn(List.of(party));
-        when(memberRepository.findAllById(List.of("leader-1"))).thenReturn(List.of(leader));
+        when(partyTagRepository.findTagSummariesByPartyIds(List.of("party-1"))).thenReturn(List.of(
+                tagSummary("party-1", "빠른출발")
+        ));
+        when(memberRepository.findAllById(argThat(this::matchesMemberIds)))
+                .thenReturn(List.of(leader, member));
 
         Map<String, Object> payload = snapshotService.createSnapshotPayload();
 
         assertNotNull(payload);
-        List<?> parties = (List<?>) payload.get("parties");
+        List<PartySummaryResponse> parties = (List<PartySummaryResponse>) payload.get("parties");
         assertEquals(1, parties.size());
+        assertEquals(2, parties.getFirst().participantSummaries().size());
+        assertEquals("leader-1", parties.getFirst().participantSummaries().get(0).id());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/leader.jpg", parties.getFirst().participantSummaries().get(0).photoUrl());
+        assertEquals("member-1", parties.getFirst().participantSummaries().get(1).id());
+        assertEquals(List.of("빠른출발"), parties.getFirst().tags());
         verify(partyRepository).findSseSnapshotParties();
-        verify(memberRepository).findAllById(List.of("leader-1"));
+        verify(partyTagRepository).findTagSummariesByPartyIds(List.of("party-1"));
+        verify(memberRepository).findAllById(argThat(this::matchesMemberIds));
     }
 
-    private Party sampleParty(String partyId, String leaderId) {
+    private boolean matchesMemberIds(Iterable<String> ids) {
+        List<String> actualIds = StreamSupport.stream(ids.spliterator(), false).toList();
+        return actualIds.containsAll(List.of("leader-1", "member-1")) && actualIds.size() == 2;
+    }
+
+    private PartyTagRepository.PartyTagSummary tagSummary(String partyId, String tag) {
+        return new PartyTagRepository.PartyTagSummary() {
+            @Override
+            public String getPartyId() {
+                return partyId;
+            }
+
+            @Override
+            public String getTag() {
+                return tag;
+            }
+        };
+    }
+
+    private Party sampleParty(String partyId, String leaderId, String... memberIds) {
         Party party = Party.create(
                 leaderId,
                 Location.of("성결대학교", 37.38, 126.93),
@@ -59,6 +98,9 @@ class PartySseSnapshotServiceTest {
                 "테스트"
         );
         ReflectionTestUtils.setField(party, "id", partyId);
+        for (String memberId : memberIds) {
+            party.addMember(memberId);
+        }
         return party;
     }
 }

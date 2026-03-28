@@ -31,6 +31,14 @@ public interface PartyRepository extends JpaRepository<Party, String> {
     );
 
     @EntityGraph(attributePaths = {"members"})
+    @Query("""
+            select distinct p
+            from Party p
+            where p.id in :ids
+            """)
+    List<Party> findDetailsByIds(@Param("ids") Collection<String> ids);
+
+    @EntityGraph(attributePaths = {"members"})
     @Query("select p from Party p where p.id = :id")
     java.util.Optional<Party> findDetailById(@Param("id") String id);
 
@@ -80,11 +88,10 @@ public interface PartyRepository extends JpaRepository<Party, String> {
             """)
     List<String> findTimeoutTargetIds(@Param("threshold") LocalDateTime threshold);
 
-    @EntityGraph(attributePaths = {"tags"})
+    @EntityGraph(attributePaths = {"members"})
     @Query("""
-            select distinct p
+            select p
             from Party p
-            left join p.tags t
             where p.status <> com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus.ENDED
             order by p.departureTime asc, p.createdAt desc
             """)

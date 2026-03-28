@@ -25,6 +25,20 @@ public final class OpenApiTaxiPartyExamples {
                     "leaderId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
                     "leaderName": "스쿠리 유저",
                     "leaderPhotoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                    "participantSummaries": [
+                      {
+                        "id": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+                        "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                        "nickname": "스쿠리 유저",
+                        "isLeader": true
+                      },
+                      {
+                        "id": "member-2",
+                        "photoUrl": null,
+                        "nickname": "김철수",
+                        "isLeader": false
+                      }
+                    ],
                     "departure": {
                       "name": "성결대학교",
                       "lat": 37.382742,
@@ -50,7 +64,9 @@ public final class OpenApiTaxiPartyExamples {
                 "page": 0,
                 "size": 20,
                 "totalElements": 1,
-                "hasNext": false
+                "totalPages": 1,
+                "hasNext": false,
+                "hasPrevious": false
               }
             }
             """;
@@ -579,6 +595,20 @@ public final class OpenApiTaxiPartyExamples {
                   "leaderId": "member-1",
                   "leaderName": "스쿠리 유저",
                   "leaderPhotoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                  "participantSummaries": [
+                    {
+                      "id": "member-1",
+                      "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                      "nickname": "스쿠리 유저",
+                      "isLeader": true
+                    },
+                    {
+                      "id": "member-2",
+                      "photoUrl": null,
+                      "nickname": "김철수",
+                      "isLeader": false
+                    }
+                  ],
                   "departure": {
                     "name": "성결대학교",
                     "lat": 37.3801,
@@ -606,6 +636,14 @@ public final class OpenApiTaxiPartyExamples {
               "leaderId": "member-2",
               "leaderName": "김리더",
               "leaderPhotoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+              "participantSummaries": [
+                {
+                  "id": "member-2",
+                  "photoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+                  "nickname": "김리더",
+                  "isLeader": true
+                }
+              ],
               "departure": {
                 "name": "성결대학교",
                 "lat": 37.3801,
@@ -631,6 +669,20 @@ public final class OpenApiTaxiPartyExamples {
               "leaderId": "member-1",
               "leaderName": "스쿠리 유저",
               "leaderPhotoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+              "participantSummaries": [
+                {
+                  "id": "member-1",
+                  "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                  "nickname": "스쿠리 유저",
+                  "isLeader": true
+                },
+                {
+                  "id": "member-2",
+                  "photoUrl": null,
+                  "nickname": "김철수",
+                  "isLeader": false
+                }
+              ],
               "departure": {
                 "name": "성결대학교",
                 "lat": 37.3801,
@@ -694,6 +746,20 @@ public final class OpenApiTaxiPartyExamples {
                   "leaderId": "member-1",
                   "leaderName": "스쿠리 유저",
                   "leaderPhotoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                  "participantSummaries": [
+                    {
+                      "id": "member-1",
+                      "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                      "nickname": "스쿠리 유저",
+                      "isLeader": true
+                    },
+                    {
+                      "id": "member-2",
+                      "photoUrl": null,
+                      "nickname": "김철수",
+                      "isLeader": false
+                    }
+                  ],
                   "departure": {
                     "name": "성결대학교",
                     "lat": 37.3801,
@@ -724,6 +790,14 @@ public final class OpenApiTaxiPartyExamples {
               "leaderId": "member-2",
               "leaderName": "김리더",
               "leaderPhotoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+              "participantSummaries": [
+                {
+                  "id": "member-2",
+                  "photoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+                  "nickname": "김리더",
+                  "isLeader": true
+                }
+              ],
               "departure": {
                 "name": "성결대학교",
                 "lat": 37.3801,
@@ -752,6 +826,20 @@ public final class OpenApiTaxiPartyExamples {
               "leaderId": "member-1",
               "leaderName": "스쿠리 유저",
               "leaderPhotoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+              "participantSummaries": [
+                {
+                  "id": "member-1",
+                  "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                  "nickname": "스쿠리 유저",
+                  "isLeader": true
+                },
+                {
+                  "id": "member-2",
+                  "photoUrl": null,
+                  "nickname": "김철수",
+                  "isLeader": false
+                }
+              ],
               "departure": {
                 "name": "성결대학교",
                 "lat": 37.3801,
