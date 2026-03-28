@@ -164,7 +164,7 @@ class MemberAdminControllerContractTest {
     @Test
     void updateAdminRole_관리자정상요청_200() throws Exception {
         mockToken("admin-token", true);
-        when(memberAdminService.updateAdminRole(eq("member-1"), any(UpdateMemberAdminRoleRequest.class)))
+        when(memberAdminService.updateAdminRole(eq("admin-uid"), eq("member-1"), any(UpdateMemberAdminRoleRequest.class)))
                 .thenReturn(adminMemberDetailResponse(true));
 
         mockMvc.perform(
@@ -180,6 +180,27 @@ class MemberAdminControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value("member-1"))
                 .andExpect(jsonPath("$.data.isAdmin").value(true));
+    }
+
+    @Test
+    void updateAdminRole_자기자신이면_400() throws Exception {
+        mockToken("admin-token", true);
+        when(memberAdminService.updateAdminRole(eq("admin-uid"), eq("admin-uid"), any(UpdateMemberAdminRoleRequest.class)))
+                .thenThrow(new BusinessException(ErrorCode.SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED));
+
+        mockMvc.perform(
+                        patch("/v1/admin/members/admin-uid/admin-role")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "isAdmin": false
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED"))
+                .andExpect(jsonPath("$.message").value("자기 자신의 관리자 권한은 변경할 수 없습니다."));
     }
 
     @Test
@@ -203,7 +224,7 @@ class MemberAdminControllerContractTest {
     @Test
     void updateAdminRole_탈퇴회원이면_409() throws Exception {
         mockToken("admin-token", true);
-        when(memberAdminService.updateAdminRole(eq("member-1"), any(UpdateMemberAdminRoleRequest.class)))
+        when(memberAdminService.updateAdminRole(eq("admin-uid"), eq("member-1"), any(UpdateMemberAdminRoleRequest.class)))
                 .thenThrow(new BusinessException(ErrorCode.CONFLICT, "탈퇴한 회원의 관리자 권한은 변경할 수 없습니다."));
 
         mockMvc.perform(

@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -100,6 +99,7 @@ class MemberAdminServiceTest {
         when(memberRepository.saveAndFlush(member)).thenReturn(member);
 
         AdminMemberDetailResponse response = memberAdminService.updateAdminRole(
+                "admin-uid",
                 "member-1",
                 new UpdateMemberAdminRoleRequest(true)
         );
@@ -110,6 +110,18 @@ class MemberAdminServiceTest {
     }
 
     @Test
+    void updateAdminRole_자기자신이면_SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberAdminService.updateAdminRole("admin-uid", "admin-uid", new UpdateMemberAdminRoleRequest(false))
+        );
+
+        assertEquals(ErrorCode.SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED, exception.getErrorCode());
+        verify(memberRepository, never()).findByIdForUpdate(any());
+        verify(memberRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void updateAdminRole_탈퇴회원이면_CONFLICT() {
         Member withdrawnMember = member("withdrawn-member");
         withdrawnMember.withdraw(LocalDateTime.now());
@@ -117,7 +129,7 @@ class MemberAdminServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> memberAdminService.updateAdminRole("withdrawn-member", new UpdateMemberAdminRoleRequest(false))
+                () -> memberAdminService.updateAdminRole("admin-uid", "withdrawn-member", new UpdateMemberAdminRoleRequest(false))
         );
 
         assertEquals(ErrorCode.CONFLICT, exception.getErrorCode());

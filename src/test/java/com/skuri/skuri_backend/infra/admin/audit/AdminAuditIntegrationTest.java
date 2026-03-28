@@ -164,6 +164,10 @@ class AdminAuditIntegrationTest {
         assertThat(auditLog.getDiffBefore().get("isAdmin").asBoolean()).isFalse();
         assertThat(auditLog.getDiffAfter().get("isAdmin").asBoolean()).isTrue();
         assertThat(auditLog.getDiffAfter().get("status").asText()).isEqualTo(MemberStatus.ACTIVE.name());
+        assertThat(auditLog.getDiffBefore().path("bankAccount").isMissingNode()).isTrue();
+        assertThat(auditLog.getDiffAfter().path("bankAccount").isMissingNode()).isTrue();
+        assertThat(auditLog.getDiffBefore().path("notificationSetting").isMissingNode()).isTrue();
+        assertThat(auditLog.getDiffAfter().path("notificationSetting").isMissingNode()).isTrue();
     }
 
     @Test

@@ -357,7 +357,7 @@ class AdminApiGuardIntegrationTest {
                                           "isAdmin": true
                                         }
                                         """),
-                        () -> when(memberAdminService.updateAdminRole(eq("member-1"), any()))
+                        () -> when(memberAdminService.updateAdminRole(eq("admin-uid"), eq("member-1"), any()))
                                 .thenReturn(new AdminMemberDetailResponse(
                                         "member-1",
                                         "member-1@sungkyul.ac.kr",
