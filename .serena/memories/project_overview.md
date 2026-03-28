@@ -17,7 +17,7 @@
 - chat: 공개 채팅방/파티 채팅방, SYSTEM/ARRIVED/END 서버 메시지, 공개방 seed, 메시지 payload `senderPhotoUrl`은 `members.photo_url`만 사용
 - board: 게시글/댓글/좋아요/북마크, 이미지 썸네일 규칙
 - notice: 학교 공지/댓글/읽음/북마크/앱 공지
-- academic: 강의/시간표/학사 일정
+- academic: 강의/시간표/학사 일정, `GET /v1/timetables/my/semesters`, 직접 입력 강의(`UserTimetableManualCourse`), 시간표 응답 `courses[] + slots[]` + `isOnline` 계약
 - campus: 캠퍼스 배너 공개/관리자 API
 - support: 문의/신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티)/앱 버전/법적 문서/학식
 - notification: 인앱 인박스, FCM, SSE, 이벤트 기반 알림 처리

@@ -48,6 +48,9 @@ public class UserTimetable extends BaseTimeEntity {
     @OneToMany(mappedBy = "timetable", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<UserTimetableCourse> courseMappings = new ArrayList<>();
 
+    @OneToMany(mappedBy = "timetable", cascade = CascadeType.ALL, orphanRemoval = true)
+    private final List<UserTimetableManualCourse> manualCourses = new ArrayList<>();
+
     private UserTimetable(String userId, String semester) {
         this.userId = userId;
         this.semester = semester;
@@ -65,7 +68,34 @@ public class UserTimetable extends BaseTimeEntity {
         this.courseMappings.add(UserTimetableCourse.create(this, course));
     }
 
+    public void addManualCourse(
+            String name,
+            String professor,
+            Integer credits,
+            boolean isOnline,
+            String location,
+            Integer dayOfWeek,
+            Integer startPeriod,
+            Integer endPeriod
+    ) {
+        this.manualCourses.add(UserTimetableManualCourse.create(
+                this,
+                name,
+                professor,
+                credits,
+                isOnline,
+                location,
+                dayOfWeek,
+                startPeriod,
+                endPeriod
+        ));
+    }
+
     public boolean removeCourse(String courseId) {
         return courseMappings.removeIf(mapping -> mapping.getCourseId().equals(courseId));
+    }
+
+    public boolean removeManualCourse(String courseId) {
+        return manualCourses.removeIf(course -> course.getId().equals(courseId));
     }
 }

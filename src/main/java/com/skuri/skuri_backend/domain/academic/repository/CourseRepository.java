@@ -86,4 +86,11 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             where c.semester = :semester
             """)
     int deleteBySemester(@Param("semester") String semester);
+
+    @Query("""
+            select distinct c.semester
+            from Course c
+            where c.semester is not null
+            """)
+    List<String> findDistinctSemesters();
 }

@@ -64,7 +64,8 @@ class CourseControllerContractTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value("course-1"))
-                .andExpect(jsonPath("$.data.content[0].credits").value(3));
+                .andExpect(jsonPath("$.data.content[0].credits").value(3))
+                .andExpect(jsonPath("$.data.content[0].isOnline").value(false));
     }
 
     @Test
@@ -78,7 +79,7 @@ class CourseControllerContractTest {
     void getCourses_필터검증실패_422() throws Exception {
         mockValidToken();
         when(courseService.getCourses(null, null, null, null, 0, null, null, null))
-                .thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "dayOfWeek는 1 이상 5 이하여야 합니다."));
+                .thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "dayOfWeek는 1 이상 6 이하여야 합니다."));
 
         mockMvc.perform(
                         get("/v1/courses")
@@ -109,6 +110,7 @@ class CourseControllerContractTest {
                 "001",
                 "민법총칙",
                 3,
+                false,
                 "문상혁",
                 "법학과",
                 2,

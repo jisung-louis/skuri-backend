@@ -13,7 +13,7 @@ public record TimetableSlotResponse(
         @Schema(description = "과목 코드", example = "01255")
         String code,
 
-        @Schema(description = "요일 (1=월, 5=금)", example = "1")
+        @Schema(description = "요일 (1=월, 6=토)", example = "1")
         Integer dayOfWeek,
 
         @Schema(description = "시작 교시", example = "3")

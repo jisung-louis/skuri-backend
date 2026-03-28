@@ -1,6 +1,6 @@
 # Spring 백엔드 ERD (Entity Relationship Diagram)
 
-> 최종 수정일: 2026-03-25
+> 최종 수정일: 2026-03-29
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -398,7 +398,7 @@ erDiagram
     course_schedules {
         bigint id PK "AUTO_INCREMENT"
         varchar(36) course_id FK
-        int day_of_week "1-5 (월-금)"
+        int day_of_week "1-6 (월-토)"
         int start_period "1-15"
         int end_period "1-15"
     }
@@ -416,6 +416,19 @@ erDiagram
         varchar(36) course_id PK,FK
     }
 
+    user_timetable_manual_courses {
+        varchar(36) id PK "UUID"
+        varchar(36) timetable_id FK "NOT NULL"
+        varchar(100) name "NOT NULL"
+        varchar(50) professor
+        int credits "NOT NULL"
+        boolean is_online "NOT NULL"
+        varchar(100) location
+        int day_of_week "1-6 (월-토), nullable"
+        int start_period "1-15, nullable"
+        int end_period "1-15, nullable"
+    }
+
     academic_schedules {
         varchar(36) id PK "UUID"
         varchar(200) title "NOT NULL"
@@ -430,6 +443,7 @@ erDiagram
 
     courses ||--o{ course_schedules : "has"
     user_timetables ||--o{ user_timetable_courses : "contains"
+    user_timetables ||--o{ user_timetable_manual_courses : "contains"
     courses ||--o{ user_timetable_courses : "included in"
 
     %% runtime contract note:
@@ -764,6 +778,7 @@ Taxi history 계약 메모:
 | `course_schedules` | 강의 시간 | ~10,000/학기 |
 | `user_timetables` | 사용자 시간표 | ~5,000/학기 |
 | `user_timetable_courses` | 시간표-강의 매핑 | ~25,000/학기 |
+| `user_timetable_manual_courses` | 시간표 직접 입력 강의 | ~5,000/학기 |
 | `academic_schedules` | 학사 일정 | ~100/년 |
 
 ### 2.8 Support 도메인
@@ -855,6 +870,7 @@ Taxi history 계약 메모:
 | 캠퍼스 배너 | campus_banners | (없음) | 독립 테이블 | 홈 배너 콘텐츠/노출 기간/정렬 관리 |
 | 강의-시간 | courses | course_schedules | 1:N | 강의에 여러 시간 슬롯 |
 | 시간표-강의 | user_timetables | user_timetable_courses | 1:N | 시간표에 여러 강의 |
+| 시간표-직접입력강의 | user_timetables | user_timetable_manual_courses | 1:N | 시간표에 여러 직접 입력 강의 |
 | 회원-알림 | members | user_notifications | 1:N | 회원에게 여러 알림 |
 | 회원-FCM | members | fcm_tokens | 1:N | 회원의 여러 디바이스 토큰 |
 
@@ -1067,6 +1083,9 @@ CREATE UNIQUE INDEX uk_courses_semester_code_division ON courses(semester, code,
 CREATE INDEX idx_user_timetables_user ON user_timetables(user_id);
 CREATE INDEX idx_user_timetables_semester ON user_timetables(semester);
 CREATE UNIQUE INDEX idx_user_timetables_user_semester ON user_timetables(user_id, semester);
+
+-- user_timetable_manual_courses
+CREATE INDEX idx_user_timetable_manual_courses_timetable ON user_timetable_manual_courses(timetable_id);
 
 -- academic_schedules
 CREATE INDEX idx_academic_schedules_date ON academic_schedules(start_date, end_date);

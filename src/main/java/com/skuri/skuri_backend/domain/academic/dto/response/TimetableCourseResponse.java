@@ -12,7 +12,7 @@ public record TimetableCourseResponse(
         @Schema(description = "과목 코드", example = "01255")
         String code,
 
-        @Schema(description = "분반", example = "001")
+        @Schema(description = "분반", nullable = true, example = "001")
         String division,
 
         @Schema(description = "강의명", example = "민법총칙")
@@ -24,11 +24,14 @@ public record TimetableCourseResponse(
         @Schema(description = "강의실", nullable = true, example = "영401")
         String location,
 
-        @Schema(description = "이수 구분", example = "전공선택")
+        @Schema(description = "이수 구분", nullable = true, example = "전공선택")
         String category,
 
         @Schema(description = "학점", example = "3")
         Integer credits,
+
+        @Schema(description = "온라인 강의 여부", example = "false")
+        boolean isOnline,
 
         @Schema(description = "강의 시간 목록")
         List<CourseScheduleResponse> schedule

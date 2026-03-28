@@ -178,6 +178,7 @@ public class CourseService {
                 course.getDivision(),
                 course.getName(),
                 course.getCredits(),
+                false,
                 course.getProfessor(),
                 course.getDepartment(),
                 course.getGrade(),
@@ -218,8 +219,8 @@ public class CourseService {
     }
 
     private void validateCourseFilters(Integer dayOfWeek, Integer grade) {
-        if (dayOfWeek != null && (dayOfWeek < 1 || dayOfWeek > 5)) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "dayOfWeek는 1 이상 5 이하여야 합니다.");
+        if (dayOfWeek != null && (dayOfWeek < 1 || dayOfWeek > 6)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "dayOfWeek는 1 이상 6 이하여야 합니다.");
         }
         if (grade != null && grade < 1) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "grade는 1 이상이어야 합니다.");
@@ -262,8 +263,8 @@ public class CourseService {
         if (scheduleRequest == null) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "schedule 항목은 null일 수 없습니다.");
         }
-        if (scheduleRequest.dayOfWeek() == null || scheduleRequest.dayOfWeek() < 1 || scheduleRequest.dayOfWeek() > 5) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "schedule.dayOfWeek는 1 이상 5 이하여야 합니다.");
+        if (scheduleRequest.dayOfWeek() == null || scheduleRequest.dayOfWeek() < 1 || scheduleRequest.dayOfWeek() > 6) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "schedule.dayOfWeek는 1 이상 6 이하여야 합니다.");
         }
         if (scheduleRequest.startPeriod() == null || scheduleRequest.startPeriod() < 1 || scheduleRequest.startPeriod() > 15) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "schedule.startPeriod는 1 이상 15 이하여야 합니다.");

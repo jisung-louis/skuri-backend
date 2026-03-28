@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-24
+> 최종 수정일: 2026-03-29
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md) | [채팅 Firestore → MySQL 마이그레이션 참고](./chat-firestore-to-mysql-migration-reference.md)
 
 ---
@@ -534,6 +534,7 @@ SSE 운영 제약:
 |--------|--------|------|
 | `Course` | `courses` + `course_schedules` | 강의 정보 |
 | `UserTimetable` | `user_timetables` + `user_timetable_courses` | 사용자 시간표 |
+| `UserTimetableManualCourse` | `user_timetable_manual_courses` | 사용자 직접 입력 강의 |
 | `AcademicSchedule` | `academic_schedules` | 학사 일정 |
 
 #### 6-2. API
@@ -541,8 +542,10 @@ SSE 운영 제약:
 | Method | Path | 설명 |
 |--------|------|------|
 | `GET` | `/v1/courses` | 강의 검색 (학기, 학과, 교수, 키워드) |
+| `GET` | `/v1/timetables/my/semesters` | 내 시간표 학기 목록 조회 |
 | `GET` | `/v1/timetables/my` | 내 시간표 조회 |
 | `POST` | `/v1/timetables/my/courses` | 시간표에 강의 추가 |
+| `POST` | `/v1/timetables/my/manual-courses` | 직접 입력 강의 추가 |
 | `DELETE` | `/v1/timetables/my/courses/{courseId}` | 시간표에서 강의 삭제 |
 | `GET` | `/v1/academic-schedules` | 학사 일정 목록 |
 | `POST` | `/v1/admin/academic-schedules` | 학사 일정 추가 (관리자) |
@@ -554,11 +557,13 @@ SSE 운영 제약:
 #### 6-3. 완료 기준
 
 - [x] 강의 검색 필터(`semester`, `department`, `professor`, `search`, `dayOfWeek`, `grade`) 동작
-- [x] 내 시간표 조회/강의 추가/강의 삭제 동작
+- [x] 내 시간표 학기 목록 조회 동작
+- [x] 내 시간표 조회/강의 추가/직접 입력 강의 추가/강의 삭제 동작
 - [x] 시간표 무결성 규칙 적용
   - [x] 같은 사용자 + 학기 조합은 시간표 1개만 허용
   - [x] 같은 시간표 내 동일 강의 중복 추가 차단
-  - [x] 같은 요일/교시 겹침 시간 충돌 차단
+  - [x] 오프라인 강의만 같은 요일/교시 겹침 시간 충돌 차단
+  - [x] 온라인 직접 입력 강의는 슬롯 없이 저장
 - [x] 학사 일정 조회 동작
 - [x] 관리자 학사 일정 CRUD 동작
 - [x] 관리자 학기 강의 bulk 업서트/전체 삭제 동작
@@ -568,9 +573,14 @@ SSE 운영 제약:
 구현 계약 메모:
 - 강의 bulk 등록 계약은 `credits` + 강의 단위 `location`으로 통일한다.
 - 시간표 조회/추가/삭제는 동일한 시간표 응답(`courses[] + slots[]`)을 반환한다.
+- `GET /v1/timetables/my/semesters`는 강의 카탈로그 학기와 사용자 시간표 학기의 합집합을 최신 학기 우선으로 반환한다.
+- 직접 입력 강의는 `Course` 마스터와 분리된 `UserTimetableManualCourse`로 저장한다.
+- `courses[]`는 공식 강의와 직접 입력 강의를 함께 반환하고, 각 항목에 `isOnline`을 포함한다.
+- 온라인 강의는 `slots[]`에 포함되지 않으며 시간 충돌 검사 대상이 아니다.
 - 시간표 색상 결정 책임은 백엔드가 아닌 프론트엔드(RN 앱)에 둔다.
 - `GET /v1/timetables/my`의 semester 기본값은 서버 규칙(`2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2`)을 사용한다.
 - 실제 학교 학기 시작은 3월/9월이지만, 스쿠리는 수강신청/시간표 준비 수요를 반영해 학기 기준을 한 달 앞당겨 사용한다.
+- Academic 도메인의 요일 표현은 `1-6 (월-토)`를 사용한다.
 
 #### 6-4. 학사 일정 알림 정책 (Phase 8 연동 예정)
 

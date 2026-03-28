@@ -24,6 +24,9 @@ public record CourseSummaryResponse(
         @Schema(description = "학점", example = "3")
         Integer credits,
 
+        @Schema(description = "온라인 강의 여부", example = "false")
+        boolean isOnline,
+
         @Schema(description = "교수명", nullable = true, example = "문상혁")
         String professor,
 
