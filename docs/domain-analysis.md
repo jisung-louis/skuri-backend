@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-23
+> 최종 수정일: 2026-03-28
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -314,6 +314,7 @@ Hooks:
   - 공개방 create/join은 가입 완료된 active member만 가능하며, 미가입 UID는 `MEMBER_NOT_FOUND`
   - 커스텀 공개방 생성자는 자동으로 joined 상태가 되며, join 시 초기 unread는 0으로 시작한다
   - 공개방 참여/나가기와 파티 채팅 멤버 입장/퇴장은 실제 `SYSTEM` chat message를 저장하고 `/topic/chat/{chatRoomId}`로 브로드캐스트한다
+  - REST/STOMP `ChatMessageResponse`는 `senderPhotoUrl`(nullable)을 포함하고, 값은 `members.photo_url`만 사용한다. `linked_accounts.photo_url` fallback은 사용하지 않는다.
   - 멤버 입장 직후 생성된 join `SYSTEM` 메시지는 해당 신규 멤버의 `lastReadAt`을 서버가 최신 메시지 시각으로 맞춰 unread가 0으로 유지되게 한다
   - 회원 프로필 학과 변경 시 기존 학과방 membership은 자동 제거하고, 새 학과방은 자동 참여시키지 않는다
   - 채팅방 목록 실시간: `/user/queue/chat-rooms` 사용자 전용 요약 채널 1개 구독

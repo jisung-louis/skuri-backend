@@ -153,6 +153,7 @@ public final class OpenApiChatExamples {
                     "chatRoomId": "party:party-1",
                     "senderId": "leader-1",
                     "senderName": "파티 리더",
+                    "senderPhotoUrl": "https://cdn.skuri.app/uploads/profiles/leader-1.jpg",
                     "type": "SYSTEM",
                     "text": "김철수님이 파티에 합류했어요.",
                     "createdAt": "2026-03-05T21:10:00"
@@ -162,6 +163,7 @@ public final class OpenApiChatExamples {
                     "chatRoomId": "party:party-1",
                     "senderId": "leader-1",
                     "senderName": "파티 리더",
+                    "senderPhotoUrl": "https://cdn.skuri.app/uploads/profiles/leader-1.jpg",
                     "type": "SYSTEM",
                     "text": "모집이 마감되었어요.",
                     "createdAt": "2026-03-05T21:11:00"
@@ -171,6 +173,7 @@ public final class OpenApiChatExamples {
                     "chatRoomId": "party:party-1",
                     "senderId": "leader-1",
                     "senderName": "파티 리더",
+                    "senderPhotoUrl": "https://cdn.skuri.app/uploads/profiles/leader-1.jpg",
                     "type": "SYSTEM",
                     "text": "모집이 재개되었어요.",
                     "createdAt": "2026-03-05T21:11:30"
@@ -180,6 +183,7 @@ public final class OpenApiChatExamples {
                     "chatRoomId": "party:party-1",
                     "senderId": "member-2",
                     "senderName": "홍길동",
+                    "senderPhotoUrl": null,
                     "type": "SYSTEM",
                     "text": "홍길동님이 파티에서 나갔어요.",
                     "createdAt": "2026-03-05T21:11:45"
@@ -189,6 +193,7 @@ public final class OpenApiChatExamples {
                     "chatRoomId": "party:party-1",
                     "senderId": "leader-1",
                     "senderName": "파티 리더",
+                    "senderPhotoUrl": "https://cdn.skuri.app/uploads/profiles/leader-1.jpg",
                     "type": "ACCOUNT",
                     "text": "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)",
                     "accountData": {
@@ -204,6 +209,7 @@ public final class OpenApiChatExamples {
                     "chatRoomId": "party:party-1",
                     "senderId": "leader-1",
                     "senderName": "파티 리더",
+                    "senderPhotoUrl": "https://cdn.skuri.app/uploads/profiles/leader-1.jpg",
                     "type": "ARRIVED",
                     "text": "택시가 목적지에 도착했어요. 총 15000원, 3명 정산, 1인당 5000원입니다.",
                     "arrivalData": {
@@ -243,6 +249,7 @@ public final class OpenApiChatExamples {
                     "chatRoomId": "party:party-1",
                     "senderId": "leader-1",
                     "senderName": "파티 리더",
+                    "senderPhotoUrl": "https://cdn.skuri.app/uploads/profiles/leader-1.jpg",
                     "type": "END",
                     "text": "리더가 파티를 종료했어요.",
                     "createdAt": "2026-03-05T21:45:00"

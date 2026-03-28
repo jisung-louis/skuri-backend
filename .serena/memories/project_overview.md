@@ -14,7 +14,7 @@
 ## 도메인 구조
 - member: 회원, 프로필, 알림 설정, FCM 토큰, 탈퇴/재가입 정책
 - taxiparty: 파티 생성/참여/정산/상태 전이, SSE, 택시 history/summary
-- chat: 공개 채팅방/파티 채팅방, SYSTEM/ARRIVED/END 서버 메시지, 공개방 seed
+- chat: 공개 채팅방/파티 채팅방, SYSTEM/ARRIVED/END 서버 메시지, 공개방 seed, 메시지 payload `senderPhotoUrl`은 `members.photo_url`만 사용
 - board: 게시글/댓글/좋아요/북마크, 이미지 썸네일 규칙
 - notice: 학교 공지/댓글/읽음/북마크/앱 공지
 - academic: 강의/시간표/학사 일정

@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-25
+> 최종 수정일: 2026-03-28
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -63,7 +63,8 @@ Authorization: Bearer <firebase_id_token>
 ### 1.3 공통 Response 형식
 
 > 공통 응답은 `ApiResponse`의 `@JsonInclude(Include.NON_NULL)` 정책을 사용합니다.  
-> 즉, `null` 값 필드는 직렬화 시 생략될 수 있습니다.
+> 즉, `null` 값 필드는 직렬화 시 생략될 수 있습니다.  
+> 예외적으로 채팅 메시지 payload의 `senderPhotoUrl`은 값이 없어도 `null`로 명시적으로 포함합니다.
 
 **성공 응답:**
 ```json
@@ -1442,6 +1443,9 @@ FCM 토큰 삭제
 
 - `joined=true`인 경우에만 조회할 수 있습니다.
 - 공개 채팅방이라도 미참여 상태면 `403 NOT_CHAT_ROOM_MEMBER`
+- 각 메시지는 `senderPhotoUrl`을 포함하며, 값은 `members.photo_url`만 사용합니다.
+- `members.photo_url`이 비어 있으면 `senderPhotoUrl`은 명시적 `null`입니다.
+- `linked_accounts.photo_url` fallback은 사용하지 않습니다.
 
 **Query Parameters:**
 
@@ -1469,6 +1473,7 @@ FCM 토큰 삭제
         "chatRoomId": "room_id",
         "senderId": "user_uuid",
         "senderName": "홍길동",
+        "senderPhotoUrl": "https://cdn.skuri.app/uploads/profiles/profile.jpg",
         "text": "안녕하세요!",
         "type": "TEXT",
         "createdAt": "2026-02-03T12:00:00Z"
@@ -1478,6 +1483,7 @@ FCM 토큰 삭제
         "chatRoomId": "room_id",
         "senderId": "user_uuid_2",
         "senderName": "시스템",
+        "senderPhotoUrl": null,
         "text": "홍길동님이 입장했습니다.",
         "type": "SYSTEM",
         "createdAt": "2026-02-03T11:59:00Z"
@@ -1610,6 +1616,8 @@ Authorization:Bearer <firebase_id_token>
 ```
 
 - `IMAGE` 메시지의 `imageUrl`은 `POST /v1/images`의 `CHAT_IMAGE` 업로드 결과 URL을 그대로 사용합니다.
+- 실시간 수신 payload와 `GET /v1/chat-rooms/{chatRoomId}/messages`의 `messages[]` item shape는 동일합니다.
+- 일반 채팅 메시지의 `senderPhotoUrl`도 `members.photo_url`만 사용하며, 사진이 없으면 `null`입니다.
 
 **채팅방 목록 요약 이벤트 포맷 (서버 → 클라이언트):**
 ```json
@@ -1644,6 +1652,8 @@ Authorization:Bearer <firebase_id_token>
 - 파티 채팅의 `SYSTEM`/`ARRIVED`/`END`는 도메인 이벤트(동승 승인, 멤버 나가기, 도착 처리, 취소/종료) 기준으로만 생성됨
 - `SYSTEM` 메시지 예: 동승 승인, 모집 마감, 모집 재개, 멤버 나가기
 - 파티 채팅 `CHAT_MESSAGE` push payload의 canonical 식별자는 항상 `chatRoomId`이며, 파티 채팅이라고 해서 별도 `partyId`를 추가하지 않습니다.
+- 파티 채팅 실시간 수신 payload와 `GET /v1/chat-rooms/{chatRoomId}/messages`의 `messages[]` item shape는 동일합니다.
+- 파티 채팅 메시지의 `senderPhotoUrl`도 `members.photo_url`만 사용하며, 사진이 없으면 `null`입니다.
 
 **전송 포맷:**
 ```json
@@ -1682,6 +1692,7 @@ Authorization:Bearer <firebase_id_token>
   "chatRoomId": "party:party_uuid",
   "senderId": "user_uuid",
   "senderName": "홍길동",
+  "senderPhotoUrl": "https://cdn.skuri.app/uploads/profiles/profile.jpg",
   "type": "ACCOUNT",
   "text": "계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)",
   "accountData": {
@@ -1700,6 +1711,7 @@ Authorization:Bearer <firebase_id_token>
   "chatRoomId": "party:party_uuid",
   "senderId": "leader_uuid",
   "senderName": "홍길동",
+  "senderPhotoUrl": null,
   "type": "ARRIVED",
   "text": "택시가 목적지에 도착했어요. 총 14000원, 3명 정산, 1인당 4666원입니다.",
   "arrivalData": {
@@ -5098,6 +5110,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Phase 3 구현 반영 — 채팅 커서 페이지네이션(`cursorCreatedAt`,`cursorId`) 명시, `lastReadAt` 단조 증가/미읽음 경계(`createdAt > lastReadAt`) 확정, STOMP 경로를 `/app/chat/{chatRoomId}`·`/topic/chat/{chatRoomId}`로 동기화
 > - 2026-03-05: Chat 계약 동기화 — `lastMessage.createdAt`/`accountData` 필드로 통일, 비공개 채팅방 접근 정책(REST/WS) 및 STOMP 에러 포맷(`/user/queue/errors`) 명시
 > - 2026-03-05: Chat 명세 보완 — 채팅방 요약 `lastMessage.senderName` 예시 추가, STOMP 메시지 `NON_NULL` 직렬화 정책 명시
+> - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, source of truth를 `members.photo_url`로 고정하고 `null` 직렬화 정책을 명시
 > - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강
