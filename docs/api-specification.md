@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-28
+> 최종 수정일: 2026-03-29
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -662,6 +662,20 @@ FCM 토큰 삭제
         "leaderId": "leader_uuid",
         "leaderName": "홍길동",
         "leaderPhotoUrl": "https://...",
+        "participantSummaries": [
+          {
+            "id": "leader_uuid",
+            "photoUrl": "https://...",
+            "nickname": "홍길동",
+            "isLeader": true
+          },
+          {
+            "id": "member_uuid_1",
+            "photoUrl": null,
+            "nickname": "김민수",
+            "isLeader": false
+          }
+        ],
         "departure": {
           "name": "성결대학교",
           "lat": 37.123456,
@@ -684,7 +698,9 @@ FCM 토큰 삭제
     "page": 0,
     "size": 20,
     "totalElements": 50,
-    "hasNext": true
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrevious": false
   }
 }
 ```
@@ -3327,6 +3343,12 @@ type PartySummaryPayload = {
   leaderId: string;
   leaderName: string | null;
   leaderPhotoUrl: string | null;
+  participantSummaries: {
+    id: string;
+    photoUrl: string | null;
+    nickname: string | null;
+    isLeader: boolean;
+  }[];
   departure: PartyLocationPayload;
   destination: PartyLocationPayload;
   departureTime: string; // LocalDateTime, "yyyy-MM-dd'T'HH:mm:ss" (KST 기준)
@@ -3382,6 +3404,14 @@ data: {
       "leaderId": "user_uuid",
       "leaderName": "홍길동",
       "leaderPhotoUrl": null,
+      "participantSummaries": [
+        {
+          "id": "user_uuid",
+          "photoUrl": null,
+          "nickname": "홍길동",
+          "isLeader": true
+        }
+      ],
       "departure": {
         "name": "성결대학교",
         "lat": 37.382742,
@@ -3410,6 +3440,14 @@ data: {
   "leaderId": "user_uuid",
   "leaderName": "홍길동",
   "leaderPhotoUrl": "https://example.com/profile.jpg",
+  "participantSummaries": [
+    {
+      "id": "user_uuid",
+      "photoUrl": "https://example.com/profile.jpg",
+      "nickname": "홍길동",
+      "isLeader": true
+    }
+  ],
   "departure": {
     "name": "성결대학교",
     "lat": 37.382742,
@@ -3436,6 +3474,20 @@ data: {
   "leaderId": "user_uuid",
   "leaderName": "홍길동",
   "leaderPhotoUrl": "https://example.com/profile.jpg",
+  "participantSummaries": [
+    {
+      "id": "user_uuid",
+      "photoUrl": "https://example.com/profile.jpg",
+      "nickname": "홍길동",
+      "isLeader": true
+    },
+    {
+      "id": "member_uuid_1",
+      "photoUrl": null,
+      "nickname": "김민수",
+      "isLeader": false
+    }
+  ],
   "departure": {
     "name": "성결대학교",
     "lat": 37.382742,
