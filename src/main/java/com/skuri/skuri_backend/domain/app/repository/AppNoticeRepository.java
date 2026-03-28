@@ -26,4 +26,17 @@ public interface AppNoticeRepository extends JpaRepository<AppNotice, String> {
               and a.publishedAt <= :now
             """)
     Optional<AppNotice> findPublishedById(@Param("appNoticeId") String appNoticeId, @Param("now") LocalDateTime now);
+
+    @Query("""
+            select count(a)
+            from AppNotice a
+            where a.publishedAt <= :now
+              and not exists (
+                    select 1
+                    from AppNoticeReadStatus s
+                    where s.id.userId = :userId
+                      and s.id.appNoticeId = a.id
+              )
+            """)
+    long countPublishedUnread(@Param("userId") String userId, @Param("now") LocalDateTime now);
 }

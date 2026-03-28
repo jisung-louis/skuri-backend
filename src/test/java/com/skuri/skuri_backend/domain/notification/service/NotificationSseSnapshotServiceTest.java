@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.domain.notification.service;
 
 import com.skuri.skuri_backend.domain.notification.dto.response.NotificationSnapshotResponse;
+import com.skuri.skuri_backend.domain.notification.entity.NotificationType;
 import com.skuri.skuri_backend.domain.notification.repository.UserNotificationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,11 +21,12 @@ class NotificationSseSnapshotServiceTest {
     @Test
     void createSnapshotResponse_미읽음개수를조회한다() {
         NotificationSseSnapshotService snapshotService = new NotificationSseSnapshotService(userNotificationRepository);
-        when(userNotificationRepository.countByUserIdAndReadFalse("member-1")).thenReturn(2L);
+        when(userNotificationRepository.countByUserIdAndReadFalseAndTypeNot("member-1", NotificationType.APP_NOTICE))
+                .thenReturn(2L);
 
         NotificationSnapshotResponse response = snapshotService.createSnapshotResponse("member-1");
 
         assertEquals(2L, response.unreadCount());
-        verify(userNotificationRepository).countByUserIdAndReadFalse("member-1");
+        verify(userNotificationRepository).countByUserIdAndReadFalseAndTypeNot("member-1", NotificationType.APP_NOTICE);
     }
 }

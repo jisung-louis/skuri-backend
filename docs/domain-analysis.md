@@ -59,7 +59,7 @@
 | 2 | **TaxiParty** | Core | 택시 동승 모집, 요청 처리, 정산, 파티 채팅 규칙 | Party, JoinRequest, Settlement, PartyMessage |
 | 3 | **Chat** | Supporting | 공개 채팅방 관리, 메시지 교환 (채팅 엔진) | ChatRoom, ChatMessage, ChatRoomMember |
 | 4 | **Board** | Supporting | 게시글 CRUD, 댓글, 좋아요/북마크 | Post, Comment, PostInteraction |
-| 5 | **Notice** | Supporting | 학교 공지 크롤링/조회, 앱 공지 | Notice, NoticeComment, AppNotice, NoticeReadStatus |
+| 5 | **Notice** | Supporting | 학교 공지 크롤링/조회, 앱 공지 | Notice, NoticeComment, AppNotice, NoticeReadStatus, AppNoticeReadStatus |
 | 6 | **Academic** | Generic | 강의 정보, 시간표, 학사 일정 | Course, UserTimetable, AcademicSchedule |
 | 7 | **Support** | Generic | 문의/신고 접수, 앱 버전, 학식 메뉴 | Inquiry, Report, AppVersion, CafeteriaMenu |
 | - | **Notification** | Infra | 도메인 이벤트 기반 알림 인박스 | UserNotification |

@@ -437,6 +437,7 @@ SSE 운영 제약:
 | `NoticeLike` | `notice_likes` | 공지 좋아요 |
 | `NoticeBookmark` | `notice_bookmarks` | 공지 북마크 |
 | `AppNotice` | `app_notices` | 앱 운영 공지 |
+| `AppNoticeReadStatus` | `app_notice_read_status` | 앱 공지 읽음 상태 |
 
 #### 5-2. 핵심 구현
 
@@ -469,6 +470,8 @@ SSE 운영 제약:
 | `GET` | `/v1/members/me/notice-bookmarks` | 내가 북마크한 공지 목록 |
 | `GET` | `/v1/app-notices` | 앱 공지 목록 (**Public**) |
 | `GET` | `/v1/app-notices/{id}` | 앱 공지 상세 |
+| `GET` | `/v1/members/me/app-notices/unread-count` | 미읽음 앱 공지 수 |
+| `POST` | `/v1/members/me/app-notices/{appNoticeId}/read` | 앱 공지 읽음 처리 |
 | `POST` | `/v1/admin/app-notices` | 앱 공지 생성 (관리자) |
 | `PATCH` | `/v1/admin/app-notices/{appNoticeId}` | 앱 공지 부분 수정 (관리자) |
 | `DELETE` | `/v1/admin/app-notices/{appNoticeId}` | 앱 공지 삭제 (관리자) |
