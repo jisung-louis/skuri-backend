@@ -34,6 +34,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -142,6 +143,83 @@ class LegalDocumentAdminControllerContractTest {
                 )
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void upsertLegalDocument_sections에Null항목이있으면_422() throws Exception {
+        mockToken("admin-token", true);
+
+        mockMvc.perform(
+                        put("/v1/admin/legal-documents/termsOfUse")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "title": "이용약관",
+                                          "banner": {
+                                            "iconKey": "document",
+                                            "lines": [
+                                              {
+                                                "text": "시행일: 2025년 3월 1일 · 최종 수정: 2025년 3월 1일",
+                                                "tone": "primary"
+                                              }
+                                            ],
+                                            "title": "SKURI 이용약관",
+                                            "tone": "green"
+                                          },
+                                          "sections": [null],
+                                          "footerLines": [
+                                            "본 약관에 대한 문의는",
+                                            "앱 내 문의하기를 이용해 주세요."
+                                          ],
+                                          "isActive": true
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(legalDocumentService);
+    }
+
+    @Test
+    void upsertLegalDocument_bannerLines에Null항목이있으면_422() throws Exception {
+        mockToken("admin-token", true);
+
+        mockMvc.perform(
+                        put("/v1/admin/legal-documents/termsOfUse")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "title": "이용약관",
+                                          "banner": {
+                                            "iconKey": "document",
+                                            "lines": [null],
+                                            "title": "SKURI 이용약관",
+                                            "tone": "green"
+                                          },
+                                          "sections": [
+                                            {
+                                              "id": "article-01",
+                                              "paragraphs": [
+                                                "이 약관은 회사와 회원 간의 권리, 의무를 규정합니다."
+                                              ],
+                                              "title": "제1조(목적)"
+                                            }
+                                          ],
+                                          "footerLines": [
+                                            "본 약관에 대한 문의는",
+                                            "앱 내 문의하기를 이용해 주세요."
+                                          ],
+                                          "isActive": true
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(legalDocumentService);
     }
 
     @Test
