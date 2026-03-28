@@ -39,7 +39,7 @@ public class OpenApiConfig {
     public GroupedOpenApi memberApi() {
         return GroupedOpenApi.builder()
                 .group("member")
-                .pathsToMatch("/v1/members/**")
+                .pathsToMatch("/v1/members/**", "/v1/admin/members/**")
                 .pathsToExclude(
                         "/v1/members/me/posts",
                         "/v1/members/me/bookmarks",

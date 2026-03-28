@@ -15,6 +15,8 @@ import com.skuri.skuri_backend.domain.campus.entity.CampusBanner;
 import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
+import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.LegalDocumentAdminResponse;
 import com.skuri.skuri_backend.domain.support.entity.AppVersion;
@@ -41,6 +43,7 @@ public class AdminAuditSnapshotFactory {
     private final AppNoticeRepository appNoticeRepository;
     private final CampusBannerRepository campusBannerRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final MemberRepository memberRepository;
     private final InquiryRepository inquiryRepository;
     private final ReportRepository reportRepository;
     private final AppVersionRepository appVersionRepository;
@@ -133,6 +136,12 @@ public class AdminAuditSnapshotFactory {
                         inquiry.getCreatedAt(),
                         inquiry.getUpdatedAt()
                 ))
+                .orElse(null);
+    }
+
+    public MemberAdminRoleSnapshot memberAdminRole(String memberId) {
+        return memberRepository.findById(memberId)
+                .map(this::toMemberAdminRoleSnapshot)
                 .orElse(null);
     }
 
@@ -249,6 +258,16 @@ public class AdminAuditSnapshotFactory {
         );
     }
 
+    private MemberAdminRoleSnapshot toMemberAdminRoleSnapshot(Member member) {
+        return new MemberAdminRoleSnapshot(
+                member.getId(),
+                member.getEmail(),
+                member.getNickname(),
+                member.isAdmin(),
+                member.getStatus()
+        );
+    }
+
     public record CourseSemesterSnapshot(
             String semester,
             int totalCourses,
@@ -312,6 +331,15 @@ public class AdminAuditSnapshotFactory {
             String memo,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
+    ) {
+    }
+
+    public record MemberAdminRoleSnapshot(
+            String id,
+            String email,
+            String nickname,
+            boolean isAdmin,
+            Object status
     ) {
     }
 
