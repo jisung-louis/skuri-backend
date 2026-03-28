@@ -4354,6 +4354,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 - 목적: 관리자용 회원 상세 사이드패널/상세 화면
 - 활성 회원과 탈퇴 회원 모두 조회할 수 있다.
 - 운영 화면 요구사항에 맞춰 `bankAccount`, `notificationSetting`, `withdrawnAt`를 함께 제공한다.
+- `bankAccount`는 관리자 상세 응답 계약에 포함되며, admin-role 변경 감사 로그 최소 snapshot 정책과 별개로 유지한다.
 
 **Response (200 OK):**
 ```json
@@ -4403,8 +4404,10 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 - 목적: 회원의 `isAdmin` boolean 변경
 - 요청은 관리자 권한 부여(`true`) 또는 회수(`false`)만 다룬다.
+- 자기 자신의 계정(`actorId == memberId`)에 대한 관리자 권한 변경은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 거부한다.
 - 탈퇴 회원(`WITHDRAWN`)은 접근 차단 대상이며, 관리자 권한 변경 요청에는 `409 CONFLICT`를 반환한다.
-- 현재 코드/문서 기준으로 self-demotion 또는 마지막 관리자 보호 정책은 별도 정의되어 있지 않다. 이번 Phase는 기존 `members.is_admin` boolean 의미만 유지하고 추가 제약을 도입하지 않는다.
+- self role change guard만으로 admin console orphaning을 방지하고, 마지막 관리자 수 계산 같은 추가 정책은 이번 Phase 범위에서 제외한다.
+- admin-role 변경 감사 로그는 최소 snapshot(`id`, `email`, `nickname`, `isAdmin`, `status`)만 저장하며 `bankAccount`, `notificationSetting`는 적재하지 않는다.
 
 **Request:**
 ```json
@@ -4453,6 +4456,16 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
       }
     }
   }
+}
+```
+
+**Response (400 Bad Request - self role change):**
+```json
+{
+  "success": false,
+  "message": "자기 자신의 관리자 권한은 변경할 수 없습니다.",
+  "errorCode": "SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED",
+  "timestamp": "2026-03-29T12:00:00"
 }
 ```
 
@@ -5403,7 +5416,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Chat 계약 동기화 — `lastMessage.createdAt`/`accountData` 필드로 통일, 비공개 채팅방 접근 정책(REST/WS) 및 STOMP 에러 포맷(`/user/queue/errors`) 명시
 > - 2026-03-05: Chat 명세 보완 — 채팅방 요약 `lastMessage.senderName` 예시 추가, STOMP 메시지 `NON_NULL` 직렬화 정책 명시
 > - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, source of truth를 `members.photo_url`로 고정하고 `null` 직렬화 정책을 명시
-> - 2026-03-29: Admin Member API P1 추가 — `GET /v1/admin/members`, `GET /v1/admin/members/{memberId}`, `PATCH /v1/admin/members/{memberId}/admin-role` 계약과 회원 목록 필터/정렬 규약, 탈퇴 회원 권한 변경 `409 CONFLICT`, self-demotion/마지막 관리자 정책 open question을 문서화
+> - 2026-03-29: Admin Member API review fix — `PATCH /v1/admin/members/{memberId}/admin-role`에 self role change 금지(`400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`)를 추가하고, admin-role 감사 로그 snapshot을 최소 필드만 저장하도록 조정. 관리자 상세 응답의 `bankAccount`/`notificationSetting` 계약은 유지
 > - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강

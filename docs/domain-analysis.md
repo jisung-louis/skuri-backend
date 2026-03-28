@@ -121,8 +121,9 @@ Hooks:
   - 탈퇴한 동일 Firebase UID는 `POST /v1/members`에서 재활성화하지 않고 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환
   - 관리자 백오피스용 회원 관리 P1 API는 `/v1/admin/members`, `/v1/admin/members/{memberId}`, `/v1/admin/members/{memberId}/admin-role`로 제공한다.
   - 관리자 상세 응답은 운영 화면 요구에 맞춰 `bankAccount`, `notificationSetting`, `withdrawnAt`를 포함한다.
-  - 관리자 권한 변경은 기존 `members.isAdmin` boolean만 조작하며, 탈퇴 회원 대상 요청은 `409 CONFLICT`로 거부한다.
-  - self-demotion/마지막 관리자 보호 정책은 현재 코드/문서에 정의돼 있지 않아 후속 정책 결정 전까지 런타임 guard를 추가하지 않는다.
+  - 관리자 권한 변경은 기존 `members.isAdmin` boolean만 조작하며, 자기 자신의 계정 대상 요청은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`, 탈퇴 회원 대상 요청은 `409 CONFLICT`로 거부한다.
+  - 이번 Phase는 self role change guard만 적용하고, 마지막 관리자 수 계산 같은 추가 운영 정책은 후속 범위로 남긴다.
+  - admin-role 변경 감사 로그는 최소 snapshot(`id`, `email`, `nickname`, `isAdmin`, `status`)만 저장하고 `bankAccount`, `notificationSetting`는 적재하지 않는다.
 ```
 
 ### 3.2 TaxiParty (택시 파티)
@@ -1418,4 +1419,4 @@ public enum MessageDirection {
 > - 2026-03-09: Phase 10 Member 라이프사이클 반영 — soft delete tombstone, 동일 UID 재가입 차단, TaxiParty/Chat/Board/Notice/Support/Notification/Academic 탈퇴 정합성 정책 추가
 > - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `AdminAuditLog` 엔티티를 `actorId/action/targetType/targetId/diffBefore/diffAfter/timestamp` 구조로 구체화하고, Support 운영 목록/인가 공통 규약을 반영
 > - 2026-03-25: Notice 북마크 구현 반영 — `NoticeBookmark` 저장 모델, 내 북마크 공지 목록 naming parity(`rssPreview`, `postedAt`), withdrawal cleanup 정책 추가
-> - 2026-03-29: Member Admin API P1 반영 — 관리자 회원 목록/상세/권한 변경 책임과 탈퇴 회원 권한 변경 거부 규칙, 미정 운영 정책(open question)을 Member 도메인 설명에 추가
+> - 2026-03-29: Member Admin API review fix — self role change 금지와 admin-role 감사 로그 최소 snapshot 정책을 Member 도메인 설명에 반영하고, 관리자 상세 응답의 `bankAccount` 유지 계약을 명시

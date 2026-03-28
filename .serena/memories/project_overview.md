@@ -47,4 +47,5 @@
 - `member` 도메인은 관리자 백오피스 P1 회원 관리 API를 제공한다: `GET /v1/admin/members`, `GET /v1/admin/members/{memberId}`, `PATCH /v1/admin/members/{memberId}/admin-role`.
 - 관리자 목록은 `query/status/isAdmin/department` 필터와 `joinedAt desc` 고정 정렬, `PageResponse` 규약을 사용한다.
 - 관리자 상세는 목록 필드 외에 `photoUrl`, `withdrawnAt`, `bankAccount`, `notificationSetting`을 포함한다.
-- 관리자 권한 변경은 기존 `members.is_admin` boolean만 갱신하며, 탈퇴 회원은 `409 CONFLICT`로 차단하고 self-demotion/마지막 관리자 보호는 후속 정책 결정 전까지 강제하지 않는다.
+- 관리자 권한 변경은 기존 `members.is_admin` boolean만 갱신하며, 탈퇴 회원은 `409 CONFLICT`, 자기 자신의 권한 변경은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 차단한다. 마지막 관리자 수 계산 정책은 후속 결정 전까지 추가하지 않는다.
+- 관리자 상세 응답은 `bankAccount`, `notificationSetting`을 유지하지만 admin-role 감사 snapshot은 `id/email/nickname/isAdmin/status` 최소 필드만 저장한다.
