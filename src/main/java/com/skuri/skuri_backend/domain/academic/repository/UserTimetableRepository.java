@@ -40,4 +40,11 @@ public interface UserTimetableRepository extends JpaRepository<UserTimetable, St
     );
 
     List<UserTimetable> findAllByUserId(String userId);
+
+    @Query("""
+            select distinct t.semester
+            from UserTimetable t
+            where t.userId = :userId
+            """)
+    List<String> findDistinctSemestersByUserId(@Param("userId") String userId);
 }

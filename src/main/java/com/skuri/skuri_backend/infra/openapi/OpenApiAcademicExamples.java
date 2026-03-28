@@ -17,6 +17,7 @@ public final class OpenApiAcademicExamples {
                     "division": "001",
                     "name": "민법총칙",
                     "credits": 3,
+                    "isOnline": false,
                     "professor": "문상혁",
                     "department": "법학과",
                     "grade": 2,
@@ -65,6 +66,7 @@ public final class OpenApiAcademicExamples {
                     "location": "영401",
                     "category": "전공선택",
                     "credits": 3,
+                    "isOnline": false,
                     "schedule": [
                       {
                         "dayOfWeek": 1,
@@ -86,6 +88,49 @@ public final class OpenApiAcademicExamples {
                     "location": "영401"
                   }
                 ]
+              }
+            }
+            """;
+
+    public static final String SUCCESS_TIMETABLE_SEMESTERS = """
+            {
+              "success": true,
+              "data": [
+                {
+                  "id": "2026-1",
+                  "label": "2026-1학기"
+                },
+                {
+                  "id": "2025-2",
+                  "label": "2025-2학기"
+                }
+              ]
+            }
+            """;
+
+    public static final String SUCCESS_TIMETABLE_WITH_MANUAL_ONLINE = """
+            {
+              "success": true,
+              "data": {
+                "id": "timetable_uuid",
+                "semester": "2026-1",
+                "courseCount": 1,
+                "totalCredits": 2,
+                "courses": [
+                  {
+                    "id": "manual_course_uuid",
+                    "code": "직접 입력",
+                    "division": null,
+                    "name": "플랫폼세미나",
+                    "professor": "직접 입력",
+                    "location": null,
+                    "category": null,
+                    "credits": 2,
+                    "isOnline": true,
+                    "schedule": []
+                  }
+                ],
+                "slots": []
               }
             }
             """;
