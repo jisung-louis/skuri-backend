@@ -46,7 +46,7 @@ Authorization: Bearer <firebase_id_token>
 
 **Public API (인증 불필요):**
 
-비즈니스 API 기준으로는 아래 4개 API만 인증 없이 호출 가능합니다.  
+비즈니스 API 기준으로는 아래 5개 API만 인증 없이 호출 가능합니다.  
 추가로 API 문서 UI/스펙 조회 엔드포인트도 인증 없이 접근 가능합니다.
 
 | API | 이유 |
@@ -54,6 +54,7 @@ Authorization: Bearer <firebase_id_token>
 | `GET /v1/app-versions/{platform}` | 앱 실행 초기(로그인 전) 강제 업데이트 여부 확인 |
 | `GET /v1/app-notices` | 로그인 전 점검 공지 / 긴급 공지 표시 필요 |
 | `GET /v1/app-notices/{appNoticeId}` | 로그인 전 개별 점검/업데이트 공지 상세 표시 필요 |
+| `GET /v1/legal-documents/{documentKey}` | 설정 화면의 이용약관 / 개인정보 처리방침 표시 |
 | `GET /v1/campus-banners` | 로그인 전 캠퍼스 홈 배너 노출 필요 |
 | `GET /v3/api-docs/**` | OpenAPI 스펙(JSON) 조회 |
 | `GET /swagger-ui/**`, `GET /swagger-ui.html` | Swagger UI 조회 |
@@ -2817,7 +2818,50 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
-### 8.4 학식 메뉴
+### 8.4 법적 문서
+
+#### GET /v1/legal-documents/{documentKey}
+설정 화면 법적 문서 조회 (Public API)
+
+- `documentKey`: `termsOfUse` | `privacyPolicy`
+- `isActive=true`인 문서만 조회되며, 비활성 또는 미존재 문서는 `404 LEGAL_DOCUMENT_NOT_FOUND`를 반환합니다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "termsOfUse",
+    "title": "이용약관",
+    "banner": {
+      "iconKey": "document",
+      "lines": [
+        {
+          "text": "시행일: 2025년 3월 1일 · 최종 수정: 2025년 3월 1일",
+          "tone": "primary"
+        }
+      ],
+      "title": "SKURI 이용약관",
+      "tone": "green"
+    },
+    "sections": [
+      {
+        "id": "article-01",
+        "title": "제1조(목적)",
+        "paragraphs": [
+          "이 약관은 스쿠리 (이하 '회사' 라고 합니다)가 제공하는 제반 서비스의 이용과 관련하여 회사와 회원과의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다."
+        ]
+      }
+    ],
+    "footerLines": [
+      "본 약관에 대한 문의는",
+      "앱 내 문의하기를 이용해 주세요."
+    ]
+  }
+}
+```
+
+### 8.5 학식 메뉴
 
 #### GET /v1/cafeteria-menus
 학식 메뉴
@@ -4450,7 +4494,78 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.4 공개 채팅방 관리
+### 12.4 법적 문서 관리
+
+#### GET /v1/admin/legal-documents
+법적 문서 목록 요약 조회
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "privacyPolicy",
+      "title": "개인정보 처리방침",
+      "isActive": true,
+      "updatedAt": "2026-03-28T10:00:00Z"
+    },
+    {
+      "id": "termsOfUse",
+      "title": "이용약관",
+      "isActive": true,
+      "updatedAt": "2026-03-28T10:00:00Z"
+    }
+  ]
+}
+```
+
+#### GET /v1/admin/legal-documents/{documentKey}
+법적 문서 상세 조회
+
+**documentKey:** `termsOfUse` | `privacyPolicy`
+
+#### PUT /v1/admin/legal-documents/{documentKey}
+법적 문서 생성/전체 수정
+
+**Request:**
+```json
+{
+  "title": "이용약관",
+  "banner": {
+    "iconKey": "document",
+    "lines": [
+      {
+        "text": "시행일: 2025년 3월 1일 · 최종 수정: 2025년 3월 1일",
+        "tone": "primary"
+      }
+    ],
+    "title": "SKURI 이용약관",
+    "tone": "green"
+  },
+  "sections": [
+    {
+      "id": "article-01",
+      "title": "제1조(목적)",
+      "paragraphs": [
+        "이 약관은 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다."
+      ]
+    }
+  ],
+  "footerLines": [
+    "본 약관에 대한 문의는",
+    "앱 내 문의하기를 이용해 주세요."
+  ],
+  "isActive": true
+}
+```
+
+#### DELETE /v1/admin/legal-documents/{documentKey}
+법적 문서 삭제
+
+---
+
+### 12.5 공개 채팅방 관리
 
 공개 채팅방(UNIVERSITY, DEPARTMENT 등)은 사용자가 직접 생성할 수 없으며, 관리자만 생성/삭제합니다.
 파티 채팅방은 파티 생성 시 서버 내부에서 자동으로 생성됩니다.

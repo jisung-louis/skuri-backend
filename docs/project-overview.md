@@ -60,6 +60,7 @@
 - [domain/taxiparty](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/domain/taxiparty): 택시 파티, 동승 요청, 정산
 - [domain/chat](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/domain/chat): 공개 채팅 + 파티 채팅
 - [domain/notice](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/domain/notice): 학교 공지, 댓글, 북마크
+- [domain/support](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/domain/support): 문의/신고, 앱 버전, 법적 문서, 학식
 - [domain/board](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/domain/board): 커뮤니티 게시판
 - [domain/notification](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/domain/notification): 인앱 알림 + 푸시
 - [infra](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/infra): auth, storage, openapi, admin 지원
