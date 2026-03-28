@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.notice.controller;
 
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.notice.dto.request.UpdateNoticeCommentRequest;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentLikeResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.service.NoticeService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
@@ -24,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -119,6 +121,106 @@ public class NoticeCommentController {
             @Valid @RequestBody UpdateNoticeCommentRequest request
     ) {
         NoticeCommentResponse response = noticeService.updateComment(requireAuthenticatedMember(authenticatedMember).uid(), commentId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{commentId}/like")
+    @Operation(summary = "공지 댓글 좋아요", description = "공지 댓글 좋아요를 등록합니다. 이미 좋아요한 상태면 현재 상태를 그대로 반환합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "좋아요 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeCommentLikeApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_COMMENT_LIKE)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "공지 댓글 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "notice_comment_not_found", value = OpenApiNoticeExamples.ERROR_NOTICE_COMMENT_NOT_FOUND)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "이미 삭제된 댓글",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "comment_already_deleted", value = OpenApiNoticeExamples.ERROR_NOTICE_COMMENT_ALREADY_DELETED)
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<NoticeCommentLikeResponse>> likeComment(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
+            @Parameter(description = "공지 댓글 ID", example = "notice_comment_uuid")
+            @PathVariable String commentId
+    ) {
+        NoticeCommentLikeResponse response = noticeService.likeComment(requireAuthenticatedMember(authenticatedMember).uid(), commentId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/{commentId}/like")
+    @Operation(summary = "공지 댓글 좋아요 취소", description = "공지 댓글 좋아요를 취소합니다. 좋아요하지 않은 상태여도 현재 상태를 그대로 반환합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "좋아요 취소 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = OpenApiNoticeSchemas.NoticeCommentLikeApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiNoticeExamples.SUCCESS_NOTICE_COMMENT_UNLIKE)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "공지 댓글 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "notice_comment_not_found", value = OpenApiNoticeExamples.ERROR_NOTICE_COMMENT_NOT_FOUND)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "이미 삭제된 댓글",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "comment_already_deleted", value = OpenApiNoticeExamples.ERROR_NOTICE_COMMENT_ALREADY_DELETED)
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<NoticeCommentLikeResponse>> unlikeComment(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
+            @Parameter(description = "공지 댓글 ID", example = "notice_comment_uuid")
+            @PathVariable String commentId
+    ) {
+        NoticeCommentLikeResponse response = noticeService.unlikeComment(requireAuthenticatedMember(authenticatedMember).uid(), commentId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

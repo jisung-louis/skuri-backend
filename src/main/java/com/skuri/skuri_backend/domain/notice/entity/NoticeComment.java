@@ -66,6 +66,9 @@ public class NoticeComment extends BaseTimeEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted;
 
+    @Column(name = "like_count", nullable = false)
+    private int likeCount;
+
     private NoticeComment(
             Notice notice,
             String userId,
@@ -85,6 +88,7 @@ public class NoticeComment extends BaseTimeEntity {
         this.anonymousOrder = anonymousOrder;
         this.parent = parent;
         this.deleted = false;
+        this.likeCount = 0;
     }
 
     public static NoticeComment create(
@@ -119,6 +123,10 @@ public class NoticeComment extends BaseTimeEntity {
 
     public void updateContent(String content) {
         this.content = content;
+    }
+
+    public void increaseLikeCount(int delta) {
+        this.likeCount = Math.max(0, this.likeCount + delta);
     }
 
     public void anonymizeAuthor() {
