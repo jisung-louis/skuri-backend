@@ -14,10 +14,14 @@ public record AdminReportResponse(
         @Schema(description = "신고자 ID", example = "user_uuid")
         String reporterId,
 
-        @Schema(description = "신고 대상 타입", example = "POST")
+        @Schema(
+                description = "신고 대상 타입",
+                example = "CHAT_MESSAGE",
+                allowableValues = {"POST", "COMMENT", "MEMBER", "CHAT_MESSAGE", "CHAT_ROOM", "TAXI_PARTY"}
+        )
         ReportTargetType targetType,
 
-        @Schema(description = "신고 대상 ID", example = "post_uuid")
+        @Schema(description = "신고 대상 ID", example = "message_uuid")
         String targetId,
 
         @Schema(description = "신고 대상 작성자 ID", nullable = true, example = "target_user_uuid")

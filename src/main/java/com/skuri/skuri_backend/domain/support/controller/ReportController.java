@@ -6,11 +6,13 @@ import com.skuri.skuri_backend.domain.support.dto.response.ReportCreateResponse;
 import com.skuri.skuri_backend.domain.support.service.ReportService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiBoardExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiChatExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiMemberExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportSchemas;
+import com.skuri.skuri_backend.infra.openapi.OpenApiTaxiPartyExamples;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -41,7 +43,7 @@ public class ReportController {
     private final ReportService reportService;
 
     @PostMapping
-    @Operation(summary = "신고 접수", description = "게시글/댓글/회원 대상 신고를 접수합니다.")
+    @Operation(summary = "신고 접수", description = "게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티 대상 신고를 접수합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
@@ -88,7 +90,10 @@ public class ReportController {
                             examples = {
                                     @ExampleObject(name = "post_not_found", value = OpenApiBoardExamples.ERROR_POST_NOT_FOUND),
                                     @ExampleObject(name = "comment_not_found", value = OpenApiBoardExamples.ERROR_COMMENT_NOT_FOUND),
-                                    @ExampleObject(name = "member_not_found", value = OpenApiMemberExamples.ERROR_MEMBER_NOT_FOUND)
+                                    @ExampleObject(name = "member_not_found", value = OpenApiMemberExamples.ERROR_MEMBER_NOT_FOUND),
+                                    @ExampleObject(name = "chat_message_not_found", value = OpenApiChatExamples.ERROR_CHAT_MESSAGE_NOT_FOUND),
+                                    @ExampleObject(name = "chat_room_not_found", value = OpenApiChatExamples.ERROR_CHAT_ROOM_NOT_FOUND),
+                                    @ExampleObject(name = "party_not_found", value = OpenApiTaxiPartyExamples.ERROR_PARTY_NOT_FOUND)
                             }
                     )
             ),
@@ -116,16 +121,52 @@ public class ReportController {
             description = "신고 접수 요청",
             content = @Content(
                     schema = @Schema(implementation = CreateReportRequest.class),
-                    examples = @ExampleObject(
-                            value = """
-                                    {
-                                      "targetType": "POST",
-                                      "targetId": "post_uuid",
-                                      "category": "SPAM",
-                                      "reason": "광고성 게시글입니다."
-                                    }
-                                    """
-                    )
+                    examples = {
+                            @ExampleObject(
+                                    name = "post_report",
+                                    value = """
+                                            {
+                                              "targetType": "POST",
+                                              "targetId": "post_uuid",
+                                              "category": "SPAM",
+                                              "reason": "광고성 게시글입니다."
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "chat_message_report",
+                                    value = """
+                                            {
+                                              "targetType": "CHAT_MESSAGE",
+                                              "targetId": "message_uuid",
+                                              "category": "SPAM",
+                                              "reason": "광고성 메시지입니다."
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "chat_room_report",
+                                    value = """
+                                            {
+                                              "targetType": "CHAT_ROOM",
+                                              "targetId": "chat_room_uuid",
+                                              "category": "ABUSE",
+                                              "reason": "부적절한 목적의 채팅방입니다."
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "taxi_party_report",
+                                    value = """
+                                            {
+                                              "targetType": "TAXI_PARTY",
+                                              "targetId": "party_uuid",
+                                              "category": "FRAUD",
+                                              "reason": "운행/정산 방식이 부적절합니다."
+                                            }
+                                            """
+                            )
+                    }
             )
     )
     public ResponseEntity<ApiResponse<ReportCreateResponse>> createReport(

@@ -13,7 +13,7 @@
 - `domain/notice`: 학교 공지, 공지 댓글, 북마크, 앱 공지
 - `domain/academic`: 강의, 시간표, 학사 일정
 - `domain/campus`: 캠퍼스 배너 공개/관리자 API
-- `domain/support`: 문의, 신고, 앱 버전, 법적 문서, 학식
+- `domain/support`: 문의, 신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티), 앱 버전, 법적 문서, 학식; `ReportService`가 board/chat/taxiparty 저장소를 조회해 `targetAuthorId`를 해석한다.
 - `domain/notification`: 인앱 알림, unread count, SSE snapshot
 - `infra/auth`: Firebase 인증 필터, Admin guard, Security 설정
 - `infra/admin`: admin audit, admin list 공통 인프라
