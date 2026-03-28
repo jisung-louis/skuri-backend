@@ -103,6 +103,7 @@
 
 - 공개 채팅방 목록/상세/참여/나가기 지원
 - 공개 채팅방 참여/나가기와 파티 채팅 멤버 입장/퇴장은 실제 `SYSTEM` chat message로 저장되고 STOMP topic으로 브로드캐스트됨
+- 공개 채팅/파티 채팅 메시지 payload는 `senderName`과 함께 `senderPhotoUrl`을 내려주며, 값은 항상 `members.photo_url`만 사용하고 없으면 `null`
 - 공개 채팅과 택시 파티 채팅은 같은 채팅 도메인을 공유하되 계약은 분리되어 있음
 
 #### 공지/게시판

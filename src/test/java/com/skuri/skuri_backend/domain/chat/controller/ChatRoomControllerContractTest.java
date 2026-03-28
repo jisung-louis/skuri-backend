@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.dto.request.CreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatReadUpdateResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomLastMessageResponse;
@@ -18,6 +19,7 @@ import com.skuri.skuri_backend.infra.auth.firebase.FirebaseAuthenticationFilter;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenClaims;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenVerifier;
 import org.junit.jupiter.api.Test;
+import org.hamcrest.Matchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -277,6 +279,52 @@ class ChatRoomControllerContractTest {
                 )
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void getMessages_정상응답_senderPhotoUrl직렬화_200() throws Exception {
+        mockValidToken();
+        when(chatService.getMessages("firebase-uid", "room-1", null, null, null))
+                .thenReturn(new ChatMessagePageResponse(
+                        List.of(
+                                new ChatMessageResponse(
+                                        "message-1",
+                                        "room-1",
+                                        "member-1",
+                                        "홍길동",
+                                        "https://cdn.skuri.app/uploads/profiles/member-1.jpg",
+                                        com.skuri.skuri_backend.domain.chat.entity.ChatMessageType.TEXT,
+                                        "안녕하세요",
+                                        null,
+                                        null,
+                                        null,
+                                        LocalDateTime.of(2026, 3, 28, 14, 30, 0)
+                                ),
+                                new ChatMessageResponse(
+                                        "message-2",
+                                        "room-1",
+                                        "member-2",
+                                        "김성결",
+                                        null,
+                                        com.skuri.skuri_backend.domain.chat.entity.ChatMessageType.SYSTEM,
+                                        "입장했어요.",
+                                        null,
+                                        null,
+                                        null,
+                                        LocalDateTime.of(2026, 3, 28, 14, 29, 0)
+                                )
+                        ),
+                        false,
+                        null
+                ));
+
+        mockMvc.perform(
+                        get("/v1/chat-rooms/room-1/messages")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.messages[0].senderPhotoUrl").value("https://cdn.skuri.app/uploads/profiles/member-1.jpg"))
+                .andExpect(jsonPath("$.data.messages[1].senderPhotoUrl").value(Matchers.nullValue()));
     }
 
     @Test

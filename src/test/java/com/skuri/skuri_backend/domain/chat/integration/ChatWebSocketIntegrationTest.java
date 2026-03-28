@@ -48,7 +48,9 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(
@@ -170,6 +172,8 @@ class ChatWebSocketIntegrationTest {
         assertNotNull(payload);
         assertEquals("TEXT", payload.get("type"));
         assertEquals("웹소켓 전송 테스트", payload.get("text"));
+        assertTrue(payload.containsKey("senderPhotoUrl"));
+        assertNull(payload.get("senderPhotoUrl"));
 
         session.disconnect();
     }
@@ -217,6 +221,10 @@ class ChatWebSocketIntegrationTest {
 
     @Test
     void server생성_partySystem메시지는_history와_topic으로전달된다() throws Exception {
+        Member member = memberRepository.findById("ws-member").orElseThrow();
+        member.updateProfile("웹소켓테스터", null, null, "https://cdn.skuri.app/uploads/profiles/ws-member.jpg");
+        memberRepository.save(member);
+
         ChatRoom partyRoom = ChatRoom.createPartyRoom("party-1");
         chatRoomRepository.save(partyRoom);
 
@@ -265,11 +273,13 @@ class ChatWebSocketIntegrationTest {
         assertEquals("SYSTEM", payload.get("type"));
         assertEquals("party:party-1", payload.get("chatRoomId"));
         assertEquals("모집이 마감되었어요.", payload.get("text"));
+        assertEquals("https://cdn.skuri.app/uploads/profiles/ws-member.jpg", payload.get("senderPhotoUrl"));
 
         ChatMessagePageResponse page = chatService.getMessages("ws-member", "party:party-1", null, null, 50);
         assertEquals(1, page.messages().size());
         assertEquals("SYSTEM", page.messages().get(0).type().name());
         assertEquals("모집이 마감되었어요.", page.messages().get(0).text());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/ws-member.jpg", page.messages().get(0).senderPhotoUrl());
 
         session.disconnect();
     }

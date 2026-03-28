@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.dto.request.CreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.request.SendChatMessageRequest;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatReadUpdateResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomDetailResponse;
@@ -29,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -137,6 +139,35 @@ class ChatServiceTest {
     }
 
     @Test
+    void getMessages_senderPhotoUrl은_membersPhotoUrl기준으로내려간다() {
+        ChatRoom room = ChatRoom.create("room-1", "시험기간 밤샘 메이트", ChatRoomType.CUSTOM, null, null, null, true, null);
+        ChatRoomMember membership = membership(room, "room-1", "member-1");
+        ChatMessage messageWithPhoto = ChatMessage.create("room-1", "sender-1", "홍길동", 2L, "안녕하세요", ChatMessageType.TEXT, null, null);
+        ChatMessage messageWithoutPhoto = ChatMessage.create("room-1", "sender-2", "김성결", 1L, "반가워요", ChatMessageType.TEXT, null, null);
+        ReflectionTestUtils.setField(messageWithPhoto, "id", "message-2");
+        ReflectionTestUtils.setField(messageWithPhoto, "createdAt", LocalDateTime.of(2026, 3, 5, 22, 10, 0));
+        ReflectionTestUtils.setField(messageWithoutPhoto, "id", "message-1");
+        ReflectionTestUtils.setField(messageWithoutPhoto, "createdAt", LocalDateTime.of(2026, 3, 5, 22, 9, 0));
+
+        Member senderWithPhoto = activeMember("sender-1", "컴퓨터공학과", "https://cdn.skuri.app/uploads/profiles/sender-1.jpg");
+        Member senderWithoutPhoto = activeMember("sender-2", "컴퓨터공학과", null);
+
+        when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
+        when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1"))
+                .thenReturn(Optional.of(membership));
+        when(chatMessageRepository.findByCursor("room-1", null, null, null, PageRequest.of(0, 51)))
+                .thenReturn(List.of(messageWithPhoto, messageWithoutPhoto));
+        when(memberRepository.findAllById(List.of("sender-1", "sender-2")))
+                .thenReturn(List.of(senderWithPhoto, senderWithoutPhoto));
+
+        ChatMessagePageResponse response = chatService.getMessages("member-1", "room-1", null, null, 50);
+
+        assertEquals(2, response.messages().size());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/sender-1.jpg", response.messages().get(0).senderPhotoUrl());
+        assertNull(response.messages().get(1).senderPhotoUrl());
+    }
+
+    @Test
     void createChatRoom_생성자는_즉시참여상태가된다() {
         AtomicReference<ChatRoomMember> savedMemberRef = new AtomicReference<>();
         when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과")));
@@ -182,7 +213,7 @@ class ChatServiceTest {
         ReflectionTestUtils.setField(room, "memberCount", 10);
         ReflectionTestUtils.setField(room, "lastMessageTimestamp", LocalDateTime.of(2026, 3, 5, 22, 0, 0));
         AtomicReference<ChatRoomMember> savedMemberRef = new AtomicReference<>();
-        Member joinedMember = activeMember("member-1", "컴퓨터공학과");
+        Member joinedMember = activeMember("member-1", "컴퓨터공학과", "https://cdn.skuri.app/uploads/profiles/member-1.jpg");
 
         when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(joinedMember));
         when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
@@ -215,7 +246,9 @@ class ChatServiceTest {
         assertEquals(ChatMessageType.SYSTEM, joinMessageCaptor.getValue().getType());
         assertEquals(ChatMessage.SOURCE_MEMBER_JOIN, joinMessageCaptor.getValue().getSource());
         assertEquals("홍길동님이 입장했어요.", joinMessageCaptor.getValue().getText());
-        verify(messagingTemplate).convertAndSend(eq("/topic/chat/room-1"), any(ChatMessageResponse.class));
+        ArgumentCaptor<ChatMessageResponse> joinPayloadCaptor = ArgumentCaptor.forClass(ChatMessageResponse.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/chat/room-1"), joinPayloadCaptor.capture());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/member-1.jpg", joinPayloadCaptor.getValue().senderPhotoUrl());
         verify(messagingTemplate).convertAndSendToUser(eq("member-1"), eq("/queue/chat-rooms"), any());
     }
 
@@ -238,7 +271,8 @@ class ChatServiceTest {
         ChatRoomMember membership = membership(room, "room-1", "member-1");
         ChatRoomMember remainingMember = membership(room, "room-1", "member-2");
 
-        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과")));
+        when(memberRepository.findActiveById("member-1"))
+                .thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과", "https://cdn.skuri.app/uploads/profiles/member-1.jpg")));
         when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
         when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1")).thenReturn(Optional.of(membership));
         when(chatMessageOrderGenerator.nextOrder()).thenReturn(43L);
@@ -263,7 +297,9 @@ class ChatServiceTest {
         assertEquals(ChatMessageType.SYSTEM, leaveMessageCaptor.getValue().getType());
         assertEquals(ChatMessage.SOURCE_MEMBER_LEAVE, leaveMessageCaptor.getValue().getSource());
         assertEquals("홍길동님이 나갔어요.", leaveMessageCaptor.getValue().getText());
-        verify(messagingTemplate).convertAndSend(eq("/topic/chat/room-1"), any(ChatMessageResponse.class));
+        ArgumentCaptor<ChatMessageResponse> leavePayloadCaptor = ArgumentCaptor.forClass(ChatMessageResponse.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/chat/room-1"), leavePayloadCaptor.capture());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/member-1.jpg", leavePayloadCaptor.getValue().senderPhotoUrl());
         verify(messagingTemplate, times(2)).convertAndSendToUser(anyString(), eq("/queue/chat-rooms"), any());
     }
 
@@ -375,7 +411,7 @@ class ChatServiceTest {
     void sendMessage_파티ACCOUNT타입이면_특수페이로드저장및브로드캐스트() {
         ChatRoom room = ChatRoom.createPartyRoom("party-1");
         ChatRoomMember roomMember = membership(room, "party:party-1", "member-1");
-        Member sender = Member.create("member-1", "member-1@sungkyul.ac.kr", "홍길동", LocalDateTime.now().minusDays(1));
+        Member sender = activeMember("member-1", "컴퓨터공학과", "https://cdn.skuri.app/uploads/profiles/member-1.jpg");
         SendChatMessageRequest request = new SendChatMessageRequest(
                 ChatMessageType.ACCOUNT,
                 null,
@@ -417,7 +453,10 @@ class ChatServiceTest {
         assertEquals(ChatMessageType.ACCOUNT, response.type());
         assertNotNull(response.accountData());
         assertEquals("카카오뱅크", response.accountData().bankName());
-        verify(messagingTemplate).convertAndSend(eq("/topic/chat/party:party-1"), any(ChatMessageResponse.class));
+        assertEquals("https://cdn.skuri.app/uploads/profiles/member-1.jpg", response.senderPhotoUrl());
+        ArgumentCaptor<ChatMessageResponse> sendPayloadCaptor = ArgumentCaptor.forClass(ChatMessageResponse.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/chat/party:party-1"), sendPayloadCaptor.capture());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/member-1.jpg", sendPayloadCaptor.getValue().senderPhotoUrl());
         verify(messagingTemplate).convertAndSendToUser(eq("member-1"), eq("/queue/chat-rooms"), any());
     }
 
@@ -435,7 +474,7 @@ class ChatServiceTest {
         ReflectionTestUtils.setField(party, "id", "party-1");
         ChatRoom room = ChatRoom.createPartyRoom("party-1");
         ChatRoomMember leaderMember = membership(room, "party:party-1", "leader-1");
-        Member leader = Member.create("leader-1", "leader-1@sungkyul.ac.kr", "파티 리더", LocalDateTime.now().minusDays(1));
+        Member leader = activeMember("leader-1", "컴퓨터공학과", "https://cdn.skuri.app/uploads/profiles/leader-1.jpg");
 
         when(memberRepository.findById("leader-1")).thenReturn(Optional.of(leader));
         when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
@@ -453,11 +492,14 @@ class ChatServiceTest {
 
         assertEquals(ChatMessageType.SYSTEM, response.type());
         assertEquals("모집이 마감되었어요.", response.text());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/leader-1.jpg", response.senderPhotoUrl());
         verify(chatMessageRepository).save(argThat(message ->
                 Long.valueOf(42L).equals(message.getMessageOrder())
                         && message.getType() == ChatMessageType.SYSTEM
         ));
-        verify(messagingTemplate).convertAndSend(eq("/topic/chat/party:party-1"), any(ChatMessageResponse.class));
+        ArgumentCaptor<ChatMessageResponse> systemPayloadCaptor = ArgumentCaptor.forClass(ChatMessageResponse.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/chat/party:party-1"), systemPayloadCaptor.capture());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/leader-1.jpg", systemPayloadCaptor.getValue().senderPhotoUrl());
         verify(messagingTemplate).convertAndSendToUser(eq("leader-1"), eq("/queue/chat-rooms"), any());
         verify(eventPublisher).publish(argThat(event ->
                 event instanceof com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent.ChatMessageCreated created
@@ -519,8 +561,12 @@ class ChatServiceTest {
     }
 
     private Member activeMember(String memberId, String department) {
+        return activeMember(memberId, department, null);
+    }
+
+    private Member activeMember(String memberId, String department, String photoUrl) {
         Member member = Member.create(memberId, memberId + "@sungkyul.ac.kr", "홍길동", LocalDateTime.now().minusDays(1));
-        member.updateProfile("홍길동", null, department, null);
+        member.updateProfile("홍길동", null, department, photoUrl);
         return member;
     }
 

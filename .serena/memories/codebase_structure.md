@@ -8,7 +8,7 @@
 
 ## 주요 패키지 메모
 - `domain/taxiparty`: 파티 상태 전이, 정산 snapshot, taxi history/summary
-- `domain/chat`: 공개/파티 채팅, SYSTEM 메시지, 읽음 처리, 공개방 seed
+- `domain/chat`: 공개/파티 채팅, SYSTEM 메시지, 읽음 처리, 공개방 seed, `ChatService`가 REST/STOMP `ChatMessageResponse.senderPhotoUrl`을 `members.photo_url`로 매핑
 - `domain/board`: 게시글/댓글/좋아요/북마크, 이미지 연결
 - `domain/notice`: 학교 공지, 공지 댓글, 북마크, 앱 공지
 - `domain/academic`: 강의, 시간표, 학사 일정
