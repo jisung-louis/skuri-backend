@@ -42,6 +42,17 @@ DB_URL=jdbc:mysql://localhost:3306/skuri?serverTimezone=Asia/Seoul&characterEnco
 ./gradlew build
 ```
 
+## Admin Member Activity 수동 검증
+```bash
+source .env
+firebase emulators:start --only auth --project "$FIREBASE_PROJECT_ID"
+DB_URL=$DB_URL DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD FIREBASE_AUTH_USE_EMULATOR=true FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS_PATH= GOOGLE_APPLICATION_CREDENTIALS= SPRING_PROFILES_ACTIVE=local-emulator SERVER_PORT=18081 ./gradlew bootRun
+curl http://127.0.0.1:18081/v1/admin/members/<MEMBER_ID>/activity -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl http://127.0.0.1:18081/v3/api-docs
+curl http://127.0.0.1:18081/swagger-ui/index.html
+curl http://127.0.0.1:18081/scalar
+```
+
 ## local-emulator 수동 검증
 ```bash
 source .env

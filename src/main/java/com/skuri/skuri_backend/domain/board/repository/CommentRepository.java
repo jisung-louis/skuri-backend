@@ -2,6 +2,9 @@ package com.skuri.skuri_backend.domain.board.repository;
 
 import com.skuri.skuri_backend.domain.board.entity.Comment;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -57,6 +60,25 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
     int findMaxAnonymousOrderByPostId(@Param("postId") String postId);
 
     List<Comment> findByAuthorId(String authorId);
+
+    @EntityGraph(attributePaths = {"post"})
+    @Query(
+            value = """
+                    select c
+                    from Comment c
+                    where c.authorId = :authorId
+                      and c.deleted = false
+                      and c.post.deleted = false
+                    """,
+            countQuery = """
+                    select count(c)
+                    from Comment c
+                    where c.authorId = :authorId
+                      and c.deleted = false
+                      and c.post.deleted = false
+                    """
+    )
+    Page<Comment> findActiveByAuthorId(@Param("authorId") String authorId, Pageable pageable);
 
     @Query("""
             select distinct c.post.id

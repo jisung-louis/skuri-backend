@@ -4478,6 +4478,104 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
+#### GET /v1/admin/members/{memberId}/activity
+회원 활동 요약 조회
+
+- 목적: `/users` 상세 패널 하단의 count card + 최근 활동 섹션
+- ACTIVE 회원만 조회할 수 있다. 회원이 없으면 `404 MEMBER_NOT_FOUND`, 탈퇴 회원(`WITHDRAWN`)이면 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`을 반환한다.
+- 활동 요약은 현재 DB에 남아 있는 데이터만 기준으로 계산한다. 삭제/익명화된 과거 활동을 복원하지 않는다.
+- count 정의:
+  - `posts`: 현재 저장된 active post 중 `authorId = memberId`
+  - `comments`: 현재 저장된 active comment 중 `authorId = memberId`이면서 부모 post도 삭제되지 않은 경우
+  - `partiesCreated`: `leaderId = memberId`
+  - `partiesJoined`: party membership 기준 참여 파티 수에서 leader role 제외
+  - `inquiries`: `userId = memberId`
+  - `reportsSubmitted`: `reporterId = memberId`
+- recent list는 도메인별 최신순 최대 5건이며, `recentComments`도 삭제되지 않은 부모 post 기준으로만 포함된다. `recentParties`는 `LEADER`/`JOINED` role을 함께 내려준다.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "memberId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+    "generatedAt": "2026-03-29T16:00:00",
+    "counts": {
+      "posts": 12,
+      "comments": 34,
+      "partiesCreated": 3,
+      "partiesJoined": 7,
+      "inquiries": 2,
+      "reportsSubmitted": 1
+    },
+    "recentPosts": [
+      {
+        "id": "post-1",
+        "title": "택시 파티 구해요",
+        "category": "GENERAL",
+        "createdAt": "2026-03-28T14:00:00"
+      }
+    ],
+    "recentComments": [
+      {
+        "id": "comment-1",
+        "postId": "post-1",
+        "postTitle": "택시 파티 구해요",
+        "contentPreview": "저도 참여하고 싶어요",
+        "createdAt": "2026-03-28T14:10:00"
+      }
+    ],
+    "recentParties": [
+      {
+        "id": "party-1",
+        "role": "LEADER",
+        "status": "OPEN",
+        "routeSummary": "성결대 정문 → 안양역",
+        "departureTime": "2026-03-30T18:00:00",
+        "createdAt": "2026-03-29T09:00:00"
+      },
+      {
+        "id": "party-2",
+        "role": "JOINED",
+        "status": "CLOSED",
+        "routeSummary": "성결대 정문 → 범계역",
+        "departureTime": "2026-03-29T18:30:00",
+        "createdAt": "2026-03-28T20:00:00"
+      }
+    ],
+    "recentInquiries": [
+      {
+        "id": "inquiry-1",
+        "type": "ACCOUNT",
+        "subject": "계정 문의",
+        "status": "PENDING",
+        "createdAt": "2026-03-28T11:00:00"
+      }
+    ],
+    "recentReports": [
+      {
+        "id": "report-1",
+        "targetType": "POST",
+        "targetId": "post-9",
+        "category": "SPAM",
+        "status": "REVIEWING",
+        "createdAt": "2026-03-27T20:00:00"
+      }
+    ]
+  }
+}
+```
+
+**Response (409 Conflict - withdrawn member):**
+```json
+{
+  "success": false,
+  "message": "탈퇴한 회원의 활동 요약은 조회할 수 없습니다.",
+  "errorCode": "MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN",
+  "timestamp": "2026-03-29T12:00:00"
+}
+```
+
 #### PATCH /v1/admin/members/{memberId}/admin-role
 관리자 권한 부여/회수
 
@@ -5495,6 +5593,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Chat 계약 동기화 — `lastMessage.createdAt`/`accountData` 필드로 통일, 비공개 채팅방 접근 정책(REST/WS) 및 STOMP 에러 포맷(`/user/queue/errors`) 명시
 > - 2026-03-05: Chat 명세 보완 — 채팅방 요약 `lastMessage.senderName` 예시 추가, STOMP 메시지 `NON_NULL` 직렬화 정책 명시
 > - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, source of truth를 `members.photo_url`로 고정하고 `null` 직렬화 정책을 명시
+> - 2026-03-29: Admin Member Activity API 추가 — `GET /v1/admin/members/{memberId}/activity`를 ACTIVE 회원 + 현재 저장 데이터 기준 read model로 추가하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리
 > - 2026-03-29: Admin Member API review fix — `PATCH /v1/admin/members/{memberId}/admin-role`에 self role change 금지(`400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`)를 추가하고, admin-role 감사 로그 snapshot을 최소 필드만 저장하도록 조정. 관리자 상세 응답의 `bankAccount`/`notificationSetting` 계약은 유지
 > - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)

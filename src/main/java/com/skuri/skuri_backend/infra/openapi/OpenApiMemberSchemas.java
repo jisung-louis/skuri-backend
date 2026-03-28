@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberActivityResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberDetailResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberSummaryResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberCreateResponse;
@@ -97,6 +98,21 @@ public final class OpenApiMemberSchemas {
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
             AdminMemberDetailResponse data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "AdminMemberActivityApiResponse", description = "공통 API 응답 포맷")
+    public record AdminMemberActivityApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            AdminMemberActivityResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)

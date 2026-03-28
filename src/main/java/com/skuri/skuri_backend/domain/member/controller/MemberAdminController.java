@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.member.controller;
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberAdminRoleRequest;
+import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberActivityResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberDetailResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberSummaryResponse;
 import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
@@ -161,6 +162,68 @@ public class MemberAdminController {
             @PathVariable String memberId
     ) {
         return ResponseEntity.ok(ApiResponse.success(memberAdminService.getAdminMember(memberId)));
+    }
+
+    @GetMapping("/{memberId}/activity")
+    @Operation(
+            summary = "회원 활동 요약 조회(관리자)",
+            description = "ACTIVE 회원 기준으로 현재 저장된 게시글/댓글/파티/문의/신고 데이터를 요약 조회합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = OpenApiMemberSchemas.AdminMemberActivityApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.SUCCESS_ADMIN_MEMBER_ACTIVITY)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "관리자 권한 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "admin_required", value = OpenApiCommonExamples.ERROR_ADMIN_REQUIRED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회원 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "member_not_found", value = OpenApiMemberExamples.ERROR_MEMBER_NOT_FOUND)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "탈퇴 회원 활동 요약 조회 불가",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(
+                                    name = "member_activity_not_available_for_withdrawn",
+                                    value = OpenApiMemberExamples.ERROR_MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<AdminMemberActivityResponse>> getAdminMemberActivity(
+            @Parameter(description = "활동 요약을 조회할 회원 ID(Firebase UID)", example = "dw9rPtuticbjnaYPkeiF3RGPpqk1")
+            @PathVariable String memberId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(memberAdminService.getAdminMemberActivity(memberId)));
     }
 
     @PatchMapping("/{memberId}/admin-role")

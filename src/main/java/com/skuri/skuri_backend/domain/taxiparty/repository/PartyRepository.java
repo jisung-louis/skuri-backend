@@ -66,6 +66,26 @@ public interface PartyRepository extends JpaRepository<Party, String> {
             """)
     List<Party> findMyParties(@Param("memberId") String memberId);
 
+    Page<Party> findByLeaderId(String leaderId, Pageable pageable);
+
+    @Query(
+            value = """
+                    select distinct p
+                    from Party p
+                    join p.members pm
+                    where pm.id.memberId = :memberId
+                      and p.leaderId <> :memberId
+                    """,
+            countQuery = """
+                    select count(distinct p.id)
+                    from Party p
+                    join p.members pm
+                    where pm.id.memberId = :memberId
+                      and p.leaderId <> :memberId
+                    """
+    )
+    Page<Party> findJoinedPartiesExcludingLeader(@Param("memberId") String memberId, Pageable pageable);
+
     @EntityGraph(attributePaths = {"members"})
     @Query("""
             select distinct p

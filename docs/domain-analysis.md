@@ -119,8 +119,10 @@ Hooks:
   - 회원 탈퇴는 hard delete 대신 soft delete tombstone(`status`, `withdrawnAt`)으로 관리
   - 탈퇴 시 `members` row는 보존하되 개인정보를 스크럽하고, `linked_accounts`는 전량 삭제
   - 탈퇴한 동일 Firebase UID는 `POST /v1/members`에서 재활성화하지 않고 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환
-  - 관리자 백오피스용 회원 관리 P1 API는 `/v1/admin/members`, `/v1/admin/members/{memberId}`, `/v1/admin/members/{memberId}/admin-role`로 제공한다.
+  - 관리자 백오피스용 회원 관리 API는 `/v1/admin/members`, `/v1/admin/members/{memberId}`, `/v1/admin/members/{memberId}/activity`, `/v1/admin/members/{memberId}/admin-role`로 제공한다.
   - 관리자 상세 응답은 운영 화면 요구에 맞춰 `bankAccount`, `notificationSetting`, `withdrawnAt`를 포함한다.
+  - 활동 요약은 ACTIVE 회원만 제공하며, 현재 저장된 post/comment/party/inquiry/report 데이터를 조합한 read-only 관리자 read model이다. 댓글은 삭제되지 않은 comment이면서 부모 post도 삭제되지 않은 경우만 집계한다. 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`을 반환한다.
+  - 활동 요약의 count는 `posts/comments/partiesCreated/partiesJoined/inquiries/reportsSubmitted`를 사용하고, recent list는 도메인별 최신 5건으로 유지한다.
   - 관리자 권한 변경은 기존 `members.isAdmin` boolean만 조작하며, 자기 자신의 계정 대상 요청은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`, 탈퇴 회원 대상 요청은 `409 CONFLICT`로 거부한다.
   - 이번 Phase는 self role change guard만 적용하고, 마지막 관리자 수 계산 같은 추가 운영 정책은 후속 범위로 남긴다.
   - admin-role 변경 감사 로그는 최소 snapshot(`id`, `email`, `nickname`, `isAdmin`, `status`)만 저장하고 `bankAccount`, `notificationSetting`는 적재하지 않는다.

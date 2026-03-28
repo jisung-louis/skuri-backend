@@ -14,6 +14,8 @@ public interface InquiryRepository extends JpaRepository<Inquiry, String> {
 
     List<Inquiry> findByUserIdOrderByCreatedAtDesc(String userId);
 
+    Page<Inquiry> findByUserId(String userId, Pageable pageable);
+
     Page<Inquiry> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     Page<Inquiry> findByStatusOrderByCreatedAtDesc(InquiryStatus status, Pageable pageable);

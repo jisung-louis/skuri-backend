@@ -27,6 +27,7 @@ public enum ErrorCode {
     WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED(HttpStatus.CONFLICT, "WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED", "탈퇴한 계정은 같은 인증 계정으로 재가입할 수 없습니다."),
     MEMBER_WITHDRAWAL_NOT_ALLOWED(HttpStatus.CONFLICT, "MEMBER_WITHDRAWAL_NOT_ALLOWED", "현재 상태에서는 회원 탈퇴를 진행할 수 없습니다."),
     SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED", "자기 자신의 관리자 권한은 변경할 수 없습니다."),
+    MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN(HttpStatus.CONFLICT, "MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN", "탈퇴한 회원의 활동 요약은 조회할 수 없습니다."),
     BANK_ACCOUNT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT, "BANK_ACCOUNT_REQUIRED", "계좌 정보 등록 후 이용 가능합니다."),
 
     // 이미지(Image) 업로드/미디어 도메인 에러.

@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberAdminRoleRequest;
+import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberActivityResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberDetailResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberSummaryResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberBankAccountResponse;
@@ -162,6 +163,49 @@ class MemberAdminControllerContractTest {
     }
 
     @Test
+    void getAdminMemberActivity_관리자정상요청_200() throws Exception {
+        mockToken("admin-token", true);
+        when(memberAdminService.getAdminMemberActivity("member-1")).thenReturn(adminMemberActivityResponse());
+
+        mockMvc.perform(
+                        get("/v1/admin/members/member-1/activity")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.memberId").value("member-1"))
+                .andExpect(jsonPath("$.data.counts.posts").value(12))
+                .andExpect(jsonPath("$.data.recentParties[0].role").value("LEADER"))
+                .andExpect(jsonPath("$.data.recentReports[0].status").value("REVIEWING"));
+    }
+
+    @Test
+    void getAdminMemberActivity_비관리자요청_403() throws Exception {
+        mockToken("user-token", false);
+
+        mockMvc.perform(
+                        get("/v1/admin/members/member-1/activity")
+                                .header(AUTHORIZATION, "Bearer user-token")
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("ADMIN_REQUIRED"));
+    }
+
+    @Test
+    void getAdminMemberActivity_탈퇴회원이면_409() throws Exception {
+        mockToken("admin-token", true);
+        when(memberAdminService.getAdminMemberActivity("withdrawn-member"))
+                .thenThrow(new BusinessException(ErrorCode.MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN));
+
+        mockMvc.perform(
+                        get("/v1/admin/members/withdrawn-member/activity")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN"))
+                .andExpect(jsonPath("$.message").value("탈퇴한 회원의 활동 요약은 조회할 수 없습니다."));
+    }
+
+    @Test
     void updateAdminRole_관리자정상요청_200() throws Exception {
         mockToken("admin-token", true);
         when(memberAdminService.updateAdminRole(eq("admin-uid"), eq("member-1"), any(UpdateMemberAdminRoleRequest.class)))
@@ -303,6 +347,60 @@ class MemberAdminControllerContractTest {
                         true,
                         false,
                         Map.of("academic", true, "event", false)
+                )
+        );
+    }
+
+    private AdminMemberActivityResponse adminMemberActivityResponse() {
+        return new AdminMemberActivityResponse(
+                "member-1",
+                LocalDateTime.of(2026, 3, 29, 16, 0),
+                new AdminMemberActivityResponse.ActivityCounts(12, 34, 3, 7, 2, 1),
+                java.util.List.of(
+                        new AdminMemberActivityResponse.RecentPost(
+                                "post-1",
+                                "택시 파티 구해요",
+                                com.skuri.skuri_backend.domain.board.entity.PostCategory.GENERAL,
+                                LocalDateTime.of(2026, 3, 28, 14, 0)
+                        )
+                ),
+                java.util.List.of(
+                        new AdminMemberActivityResponse.RecentComment(
+                                "comment-1",
+                                "post-1",
+                                "택시 파티 구해요",
+                                "저도 참여하고 싶어요",
+                                LocalDateTime.of(2026, 3, 28, 14, 10)
+                        )
+                ),
+                java.util.List.of(
+                        new AdminMemberActivityResponse.RecentParty(
+                                "party-1",
+                                AdminMemberActivityResponse.PartyRole.LEADER,
+                                com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus.OPEN,
+                                "성결대 정문 → 안양역",
+                                LocalDateTime.of(2026, 3, 30, 18, 0),
+                                LocalDateTime.of(2026, 3, 29, 9, 0)
+                        )
+                ),
+                java.util.List.of(
+                        new AdminMemberActivityResponse.RecentInquiry(
+                                "inquiry-1",
+                                com.skuri.skuri_backend.domain.support.entity.InquiryType.ACCOUNT,
+                                "계정 문의",
+                                com.skuri.skuri_backend.domain.support.entity.InquiryStatus.PENDING,
+                                LocalDateTime.of(2026, 3, 28, 11, 0)
+                        )
+                ),
+                java.util.List.of(
+                        new AdminMemberActivityResponse.RecentReport(
+                                "report-1",
+                                com.skuri.skuri_backend.domain.support.entity.ReportTargetType.POST,
+                                "post-9",
+                                "SPAM",
+                                com.skuri.skuri_backend.domain.support.entity.ReportStatus.REVIEWING,
+                                LocalDateTime.of(2026, 3, 27, 20, 0)
+                        )
                 )
         );
     }
