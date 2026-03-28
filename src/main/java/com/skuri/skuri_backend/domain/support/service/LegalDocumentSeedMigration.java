@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +41,7 @@ public class LegalDocumentSeedMigration {
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void seed() {
-        if (seedMigrationRepository.existsById(MIGRATION_KEY)) {
+        if (!acquireMigrationMarker()) {
             return;
         }
 
@@ -84,12 +85,20 @@ public class LegalDocumentSeedMigration {
                 )
         );
 
-        seedMigrationRepository.save(SeedMigration.apply(MIGRATION_KEY));
-
         if (createdCount > 0) {
             log.info("법적 문서 초기 seed migration 완료: {}건 생성", createdCount);
         } else {
             log.info("법적 문서 초기 seed migration 완료: 기존 데이터 유지");
+        }
+    }
+
+    private boolean acquireMigrationMarker() {
+        try {
+            seedMigrationRepository.saveAndFlush(SeedMigration.apply(MIGRATION_KEY));
+            return true;
+        } catch (DataIntegrityViolationException e) {
+            log.info("법적 문서 초기 seed migration 건너뜀: 이미 다른 인스턴스에서 적용됨");
+            return false;
         }
     }
 

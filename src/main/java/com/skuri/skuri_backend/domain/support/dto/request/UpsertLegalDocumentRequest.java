@@ -26,7 +26,7 @@ public record UpsertLegalDocumentRequest(
         @NotNull(message = "sections는 필수입니다.")
         @Size(min = 1, message = "sections는 최소 1개 이상이어야 합니다.")
         @Schema(description = "본문 섹션 목록")
-        List<@Valid SectionRequest> sections,
+        List<@NotNull(message = "sections 항목은 null일 수 없습니다.") @Valid SectionRequest> sections,
 
         @NotNull(message = "footerLines는 필수입니다.")
         @Schema(description = "하단 안내 문구 목록")
@@ -46,7 +46,7 @@ public record UpsertLegalDocumentRequest(
             @NotNull(message = "banner.lines는 필수입니다.")
             @Size(min = 1, message = "banner.lines는 최소 1개 이상이어야 합니다.")
             @Schema(description = "배너 라인 목록")
-            List<@Valid BannerLineRequest> lines,
+            List<@NotNull(message = "banner.lines 항목은 null일 수 없습니다.") @Valid BannerLineRequest> lines,
 
             @NotBlank(message = "banner.title은 필수입니다.")
             @Size(max = 200, message = "banner.title은 200자 이하여야 합니다.")
