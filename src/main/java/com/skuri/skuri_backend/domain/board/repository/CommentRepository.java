@@ -62,7 +62,23 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
     List<Comment> findByAuthorId(String authorId);
 
     @EntityGraph(attributePaths = {"post"})
-    Page<Comment> findByAuthorIdAndDeletedFalse(String authorId, Pageable pageable);
+    @Query(
+            value = """
+                    select c
+                    from Comment c
+                    where c.authorId = :authorId
+                      and c.deleted = false
+                      and c.post.deleted = false
+                    """,
+            countQuery = """
+                    select count(c)
+                    from Comment c
+                    where c.authorId = :authorId
+                      and c.deleted = false
+                      and c.post.deleted = false
+                    """
+    )
+    Page<Comment> findActiveByAuthorId(@Param("authorId") String authorId, Pageable pageable);
 
     @Query("""
             select distinct c.post.id

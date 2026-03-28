@@ -101,7 +101,7 @@ public class MemberAdminService {
         Page<PostSummaryProjection> recentPostPage =
                 postRepository.findActiveSummariesByAuthorId(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
         Page<Comment> recentCommentPage =
-                commentRepository.findByAuthorIdAndDeletedFalse(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
+                commentRepository.findActiveByAuthorId(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
         Page<Party> recentCreatedPartyPage =
                 partyRepository.findByLeaderId(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
         Page<Party> recentJoinedPartyPage =
