@@ -7,6 +7,11 @@ import com.skuri.skuri_backend.domain.board.exception.CommentNotFoundException;
 import com.skuri.skuri_backend.domain.board.exception.PostNotFoundException;
 import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostRepository;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
+import com.skuri.skuri_backend.domain.chat.exception.ChatMessageNotFoundException;
+import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
+import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.dto.request.CreateReportRequest;
@@ -18,6 +23,8 @@ import com.skuri.skuri_backend.domain.support.entity.ReportStatus;
 import com.skuri.skuri_backend.domain.support.entity.ReportTargetType;
 import com.skuri.skuri_backend.domain.support.exception.ReportNotFoundException;
 import com.skuri.skuri_backend.domain.support.repository.ReportRepository;
+import com.skuri.skuri_backend.domain.taxiparty.exception.PartyNotFoundException;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import com.skuri.skuri_backend.infra.admin.list.AdminPageRequestPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,6 +44,9 @@ public class ReportService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final PartyRepository partyRepository;
 
     @Transactional
     public ReportCreateResponse createReport(String reporterId, CreateReportRequest request) {
@@ -92,7 +102,23 @@ public class ReportService {
             case MEMBER -> memberRepository.findById(targetId)
                     .orElseThrow(MemberNotFoundException::new)
                     .getId();
+            case CHAT_MESSAGE -> chatMessageRepository.findById(targetId)
+                    .orElseThrow(ChatMessageNotFoundException::new)
+                    .getSenderId();
+            case CHAT_ROOM -> resolveChatRoomAuthorId(targetId);
+            case TAXI_PARTY -> partyRepository.findById(targetId)
+                    .orElseThrow(PartyNotFoundException::new)
+                    .getLeaderId();
         };
+    }
+
+    private String resolveChatRoomAuthorId(String targetId) {
+        ChatRoom room = chatRoomRepository.findById(targetId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+        if (room.getType() == ChatRoomType.PARTY) {
+            throw new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND);
+        }
+        return room.getCreatedBy();
     }
 
     private AdminReportResponse toAdminResponse(Report report) {

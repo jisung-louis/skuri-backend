@@ -74,6 +74,7 @@ public enum ErrorCode {
     // 채팅(Chat) 도메인 에러.
     // 채팅방 참여 자격, 정원 제한, WebSocket 인증 실패 등 채팅 통신 관련 오류를 다룬다.
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_ROOM_NOT_FOUND", "채팅방을 찾을 수 없습니다."),
+    CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_MESSAGE_NOT_FOUND", "채팅 메시지를 찾을 수 없습니다."),
     NOT_CHAT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "NOT_CHAT_ROOM_MEMBER", "채팅방 멤버가 아닙니다."),
     CHAT_ROOM_FULL(HttpStatus.CONFLICT, "CHAT_ROOM_FULL", "채팅방 정원이 가득 찼습니다."),
     ALREADY_CHAT_ROOM_MEMBER(HttpStatus.CONFLICT, "ALREADY_CHAT_ROOM_MEMBER", "이미 채팅방에 참여 중입니다."),
