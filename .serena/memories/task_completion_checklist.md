@@ -36,3 +36,6 @@
 10. 배포 전/후 체크리스트와 rollback 문서 동기화 확인
 11. 운영 MySQL 접근 정책을 바꿨다면 host 바인딩이 `127.0.0.1` loopback 으로만 열리는지 확인
 12. Phase 10 이전 운영 DB 업그레이드면 앱 기동 전에 `members.status` 수동 마이그레이션 SQL을 먼저 적용했는지 확인
+13. 관리자 회원 API를 건드렸다면 `GET /v1/admin/members`의 `PageResponse + joinedAt,DESC + query/status/isAdmin/department` 규약, 비관리자 `403 ADMIN_REQUIRED`, 상세 응답 노출 필드, 권한 변경 성공/탈퇴 회원 `409`을 함께 확인한다.
+14. 관리자 회원 권한 변경 정책에 self-demotion/마지막 관리자 보호가 없으면 런타임 제약을 임의 추가하지 말고 docs/PR open question으로 남긴다.
+15. 사용자 관리 placeholder를 닫는 작업이면 backend 문서뿐 아니라 `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/README.md`, 그리고 공유 계약 문서인 `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md` 동기화를 확인한다.

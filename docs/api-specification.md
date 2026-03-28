@@ -4275,7 +4275,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 **운영 공통 규약**
 - 공통 인가: Admin Controller는 공통 메타 어노테이션(`@AdminApiAccess`) 기준으로 보호하며, `/v1/admin/**` 접근 거부는 `403 ADMIN_REQUIRED`로 표준화한다.
 - 감사 로그: 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)는 `admin_audit_logs`에 `actor_id(uid)`, `action`, `target_type`, `target_id`, `diff_before`, `diff_after`, `timestamp`를 저장한다. `actor_id`는 `members.id`의 논리적 참조이며 물리 FK는 두지 않는다. `target_id`는 raw 입력이 아니라 서비스와 동일한 canonical 키(`semester=2026-1`, `platform=ios`)를 저장한다. `GET` 조회는 고빈도 운영 조회 로그와 개인정보 중복 적재를 피하기 위해 감사 로그 대상에서 제외한다.
-- 목록 조회 규약: 문의/신고 Admin 목록은 `PageResponse`를 사용하고 `page=0`, `size=20`, `size<=100`, 고정 정렬 `createdAt,DESC`를 따른다. 자유 검색/가변 정렬/CSV export는 현 Phase 런타임 API 범위에서 제외한다.
+- 목록 조회 규약: 문의/신고 Admin 목록은 `PageResponse`를 사용하고 `page=0`, `size=20`, `size<=100`, 고정 정렬 `createdAt,DESC`를 따른다. 회원 Admin 목록은 `query(email/nickname/realname/studentId 부분 검색)`, `status`, `isAdmin`, `department` 필터와 `joinedAt,DESC` 고정 정렬을 사용한다. 자유 검색/가변 정렬/CSV export는 현 Phase 런타임 API 범위에서 제외한다.
 - 운영 데이터 노출: Inquiry의 구조화 개인정보(`userEmail`, `userName`, `userRealname`, `userStudentId`)는 관리자 응답에서만 노출하며, 회원 탈퇴 후에는 탈퇴 마스킹 정책이 적용된 값만 조회된다. 자유서술 `content`는 별도 자동 마스킹하지 않는다.
 
 > **기존 방식과의 차이:**
@@ -4285,7 +4285,188 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.1 캠퍼스 홈 배너 관리
+### 12.1 관리자 회원 관리
+
+#### GET /v1/admin/members
+회원 목록 조회
+
+- 목적: `/users` 화면의 목록/검색/필터/페이지네이션
+- 기본 정렬: `joinedAt DESC`
+- `query`는 `email`, `nickname`, `realname`, `studentId` 부분 검색에 사용한다.
+- `status`는 현재 `MemberStatus`(`ACTIVE`, `WITHDRAWN`)만 허용한다.
+- `department`는 회원 프로필 수정과 동일한 학과 카탈로그를 사용한다. legacy alias(예: `소프트웨어학과`)는 canonical 값으로 정규화하고, 지원하지 않는 값은 `422 VALIDATION_ERROR`를 반환한다.
+
+**Query Parameters:**
+
+| 이름 | 타입 | 기본값 | 설명 |
+|---|---|---|---|
+| `page` | int | `0` | 페이지 번호 |
+| `size` | int | `20` | 페이지 크기 (`1..100`) |
+| `query` | string | `null` | `email/nickname/realname/studentId` 부분 검색 |
+| `status` | enum | `null` | `ACTIVE`, `WITHDRAWN` |
+| `isAdmin` | boolean | `null` | 관리자 여부 필터 |
+| `department` | string | `null` | canonical 학과명 필터 |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": "member-1",
+        "email": "admin@sungkyul.ac.kr",
+        "nickname": "스쿠리 운영자",
+        "realname": "김관리",
+        "studentId": "20190001",
+        "department": "컴퓨터공학과",
+        "isAdmin": true,
+        "joinedAt": "2024-03-01T09:00:00",
+        "lastLogin": "2026-03-29T11:20:00",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "member-2",
+        "email": "user@sungkyul.ac.kr",
+        "nickname": "스쿠리 유저",
+        "realname": "홍길동",
+        "studentId": "2023112233",
+        "department": "경영학과",
+        "isAdmin": false,
+        "joinedAt": "2025-09-01T08:30:00",
+        "lastLogin": "2026-03-28T18:00:00",
+        "status": "ACTIVE"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 48,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrevious": false
+  }
+}
+```
+
+#### GET /v1/admin/members/{memberId}
+회원 상세 조회
+
+- 목적: 관리자용 회원 상세 사이드패널/상세 화면
+- 활성 회원과 탈퇴 회원 모두 조회할 수 있다.
+- 운영 화면 요구사항에 맞춰 `bankAccount`, `notificationSetting`, `withdrawnAt`를 함께 제공한다.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "member-2",
+    "email": "user@sungkyul.ac.kr",
+    "nickname": "스쿠리 유저",
+    "realname": "홍길동",
+    "studentId": "2023112233",
+    "department": "컴퓨터공학과",
+    "photoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+    "isAdmin": false,
+    "status": "ACTIVE",
+    "joinedAt": "2025-03-01T09:00:00",
+    "lastLogin": "2026-03-29T10:05:00",
+    "withdrawnAt": null,
+    "bankAccount": {
+      "bankName": "신한은행",
+      "accountNumber": "110-123-456789",
+      "accountHolder": "홍길동",
+      "hideName": false
+    },
+    "notificationSetting": {
+      "allNotifications": true,
+      "partyNotifications": true,
+      "noticeNotifications": true,
+      "boardLikeNotifications": true,
+      "commentNotifications": true,
+      "bookmarkedPostCommentNotifications": true,
+      "systemNotifications": true,
+      "academicScheduleNotifications": true,
+      "academicScheduleDayBeforeEnabled": true,
+      "academicScheduleAllEventsEnabled": false,
+      "noticeNotificationsDetail": {
+        "academic": true,
+        "event": false
+      }
+    }
+  }
+}
+```
+
+#### PATCH /v1/admin/members/{memberId}/admin-role
+관리자 권한 부여/회수
+
+- 목적: 회원의 `isAdmin` boolean 변경
+- 요청은 관리자 권한 부여(`true`) 또는 회수(`false`)만 다룬다.
+- 탈퇴 회원(`WITHDRAWN`)은 접근 차단 대상이며, 관리자 권한 변경 요청에는 `409 CONFLICT`를 반환한다.
+- 현재 코드/문서 기준으로 self-demotion 또는 마지막 관리자 보호 정책은 별도 정의되어 있지 않다. 이번 Phase는 기존 `members.is_admin` boolean 의미만 유지하고 추가 제약을 도입하지 않는다.
+
+**Request:**
+```json
+{
+  "isAdmin": true
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "member-2",
+    "email": "user@sungkyul.ac.kr",
+    "nickname": "스쿠리 유저",
+    "realname": "홍길동",
+    "studentId": "2023112233",
+    "department": "컴퓨터공학과",
+    "photoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+    "isAdmin": true,
+    "status": "ACTIVE",
+    "joinedAt": "2025-03-01T09:00:00",
+    "lastLogin": "2026-03-29T10:05:00",
+    "withdrawnAt": null,
+    "bankAccount": {
+      "bankName": "신한은행",
+      "accountNumber": "110-123-456789",
+      "accountHolder": "홍길동",
+      "hideName": false
+    },
+    "notificationSetting": {
+      "allNotifications": true,
+      "partyNotifications": true,
+      "noticeNotifications": true,
+      "boardLikeNotifications": true,
+      "commentNotifications": true,
+      "bookmarkedPostCommentNotifications": true,
+      "systemNotifications": true,
+      "academicScheduleNotifications": true,
+      "academicScheduleDayBeforeEnabled": true,
+      "academicScheduleAllEventsEnabled": false,
+      "noticeNotificationsDetail": {
+        "academic": true,
+        "event": false
+      }
+    }
+  }
+}
+```
+
+**Response (409 Conflict - 탈퇴 회원):**
+```json
+{
+  "success": false,
+  "message": "탈퇴한 회원의 관리자 권한은 변경할 수 없습니다.",
+  "errorCode": "CONFLICT",
+  "timestamp": "2026-03-29T12:00:00"
+}
+```
+
+### 12.2 캠퍼스 홈 배너 관리
 
 #### GET /v1/admin/campus-banners
 캠퍼스 홈 배너 목록 조회
@@ -4507,7 +4688,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 - `displayEndAt < displayStartAt` 금지
 - `actionParams`는 JSON object만 허용
 
-### 12.2 앱 공지 관리
+### 12.3 앱 공지 관리
 
 #### POST /v1/admin/app-notices
 앱 공지 생성
@@ -4590,7 +4771,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.3 앱 버전 관리
+### 12.4 앱 버전 관리
 
 #### PUT /v1/admin/app-versions/{platform}
 앱 버전 정보 업데이트
@@ -4625,7 +4806,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.4 법적 문서 관리
+### 12.5 법적 문서 관리
 
 #### GET /v1/admin/legal-documents
 법적 문서 목록 요약 조회
@@ -4696,7 +4877,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.5 공개 채팅방 관리
+### 12.6 공개 채팅방 관리
 
 공개 채팅방(UNIVERSITY, DEPARTMENT 등)은 사용자가 직접 생성할 수 없으며, 관리자만 생성/삭제합니다.
 파티 채팅방은 파티 생성 시 서버 내부에서 자동으로 생성됩니다.
@@ -4750,7 +4931,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.5 학교 공지 동기화
+### 12.7 학교 공지 동기화
 
 기존 `scripts/upload-notices.js`의 역할을 대체합니다.
 학교 공지 크롤링 후 DB에 동기화합니다.
@@ -4780,7 +4961,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.6 학식 메뉴 관리
+### 12.8 학식 메뉴 관리
 
 #### POST /v1/admin/cafeteria-menus
 학식 메뉴 등록
@@ -4838,7 +5019,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.7 학사 일정 관리
+### 12.9 학사 일정 관리
 
 #### POST /v1/admin/academic-schedules
 학사 일정 추가
@@ -4891,7 +5072,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.8 강의 관리
+### 12.10 강의 관리
 
 #### POST /v1/admin/courses/bulk
 학기 강의 일괄 등록 (매 학기 강의 데이터 업로드)
@@ -4961,7 +5142,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.9 운영 문의/신고 관리
+### 12.11 운영 문의/신고 관리
 
 **운영 목록 공통 규약**
 - 두 목록 API 모두 `PageResponse`(`content`, `page`, `size`, `totalElements`, `totalPages`, `hasNext`, `hasPrevious`)를 동일하게 반환한다.
@@ -5177,7 +5358,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.10 에러 코드
+### 12.12 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
@@ -5222,6 +5403,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Chat 계약 동기화 — `lastMessage.createdAt`/`accountData` 필드로 통일, 비공개 채팅방 접근 정책(REST/WS) 및 STOMP 에러 포맷(`/user/queue/errors`) 명시
 > - 2026-03-05: Chat 명세 보완 — 채팅방 요약 `lastMessage.senderName` 예시 추가, STOMP 메시지 `NON_NULL` 직렬화 정책 명시
 > - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, source of truth를 `members.photo_url`로 고정하고 `null` 직렬화 정책을 명시
+> - 2026-03-29: Admin Member API P1 추가 — `GET /v1/admin/members`, `GET /v1/admin/members/{memberId}`, `PATCH /v1/admin/members/{memberId}/admin-role` 계약과 회원 목록 필터/정렬 규약, 탈퇴 회원 권한 변경 `409 CONFLICT`, self-demotion/마지막 관리자 정책 open question을 문서화
 > - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강

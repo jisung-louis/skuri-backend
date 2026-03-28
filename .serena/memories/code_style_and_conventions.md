@@ -45,3 +45,8 @@
 - 브라우저 기반 관리자 페이지의 REST API CORS 허용 Origin은 `API_ALLOWED_ORIGIN_PATTERNS`로, WebSocket `/ws` Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`로 분리 관리한다.
 - CD의 admin REST CORS smoke check는 `CD_SMOKE_CORS_ORIGIN`을 우선 사용하고, 비어 있으면 `API_ALLOWED_ORIGIN_PATTERNS`의 첫 번째 exact origin을 재사용한다.
 - CD workflow는 `production-deploy` concurrency 그룹으로 최신 run만 유지하고 이전 run은 자동 취소한다.
+- 관리자 회원 목록 API는 Support Admin 목록 규약과 동일하게 `AdminPageRequestPolicy`를 사용하되 정렬은 `joinedAt,DESC`로 고정하고 필터는 `query/status/isAdmin/department`만 허용한다.
+- 관리자 회원 검색의 `department` 입력은 `DepartmentCatalog.normalize`로 정규화하고, 지원하지 않는 값은 `VALIDATION_ERROR`로 처리한다.
+- 회원 관리자 권한 변경은 Service에서만 판단하고, 탈퇴 회원에 대한 권한 변경은 `CONFLICT` business error로 막는다.
+- 관리자 회원 권한 변경은 `@AdminAudit` + member snapshot으로 before/after diff를 남긴다.
+- self-demotion/마지막 관리자 보호 정책은 코드/문서 근거가 생기기 전까지 임의 추가하지 않는다.

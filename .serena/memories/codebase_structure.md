@@ -46,3 +46,13 @@
 - `src/test/java/com/skuri/skuri_backend/domain/support/service/LegalDocumentServiceTest.java`
 - `src/test/java/com/skuri/skuri_backend/domain/support/service/LegalDocumentSeedMigrationTest.java`
 - `src/test/java/com/skuri/skuri_backend/infra/openapi/OpenApiSuccessSchemaCoverageIntegrationTest.java`
+
+## Admin Member API 관련 파일
+- `src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberAdminController.java`: 관리자 회원 목록/상세/권한 변경 API와 OpenAPI 어노테이션
+- `src/main/java/com/skuri/skuri_backend/domain/member/service/MemberAdminService.java`: 회원 검색/필터/상세/권한 변경 비즈니스 로직
+- `src/main/java/com/skuri/skuri_backend/domain/member/dto/response/AdminMemberSummaryResponse.java`, `AdminMemberDetailResponse.java`, `dto/request/UpdateMemberAdminRoleRequest.java`: 관리자 전용 DTO
+- `src/main/java/com/skuri/skuri_backend/domain/member/repository/MemberRepository.java`: 관리자 회원 검색 JPQL, 권한 변경용 lock 조회 재사용
+- `src/main/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditSnapshotFactory.java`: 회원 snapshot 감사 로그 지원
+- `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiMemberSchemas.java`, `OpenApiMemberExamples.java`, `OpenApiConfig.java`: 관리자 회원 API schema/example/group 반영
+- `src/test/java/com/skuri/skuri_backend/domain/member/controller/MemberAdminControllerContractTest.java`, `service/MemberAdminServiceTest.java`: 신규 contract/service 테스트
+- `src/test/java/com/skuri/skuri_backend/infra/auth/AdminApiGuardIntegrationTest.java`, `infra/admin/audit/AdminAuditIntegrationTest.java`: admin guard/audit 회귀 검증 확장

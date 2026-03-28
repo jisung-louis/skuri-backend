@@ -42,3 +42,9 @@
 - OpenAPI는 로컬에서 노출하고 `prod`에서는 기본 비노출이다.
 - 상태 변경 이후 알림/외부 후처리는 after-commit semantics를 따른다.
 - Admin API는 `@AdminApiAccess`, `ADMIN_REQUIRED`, `admin_audit_logs` 기반 정책을 사용한다.
+
+## Admin Member API 메모
+- `member` 도메인은 관리자 백오피스 P1 회원 관리 API를 제공한다: `GET /v1/admin/members`, `GET /v1/admin/members/{memberId}`, `PATCH /v1/admin/members/{memberId}/admin-role`.
+- 관리자 목록은 `query/status/isAdmin/department` 필터와 `joinedAt desc` 고정 정렬, `PageResponse` 규약을 사용한다.
+- 관리자 상세는 목록 필드 외에 `photoUrl`, `withdrawnAt`, `bankAccount`, `notificationSetting`을 포함한다.
+- 관리자 권한 변경은 기존 `members.is_admin` boolean만 갱신하며, 탈퇴 회원은 `409 CONFLICT`로 차단하고 self-demotion/마지막 관리자 보호는 후속 정책 결정 전까지 강제하지 않는다.
