@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.taxiparty.controller;
 
+import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestResponse;
@@ -8,7 +9,9 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.MyPartyResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyLocationResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyMemberResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyParticipantSummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementAccountResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementSummaryResponse;
@@ -49,6 +52,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.hamcrest.Matchers;
+
 @WebMvcTest(controllers = PartyController.class)
 @Import({
         SecurityConfig.class,
@@ -66,6 +71,59 @@ class PartyControllerContractTest {
 
     @MockitoBean
     private FirebaseTokenVerifier firebaseTokenVerifier;
+
+    @Test
+    void getParties_참가자요약필드노출() throws Exception {
+        mockValidToken();
+        when(taxiPartyService.getParties(any(), any(), any(), any(), any()))
+                .thenReturn(PageResponse.<PartySummaryResponse>builder()
+                        .content(List.of(new PartySummaryResponse(
+                                "party-1",
+                                "leader-1",
+                                "홍길동",
+                                "https://cdn.skuri.app/uploads/profiles/leader.jpg",
+                                List.of(
+                                        new PartyParticipantSummaryResponse(
+                                                "leader-1",
+                                                "https://cdn.skuri.app/uploads/profiles/leader.jpg",
+                                                "홍길동",
+                                                true
+                                        ),
+                                        new PartyParticipantSummaryResponse(
+                                                "member-1",
+                                                null,
+                                                "김민수",
+                                                false
+                                        )
+                                ),
+                                new PartyLocationResponse("안양역", 37.401, 126.922),
+                                new PartyLocationResponse("인덕원역", 37.400, 126.983),
+                                LocalDateTime.of(2026, 3, 29, 18, 30),
+                                4,
+                                2,
+                                List.of("빠른출발"),
+                                "정문 앞에서 바로 출발해요",
+                                PartyStatus.OPEN,
+                                LocalDateTime.of(2026, 3, 29, 13, 0)
+                        )))
+                        .page(0)
+                        .size(20)
+                        .totalElements(1)
+                        .totalPages(1)
+                        .hasNext(false)
+                        .hasPrevious(false)
+                        .build());
+
+        mockMvc.perform(
+                        get("/v1/parties")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].participantSummaries[0].id").value("leader-1"))
+                .andExpect(jsonPath("$.data.content[0].participantSummaries[0].photoUrl").value("https://cdn.skuri.app/uploads/profiles/leader.jpg"))
+                .andExpect(jsonPath("$.data.content[0].participantSummaries[1].photoUrl").value(Matchers.nullValue()))
+                .andExpect(jsonPath("$.data.content[0].leaderPhotoUrl").value("https://cdn.skuri.app/uploads/profiles/leader.jpg"));
+    }
 
     @Test
     void closeParty_endReasonNull이면_필드미노출() throws Exception {

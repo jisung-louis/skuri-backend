@@ -1,5 +1,6 @@
 package com.skuri.skuri_backend.domain.taxiparty.service;
 
+import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
@@ -14,7 +15,9 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestAcceptRe
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyCreateResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyParticipantSummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementConfirmResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryItemResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.TaxiHistoryRole;
@@ -37,6 +40,8 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -104,6 +109,38 @@ class TaxiPartyServiceTest {
         assertEquals("party:party-created", response.chatRoomId());
         verify(chatService).createPartyChatRoom(any(Party.class));
         verify(partySseService).publishPartyCreated(any(Party.class), eq(null));
+    }
+
+    @Test
+    void getParties_참가자요약과프로필사진을포함한다() {
+        Party summaryParty = sampleParty("party-1", "leader", 4, "member-1", "member-2");
+        Party detailedParty = sampleParty("party-1", "leader", 4, "member-1", "member-2");
+        when(partyRepository.search(null, null, null, null, PageRequest.of(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(summaryParty), PageRequest.of(0, 20), 1));
+        when(partyRepository.findDetailsByIds(List.of("party-1"))).thenReturn(List.of(detailedParty));
+        when(memberRepository.findAllById(List.of("leader", "member-1", "member-2"))).thenReturn(List.of(
+                member("leader", "리더", "https://cdn.skuri.app/uploads/profiles/leader.jpg"),
+                member("member-1", "김민수", null),
+                member("member-2", "박서연", "https://cdn.skuri.app/uploads/profiles/member-2.jpg")
+        ));
+
+        PageResponse<PartySummaryResponse> response = taxiPartyService.getParties(
+                null,
+                null,
+                null,
+                null,
+                PageRequest.of(0, 20)
+        );
+
+        PartySummaryResponse summary = response.getContent().getFirst();
+        assertEquals("https://cdn.skuri.app/uploads/profiles/leader.jpg", summary.leaderPhotoUrl());
+        assertEquals(3, summary.participantSummaries().size());
+        assertEquals("leader", summary.participantSummaries().get(0).id());
+        assertTrue(summary.participantSummaries().get(0).isLeader());
+        assertEquals("member-1", summary.participantSummaries().get(1).id());
+        assertEquals(null, summary.participantSummaries().get(1).photoUrl());
+        assertEquals("member-2", summary.participantSummaries().get(2).id());
+        assertEquals("https://cdn.skuri.app/uploads/profiles/member-2.jpg", summary.participantSummaries().get(2).photoUrl());
     }
 
     @Test
@@ -1017,6 +1054,14 @@ class TaxiPartyServiceTest {
     private Member member(String memberId, String nickname) {
         Member member = member(memberId);
         member.updateProfile(nickname, null, null, null);
+        return member;
+    }
+
+    private Member member(String memberId, String nickname, String photoUrl) {
+        Member member = member(memberId, nickname);
+        if (photoUrl != null) {
+            member.updateProfile(null, null, null, photoUrl);
+        }
         return member;
     }
 
