@@ -21,8 +21,14 @@ import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.service.ChatAdminService;
+import com.skuri.skuri_backend.domain.member.controller.MemberAdminController;
+import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberDetailResponse;
+import com.skuri.skuri_backend.domain.member.dto.response.MemberBankAccountResponse;
+import com.skuri.skuri_backend.domain.member.dto.response.MemberNotificationSettingResponse;
 import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.member.service.MemberAdminService;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeAdminController;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeSyncResponse;
 import com.skuri.skuri_backend.domain.notice.service.NoticeSyncService;
@@ -89,6 +95,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         NoticeAdminController.class,
         AppNoticeAdminController.class,
         CampusBannerAdminController.class,
+        MemberAdminController.class,
         InquiryAdminController.class,
         ReportAdminController.class,
         AppVersionAdminController.class,
@@ -123,6 +130,9 @@ class AdminApiGuardIntegrationTest {
 
     @MockitoBean
     private CampusBannerService campusBannerService;
+
+    @MockitoBean
+    private MemberAdminService memberAdminService;
 
     @MockitoBean
     private InquiryService inquiryService;
@@ -337,6 +347,47 @@ class AdminApiGuardIntegrationTest {
                                         .build()),
                         status().isOk(),
                         jsonPath("$.data.content[0].id").value("inquiry-1")
+                ),
+                endpoint(
+                        "member admin role update",
+                        () -> patch("/v1/admin/members/member-1/admin-role")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "isAdmin": true
+                                        }
+                                        """),
+                        () -> when(memberAdminService.updateAdminRole(eq("member-1"), any()))
+                                .thenReturn(new AdminMemberDetailResponse(
+                                        "member-1",
+                                        "member-1@sungkyul.ac.kr",
+                                        "스쿠리 유저",
+                                        "홍길동",
+                                        "2023112233",
+                                        "컴퓨터공학과",
+                                        "https://cdn.skuri.app/profiles/member-1.png",
+                                        true,
+                                        MemberStatus.ACTIVE,
+                                        LocalDateTime.of(2025, 3, 1, 9, 0),
+                                        LocalDateTime.of(2026, 3, 29, 10, 5),
+                                        null,
+                                        new MemberBankAccountResponse("신한은행", "110-123-456789", "홍길동", false),
+                                        new MemberNotificationSettingResponse(
+                                                true,
+                                                true,
+                                                true,
+                                                true,
+                                                true,
+                                                true,
+                                                true,
+                                                true,
+                                                true,
+                                                false,
+                                                Map.of("academic", true, "event", false)
+                                        )
+                                )),
+                        status().isOk(),
+                        jsonPath("$.data.isAdmin").value(true)
                 ),
                 endpoint(
                         "report list",

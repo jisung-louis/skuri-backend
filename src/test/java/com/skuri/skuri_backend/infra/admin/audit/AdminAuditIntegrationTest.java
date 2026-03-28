@@ -10,6 +10,7 @@ import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionType;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBannerPaletteKey;
 import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
 import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.entity.AppVersion;
 import com.skuri.skuri_backend.domain.support.entity.Inquiry;
@@ -135,6 +136,34 @@ class AdminAuditIntegrationTest {
         assertThat(after.get("status").asText()).isEqualTo(InquiryStatus.RESOLVED.name());
         assertThat(after.get("memo").asText()).isEqualTo("재현 후 수정 배포 완료");
         assertThat(after.get("subject").asText()).isEqualTo("채팅 오류");
+    }
+
+    @Test
+    void 관리자권한변경_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        Member target = saveMember("member-1", false);
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        patch("/v1/admin/members/{memberId}/admin-role", target.getId())
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "isAdmin": true
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getActorId()).isEqualTo("admin-uid");
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.MEMBER_ADMIN_ROLE_UPDATED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.MEMBER);
+        assertThat(auditLog.getTargetId()).isEqualTo(target.getId());
+        assertThat(auditLog.getDiffBefore().get("isAdmin").asBoolean()).isFalse();
+        assertThat(auditLog.getDiffAfter().get("isAdmin").asBoolean()).isTrue();
+        assertThat(auditLog.getDiffAfter().get("status").asText()).isEqualTo(MemberStatus.ACTIVE.name());
     }
 
     @Test
