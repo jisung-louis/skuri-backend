@@ -16,12 +16,14 @@ import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
+import com.skuri.skuri_backend.domain.support.dto.response.LegalDocumentAdminResponse;
 import com.skuri.skuri_backend.domain.support.entity.AppVersion;
 import com.skuri.skuri_backend.domain.support.entity.Inquiry;
 import com.skuri.skuri_backend.domain.support.entity.Report;
 import com.skuri.skuri_backend.domain.support.repository.AppVersionRepository;
 import com.skuri.skuri_backend.domain.support.repository.CafeteriaMenuRepository;
 import com.skuri.skuri_backend.domain.support.repository.InquiryRepository;
+import com.skuri.skuri_backend.domain.support.repository.LegalDocumentRepository;
 import com.skuri.skuri_backend.domain.support.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -42,6 +44,7 @@ public class AdminAuditSnapshotFactory {
     private final InquiryRepository inquiryRepository;
     private final ReportRepository reportRepository;
     private final AppVersionRepository appVersionRepository;
+    private final LegalDocumentRepository legalDocumentRepository;
     private final CafeteriaMenuRepository cafeteriaMenuRepository;
 
     public AcademicScheduleResponse academicSchedule(String scheduleId) {
@@ -164,6 +167,26 @@ public class AdminAuditSnapshotFactory {
                         appVersion.getButtonText(),
                         appVersion.getButtonUrl(),
                         appVersion.getUpdatedAt()
+                ))
+                .orElse(null);
+    }
+
+    public LegalDocumentAdminResponse legalDocument(String documentKey) {
+        return legalDocumentRepository.findById(documentKey)
+                .map(legalDocument -> new LegalDocumentAdminResponse(
+                        legalDocument.getDocumentKey(),
+                        legalDocument.getTitle(),
+                        new com.skuri.skuri_backend.domain.support.model.LegalDocumentBanner(
+                                legalDocument.getBannerIconKey(),
+                                List.copyOf(legalDocument.getBannerLines()),
+                                legalDocument.getBannerTitle(),
+                                legalDocument.getBannerTone()
+                        ),
+                        List.copyOf(legalDocument.getSections()),
+                        List.copyOf(legalDocument.getFooterLines()),
+                        legalDocument.isActive(),
+                        legalDocument.getCreatedAt(),
+                        legalDocument.getUpdatedAt()
                 ))
                 .orElse(null);
     }
