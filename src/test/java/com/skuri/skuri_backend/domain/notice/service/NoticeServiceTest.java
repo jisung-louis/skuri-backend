@@ -8,16 +8,19 @@ import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
 import com.skuri.skuri_backend.domain.notice.dto.request.UpdateNoticeCommentRequest;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkResponse;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentLikeResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeReadResponse;
 import com.skuri.skuri_backend.domain.notice.entity.Notice;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeBookmark;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeComment;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeCommentLike;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeLike;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeReadStatus;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeBookmarkRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentRepository;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentLikeRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeLikeRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeReadStatusRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
@@ -52,6 +55,9 @@ class NoticeServiceTest {
 
     @Mock
     private NoticeCommentRepository noticeCommentRepository;
+
+    @Mock
+    private NoticeCommentLikeRepository noticeCommentLikeRepository;
 
     @Mock
     private NoticeReadStatusRepository noticeReadStatusRepository;
@@ -160,6 +166,29 @@ class NoticeServiceTest {
         NoticeLikeResponse liked = noticeService.likeNotice("member-1", "notice-1");
         NoticeLikeResponse unliked = noticeService.unlikeNotice("member-1", "notice-1");
 
+        assertTrue(liked.isLiked());
+        assertEquals(1, liked.likeCount());
+        assertFalse(unliked.isLiked());
+        assertEquals(0, unliked.likeCount());
+    }
+
+    @Test
+    void commentLikeUnlike_카운트가동기화된다() {
+        Notice notice = notice("notice-1");
+        CommentFixture fixture = comment("comment-1", notice, null, "author-1", false, null);
+        NoticeCommentLike like = NoticeCommentLike.create(fixture.comment, "member-1");
+
+        when(noticeCommentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(fixture.comment));
+        when(noticeCommentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1"))
+                .thenReturn(false)
+                .thenReturn(false);
+        when(noticeCommentLikeRepository.findById_UserIdAndId_CommentId("member-1", "comment-1"))
+                .thenReturn(Optional.of(like));
+
+        NoticeCommentLikeResponse liked = noticeService.likeComment("member-1", "comment-1");
+        NoticeCommentLikeResponse unliked = noticeService.unlikeComment("member-1", "comment-1");
+
+        assertEquals("comment-1", liked.commentId());
         assertTrue(liked.isLiked());
         assertEquals(1, liked.likeCount());
         assertFalse(unliked.isLiked());
@@ -333,25 +362,53 @@ class NoticeServiceTest {
     }
 
     @Test
-    void handleMemberWithdrawal_댓글익명화와좋아요읽음기록삭제를수행한다() {
+    void getComments_likeCount와_isLiked를_합성한다() {
+        Notice notice = notice("notice-1");
+        CommentFixture likedComment = comment("comment-1", notice, null, "member-2", false, null);
+        CommentFixture unlikedComment = comment("comment-2", notice, null, "member-3", false, null);
+        ReflectionTestUtils.setField(likedComment.comment, "likeCount", 5);
+        ReflectionTestUtils.setField(unlikedComment.comment, "likeCount", 1);
+
+        when(noticeRepository.findById("notice-1")).thenReturn(Optional.of(notice));
+        when(noticeCommentRepository.findByNoticeIdOrderByCreatedAtAsc("notice-1"))
+                .thenReturn(List.of(likedComment.comment, unlikedComment.comment));
+        when(noticeCommentLikeRepository.findLikedCommentIds("member-1", List.of("comment-1", "comment-2")))
+                .thenReturn(List.of("comment-1"));
+
+        List<NoticeCommentResponse> responses = noticeService.getComments("member-1", "notice-1");
+
+        assertEquals(5, responses.get(0).likeCount());
+        assertTrue(responses.get(0).isLiked());
+        assertEquals(1, responses.get(1).likeCount());
+        assertFalse(responses.get(1).isLiked());
+    }
+
+    @Test
+    void handleMemberWithdrawal_댓글좋아요익명화와좋아요읽음기록삭제를수행한다() {
         Notice notice = notice("notice-1");
         ReflectionTestUtils.setField(notice, "likeCount", 2);
         ReflectionTestUtils.setField(notice, "bookmarkCount", 3);
         CommentFixture commentFixture = comment("comment-1", notice, null, "member-1", false, null);
+        ReflectionTestUtils.setField(commentFixture.comment, "likeCount", 2);
+        NoticeCommentLike commentLike = NoticeCommentLike.create(commentFixture.comment, "member-1");
         NoticeLike like = NoticeLike.create(notice, "member-1");
         NoticeBookmark bookmark = NoticeBookmark.create(notice, "member-1");
 
         when(noticeCommentRepository.findByUserId("member-1")).thenReturn(List.of(commentFixture.comment));
+        when(noticeCommentLikeRepository.findById_UserId("member-1")).thenReturn(List.of(commentLike));
         when(noticeLikeRepository.findById_UserId("member-1")).thenReturn(List.of(like));
         when(noticeBookmarkRepository.findById_UserId("member-1")).thenReturn(List.of(bookmark));
+        when(noticeCommentRepository.findAllById(any())).thenReturn(List.of(commentFixture.comment));
         when(noticeRepository.findAllById(any())).thenReturn(List.of(notice));
 
         noticeService.handleMemberWithdrawal("member-1");
 
         assertEquals("withdrawn-member", commentFixture.comment.getUserId());
         assertEquals("탈퇴한 사용자", commentFixture.comment.getUserDisplayName());
+        assertEquals(1, commentFixture.comment.getLikeCount());
         assertEquals(1, notice.getLikeCount());
         assertEquals(2, notice.getBookmarkCount());
+        verify(noticeCommentLikeRepository).deleteAllInBatch(List.of(commentLike));
         verify(noticeLikeRepository).deleteAllInBatch(List.of(like));
         verify(noticeBookmarkRepository).deleteAllInBatch(List.of(bookmark));
         verify(noticeReadStatusRepository).deleteById_UserId("member-1");

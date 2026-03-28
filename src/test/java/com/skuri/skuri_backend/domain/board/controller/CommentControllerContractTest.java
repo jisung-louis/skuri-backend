@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.board.controller;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.board.dto.response.CommentLikeResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.CommentResponse;
 import com.skuri.skuri_backend.domain.board.service.BoardService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
@@ -29,6 +30,7 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -67,7 +69,9 @@ class CommentControllerContractTest {
                                         """)
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value("comment-1"));
+                .andExpect(jsonPath("$.data.id").value("comment-1"))
+                .andExpect(jsonPath("$.data.likeCount").value(3))
+                .andExpect(jsonPath("$.data.isLiked").value(true));
     }
 
     @Test
@@ -136,6 +140,37 @@ class CommentControllerContractTest {
     }
 
     @Test
+    void postLike_정상요청_200() throws Exception {
+        mockValidToken();
+        when(boardService.likeComment("firebase-uid", "comment-1"))
+                .thenReturn(new CommentLikeResponse("comment-1", true, 3));
+
+        mockMvc.perform(
+                        post("/v1/comments/comment-1/like")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.commentId").value("comment-1"))
+                .andExpect(jsonPath("$.data.isLiked").value(true))
+                .andExpect(jsonPath("$.data.likeCount").value(3));
+    }
+
+    @Test
+    void deleteLike_댓글없음_404() throws Exception {
+        mockValidToken();
+        doThrow(new BusinessException(ErrorCode.COMMENT_NOT_FOUND))
+                .when(boardService)
+                .unlikeComment("firebase-uid", "comment-1");
+
+        mockMvc.perform(
+                        delete("/v1/comments/comment-1/like")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("COMMENT_NOT_FOUND"));
+    }
+
+    @Test
     void 보호API_토큰없음_401() throws Exception {
         mockMvc.perform(delete("/v1/comments/comment-1"))
                 .andExpect(status().isUnauthorized())
@@ -169,6 +204,8 @@ class CommentControllerContractTest {
                 null,
                 true,
                 false,
+                3,
+                true,
                 false,
                 LocalDateTime.now(),
                 LocalDateTime.now()
