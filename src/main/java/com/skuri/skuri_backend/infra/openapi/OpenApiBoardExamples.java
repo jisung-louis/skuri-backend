@@ -139,6 +139,8 @@ public final class OpenApiBoardExamples {
                   "anonymousOrder": null,
                   "isAuthor": false,
                   "isPostAuthor": true,
+                  "likeCount": 3,
+                  "isLiked": true,
                   "isDeleted": false,
                   "createdAt": "2026-02-03T12:00:00",
                   "updatedAt": "2026-02-03T12:00:00"
@@ -155,6 +157,8 @@ public final class OpenApiBoardExamples {
                   "anonymousOrder": 2,
                   "isAuthor": false,
                   "isPostAuthor": false,
+                  "likeCount": 0,
+                  "isLiked": false,
                   "isDeleted": false,
                   "createdAt": "2026-02-03T12:30:00",
                   "updatedAt": "2026-02-03T12:30:00"
@@ -178,9 +182,33 @@ public final class OpenApiBoardExamples {
                 "anonymousOrder": 1,
                 "isAuthor": true,
                 "isPostAuthor": false,
+                "likeCount": 0,
+                "isLiked": false,
                 "isDeleted": false,
                 "createdAt": "2026-02-03T12:00:00",
                 "updatedAt": "2026-02-03T12:00:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_COMMENT_LIKE = """
+            {
+              "success": true,
+              "data": {
+                "commentId": "comment_uuid",
+                "isLiked": true,
+                "likeCount": 3
+              }
+            }
+            """;
+
+    public static final String SUCCESS_COMMENT_UNLIKE = """
+            {
+              "success": true,
+              "data": {
+                "commentId": "comment_uuid",
+                "isLiked": false,
+                "likeCount": 2
               }
             }
             """;

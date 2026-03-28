@@ -1947,7 +1947,9 @@ Authorization:Bearer <firebase_id_token>
 - 부모 댓글 삭제 시 하드 삭제하지 않고 `isDeleted=true`, `content="삭제된 댓글입니다"`로 placeholder 처리
 - 자식 댓글은 유지한다.
 - 조회 응답은 flat list를 반환한다.
-- 각 댓글은 최소 `id`, `parentId`, `depth`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
+- 각 댓글은 최소 `id`, `parentId`, `depth`, `likeCount`, `isLiked`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
+- `likeCount`는 전체 댓글 좋아요 수다.
+- `isLiked`는 현재 로그인 사용자 기준 댓글 좋아요 여부다.
 - 서버는 thread 순서를 보장한 flat list를 반환하고, 클라이언트가 트리 UI를 조립한다.
 
 #### POST /v1/posts/{postId}/comments
@@ -1968,8 +1970,37 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
+**댓글 좋아요 응답 필드:**
+- 댓글 생성/수정/목록 응답은 모두 `likeCount`, `isLiked`를 포함한다.
+- 좋아요 등록/취소는 idempotent 하며, 이미 좋아요된 상태에서 다시 `POST`해도 현재 상태를 반환한다.
+- 좋아요하지 않은 상태에서 `DELETE`해도 현재 상태를 반환한다.
+
 #### PATCH /v1/comments/{commentId}
 #### DELETE /v1/comments/{commentId}
+#### POST /v1/comments/{commentId}/like
+#### DELETE /v1/comments/{commentId}/like
+
+```json
+{
+  "success": true,
+  "data": {
+    "commentId": "comment_uuid",
+    "isLiked": true,
+    "likeCount": 3
+  }
+}
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "commentId": "comment_uuid",
+    "isLiked": false,
+    "likeCount": 2
+  }
+}
+```
 
 ### 5.6 내 게시글/북마크
 
@@ -2196,6 +2227,8 @@ Authorization:Bearer <firebase_id_token>
       "isAnonymous": false,
       "anonymousOrder": null,
       "isAuthor": true,
+      "likeCount": 5,
+      "isLiked": true,
       "isDeleted": false,
       "createdAt": "2026-02-03T12:00:00",
       "updatedAt": "2026-02-03T12:00:00"
@@ -2210,6 +2243,8 @@ Authorization:Bearer <firebase_id_token>
       "isAnonymous": true,
       "anonymousOrder": 2,
       "isAuthor": false,
+      "likeCount": 0,
+      "isLiked": false,
       "isDeleted": false,
       "createdAt": "2026-02-03T12:10:00",
       "updatedAt": "2026-02-03T12:10:00"
@@ -2244,6 +2279,8 @@ Authorization:Bearer <firebase_id_token>
     "isAnonymous": false,
     "anonymousOrder": null,
     "isAuthor": true,
+    "likeCount": 5,
+    "isLiked": true,
     "isDeleted": false,
     "createdAt": "2026-02-03T12:00:00",
     "updatedAt": "2026-02-03T12:00:00"
@@ -2260,7 +2297,9 @@ Authorization:Bearer <firebase_id_token>
   - 삭제 후에도 순번 재계산 없음
 - 부모 댓글 삭제 시 하드 삭제하지 않고 `isDeleted=true`, `content="삭제된 댓글입니다"` placeholder 처리하며 자식은 유지한다.
 - 조회 응답은 flat list를 반환한다.
-- 각 댓글은 최소 `id`, `parentId`, `depth`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
+- 각 댓글은 최소 `id`, `parentId`, `depth`, `likeCount`, `isLiked`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
+- `likeCount`는 전체 댓글 좋아요 수다.
+- `isLiked`는 현재 로그인 사용자 기준 댓글 좋아요 여부다.
 - 서버는 thread 순서를 보장한 flat list를 반환하고, 클라이언트가 트리 UI를 조립한다.
 
 #### PATCH /v1/notice-comments/{commentId}
@@ -2287,6 +2326,8 @@ Authorization:Bearer <firebase_id_token>
     "isAnonymous": false,
     "anonymousOrder": null,
     "isAuthor": true,
+    "likeCount": 5,
+    "isLiked": true,
     "isDeleted": false,
     "createdAt": "2026-02-03T12:00:00",
     "updatedAt": "2026-02-03T12:30:00"
@@ -2301,6 +2342,34 @@ Authorization:Bearer <firebase_id_token>
 
 #### DELETE /v1/notice-comments/{commentId}
 공지 댓글 삭제
+
+#### POST /v1/notice-comments/{commentId}/like
+공지 댓글 좋아요
+
+```json
+{
+  "success": true,
+  "data": {
+    "commentId": "notice_comment_uuid",
+    "isLiked": true,
+    "likeCount": 5
+  }
+}
+```
+
+#### DELETE /v1/notice-comments/{commentId}/like
+공지 댓글 좋아요 취소
+
+```json
+{
+  "success": true,
+  "data": {
+    "commentId": "notice_comment_uuid",
+    "isLiked": false,
+    "likeCount": 4
+  }
+}
+```
 
 ### 6.3 내 공지 북마크
 

@@ -1,7 +1,9 @@
 package com.skuri.skuri_backend.domain.notice.repository;
 
 import com.skuri.skuri_backend.domain.notice.entity.NoticeComment;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -28,6 +30,14 @@ public interface NoticeCommentRepository extends JpaRepository<NoticeComment, St
     Optional<NoticeComment> findByIdAndNoticeId(@Param("commentId") String commentId, @Param("noticeId") String noticeId);
 
     Optional<NoticeComment> findById(String commentId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select c
+            from NoticeComment c
+            where c.id = :commentId
+            """)
+    Optional<NoticeComment> findByIdForUpdate(@Param("commentId") String commentId);
 
     Optional<NoticeComment> findFirstByNotice_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(String noticeId, String anonId);
 

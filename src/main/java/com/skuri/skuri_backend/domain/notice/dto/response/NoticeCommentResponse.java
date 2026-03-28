@@ -23,6 +23,10 @@ public record NoticeCommentResponse(
         Integer anonymousOrder,
         @Schema(description = "내가 작성한 댓글인지 여부", example = "false")
         boolean isAuthor,
+        @Schema(description = "댓글 좋아요 수", example = "5")
+        int likeCount,
+        @Schema(description = "현재 로그인 사용자의 좋아요 여부", example = "true")
+        boolean isLiked,
         @Schema(description = "삭제된 댓글인지 여부", example = "false")
         boolean isDeleted,
         @Schema(description = "생성 시각", example = "2026-02-03T12:00:00")

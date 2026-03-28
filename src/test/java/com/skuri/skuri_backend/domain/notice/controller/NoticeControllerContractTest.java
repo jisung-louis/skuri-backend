@@ -204,7 +204,9 @@ class NoticeControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].id").value("notice-comment-1"))
                 .andExpect(jsonPath("$.data[0].parentId").value("notice-comment-parent"))
-                .andExpect(jsonPath("$.data[0].depth").value(1));
+                .andExpect(jsonPath("$.data[0].depth").value(1))
+                .andExpect(jsonPath("$.data[0].likeCount").value(5))
+                .andExpect(jsonPath("$.data[0].isLiked").value(true));
     }
 
     @Test
@@ -237,7 +239,9 @@ class NoticeControllerContractTest {
                                         """)
                 )
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.id").value("notice-comment-1"));
+                .andExpect(jsonPath("$.data.id").value("notice-comment-1"))
+                .andExpect(jsonPath("$.data.likeCount").value(5))
+                .andExpect(jsonPath("$.data.isLiked").value(true));
     }
 
     @Test
@@ -335,6 +339,8 @@ class NoticeControllerContractTest {
                 "홍길동",
                 false,
                 null,
+                true,
+                5,
                 true,
                 false,
                 LocalDateTime.now(),

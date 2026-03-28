@@ -11,6 +11,7 @@ import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequ
 import com.skuri.skuri_backend.domain.notice.dto.request.UpdateNoticeCommentRequest;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkSummaryResponse;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentLikeResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeDetailResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
@@ -20,12 +21,14 @@ import com.skuri.skuri_backend.domain.notice.entity.Notice;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeBookmark;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeCategory;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeComment;
+import com.skuri.skuri_backend.domain.notice.entity.NoticeCommentLike;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeLike;
 import com.skuri.skuri_backend.domain.notice.entity.NoticeReadStatus;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeBookmarkRepository;
 import com.skuri.skuri_backend.domain.notice.exception.NoticeCommentNotFoundException;
 import com.skuri.skuri_backend.domain.notice.exception.NoticeNotFoundException;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentRepository;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentLikeRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeLikeRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeReadStatusRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
@@ -56,6 +59,7 @@ public class NoticeService {
 
     private final NoticeRepository noticeRepository;
     private final NoticeCommentRepository noticeCommentRepository;
+    private final NoticeCommentLikeRepository noticeCommentLikeRepository;
     private final NoticeReadStatusRepository noticeReadStatusRepository;
     private final NoticeLikeRepository noticeLikeRepository;
     private final NoticeBookmarkRepository noticeBookmarkRepository;
@@ -126,7 +130,8 @@ public class NoticeService {
     public List<NoticeCommentResponse> getComments(String memberId, String noticeId) {
         findNoticeOrThrow(noticeId);
         List<NoticeComment> comments = noticeCommentRepository.findByNoticeIdOrderByCreatedAtAsc(noticeId);
-        return flattenComments(comments, memberId);
+        Set<String> likedCommentIds = resolveLikedCommentIds(memberId, comments);
+        return flattenComments(comments, memberId, likedCommentIds);
     }
 
     @Transactional
@@ -155,33 +160,44 @@ public class NoticeService {
         notice.increaseCommentCount(1);
         eventPublisher.publish(new NotificationDomainEvent.NoticeCommentCreated(saved.getId()));
 
-        return toCommentResponse(saved, memberId, resolveDepth(saved));
+        return toCommentResponse(saved, memberId, resolveDepth(saved), false);
     }
 
     @Transactional
     public NoticeCommentResponse updateComment(String memberId, String commentId, UpdateNoticeCommentRequest request) {
-        NoticeComment comment = noticeCommentRepository.findById(commentId)
-                .orElseThrow(NoticeCommentNotFoundException::new);
-
+        NoticeComment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        if (comment.isDeleted()) {
-            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
+        comment.updateContent(request.content().trim());
+        return toCommentResponse(comment, memberId, resolveDepth(comment), resolveCommentIsLiked(memberId, comment.getId()));
+    }
+
+    @Transactional
+    public NoticeCommentLikeResponse likeComment(String memberId, String commentId) {
+        NoticeComment comment = findCommentForWriteOrThrow(commentId);
+        if (noticeCommentLikeRepository.existsById_UserIdAndId_CommentId(memberId, commentId)) {
+            return new NoticeCommentLikeResponse(commentId, true, comment.getLikeCount());
         }
 
-        comment.updateContent(request.content().trim());
-        return toCommentResponse(comment, memberId, resolveDepth(comment));
+        noticeCommentLikeRepository.save(NoticeCommentLike.create(comment, memberId));
+        comment.increaseLikeCount(1);
+        return new NoticeCommentLikeResponse(commentId, true, comment.getLikeCount());
+    }
+
+    @Transactional
+    public NoticeCommentLikeResponse unlikeComment(String memberId, String commentId) {
+        NoticeComment comment = findCommentForWriteOrThrow(commentId);
+        noticeCommentLikeRepository.findById_UserIdAndId_CommentId(memberId, commentId)
+                .ifPresent(commentLike -> {
+                    noticeCommentLikeRepository.delete(commentLike);
+                    comment.increaseLikeCount(-1);
+                });
+        return new NoticeCommentLikeResponse(commentId, false, comment.getLikeCount());
     }
 
     @Transactional
     public void deleteComment(String memberId, String commentId) {
-        NoticeComment comment = noticeCommentRepository.findById(commentId)
-                .orElseThrow(NoticeCommentNotFoundException::new);
-
+        NoticeComment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        if (comment.isDeleted()) {
-            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
-        }
-
         Notice notice = findNoticeForUpdateOrThrow(comment.getNotice().getId());
         comment.softDelete();
         notice.increaseCommentCount(-1);
@@ -243,6 +259,16 @@ public class NoticeService {
     public void handleMemberWithdrawal(String memberId) {
         noticeCommentRepository.findByUserId(memberId)
                 .forEach(NoticeComment::anonymizeAuthor);
+
+        List<NoticeCommentLike> commentLikes = noticeCommentLikeRepository.findById_UserId(memberId);
+        if (!commentLikes.isEmpty()) {
+            Map<String, Integer> likeCountsByCommentId = new LinkedHashMap<>();
+            commentLikes.forEach(commentLike -> likeCountsByCommentId.merge(commentLike.getId().getCommentId(), 1, Integer::sum));
+            noticeCommentRepository.findAllById(likeCountsByCommentId.keySet()).forEach(comment ->
+                    comment.increaseLikeCount(-likeCountsByCommentId.getOrDefault(comment.getId(), 0))
+            );
+            noticeCommentLikeRepository.deleteAllInBatch(commentLikes);
+        }
 
         List<NoticeLike> likes = noticeLikeRepository.findById_UserId(memberId);
         if (!likes.isEmpty()) {
@@ -327,7 +353,11 @@ public class NoticeService {
         );
     }
 
-    private List<NoticeCommentResponse> flattenComments(List<NoticeComment> comments, String memberId) {
+    private List<NoticeCommentResponse> flattenComments(
+            List<NoticeComment> comments,
+            String memberId,
+            Set<String> likedCommentIds
+    ) {
         Map<String, List<NoticeComment>> childrenByParent = new LinkedHashMap<>();
         List<NoticeComment> roots = new ArrayList<>();
 
@@ -341,7 +371,7 @@ public class NoticeService {
 
         List<NoticeCommentResponse> flattened = new ArrayList<>();
         for (NoticeComment root : roots) {
-            appendCommentTree(flattened, root, 0, memberId, childrenByParent);
+            appendCommentTree(flattened, root, 0, memberId, likedCommentIds, childrenByParent);
         }
         return flattened;
     }
@@ -351,11 +381,12 @@ public class NoticeService {
             NoticeComment comment,
             int depth,
             String memberId,
+            Set<String> likedCommentIds,
             Map<String, List<NoticeComment>> childrenByParent
     ) {
-        flattened.add(toCommentResponse(comment, memberId, depth));
+        flattened.add(toCommentResponse(comment, memberId, depth, likedCommentIds.contains(comment.getId())));
         for (NoticeComment child : childrenByParent.getOrDefault(comment.getId(), List.of())) {
-            appendCommentTree(flattened, child, depth + 1, memberId, childrenByParent);
+            appendCommentTree(flattened, child, depth + 1, memberId, likedCommentIds, childrenByParent);
         }
     }
 
@@ -369,7 +400,7 @@ public class NoticeService {
         return depth;
     }
 
-    private NoticeCommentResponse toCommentResponse(NoticeComment comment, String memberId, int depth) {
+    private NoticeCommentResponse toCommentResponse(NoticeComment comment, String memberId, int depth, boolean isLiked) {
         boolean deleted = comment.isDeleted();
         AuthorView authorView = resolveAuthorView(
                 comment.isAnonymous(),
@@ -388,10 +419,30 @@ public class NoticeService {
                 !deleted && comment.isAnonymous(),
                 deleted ? null : comment.getAnonymousOrder(),
                 !deleted && comment.isAuthor(memberId),
+                comment.getLikeCount(),
+                !deleted && isLiked,
                 deleted,
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
         );
+    }
+
+    private Set<String> resolveLikedCommentIds(String memberId, List<NoticeComment> comments) {
+        if (comments.isEmpty() || !StringUtils.hasText(memberId)) {
+            return Set.of();
+        }
+
+        List<String> commentIds = comments.stream()
+                .map(NoticeComment::getId)
+                .toList();
+        return Set.copyOf(noticeCommentLikeRepository.findLikedCommentIds(memberId, commentIds));
+    }
+
+    private boolean resolveCommentIsLiked(String memberId, String commentId) {
+        if (!StringUtils.hasText(memberId)) {
+            return false;
+        }
+        return noticeCommentLikeRepository.existsById_UserIdAndId_CommentId(memberId, commentId);
     }
 
     private AuthorView resolveAuthorView(
@@ -436,6 +487,15 @@ public class NoticeService {
         if (!comment.isAuthor(memberId)) {
             throw new BusinessException(ErrorCode.NOT_NOTICE_COMMENT_AUTHOR);
         }
+    }
+
+    private NoticeComment findCommentForWriteOrThrow(String commentId) {
+        NoticeComment comment = noticeCommentRepository.findByIdForUpdate(commentId)
+                .orElseThrow(NoticeCommentNotFoundException::new);
+        if (comment.isDeleted()) {
+            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
+        }
+        return comment;
     }
 
     private Notice findNoticeOrThrow(String noticeId) {

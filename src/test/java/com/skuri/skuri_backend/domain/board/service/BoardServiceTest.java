@@ -6,15 +6,19 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.board.dto.request.CreateCommentRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostImageRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostRequest;
+import com.skuri.skuri_backend.domain.board.dto.request.UpdateCommentRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.UpdatePostRequest;
+import com.skuri.skuri_backend.domain.board.dto.response.CommentLikeResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.CommentResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostDetailResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostBookmarkResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostLikeResponse;
 import com.skuri.skuri_backend.domain.board.entity.Comment;
+import com.skuri.skuri_backend.domain.board.entity.CommentLike;
 import com.skuri.skuri_backend.domain.board.entity.Post;
 import com.skuri.skuri_backend.domain.board.entity.PostCategory;
 import com.skuri.skuri_backend.domain.board.entity.PostInteraction;
+import com.skuri.skuri_backend.domain.board.repository.CommentLikeRepository;
 import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostImageRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostInteractionRepository;
@@ -55,6 +59,9 @@ class BoardServiceTest {
 
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private CommentLikeRepository commentLikeRepository;
 
     @Mock
     private PostImageRepository postImageRepository;
@@ -230,6 +237,27 @@ class BoardServiceTest {
     }
 
     @Test
+    void getComments_likeCount와_isLiked를_합성한다() {
+        Post post = post("post-1", "author-1");
+        Comment likedComment = comment("comment-1", post, null, "member-2", false, null);
+        Comment unlikedComment = comment("comment-2", post, null, "member-3", false, null);
+        ReflectionTestUtils.setField(likedComment, "likeCount", 3);
+        ReflectionTestUtils.setField(unlikedComment, "likeCount", 1);
+
+        when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
+        when(commentRepository.findByPostIdOrderByCreatedAtAsc("post-1")).thenReturn(List.of(likedComment, unlikedComment));
+        when(commentLikeRepository.findLikedCommentIds("member-1", List.of("comment-1", "comment-2")))
+                .thenReturn(List.of("comment-1"));
+
+        List<CommentResponse> responses = boardService.getComments("member-1", "post-1");
+
+        assertEquals(3, responses.get(0).likeCount());
+        assertTrue(responses.get(0).isLiked());
+        assertEquals(1, responses.get(1).likeCount());
+        assertFalse(responses.get(1).isLiked());
+    }
+
+    @Test
     void createComment_익명순번은_기존순번을재사용한다() {
         Post post = post("post-1", "author-1");
         Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "사용자", LocalDateTime.now());
@@ -275,6 +303,52 @@ class BoardServiceTest {
         assertEquals(1, liked.likeCount());
         assertFalse(unliked.isLiked());
         assertEquals(0, unliked.likeCount());
+    }
+
+    @Test
+    void commentLikeUnlike_카운트가동기화된다() {
+        Post post = post("post-1", "author-1");
+        Comment comment = comment("comment-1", post, null, "author-2", false, null);
+        CommentLike commentLike = CommentLike.create(comment, "member-1");
+
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(commentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1"))
+                .thenReturn(false)
+                .thenReturn(false);
+        when(commentLikeRepository.findById_UserIdAndId_CommentId("member-1", "comment-1"))
+                .thenReturn(Optional.of(commentLike));
+
+        CommentLikeResponse liked = boardService.likeComment("member-1", "comment-1");
+        CommentLikeResponse unliked = boardService.unlikeComment("member-1", "comment-1");
+
+        assertEquals("comment-1", liked.commentId());
+        assertTrue(liked.isLiked());
+        assertEquals(1, liked.likeCount());
+        assertFalse(unliked.isLiked());
+        assertEquals(0, unliked.likeCount());
+    }
+
+    @Test
+    void updateComment_행잠금을사용해_본문을수정한다() {
+        Post post = post("post-1", "author-1");
+        Comment comment = comment("comment-1", post, null, "member-1", false, null);
+        ReflectionTestUtils.setField(comment, "likeCount", 2);
+
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(commentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(true);
+
+        CommentResponse response = boardService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateCommentRequest("수정된 댓글")
+        );
+
+        assertEquals("수정된 댓글", response.content());
+        assertEquals("수정된 댓글", comment.getContent());
+        assertEquals(2, response.likeCount());
+        assertTrue(response.isLiked());
+        verify(commentRepository).findByIdForUpdate("comment-1");
+        verify(commentRepository, never()).findActiveById("comment-1");
     }
 
     @Test
@@ -396,19 +470,23 @@ class BoardServiceTest {
     }
 
     @Test
-    void handleMemberWithdrawal_작성자익명화와인터랙션카운트정리를수행한다() {
+    void handleMemberWithdrawal_댓글좋아요와인터랙션카운트정리를수행한다() {
         Post authoredPost = post("post-authored", "member-1");
         Post likedPost = post("post-liked", "author-2");
         ReflectionTestUtils.setField(likedPost, "likeCount", 3);
         ReflectionTestUtils.setField(likedPost, "bookmarkCount", 2);
         Comment comment = comment("comment-1", likedPost, null, "member-1", false, null);
+        ReflectionTestUtils.setField(comment, "likeCount", 2);
+        CommentLike commentLike = CommentLike.create(comment, "member-1");
         PostInteraction interaction = PostInteraction.create(likedPost, "member-1");
         interaction.like();
         interaction.bookmark();
 
         when(postRepository.findByAuthorId("member-1")).thenReturn(List.of(authoredPost));
         when(commentRepository.findByAuthorId("member-1")).thenReturn(List.of(comment));
+        when(commentLikeRepository.findById_UserId("member-1")).thenReturn(List.of(commentLike));
         when(postInteractionRepository.findById_UserId("member-1")).thenReturn(List.of(interaction));
+        when(commentRepository.findAllById(any())).thenReturn(List.of(comment));
         when(postRepository.findAllById(any())).thenReturn(List.of(likedPost));
 
         boardService.handleMemberWithdrawal("member-1");
@@ -417,8 +495,10 @@ class BoardServiceTest {
         assertEquals("탈퇴한 사용자", authoredPost.getAuthorName());
         assertEquals("withdrawn-member", comment.getAuthorId());
         assertEquals("탈퇴한 사용자", comment.getAuthorName());
+        assertEquals(1, comment.getLikeCount());
         assertEquals(2, likedPost.getLikeCount());
         assertEquals(1, likedPost.getBookmarkCount());
+        verify(commentLikeRepository).deleteAllInBatch(List.of(commentLike));
         verify(postInteractionRepository).deleteAllInBatch(List.of(interaction));
     }
 

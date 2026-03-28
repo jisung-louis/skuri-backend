@@ -326,7 +326,9 @@ class PostControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].id").value("comment-1"))
                 .andExpect(jsonPath("$.data[0].parentId").value("parent-comment-1"))
-                .andExpect(jsonPath("$.data[0].depth").value(1));
+                .andExpect(jsonPath("$.data[0].depth").value(1))
+                .andExpect(jsonPath("$.data[0].likeCount").value(3))
+                .andExpect(jsonPath("$.data[0].isLiked").value(true));
     }
 
     @Test
@@ -348,7 +350,9 @@ class PostControllerContractTest {
                                         """)
                 )
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.id").value("comment-1"));
+                .andExpect(jsonPath("$.data.id").value("comment-1"))
+                .andExpect(jsonPath("$.data.likeCount").value(3))
+                .andExpect(jsonPath("$.data.isLiked").value(true));
     }
 
     @Test
@@ -455,6 +459,8 @@ class PostControllerContractTest {
                 null,
                 true,
                 false,
+                3,
+                true,
                 false,
                 LocalDateTime.now(),
                 LocalDateTime.now()

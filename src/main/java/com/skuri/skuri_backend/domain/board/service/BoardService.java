@@ -9,6 +9,7 @@ import com.skuri.skuri_backend.domain.board.dto.request.CreatePostImageRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.UpdateCommentRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.UpdatePostRequest;
+import com.skuri.skuri_backend.domain.board.dto.response.CommentLikeResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.CommentResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostBookmarkResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostDetailResponse;
@@ -16,9 +17,11 @@ import com.skuri.skuri_backend.domain.board.dto.response.PostImageResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostLikeResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostSummaryResponse;
 import com.skuri.skuri_backend.domain.board.entity.Comment;
+import com.skuri.skuri_backend.domain.board.entity.CommentLike;
 import com.skuri.skuri_backend.domain.board.entity.Post;
 import com.skuri.skuri_backend.domain.board.entity.PostCategory;
 import com.skuri.skuri_backend.domain.board.entity.PostImage;
+import com.skuri.skuri_backend.domain.board.repository.CommentLikeRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostImageRepository;
 import com.skuri.skuri_backend.domain.board.entity.PostInteraction;
 import com.skuri.skuri_backend.domain.board.exception.CommentNotFoundException;
@@ -60,6 +63,7 @@ public class BoardService {
     private final PostRepository postRepository;
     private final PostImageRepository postImageRepository;
     private final CommentRepository commentRepository;
+    private final CommentLikeRepository commentLikeRepository;
     private final PostInteractionRepository postInteractionRepository;
     private final MemberRepository memberRepository;
     private final AfterCommitApplicationEventPublisher eventPublisher;
@@ -220,7 +224,8 @@ public class BoardService {
     public List<CommentResponse> getComments(String memberId, String postId) {
         Post post = findActivePostOrThrow(postId);
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
-        return flattenComments(comments, memberId, post.getAuthorId());
+        Set<String> likedCommentIds = resolveLikedCommentIds(memberId, comments);
+        return flattenComments(comments, memberId, post.getAuthorId(), likedCommentIds);
     }
 
     @Transactional
@@ -252,33 +257,50 @@ public class BoardService {
         post.updateLastCommentAt(LocalDateTime.now());
         eventPublisher.publish(new NotificationDomainEvent.BoardCommentCreated(saved.getId()));
 
-        return toCommentResponse(saved, memberId, post.getAuthorId(), resolveDepth(saved));
+        return toCommentResponse(saved, memberId, post.getAuthorId(), resolveDepth(saved), false);
     }
 
     @Transactional
     public CommentResponse updateComment(String memberId, String commentId, UpdateCommentRequest request) {
-        Comment comment = commentRepository.findActiveById(commentId)
-                .orElseThrow(CommentNotFoundException::new);
-
+        Comment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        if (comment.isDeleted()) {
-            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
+        comment.updateContent(request.content().trim());
+        return toCommentResponse(
+                comment,
+                memberId,
+                comment.getPost().getAuthorId(),
+                resolveDepth(comment),
+                resolveCommentIsLiked(memberId, comment.getId())
+        );
+    }
+
+    @Transactional
+    public CommentLikeResponse likeComment(String memberId, String commentId) {
+        Comment comment = findCommentForWriteOrThrow(commentId);
+        if (commentLikeRepository.existsById_UserIdAndId_CommentId(memberId, commentId)) {
+            return new CommentLikeResponse(commentId, true, comment.getLikeCount());
         }
 
-        comment.updateContent(request.content().trim());
-        return toCommentResponse(comment, memberId, comment.getPost().getAuthorId(), resolveDepth(comment));
+        commentLikeRepository.save(CommentLike.create(comment, memberId));
+        comment.increaseLikeCount(1);
+        return new CommentLikeResponse(commentId, true, comment.getLikeCount());
+    }
+
+    @Transactional
+    public CommentLikeResponse unlikeComment(String memberId, String commentId) {
+        Comment comment = findCommentForWriteOrThrow(commentId);
+        commentLikeRepository.findById_UserIdAndId_CommentId(memberId, commentId)
+                .ifPresent(commentLike -> {
+                    commentLikeRepository.delete(commentLike);
+                    comment.increaseLikeCount(-1);
+                });
+        return new CommentLikeResponse(commentId, false, comment.getLikeCount());
     }
 
     @Transactional
     public void deleteComment(String memberId, String commentId) {
-        Comment comment = commentRepository.findByIdForUpdate(commentId)
-                .orElseThrow(CommentNotFoundException::new);
-
+        Comment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        if (comment.isDeleted()) {
-            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
-        }
-
         Post post = findActivePostForUpdateOrThrow(comment.getPost().getId());
         comment.softDelete();
         post.increaseCommentCount(-1);
@@ -300,6 +322,16 @@ public class BoardService {
     public void handleMemberWithdrawal(String memberId) {
         postRepository.findByAuthorId(memberId).forEach(Post::anonymizeAuthor);
         commentRepository.findByAuthorId(memberId).forEach(Comment::anonymizeAuthor);
+
+        List<CommentLike> commentLikes = commentLikeRepository.findById_UserId(memberId);
+        if (!commentLikes.isEmpty()) {
+            Map<String, Integer> likeCountsByCommentId = new LinkedHashMap<>();
+            commentLikes.forEach(commentLike -> likeCountsByCommentId.merge(commentLike.getId().getCommentId(), 1, Integer::sum));
+            commentRepository.findAllById(likeCountsByCommentId.keySet()).forEach(comment ->
+                    comment.increaseLikeCount(-likeCountsByCommentId.getOrDefault(comment.getId(), 0))
+            );
+            commentLikeRepository.deleteAllInBatch(commentLikes);
+        }
 
         List<PostInteraction> interactions = postInteractionRepository.findById_UserId(memberId);
         if (interactions.isEmpty()) {
@@ -519,7 +551,12 @@ public class BoardService {
         }
     }
 
-    private List<CommentResponse> flattenComments(List<Comment> comments, String memberId, String postAuthorId) {
+    private List<CommentResponse> flattenComments(
+            List<Comment> comments,
+            String memberId,
+            String postAuthorId,
+            Set<String> likedCommentIds
+    ) {
         Map<String, List<Comment>> childrenByParent = new LinkedHashMap<>();
         List<Comment> roots = new ArrayList<>();
 
@@ -533,7 +570,7 @@ public class BoardService {
 
         List<CommentResponse> flattened = new ArrayList<>();
         for (Comment root : roots) {
-            appendCommentTree(flattened, root, 0, memberId, postAuthorId, childrenByParent);
+            appendCommentTree(flattened, root, 0, memberId, postAuthorId, likedCommentIds, childrenByParent);
         }
         return flattened;
     }
@@ -544,11 +581,18 @@ public class BoardService {
             int depth,
             String memberId,
             String postAuthorId,
+            Set<String> likedCommentIds,
             Map<String, List<Comment>> childrenByParent
     ) {
-        flattened.add(toCommentResponse(comment, memberId, postAuthorId, depth));
+        flattened.add(toCommentResponse(
+                comment,
+                memberId,
+                postAuthorId,
+                depth,
+                likedCommentIds.contains(comment.getId())
+        ));
         for (Comment child : childrenByParent.getOrDefault(comment.getId(), List.of())) {
-            appendCommentTree(flattened, child, depth + 1, memberId, postAuthorId, childrenByParent);
+            appendCommentTree(flattened, child, depth + 1, memberId, postAuthorId, likedCommentIds, childrenByParent);
         }
     }
 
@@ -566,7 +610,8 @@ public class BoardService {
             Comment comment,
             String memberId,
             String postAuthorId,
-            int depth
+            int depth,
+            boolean isLiked
     ) {
         boolean deleted = comment.isDeleted();
         AuthorView authorView = resolveAuthorView(
@@ -590,10 +635,30 @@ public class BoardService {
                 deleted ? null : comment.getAnonymousOrder(),
                 !deleted && comment.isAuthor(memberId),
                 !deleted && comment.isAuthor(postAuthorId),
+                comment.getLikeCount(),
+                !deleted && isLiked,
                 deleted,
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
         );
+    }
+
+    private Set<String> resolveLikedCommentIds(String memberId, List<Comment> comments) {
+        if (comments.isEmpty() || memberId == null || memberId.isBlank()) {
+            return Set.of();
+        }
+
+        List<String> commentIds = comments.stream()
+                .map(Comment::getId)
+                .toList();
+        return Set.copyOf(commentLikeRepository.findLikedCommentIds(memberId, commentIds));
+    }
+
+    private boolean resolveCommentIsLiked(String memberId, String commentId) {
+        if (memberId == null || memberId.isBlank()) {
+            return false;
+        }
+        return commentLikeRepository.existsById_UserIdAndId_CommentId(memberId, commentId);
     }
 
     private AuthorView resolveAuthorView(
@@ -638,6 +703,15 @@ public class BoardService {
     private Post findActivePostForUpdateOrThrow(String postId) {
         return postRepository.findActiveByIdForUpdate(postId)
                 .orElseThrow(PostNotFoundException::new);
+    }
+
+    private Comment findCommentForWriteOrThrow(String commentId) {
+        Comment comment = commentRepository.findByIdForUpdate(commentId)
+                .orElseThrow(CommentNotFoundException::new);
+        if (comment.isDeleted()) {
+            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
+        }
+        return comment;
     }
 
     private Member findMemberOrThrow(String memberId) {
