@@ -153,8 +153,9 @@ public class ChatService {
 
         boolean hasNext = fetched.size() > pageSize;
         List<ChatMessage> page = hasNext ? fetched.subList(0, pageSize) : fetched;
+        Map<String, String> senderPhotoUrls = resolveSenderPhotoUrls(page);
         List<ChatMessageResponse> messages = page.stream()
-                .map(this::toMessageResponse)
+                .map(message -> toMessageResponse(message, senderPhotoUrls.get(message.getSenderId())))
                 .toList();
 
         ChatMessageCursorResponse nextCursor = null;
@@ -232,6 +233,7 @@ public class ChatService {
                 room,
                 memberId,
                 displayName,
+                memberProfile.getPhotoUrl(),
                 displayName != null ? displayName + "님이 입장했어요." : "새 멤버가 입장했어요.",
                 ChatMessage.SOURCE_MEMBER_JOIN
         );
@@ -253,6 +255,7 @@ public class ChatService {
                 room,
                 memberId,
                 displayName,
+                memberProfile.getPhotoUrl(),
                 displayName != null ? displayName + "님이 나갔어요." : "멤버가 나갔어요.",
                 ChatMessage.SOURCE_MEMBER_LEAVE
         );
@@ -296,6 +299,7 @@ public class ChatService {
                 room,
                 senderId,
                 sender.getNickname(),
+                sender.getPhotoUrl(),
                 text,
                 type,
                 accountData,
@@ -312,6 +316,7 @@ public class ChatService {
                 room,
                 senderId,
                 sender.getNickname(),
+                sender.getPhotoUrl(),
                 text,
                 ChatMessageType.SYSTEM,
                 null,
@@ -328,6 +333,7 @@ public class ChatService {
                 room,
                 senderId,
                 sender.getNickname(),
+                sender.getPhotoUrl(),
                 text,
                 ChatMessage.SOURCE_MEMBER_JOIN
         );
@@ -341,6 +347,7 @@ public class ChatService {
                 room,
                 senderId,
                 sender.getNickname(),
+                sender.getPhotoUrl(),
                 text,
                 ChatMessage.SOURCE_MEMBER_LEAVE
         );
@@ -355,6 +362,7 @@ public class ChatService {
                 room,
                 senderId,
                 sender.getNickname(),
+                sender.getPhotoUrl(),
                 payload.text(),
                 ChatMessageType.ARRIVED,
                 payload.accountData(),
@@ -385,6 +393,7 @@ public class ChatService {
                 room,
                 senderId,
                 sender.getNickname(),
+                sender.getPhotoUrl(),
                 payload.text(),
                 ChatMessageType.END,
                 payload.accountData(),
@@ -415,6 +424,7 @@ public class ChatService {
                     membership.getChatRoom(),
                     memberId,
                     displayName,
+                    memberProfile.getPhotoUrl(),
                     displayName != null ? displayName + "님이 나갔어요." : "멤버가 나갔어요.",
                     ChatMessage.SOURCE_MEMBER_LEAVE
             );
@@ -557,7 +567,7 @@ public class ChatService {
         );
     }
 
-    private ChatMessageResponse toMessageResponse(ChatMessage message) {
+    private ChatMessageResponse toMessageResponse(ChatMessage message, String senderPhotoUrl) {
         ChatAccountDataResponse accountDataResponse = null;
         if (message.getAccountData() != null) {
             accountDataResponse = new ChatAccountDataResponse(
@@ -606,6 +616,7 @@ public class ChatService {
                 message.getChatRoomId(),
                 message.getSenderId(),
                 message.getSenderName(),
+                senderPhotoUrl,
                 message.getType(),
                 text,
                 imageUrl,
@@ -615,10 +626,28 @@ public class ChatService {
         );
     }
 
+    private Map<String, String> resolveSenderPhotoUrls(List<ChatMessage> messages) {
+        List<String> senderIds = messages.stream()
+                .map(ChatMessage::getSenderId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+        if (senderIds.isEmpty()) {
+            return Map.of();
+        }
+        return memberRepository.findAllById(senderIds).stream()
+                .collect(
+                        java.util.LinkedHashMap::new,
+                        (photoUrls, member) -> photoUrls.put(member.getId(), member.getPhotoUrl()),
+                        Map::putAll
+                );
+    }
+
     private ChatMessageResponse saveAndPublishMessage(
             ChatRoom room,
             String senderId,
             String senderName,
+            String senderPhotoUrl,
             String text,
             ChatMessageType type,
             ChatAccountData accountData,
@@ -642,7 +671,7 @@ public class ChatService {
         room.applyNewMessage(saved);
         chatRoomRepository.save(room);
 
-        ChatMessageResponse response = toMessageResponse(saved);
+        ChatMessageResponse response = toMessageResponse(saved, senderPhotoUrl);
         publishAfterCommit(() -> {
             messagingTemplate.convertAndSend("/topic/chat/" + chatRoomId, response);
             publishChatRoomSummaryEvent(room);
@@ -656,6 +685,7 @@ public class ChatService {
             ChatRoom room,
             String senderId,
             String senderName,
+            String senderPhotoUrl,
             String text,
             String source
     ) {
@@ -663,6 +693,7 @@ public class ChatService {
                 room,
                 senderId,
                 senderName,
+                senderPhotoUrl,
                 text,
                 ChatMessageType.SYSTEM,
                 null,

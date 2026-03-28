@@ -17,6 +17,9 @@ public record ChatMessageResponse(
         String senderId,
         @Schema(description = "발신자 닉네임", example = "스쿠리 유저")
         String senderName,
+        @JsonInclude(JsonInclude.Include.ALWAYS)
+        @Schema(description = "발신자 프로필 사진 URL(members.photo_url, null 허용, linked_accounts fallback 없음)", example = "https://cdn.skuri.app/uploads/profiles/profile.jpg", nullable = true)
+        String senderPhotoUrl,
         @Schema(description = "메시지 타입(TEXT/IMAGE/ACCOUNT는 클라이언트 전송, SYSTEM/ARRIVED/END는 서버 생성)", example = "TEXT")
         ChatMessageType type,
         @Schema(description = "텍스트 본문(TEXT/SYSTEM/END 등)", example = "안녕하세요!", nullable = true)
