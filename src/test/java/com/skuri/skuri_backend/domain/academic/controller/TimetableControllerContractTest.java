@@ -3,8 +3,10 @@ package com.skuri.skuri_backend.domain.academic.controller;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.academic.dto.request.AddMyTimetableCourseRequest;
+import com.skuri.skuri_backend.domain.academic.dto.request.CreateMyManualTimetableCourseRequest;
 import com.skuri.skuri_backend.domain.academic.dto.response.CourseScheduleResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.TimetableCourseResponse;
+import com.skuri.skuri_backend.domain.academic.dto.response.TimetableSemesterOptionResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.TimetableSlotResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.UserTimetableResponse;
 import com.skuri.skuri_backend.domain.academic.service.TimetableService;
@@ -53,6 +55,30 @@ class TimetableControllerContractTest {
     private FirebaseTokenVerifier firebaseTokenVerifier;
 
     @Test
+    void getMySemesters_정상요청_200() throws Exception {
+        mockValidToken();
+        when(timetableService.getMySemesters("firebase-uid")).thenReturn(List.of(
+                new TimetableSemesterOptionResponse("2026-1", "2026-1학기"),
+                new TimetableSemesterOptionResponse("2025-2", "2025-2학기")
+        ));
+
+        mockMvc.perform(
+                        get("/v1/timetables/my/semesters")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].id").value("2026-1"))
+                .andExpect(jsonPath("$.data[0].label").value("2026-1학기"));
+    }
+
+    @Test
+    void getMySemesters_비인증요청_401() throws Exception {
+        mockMvc.perform(get("/v1/timetables/my/semesters"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
+    @Test
     void getMyTimetable_정상요청_200() throws Exception {
         mockValidToken();
         when(timetableService.getMyTimetable("firebase-uid", "2026-1")).thenReturn(timetableResponse());
@@ -65,6 +91,7 @@ class TimetableControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value("timetable-1"))
                 .andExpect(jsonPath("$.data.slots[0].courseName").value("민법총칙"))
+                .andExpect(jsonPath("$.data.courses[0].isOnline").value(false))
                 .andExpect(jsonPath("$.data.courses[0].color").doesNotExist())
                 .andExpect(jsonPath("$.data.slots[0].color").doesNotExist());
     }
@@ -96,6 +123,7 @@ class TimetableControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.courseCount").value(1))
                 .andExpect(jsonPath("$.data.courses[0].id").value("course-1"))
+                .andExpect(jsonPath("$.data.courses[0].isOnline").value(false))
                 .andExpect(jsonPath("$.data.slots[0].courseName").value("민법총칙"))
                 .andExpect(jsonPath("$.data.courses[0].color").doesNotExist())
                 .andExpect(jsonPath("$.data.slots[0].color").doesNotExist());
@@ -134,6 +162,92 @@ class TimetableControllerContractTest {
                                         {
                                           "courseId": "",
                                           "semester": ""
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void addManualCourse_정상요청_200() throws Exception {
+        mockValidToken();
+        when(timetableService.addManualCourse(eq("firebase-uid"), any(CreateMyManualTimetableCourseRequest.class)))
+                .thenReturn(manualOnlineTimetableResponse());
+
+        mockMvc.perform(
+                        post("/v1/timetables/my/manual-courses")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "semester": "2026-1",
+                                          "name": "플랫폼세미나",
+                                          "professor": "",
+                                          "credits": 2,
+                                          "isOnline": true,
+                                          "locationLabel": null,
+                                          "dayOfWeek": null,
+                                          "startPeriod": null,
+                                          "endPeriod": null
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.courseCount").value(1))
+                .andExpect(jsonPath("$.data.courses[0].id").value("manual-1"))
+                .andExpect(jsonPath("$.data.courses[0].isOnline").value(true))
+                .andExpect(jsonPath("$.data.slots").isArray())
+                .andExpect(jsonPath("$.data.slots").isEmpty());
+    }
+
+    @Test
+    void addManualCourse_시간충돌_409() throws Exception {
+        mockValidToken();
+        when(timetableService.addManualCourse(eq("firebase-uid"), any(CreateMyManualTimetableCourseRequest.class)))
+                .thenThrow(new BusinessException(ErrorCode.TIMETABLE_CONFLICT));
+
+        mockMvc.perform(
+                        post("/v1/timetables/my/manual-courses")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "semester": "2026-1",
+                                          "name": "캡스톤세미나",
+                                          "professor": "정태현",
+                                          "credits": 3,
+                                          "isOnline": false,
+                                          "locationLabel": "공학관 502",
+                                          "dayOfWeek": 2,
+                                          "startPeriod": 9,
+                                          "endPeriod": 11
+                                        }
+                                        """)
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("TIMETABLE_CONFLICT"));
+    }
+
+    @Test
+    void addManualCourse_오프라인필수값누락_422() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        post("/v1/timetables/my/manual-courses")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "semester": "2026-1",
+                                          "name": "캡스톤세미나",
+                                          "professor": "정태현",
+                                          "credits": 3,
+                                          "isOnline": false,
+                                          "locationLabel": "",
+                                          "dayOfWeek": null,
+                                          "startPeriod": null,
+                                          "endPeriod": null
                                         }
                                         """)
                 )
@@ -219,6 +333,7 @@ class TimetableControllerContractTest {
                         "영401",
                         "전공선택",
                         3,
+                        false,
                         List.of(new CourseScheduleResponse(1, 3, 4))
                 )),
                 List.of(new TimetableSlotResponse(
@@ -231,6 +346,28 @@ class TimetableControllerContractTest {
                         "문상혁",
                         "영401"
                 ))
+        );
+    }
+
+    private UserTimetableResponse manualOnlineTimetableResponse() {
+        return new UserTimetableResponse(
+                "timetable-1",
+                "2026-1",
+                1,
+                2,
+                List.of(new TimetableCourseResponse(
+                        "manual-1",
+                        "직접 입력",
+                        null,
+                        "플랫폼세미나",
+                        "직접 입력",
+                        null,
+                        null,
+                        2,
+                        true,
+                        List.of()
+                )),
+                List.of()
         );
     }
 }

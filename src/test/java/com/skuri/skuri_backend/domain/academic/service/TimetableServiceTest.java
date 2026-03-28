@@ -3,6 +3,8 @@ package com.skuri.skuri_backend.domain.academic.service;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.academic.dto.request.AddMyTimetableCourseRequest;
+import com.skuri.skuri_backend.domain.academic.dto.request.CreateMyManualTimetableCourseRequest;
+import com.skuri.skuri_backend.domain.academic.dto.response.TimetableSemesterOptionResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.UserTimetableResponse;
 import com.skuri.skuri_backend.domain.academic.entity.Course;
 import com.skuri.skuri_backend.domain.academic.entity.UserTimetable;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,12 +39,27 @@ class TimetableServiceTest {
     private TimetableService timetableService;
 
     @Test
+    void getMySemesters_강의카탈로그와내시간표학기를합집합으로최신순정렬한다() {
+        when(courseRepository.findDistinctSemesters()).thenReturn(List.of("2025-2", "2026-1"));
+        when(userTimetableRepository.findDistinctSemestersByUserId("user-1"))
+                .thenReturn(List.of("2024-2", "2026-2", "2026-1"));
+
+        List<TimetableSemesterOptionResponse> response = timetableService.getMySemesters("user-1");
+
+        assertIterableEquals(
+                List.of("2026-2", "2026-1", "2025-2", "2024-2"),
+                response.stream().map(TimetableSemesterOptionResponse::id).toList()
+        );
+    }
+
+    @Test
     void addCourse_정상추가() {
         Course targetCourse = course("course-1", "01255", "민법총칙", "2026-1", 1, 3, 4);
         UserTimetable timetable = timetable("timetable-1", "user-1", "2026-1");
 
         when(courseRepository.findDetailById("course-1")).thenReturn(Optional.of(targetCourse));
-        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1")).thenReturn(Optional.of(timetable));
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
         when(courseRepository.findAllWithSchedulesByIdIn(List.of("course-1"))).thenReturn(List.of(targetCourse));
 
         UserTimetableResponse response = timetableService.addCourse(
@@ -52,6 +70,7 @@ class TimetableServiceTest {
         assertEquals(1, response.courseCount());
         assertEquals(3, response.totalCredits());
         assertEquals("course-1", response.courses().get(0).id());
+        assertEquals(false, response.courses().get(0).isOnline());
         assertEquals("민법총칙", response.slots().get(0).courseName());
     }
 
@@ -62,7 +81,8 @@ class TimetableServiceTest {
         timetable.addCourse(targetCourse);
 
         when(courseRepository.findDetailById("course-1")).thenReturn(Optional.of(targetCourse));
-        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1")).thenReturn(Optional.of(timetable));
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -80,12 +100,72 @@ class TimetableServiceTest {
         timetable.addCourse(existingCourse);
 
         when(courseRepository.findDetailById("course-new")).thenReturn(Optional.of(targetCourse));
-        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1")).thenReturn(Optional.of(timetable));
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
         when(courseRepository.findAllWithSchedulesByIdIn(List.of("course-existing"))).thenReturn(List.of(existingCourse));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
                 () -> timetableService.addCourse("user-1", new AddMyTimetableCourseRequest("course-new", "2026-1"))
+        );
+
+        assertEquals(ErrorCode.TIMETABLE_CONFLICT, exception.getErrorCode());
+    }
+
+    @Test
+    void addCourse_수동오프라인강의와겹치면_예외() {
+        Course targetCourse = course("course-new", "03210", "형법총론", "2026-1", 2, 9, 11);
+        UserTimetable timetable = timetable("timetable-1", "user-1", "2026-1");
+        addManualCourse(timetable, "manual-1", "캡스톤세미나", false, "공학관 502", 2, 9, 11);
+
+        when(courseRepository.findDetailById("course-new")).thenReturn(Optional.of(targetCourse));
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> timetableService.addCourse("user-1", new AddMyTimetableCourseRequest("course-new", "2026-1"))
+        );
+
+        assertEquals(ErrorCode.TIMETABLE_CONFLICT, exception.getErrorCode());
+    }
+
+    @Test
+    void addManualCourse_온라인강의는슬롯없이추가된다() {
+        UserTimetable timetable = timetable("timetable-1", "user-1", "2026-1");
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
+
+        UserTimetableResponse response = timetableService.addManualCourse(
+                "user-1",
+                new CreateMyManualTimetableCourseRequest("2026-1", "플랫폼세미나", "", 2, true, null, null, null, null)
+        );
+
+        assertEquals(1, response.courseCount());
+        assertEquals(2, response.totalCredits());
+        assertEquals("직접 입력", response.courses().get(0).code());
+        assertEquals(true, response.courses().get(0).isOnline());
+        assertEquals("직접 입력", response.courses().get(0).professor());
+        assertEquals(0, response.courses().get(0).schedule().size());
+        assertEquals(0, response.slots().size());
+    }
+
+    @Test
+    void addManualCourse_오프라인강의가겹치면_예외() {
+        Course existingCourse = course("course-existing", "01255", "민법총칙", "2026-1", 6, 1, 3);
+        UserTimetable timetable = timetable("timetable-1", "user-1", "2026-1");
+        timetable.addCourse(existingCourse);
+
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
+        when(courseRepository.findAllWithSchedulesByIdIn(List.of("course-existing"))).thenReturn(List.of(existingCourse));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> timetableService.addManualCourse(
+                        "user-1",
+                        new CreateMyManualTimetableCourseRequest("2026-1", "모바일프로그래밍", "김서윤", 2, false, "공학관 503", 6, 1, 3)
+                )
         );
 
         assertEquals(ErrorCode.TIMETABLE_CONFLICT, exception.getErrorCode());
@@ -98,9 +178,25 @@ class TimetableServiceTest {
         timetable.addCourse(existingCourse);
 
         when(courseRepository.existsById("course-1")).thenReturn(true);
-        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1")).thenReturn(Optional.of(timetable));
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
 
         UserTimetableResponse response = timetableService.removeCourse("user-1", "course-1", "2026-1");
+
+        assertEquals(0, response.courseCount());
+        assertEquals(0, response.totalCredits());
+    }
+
+    @Test
+    void removeCourse_직접입력강의도삭제한다() {
+        UserTimetable timetable = timetable("timetable-1", "user-1", "2026-1");
+        addManualCourse(timetable, "manual-1", "플랫폼세미나", true, null, null, null, null);
+
+        when(courseRepository.existsById("manual-1")).thenReturn(false);
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
+
+        UserTimetableResponse response = timetableService.removeCourse("user-1", "manual-1", "2026-1");
 
         assertEquals(0, response.courseCount());
         assertEquals(0, response.totalCredits());
@@ -136,5 +232,19 @@ class TimetableServiceTest {
         UserTimetable timetable = UserTimetable.create(userId, semester);
         ReflectionTestUtils.setField(timetable, "id", id);
         return timetable;
+    }
+
+    private void addManualCourse(
+            UserTimetable timetable,
+            String courseId,
+            String name,
+            boolean isOnline,
+            String location,
+            Integer dayOfWeek,
+            Integer startPeriod,
+            Integer endPeriod
+    ) {
+        timetable.addManualCourse(name, null, 2, isOnline, location, dayOfWeek, startPeriod, endPeriod);
+        ReflectionTestUtils.setField(timetable.getManualCourses().get(timetable.getManualCourses().size() - 1), "id", courseId);
     }
 }
