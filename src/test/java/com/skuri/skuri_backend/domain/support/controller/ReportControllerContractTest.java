@@ -72,6 +72,29 @@ class ReportControllerContractTest {
     }
 
     @Test
+    void createReport_채팅메시지정상요청_201() throws Exception {
+        mockUserToken("user-token");
+        when(reportService.createReport(org.mockito.ArgumentMatchers.eq("user-uid"), any(CreateReportRequest.class)))
+                .thenReturn(new ReportCreateResponse("report-2", ReportStatus.PENDING, LocalDateTime.of(2026, 3, 29, 12, 10)));
+
+        mockMvc.perform(
+                        post("/v1/reports")
+                                .header(AUTHORIZATION, "Bearer user-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "targetType": "CHAT_MESSAGE",
+                                          "targetId": "message_uuid",
+                                          "category": "SPAM",
+                                          "reason": "광고성 메시지입니다."
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.id").value("report-2"));
+    }
+
+    @Test
     void createReport_토큰없음_401() throws Exception {
         mockMvc.perform(
                         post("/v1/reports")
@@ -154,6 +177,29 @@ class ReportControllerContractTest {
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("CANNOT_REPORT_YOURSELF"));
+    }
+
+    @Test
+    void createReport_채팅메시지없음_404() throws Exception {
+        mockUserToken("user-token");
+        when(reportService.createReport(org.mockito.ArgumentMatchers.eq("user-uid"), any(CreateReportRequest.class)))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_MESSAGE_NOT_FOUND));
+
+        mockMvc.perform(
+                        post("/v1/reports")
+                                .header(AUTHORIZATION, "Bearer user-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "targetType": "CHAT_MESSAGE",
+                                          "targetId": "missing_message",
+                                          "category": "SPAM",
+                                          "reason": "광고성 메시지입니다."
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("CHAT_MESSAGE_NOT_FOUND"));
     }
 
     private void mockUserToken(String token) {

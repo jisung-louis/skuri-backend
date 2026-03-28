@@ -83,6 +83,43 @@ class ReportAdminControllerContractTest {
     }
 
     @Test
+    void getReports_새타입필터정상요청_200() throws Exception {
+        mockToken("admin-token", true);
+        when(reportService.getAdminReports(ReportStatus.PENDING, ReportTargetType.CHAT_MESSAGE, 0, 20))
+                .thenReturn(PageResponse.<AdminReportResponse>builder()
+                        .content(java.util.List.of(new AdminReportResponse(
+                                "report-chat-1",
+                                "user-uid",
+                                ReportTargetType.CHAT_MESSAGE,
+                                "message-1",
+                                "sender-1",
+                                "SPAM",
+                                "광고성 메시지입니다.",
+                                ReportStatus.PENDING,
+                                null,
+                                null,
+                                LocalDateTime.of(2026, 3, 29, 12, 10),
+                                LocalDateTime.of(2026, 3, 29, 12, 10)
+                        )))
+                        .page(0)
+                        .size(20)
+                        .totalElements(1)
+                        .totalPages(1)
+                        .hasNext(false)
+                        .hasPrevious(false)
+                        .build());
+
+        mockMvc.perform(
+                        get("/v1/admin/reports")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("status", "PENDING")
+                                .param("targetType", "CHAT_MESSAGE")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].targetType").value("CHAT_MESSAGE"));
+    }
+
+    @Test
     void getReports_비관리자요청_403() throws Exception {
         mockToken("user-token", false);
 

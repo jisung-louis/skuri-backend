@@ -6,6 +6,12 @@ import com.skuri.skuri_backend.domain.board.entity.Post;
 import com.skuri.skuri_backend.domain.board.entity.PostCategory;
 import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostRepository;
+import com.skuri.skuri_backend.domain.chat.entity.ChatMessage;
+import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
+import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
+import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.dto.request.CreateReportRequest;
 import com.skuri.skuri_backend.domain.support.dto.request.UpdateReportStatusRequest;
@@ -14,8 +20,11 @@ import com.skuri.skuri_backend.domain.support.entity.Report;
 import com.skuri.skuri_backend.domain.support.entity.ReportStatus;
 import com.skuri.skuri_backend.domain.support.entity.ReportTargetType;
 import com.skuri.skuri_backend.domain.support.repository.ReportRepository;
+import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +36,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +54,15 @@ class ReportServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private ChatMessageRepository chatMessageRepository;
+
+    @Mock
+    private ChatRoomRepository chatRoomRepository;
+
+    @Mock
+    private PartyRepository partyRepository;
 
     @InjectMocks
     private ReportService reportService;
@@ -127,6 +147,118 @@ class ReportServiceTest {
         );
 
         assertEquals(ErrorCode.REPORT_ALREADY_SUBMITTED, exception.getErrorCode());
+    }
+
+    @Test
+    void createReport_chatMessage_발신자를대상작성자로저장() {
+        ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
+        when(reportRepository.existsByReporterIdAndTargetTypeAndTargetId("user-1", ReportTargetType.CHAT_MESSAGE, "message-1"))
+                .thenReturn(false);
+        when(chatMessageRepository.findById("message-1"))
+                .thenReturn(Optional.of(ChatMessage.create(
+                        "room-1",
+                        "sender-1",
+                        "보낸이",
+                        "광고 메시지",
+                        ChatMessageType.TEXT,
+                        null,
+                        null
+                )));
+        when(reportRepository.saveAndFlush(captor.capture()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        reportService.createReport(
+                "user-1",
+                new CreateReportRequest(
+                        ReportTargetType.CHAT_MESSAGE,
+                        "message-1",
+                        "spam",
+                        "광고성 메시지입니다."
+                )
+        );
+
+        assertEquals("sender-1", captor.getValue().getTargetAuthorId());
+        assertEquals("SPAM", captor.getValue().getCategory());
+    }
+
+    @Test
+    void createReport_chatRoom_seedRoom_createdByNull허용() {
+        ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
+        when(reportRepository.existsByReporterIdAndTargetTypeAndTargetId("user-1", ReportTargetType.CHAT_ROOM, "public:university"))
+                .thenReturn(false);
+        when(chatRoomRepository.findById("public:university"))
+                .thenReturn(Optional.of(ChatRoom.create(
+                        "public:university",
+                        "성결대학교 전체 채팅방",
+                        ChatRoomType.UNIVERSITY,
+                        null,
+                        "성결대학교 전체 채팅방입니다.",
+                        null,
+                        true,
+                        null
+                )));
+        when(reportRepository.saveAndFlush(captor.capture()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        reportService.createReport(
+                "user-1",
+                new CreateReportRequest(
+                        ReportTargetType.CHAT_ROOM,
+                        "public:university",
+                        "ABUSE",
+                        "부적절한 목적의 채팅방입니다."
+                )
+        );
+
+        assertEquals(null, captor.getValue().getTargetAuthorId());
+    }
+
+    @Test
+    void createReport_chatRoom_partyRoom은신고대상아님() {
+        when(reportRepository.existsByReporterIdAndTargetTypeAndTargetId("user-1", ReportTargetType.CHAT_ROOM, "party:party-1"))
+                .thenReturn(false);
+        when(chatRoomRepository.findById("party:party-1"))
+                .thenReturn(Optional.of(ChatRoom.createPartyRoom("party-1")));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> reportService.createReport(
+                        "user-1",
+                        new CreateReportRequest(
+                                ReportTargetType.CHAT_ROOM,
+                                "party:party-1",
+                                "ABUSE",
+                                "파티 채팅방 신고 테스트"
+                        )
+                )
+        );
+
+        assertEquals(ErrorCode.CHAT_ROOM_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
+    void createReport_taxiParty_자기자신신고실패() {
+        Party party = mock(Party.class);
+        when(reportRepository.existsByReporterIdAndTargetTypeAndTargetId("leader-1", ReportTargetType.TAXI_PARTY, "party-1"))
+                .thenReturn(false);
+        when(partyRepository.findById("party-1")).thenReturn(Optional.of(party));
+        when(party.getLeaderId()).thenReturn("leader-1");
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> reportService.createReport(
+                        "leader-1",
+                        new CreateReportRequest(
+                                ReportTargetType.TAXI_PARTY,
+                                "party-1",
+                                "FRAUD",
+                                "운행/정산 방식이 부적절합니다."
+                        )
+                )
+        );
+
+        assertEquals(ErrorCode.CANNOT_REPORT_YOURSELF, exception.getErrorCode());
+        verify(party).getLeaderId();
     }
 
     @Test
