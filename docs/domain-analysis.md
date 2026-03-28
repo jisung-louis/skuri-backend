@@ -313,6 +313,8 @@ Hooks:
   - 공개방 참여/나가기/커스텀방 생성은 REST(`POST /v1/chat-rooms`, `POST /v1/chat-rooms/{id}/join`, `DELETE /v1/chat-rooms/{id}/members/me`)로 처리
   - 공개방 create/join은 가입 완료된 active member만 가능하며, 미가입 UID는 `MEMBER_NOT_FOUND`
   - 커스텀 공개방 생성자는 자동으로 joined 상태가 되며, join 시 초기 unread는 0으로 시작한다
+  - 공개방 참여/나가기와 파티 채팅 멤버 입장/퇴장은 실제 `SYSTEM` chat message를 저장하고 `/topic/chat/{chatRoomId}`로 브로드캐스트한다
+  - 멤버 입장 직후 생성된 join `SYSTEM` 메시지는 해당 신규 멤버의 `lastReadAt`을 서버가 최신 메시지 시각으로 맞춰 unread가 0으로 유지되게 한다
   - 회원 프로필 학과 변경 시 기존 학과방 membership은 자동 제거하고, 새 학과방은 자동 참여시키지 않는다
   - 채팅방 목록 실시간: `/user/queue/chat-rooms` 사용자 전용 요약 채널 1개 구독
   - 채팅방 상세 실시간: `/topic/chat/{chatRoomId}` 방 단위 구독
@@ -742,8 +744,8 @@ UserNotification 엔티티:
   - `SETTLEMENT_COMPLETED`: 파티 전체 멤버 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
   - `MEMBER_KICKED`: 강퇴된 멤버 대상, 자진 이탈과 리더 제외, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
   - `PARTY_ENDED`: 리더 제외 파티 멤버 대상, `allNotifications` + `partyNotifications` 반영, 인앱 인박스 생성
-  - `CHAT_MESSAGE`(공개 채팅): 채팅방 멤버 대상, `allNotifications` + 채팅방 mute 반영, 인앱 인박스 미생성
-  - `CHAT_MESSAGE`(파티 채팅): 파티 멤버 대상, `TEXT`/`IMAGE`뿐 아니라 `ACCOUNT`/`SYSTEM`/`ARRIVED`/`END`도 포함, 채팅 mute 중심 parity를 유지하고 전역 토글은 현재 미반영, 인앱 인박스 미생성, payload canonical 식별자는 `chatRoomId`
+  - `CHAT_MESSAGE`(공개 채팅): 채팅방 멤버 대상, `allNotifications` + 채팅방 mute 반영, 인앱 인박스 미생성. 단, 멤버 입장/퇴장 `SYSTEM` 메시지는 push에서 제외
+  - `CHAT_MESSAGE`(파티 채팅): 파티 멤버 대상, `TEXT`/`IMAGE`뿐 아니라 `ACCOUNT`/일반 `SYSTEM`/`ARRIVED`/`END`도 포함, 채팅 mute 중심 parity를 유지하고 전역 토글은 현재 미반영, 인앱 인박스 미생성, payload canonical 식별자는 `chatRoomId`. 단, 멤버 입장/퇴장 `SYSTEM` 메시지는 push에서 제외
   - `POST_LIKED`: 게시글 작성자 대상, 자기 좋아요 제외, `allNotifications` + `boardLikeNotifications` 반영, 인앱 인박스 생성
   - `COMMENT_CREATED`(게시글): 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 대상, 자기 자신 제외, `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` 반영, 중복 대상자는 1회 dedupe 후 인앱 인박스 생성
   - `COMMENT_CREATED`(공지): 현재 `Notice.author`는 문자열 필드만 있어 공지 작성자 식별이 불가능하므로, 부모 댓글 작성자 대상 답글 알림만 발송하며 `allNotifications` + `commentNotifications`를 반영
