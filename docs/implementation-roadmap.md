@@ -596,9 +596,12 @@ SSE 운영 제약:
 | `CafeteriaMenu` | `cafeteria_menus` | 학식 메뉴 |
 
 `Report` 기준 enum:
-- `targetType`: `POST`, `COMMENT`, `MEMBER`
+- `targetType`: `POST`, `COMMENT`, `MEMBER`, `CHAT_MESSAGE`, `CHAT_ROOM`, `TAXI_PARTY`
 - `status`: `PENDING`, `REVIEWING`, `ACTIONED`, `REJECTED`
 - duplicate policy: `reporterId + targetType + targetId` 전 상태 기준 재신고 금지
+- `CHAT_MESSAGE.targetAuthorId = message.senderId`
+- `CHAT_ROOM.targetAuthorId = chatRoom.createdBy` (seed/public 방처럼 creator가 없으면 `null` 허용, `PARTY` 타입 방은 제외)
+- `TAXI_PARTY.targetAuthorId = party.leaderId`
 - `GET /v1/app-versions/{platform}`는 저장 데이터가 없으면 기본 `minimumVersion=1.0.0` 응답
 - `GET /v1/legal-documents/{documentKey}`는 `documentKey=termsOfUse|privacyPolicy` 고정 키만 허용하며, `isActive=false` 또는 미존재 문서는 `404 LEGAL_DOCUMENT_NOT_FOUND`
 - 초기 이용약관/개인정보 처리방침 2건은 1회성 seed migration으로 적재하고 이후에는 관리자 API로 관리

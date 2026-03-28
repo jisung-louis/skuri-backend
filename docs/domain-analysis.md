@@ -578,8 +578,11 @@ Hooks:
     - 요청에서 attachments 생략/null은 허용하고 서버에서 빈 배열로 정규화
     - 응답은 항상 `attachments: []` 형태를 유지하며 null을 반환하지 않음
   - Report
-    - id, targetType (POST, COMMENT, MEMBER)
+    - id, targetType (POST, COMMENT, MEMBER, CHAT_MESSAGE, CHAT_ROOM, TAXI_PARTY)
     - targetId, targetAuthorId, category, reason
+    - `CHAT_MESSAGE.targetAuthorId = message.senderId`
+    - `CHAT_ROOM.targetAuthorId = chatRoom.createdBy` (creator가 없는 seed/public 방은 null 허용, `PARTY` 타입 방은 제외)
+    - `TAXI_PARTY.targetAuthorId = party.leaderId`
     - reporterId, status (PENDING, REVIEWING, ACTIONED, REJECTED)
     - action, adminMemo
     - duplicate policy: unique(reporterId, targetType, targetId)

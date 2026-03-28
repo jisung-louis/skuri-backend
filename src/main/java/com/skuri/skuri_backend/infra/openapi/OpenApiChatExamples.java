@@ -327,6 +327,15 @@ public final class OpenApiChatExamples {
             }
             """;
 
+    public static final String ERROR_CHAT_MESSAGE_NOT_FOUND = """
+            {
+              "success": false,
+              "errorCode": "CHAT_MESSAGE_NOT_FOUND",
+              "message": "채팅 메시지를 찾을 수 없습니다.",
+              "timestamp": "2026-03-05T21:10:00"
+            }
+            """;
+
     public static final String ERROR_NOT_CHAT_ROOM_MEMBER = """
             {
               "success": false,

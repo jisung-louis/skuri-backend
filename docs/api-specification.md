@@ -1779,6 +1779,7 @@ Authorization:Bearer <firebase_id_token>
 | 에러 코드 | 설명 |
 |----------|------|
 | `CHAT_ROOM_NOT_FOUND` | 채팅방을 찾을 수 없음 |
+| `CHAT_MESSAGE_NOT_FOUND` | 채팅 메시지를 찾을 수 없음 |
 | `NOT_CHAT_ROOM_MEMBER` | 채팅방 멤버가 아님 |
 | `CHAT_ROOM_FULL` | 채팅방 정원 초과 |
 | `ALREADY_CHAT_ROOM_MEMBER` | 이미 참여 중인 채팅방 |
@@ -2808,15 +2809,41 @@ Authorization:Bearer <firebase_id_token>
 #### POST /v1/reports
 신고 등록
 
-**targetType:** `POST` | `COMMENT` | `MEMBER`
+**targetType:** `POST` | `COMMENT` | `MEMBER` | `CHAT_MESSAGE` | `CHAT_ROOM` | `TAXI_PARTY`
 
-**Request:**
+- `CHAT_MESSAGE`: `targetId = messageId`, `targetAuthorId = message.senderId`
+- `CHAT_ROOM`: `targetId = chatRoomId`, 파티 채팅방(`type=PARTY`)은 대상에서 제외하며 일반 채팅방만 허용
+- `CHAT_ROOM`의 seed/public 방처럼 `createdBy`가 없으면 신고는 허용하고 `targetAuthorId = null`로 저장
+- `TAXI_PARTY`: `targetId = partyId`, `targetAuthorId = party.leaderId`
+- `404` 대상 없음은 `POST_NOT_FOUND`, `COMMENT_NOT_FOUND`, `MEMBER_NOT_FOUND`, `CHAT_MESSAGE_NOT_FOUND`, `CHAT_ROOM_NOT_FOUND`, `PARTY_NOT_FOUND` 중 하나를 반환합니다.
+
+**Request Example - CHAT_MESSAGE:**
 ```json
 {
-  "targetType": "POST",
-  "targetId": "post_uuid",
+  "targetType": "CHAT_MESSAGE",
+  "targetId": "message_uuid",
   "category": "SPAM",
-  "reason": "광고성 게시글입니다."
+  "reason": "광고성 메시지입니다."
+}
+```
+
+**Request Example - CHAT_ROOM:**
+```json
+{
+  "targetType": "CHAT_ROOM",
+  "targetId": "chat_room_uuid",
+  "category": "ABUSE",
+  "reason": "부적절한 목적의 채팅방입니다."
+}
+```
+
+**Request Example - TAXI_PARTY:**
+```json
+{
+  "targetType": "TAXI_PARTY",
+  "targetId": "party_uuid",
+  "category": "FRAUD",
+  "reason": "운행/정산 방식이 부적절합니다."
 }
 ```
 
@@ -4997,7 +5024,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 | 파라미터 | 타입 | 설명 |
 |---------|------|------|
 | `status` | string | 신고 상태 필터 (`PENDING`, `REVIEWING`, `ACTIONED`, `REJECTED`) |
-| `targetType` | string | 신고 대상 필터 (`POST`, `COMMENT`, `MEMBER`) |
+| `targetType` | string | 신고 대상 필터 (`POST`, `COMMENT`, `MEMBER`, `CHAT_MESSAGE`, `CHAT_ROOM`, `TAXI_PARTY`) |
 | `page` | int | 페이지 번호 (기본 0, 0 이상) |
 | `size` | int | 페이지 크기 (기본 20, 1~100) |
 
@@ -5013,21 +5040,49 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
       {
         "id": "report_uuid",
         "reporterId": "user_uuid",
-        "targetType": "POST",
-        "targetId": "post_uuid",
+        "targetType": "CHAT_MESSAGE",
+        "targetId": "message_uuid",
         "targetAuthorId": "target_user_uuid",
         "category": "SPAM",
-        "reason": "광고성 게시글입니다.",
+        "reason": "광고성 메시지입니다.",
         "status": "PENDING",
         "action": null,
         "memo": null,
-        "createdAt": "2026-03-05T12:10:00Z",
-        "updatedAt": "2026-03-05T12:10:00Z"
+        "createdAt": "2026-03-29T12:10:00Z",
+        "updatedAt": "2026-03-29T12:10:00Z"
+      },
+      {
+        "id": "report_uuid_2",
+        "reporterId": "user_uuid",
+        "targetType": "CHAT_ROOM",
+        "targetId": "chat_room_uuid",
+        "targetAuthorId": "room_owner_uuid",
+        "category": "ABUSE",
+        "reason": "부적절한 목적의 채팅방입니다.",
+        "status": "PENDING",
+        "action": null,
+        "memo": null,
+        "createdAt": "2026-03-29T12:20:00Z",
+        "updatedAt": "2026-03-29T12:20:00Z"
+      },
+      {
+        "id": "report_uuid_3",
+        "reporterId": "user_uuid",
+        "targetType": "TAXI_PARTY",
+        "targetId": "party_uuid",
+        "targetAuthorId": "party_host_uuid",
+        "category": "FRAUD",
+        "reason": "운행/정산 방식이 부적절합니다.",
+        "status": "PENDING",
+        "action": null,
+        "memo": null,
+        "createdAt": "2026-03-29T12:30:00Z",
+        "updatedAt": "2026-03-29T12:30:00Z"
       }
     ],
     "page": 0,
     "size": 20,
-    "totalElements": 18,
+    "totalElements": 3,
     "totalPages": 1,
     "hasNext": false,
     "hasPrevious": false
@@ -5080,6 +5135,10 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 ---
 
 > 변경 이력
+> - 2026-03-29: Support 신고 대상 확장
+>   - `Report.targetType`에 `CHAT_MESSAGE`, `CHAT_ROOM`, `TAXI_PARTY` 추가
+>   - `POST /v1/reports`를 채팅 메시지/일반 채팅방/택시파티 신고까지 확장
+>   - Admin 신고 목록 필터/응답 예시에 신규 target type 반영
 > - 2026-03-25: Campus Banner API 계약 추가
 >   - `GET /v1/campus-banners` 공개 조회 추가
 >   - `GET /v1/admin/campus-banners`, `GET /v1/admin/campus-banners/{bannerId}`, `POST/PATCH/DELETE /v1/admin/campus-banners/{bannerId}`, `PUT /v1/admin/campus-banners/order` 계약 추가

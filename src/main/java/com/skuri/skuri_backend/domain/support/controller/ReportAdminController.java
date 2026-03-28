@@ -96,7 +96,11 @@ public class ReportAdminController {
     public ResponseEntity<ApiResponse<PageResponse<AdminReportResponse>>> getReports(
             @Parameter(description = "신고 상태 필터", example = "PENDING")
             @RequestParam(name = "status", required = false) ReportStatus status,
-            @Parameter(description = "신고 대상 타입 필터", example = "POST")
+            @Parameter(
+                    description = "신고 대상 타입 필터",
+                    example = "CHAT_MESSAGE",
+                    schema = @Schema(allowableValues = {"POST", "COMMENT", "MEMBER", "CHAT_MESSAGE", "CHAT_ROOM", "TAXI_PARTY"})
+            )
             @RequestParam(name = "targetType", required = false) ReportTargetType targetType,
             @Parameter(description = "페이지 번호", example = "0")
             @RequestParam(name = "page", defaultValue = "0") int page,

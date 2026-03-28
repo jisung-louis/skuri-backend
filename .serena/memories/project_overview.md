@@ -19,7 +19,7 @@
 - notice: 학교 공지/댓글/읽음/북마크/앱 공지
 - academic: 강의/시간표/학사 일정
 - campus: 캠퍼스 배너 공개/관리자 API
-- support: 문의/신고/앱 버전/법적 문서/학식
+- support: 문의/신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티)/앱 버전/법적 문서/학식
 - notification: 인앱 인박스, FCM, SSE, 이벤트 기반 알림 처리
 
 ## Inquiry Attachment 메모

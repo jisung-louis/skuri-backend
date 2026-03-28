@@ -3,5 +3,8 @@ package com.skuri.skuri_backend.domain.support.entity;
 public enum ReportTargetType {
     POST,
     COMMENT,
-    MEMBER
+    MEMBER,
+    CHAT_MESSAGE,
+    CHAT_ROOM,
+    TAXI_PARTY
 }
