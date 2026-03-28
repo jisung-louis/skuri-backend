@@ -2728,9 +2728,25 @@ Authorization:Bearer <firebase_id_token>
 {
   "type": "BUG",
   "subject": "앱 오류 문의",
-  "content": "채팅 화면에서 오류가 발생합니다."
+  "content": "채팅 화면에서 오류가 발생합니다.",
+  "attachments": [
+    {
+      "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0.jpg",
+      "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0_thumb.jpg",
+      "width": 800,
+      "height": 600,
+      "size": 245123,
+      "mime": "image/jpeg"
+    }
+  ]
 }
 ```
+
+- `attachments`는 optional 필드입니다.
+- 요청에서 `attachments`를 생략하거나 `null`로 보내면 서버는 빈 배열로 정규화합니다.
+- `attachments`는 최대 3개까지 허용합니다.
+- 각 첨부 항목은 `url`, `thumbUrl`, `width`, `height`, `size`, `mime` 전체 메타데이터를 저장합니다.
+- 허용 MIME은 `image/jpeg`, `image/png`, `image/webp`입니다.
 
 **Response:**
 ```json
@@ -2758,6 +2774,16 @@ Authorization:Bearer <firebase_id_token>
       "subject": "앱 오류 문의",
       "content": "채팅 화면에서 오류가 발생합니다.",
       "status": "PENDING",
+      "attachments": [
+        {
+          "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0.jpg",
+          "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0_thumb.jpg",
+          "width": 800,
+          "height": 600,
+          "size": 245123,
+          "mime": "image/jpeg"
+        }
+      ],
       "createdAt": "2026-02-03T12:00:00Z",
       "updatedAt": "2026-02-03T12:00:00Z"
     }
@@ -3981,7 +4007,7 @@ data: {
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
 | `file` | File | O | 이미지 파일 (JPEG, PNG, WebP) |
-| `context` | string | O | 업로드 컨텍스트 (`POST_IMAGE` \| `CHAT_IMAGE` \| `APP_NOTICE_IMAGE` \| `CAMPUS_BANNER_IMAGE` \| `PROFILE_IMAGE`) |
+| `context` | string | O | 업로드 컨텍스트 (`POST_IMAGE` \| `CHAT_IMAGE` \| `APP_NOTICE_IMAGE` \| `CAMPUS_BANNER_IMAGE` \| `PROFILE_IMAGE` \| `INQUIRY_IMAGE`) |
 
 **context 권한 정책**
 
@@ -3990,6 +4016,7 @@ data: {
 | `POST_IMAGE` | 인증 사용자 | Board `images[]` |
 | `CHAT_IMAGE` | 인증 사용자 | Chat `imageUrl` |
 | `PROFILE_IMAGE` | 인증 사용자 | Member profile `photoUrl` |
+| `INQUIRY_IMAGE` | 인증 사용자 | Inquiry `attachments[]` |
 | `APP_NOTICE_IMAGE` | 관리자만 허용 | AppNotice `imageUrls[]` |
 | `CAMPUS_BANNER_IMAGE` | 관리자만 허용 | CampusBanner `imageUrl` |
 
@@ -4011,6 +4038,7 @@ data: {
 - `POST_IMAGE` → `posts/YYYY/MM/DD/{uuid}.{ext}`
 - `CHAT_IMAGE` → `chat/YYYY/MM/DD/{uuid}.{ext}`
 - `PROFILE_IMAGE` → `profiles/YYYY/MM/DD/{uuid}.{ext}`
+- `INQUIRY_IMAGE` → `inquiries/YYYY/MM/DD/{uuid}.{ext}`
 - `APP_NOTICE_IMAGE` → `app-notices/YYYY/MM/DD/{uuid}.{ext}`
 - `CAMPUS_BANNER_IMAGE` → `campus-banners/YYYY/MM/DD/{uuid}.{ext}`
 
@@ -4106,6 +4134,18 @@ data: {
     │
     └─ 2. PATCH /v1/members/me
            { "photoUrl": "https://..." }
+```
+
+#### 문의 첨부 이미지
+
+```
+클라이언트
+    │
+    ├─ 1. POST /v1/images (multipart, context=INQUIRY_IMAGE)
+    │      └─ Response: { url, thumbUrl, width, height, size, mime }
+    │
+    └─ 2. POST /v1/inquiries
+           { "attachments": [{ "url": "https://...", "thumbUrl": "https://...", "width": 800, "height": 600, "size": 245123, "mime": "image/jpeg" }], ... }
 ```
 
 ---
@@ -4865,6 +4905,16 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
         "subject": "채팅 화면 오류",
         "content": "채팅 진입 시 앱이 종료됩니다.",
         "status": "PENDING",
+        "attachments": [
+          {
+            "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0.jpg",
+            "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0_thumb.jpg",
+            "width": 800,
+            "height": 600,
+            "size": 245123,
+            "mime": "image/jpeg"
+          }
+        ],
         "memo": null,
         "userEmail": "user@sungkyul.ac.kr",
         "userName": "스쿠리유저",
@@ -4906,6 +4956,16 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
     "subject": "채팅 화면 오류",
     "content": "채팅 진입 시 앱이 종료됩니다.",
     "status": "RESOLVED",
+    "attachments": [
+      {
+        "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0.jpg",
+        "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0_thumb.jpg",
+        "width": 800,
+        "height": 600,
+        "size": 245123,
+        "mime": "image/jpeg"
+      }
+    ],
     "memo": "재현 후 수정 배포 완료",
     "userEmail": "user@sungkyul.ac.kr",
     "userName": "스쿠리유저",

@@ -19,6 +19,17 @@
 - `infra/admin`: admin audit, admin list 공통 인프라
 - `infra/openapi`: OpenAPI 그룹/예시/wrapper schema
 
+## Inquiry Attachment 관련 파일
+- `src/main/java/com/skuri/skuri_backend/domain/support/entity/InquiryAttachment.java`: 문의 첨부 이미지 메타데이터 value object
+- `src/main/java/com/skuri/skuri_backend/domain/support/entity/converter/InquiryAttachmentListJsonConverter.java`: inquiry attachments JSON 컬럼 converter
+- `src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateInquiryAttachmentRequest.java`: 문의 생성용 첨부 메타데이터 요청 DTO
+- `src/main/java/com/skuri/skuri_backend/domain/support/entity/Inquiry.java`: `attachments` JSON 컬럼 추가
+- `src/main/java/com/skuri/skuri_backend/domain/support/service/InquiryService.java`: attachments null->[] 정규화, 최대 3개/MIME 검증, 사용자/관리자 응답 변환
+- `src/main/java/com/skuri/skuri_backend/domain/image/dto/request/ImageUploadContext.java`: `INQUIRY_IMAGE` context 추가
+- `src/test/java/com/skuri/skuri_backend/domain/support/controller/InquiryControllerContractTest.java`, `InquiryAdminControllerContractTest.java`: attachments 요청/응답 계약 검증
+- `src/test/java/com/skuri/skuri_backend/domain/support/service/InquiryServiceTest.java`: attachments 정규화/검증 서비스 테스트
+- `src/test/java/com/skuri/skuri_backend/domain/image/service/ImageUploadServiceTest.java`: `INQUIRY_IMAGE` 저장 경로 검증
+
 ## Legal Document 관련 파일
 - `src/main/java/com/skuri/skuri_backend/domain/support/entity/LegalDocument.java`: 문서 본문, 배너, 푸터, 활성 여부를 저장하는 엔티티
 - `src/main/java/com/skuri/skuri_backend/domain/support/controller/LegalDocumentController.java`: 공개 조회 API

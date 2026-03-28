@@ -442,6 +442,7 @@ erDiagram
         enum type "FEATURE,BUG,ACCOUNT,SERVICE,OTHER"
         varchar(200) subject "NOT NULL"
         text content "NOT NULL"
+        json attachments "문의 첨부 이미지 메타데이터 목록"
         varchar(36) user_id FK
         varchar(255) user_email
         varchar(50) user_name

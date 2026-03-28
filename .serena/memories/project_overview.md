@@ -22,6 +22,13 @@
 - support: 문의/신고/앱 버전/법적 문서/학식
 - notification: 인앱 인박스, FCM, SSE, 이벤트 기반 알림 처리
 
+## Inquiry Attachment 메모
+- 문의 첨부 이미지는 `POST /v1/images?context=INQUIRY_IMAGE` 업로드 결과 메타데이터를 `Inquiry.attachments` JSON 컬럼으로 저장한다.
+- `POST /v1/inquiries`의 `attachments`는 optional이며 요청에서 생략하거나 `null`이면 서버에서 빈 배열로 정규화한다.
+- 첨부는 최대 3개, 허용 MIME은 `image/jpeg`, `image/png`, `image/webp`다.
+- `GET /v1/inquiries/my`, `GET /v1/admin/inquiries`/`PATCH /v1/admin/inquiries/{inquiryId}/status` 응답은 항상 `attachments: []` 형태를 유지하며 null을 반환하지 않는다.
+- 회원 탈퇴 후에도 문의 기록과 첨부 이미지 메타데이터는 보존하고, inquiry의 구조화 개인정보만 마스킹한다.
+
 ## Legal Document 메모
 - `LegalDocument`는 `termsOfUse`, `privacyPolicy` 두 고정 키를 `legal_documents` 테이블에서 관리한다.
 - 공개 API는 `GET /v1/legal-documents/{documentKey}`이며 `isActive=true` 문서만 조회 가능하다. 비활성 또는 미존재 문서는 `404 LEGAL_DOCUMENT_NOT_FOUND`를 반환한다.

@@ -92,7 +92,17 @@ public class InquiryController {
                                     {
                                       "type": "BUG",
                                       "subject": "앱 오류 문의",
-                                      "content": "채팅 화면에서 오류가 발생합니다."
+                                      "content": "채팅 화면에서 오류가 발생합니다.",
+                                      "attachments": [
+                                        {
+                                          "url": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0.jpg",
+                                          "thumbUrl": "https://cdn.skuri.app/uploads/inquiries/2026/03/28/4f3ec1a0_thumb.jpg",
+                                          "width": 800,
+                                          "height": 600,
+                                          "size": 245123,
+                                          "mime": "image/jpeg"
+                                        }
+                                      ]
                                     }
                                     """
                     )

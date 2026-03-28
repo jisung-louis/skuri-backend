@@ -602,6 +602,9 @@ SSE 운영 제약:
 - `GET /v1/app-versions/{platform}`는 저장 데이터가 없으면 기본 `minimumVersion=1.0.0` 응답
 - `GET /v1/legal-documents/{documentKey}`는 `documentKey=termsOfUse|privacyPolicy` 고정 키만 허용하며, `isActive=false` 또는 미존재 문서는 `404 LEGAL_DOCUMENT_NOT_FOUND`
 - 초기 이용약관/개인정보 처리방침 2건은 1회성 seed migration으로 적재하고 이후에는 관리자 API로 관리
+- 문의 첨부 이미지는 `POST /v1/images?context=INQUIRY_IMAGE` 2단계 업로드 후 `POST /v1/inquiries` 본문의 `attachments[]`로 저장한다.
+- 문의는 첨부 이미지를 최대 3개까지 허용하며, 메타데이터 전체(`url`, `thumbUrl`, `width`, `height`, `size`, `mime`)를 JSON 컬럼으로 보존한다.
+- 문의 첨부는 모든 문의 유형에서 허용하며, 탈퇴 후에도 문의 기록과 함께 보존한다.
 
 #### 7-2. API
 
@@ -630,6 +633,7 @@ SSE 운영 제약:
 #### 7-3. 완료 기준
 
 - [x] 문의/신고 접수 동작
+- [x] 문의 첨부 이미지 업로드 컨텍스트 및 메타데이터 저장 동작
 - [x] 앱 버전 비인증 조회 동작
 - [x] 법적 문서 비인증 조회 동작
 - [x] 학식 메뉴 조회 동작
@@ -855,8 +859,8 @@ SSE 운영 제약:
 #### 12-3. 비고
 
 - 1차 런타임 범위는 **이미지(image)** 업로드이며, video/audio 등 일반 media 확장은 storage/context 설계를 먼저 열어 두고 후속 범위로 둔다.
-- context enum은 `POST_IMAGE`, `CHAT_IMAGE`, `APP_NOTICE_IMAGE`, `PROFILE_IMAGE`로 확정한다.
-- 권한 정책은 `POST_IMAGE`, `CHAT_IMAGE`, `PROFILE_IMAGE`는 인증 사용자, `APP_NOTICE_IMAGE`는 관리자 전용으로 운영한다.
+- context enum은 `POST_IMAGE`, `CHAT_IMAGE`, `APP_NOTICE_IMAGE`, `CAMPUS_BANNER_IMAGE`, `PROFILE_IMAGE`, `INQUIRY_IMAGE`로 확정한다.
+- 권한 정책은 `POST_IMAGE`, `CHAT_IMAGE`, `PROFILE_IMAGE`, `INQUIRY_IMAGE`는 인증 사용자, `APP_NOTICE_IMAGE`, `CAMPUS_BANNER_IMAGE`는 관리자 전용으로 운영한다.
 - 기존 Board/Chat/AppNotice/Profile 계약과의 호환성을 우선하며, URL 직접 입력 경로는 유지한다.
 - 기본 storage provider는 **LOCAL 파일시스템**이며, `StorageRepository` 인터페이스를 통해 `FIREBASE` provider를 포함한 cloud provider(S3/OCI/Firebase 등) 구현체를 교체 가능하게 둔다.
 
