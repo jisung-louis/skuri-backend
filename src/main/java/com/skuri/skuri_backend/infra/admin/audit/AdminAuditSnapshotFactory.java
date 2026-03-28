@@ -15,6 +15,12 @@ import com.skuri.skuri_backend.domain.campus.entity.CampusBanner;
 import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
+import com.skuri.skuri_backend.domain.member.dto.response.MemberBankAccountResponse;
+import com.skuri.skuri_backend.domain.member.dto.response.MemberNotificationSettingResponse;
+import com.skuri.skuri_backend.domain.member.entity.BankAccount;
+import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.entity.NotificationSetting;
+import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.LegalDocumentAdminResponse;
 import com.skuri.skuri_backend.domain.support.entity.AppVersion;
@@ -29,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +48,7 @@ public class AdminAuditSnapshotFactory {
     private final AppNoticeRepository appNoticeRepository;
     private final CampusBannerRepository campusBannerRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final MemberRepository memberRepository;
     private final InquiryRepository inquiryRepository;
     private final ReportRepository reportRepository;
     private final AppVersionRepository appVersionRepository;
@@ -133,6 +141,12 @@ public class AdminAuditSnapshotFactory {
                         inquiry.getCreatedAt(),
                         inquiry.getUpdatedAt()
                 ))
+                .orElse(null);
+    }
+
+    public MemberSnapshot member(String memberId) {
+        return memberRepository.findById(memberId)
+                .map(this::toMemberSnapshot)
                 .orElse(null);
     }
 
@@ -249,6 +263,60 @@ public class AdminAuditSnapshotFactory {
         );
     }
 
+    private MemberSnapshot toMemberSnapshot(Member member) {
+        return new MemberSnapshot(
+                member.getId(),
+                member.getEmail(),
+                member.getNickname(),
+                member.getRealname(),
+                member.getStudentId(),
+                member.getDepartment(),
+                member.getPhotoUrl(),
+                member.isAdmin(),
+                member.getStatus(),
+                member.getJoinedAt(),
+                member.getLastLogin(),
+                member.getWithdrawnAt(),
+                toBankAccountResponse(member.getBankAccount()),
+                toNotificationSettingResponse(member.getNotificationSetting())
+        );
+    }
+
+    private MemberBankAccountResponse toBankAccountResponse(BankAccount bankAccount) {
+        if (bankAccount == null) {
+            return null;
+        }
+        return new MemberBankAccountResponse(
+                bankAccount.getBankName(),
+                bankAccount.getAccountNumber(),
+                bankAccount.getAccountHolder(),
+                bankAccount.getHideName()
+        );
+    }
+
+    private MemberNotificationSettingResponse toNotificationSettingResponse(NotificationSetting notificationSetting) {
+        if (notificationSetting == null) {
+            notificationSetting = NotificationSetting.defaultSetting();
+        }
+        Map<String, Boolean> detail = notificationSetting.getNoticeNotificationsDetail() != null
+                ? new HashMap<>(notificationSetting.getNoticeNotificationsDetail())
+                : Map.of();
+
+        return new MemberNotificationSettingResponse(
+                notificationSetting.isAllNotifications(),
+                notificationSetting.isPartyNotifications(),
+                notificationSetting.isNoticeNotifications(),
+                notificationSetting.isBoardLikeNotifications(),
+                notificationSetting.isCommentNotifications(),
+                notificationSetting.isBookmarkedPostCommentNotifications(),
+                notificationSetting.isSystemNotifications(),
+                notificationSetting.isAcademicScheduleNotifications(),
+                notificationSetting.isAcademicScheduleDayBeforeEnabled(),
+                notificationSetting.isAcademicScheduleAllEventsEnabled(),
+                detail
+        );
+    }
+
     public record CourseSemesterSnapshot(
             String semester,
             int totalCourses,
@@ -312,6 +380,24 @@ public class AdminAuditSnapshotFactory {
             String memo,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
+    ) {
+    }
+
+    public record MemberSnapshot(
+            String id,
+            String email,
+            String nickname,
+            String realname,
+            String studentId,
+            String department,
+            String photoUrl,
+            boolean isAdmin,
+            Object status,
+            LocalDateTime joinedAt,
+            LocalDateTime lastLogin,
+            LocalDateTime withdrawnAt,
+            MemberBankAccountResponse bankAccount,
+            MemberNotificationSettingResponse notificationSetting
     ) {
     }
 

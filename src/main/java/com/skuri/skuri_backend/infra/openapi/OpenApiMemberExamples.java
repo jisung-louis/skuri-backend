@@ -227,6 +227,130 @@ public final class OpenApiMemberExamples {
             }
             """;
 
+    public static final String SUCCESS_ADMIN_MEMBERS_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "content": [
+                  {
+                    "id": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+                    "email": "admin@sungkyul.ac.kr",
+                    "nickname": "스쿠리 운영자",
+                    "realname": "김관리",
+                    "studentId": "20190001",
+                    "department": "컴퓨터공학과",
+                    "isAdmin": true,
+                    "joinedAt": "2024-03-01T09:00:00",
+                    "lastLogin": "2026-03-29T11:20:00",
+                    "status": "ACTIVE"
+                  },
+                  {
+                    "id": "member-2",
+                    "email": "user@sungkyul.ac.kr",
+                    "nickname": "스쿠리 유저",
+                    "realname": "홍길동",
+                    "studentId": "2023112233",
+                    "department": "경영학과",
+                    "isAdmin": false,
+                    "joinedAt": "2025-09-01T08:30:00",
+                    "lastLogin": "2026-03-28T18:00:00",
+                    "status": "ACTIVE"
+                  }
+                ],
+                "page": 0,
+                "size": 20,
+                "totalElements": 48,
+                "totalPages": 3,
+                "hasNext": true,
+                "hasPrevious": false
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_MEMBER_DETAIL = """
+            {
+              "success": true,
+              "data": {
+                "id": "member-2",
+                "email": "user@sungkyul.ac.kr",
+                "nickname": "스쿠리 유저",
+                "realname": "홍길동",
+                "studentId": "2023112233",
+                "department": "컴퓨터공학과",
+                "photoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+                "isAdmin": false,
+                "status": "ACTIVE",
+                "joinedAt": "2025-03-01T09:00:00",
+                "lastLogin": "2026-03-29T10:05:00",
+                "withdrawnAt": null,
+                "bankAccount": {
+                  "bankName": "신한은행",
+                  "accountNumber": "110-123-456789",
+                  "accountHolder": "홍길동",
+                  "hideName": false
+                },
+                "notificationSetting": {
+                  "allNotifications": true,
+                  "partyNotifications": true,
+                  "noticeNotifications": true,
+                  "boardLikeNotifications": true,
+                  "commentNotifications": true,
+                  "bookmarkedPostCommentNotifications": true,
+                  "systemNotifications": true,
+                  "academicScheduleNotifications": true,
+                  "academicScheduleDayBeforeEnabled": true,
+                  "academicScheduleAllEventsEnabled": false,
+                  "noticeNotificationsDetail": {
+                    "academic": true,
+                    "event": false
+                  }
+                }
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_MEMBER_ADMIN_ROLE_UPDATED = """
+            {
+              "success": true,
+              "data": {
+                "id": "member-2",
+                "email": "user@sungkyul.ac.kr",
+                "nickname": "스쿠리 유저",
+                "realname": "홍길동",
+                "studentId": "2023112233",
+                "department": "컴퓨터공학과",
+                "photoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+                "isAdmin": true,
+                "status": "ACTIVE",
+                "joinedAt": "2025-03-01T09:00:00",
+                "lastLogin": "2026-03-29T10:05:00",
+                "withdrawnAt": null,
+                "bankAccount": {
+                  "bankName": "신한은행",
+                  "accountNumber": "110-123-456789",
+                  "accountHolder": "홍길동",
+                  "hideName": false
+                },
+                "notificationSetting": {
+                  "allNotifications": true,
+                  "partyNotifications": true,
+                  "noticeNotifications": true,
+                  "boardLikeNotifications": true,
+                  "commentNotifications": true,
+                  "bookmarkedPostCommentNotifications": true,
+                  "systemNotifications": true,
+                  "academicScheduleNotifications": true,
+                  "academicScheduleDayBeforeEnabled": true,
+                  "academicScheduleAllEventsEnabled": false,
+                  "noticeNotificationsDetail": {
+                    "academic": true,
+                    "event": false
+                  }
+                }
+              }
+            }
+            """;
+
     public static final String ERROR_MEMBER_NOT_FOUND =
             "{\"success\":false,\"message\":\"회원을 찾을 수 없습니다.\",\"errorCode\":\"MEMBER_NOT_FOUND\",\"timestamp\":\"2026-03-04T12:00:00\"}";
     public static final String ERROR_MEMBER_WITHDRAWN =
@@ -235,4 +359,6 @@ public final class OpenApiMemberExamples {
             "{\"success\":false,\"message\":\"현재 상태에서는 회원 탈퇴를 진행할 수 없습니다.\",\"errorCode\":\"MEMBER_WITHDRAWAL_NOT_ALLOWED\",\"timestamp\":\"2026-03-09T12:00:00\"}";
     public static final String ERROR_WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED =
             "{\"success\":false,\"message\":\"탈퇴한 계정은 같은 인증 계정으로 재가입할 수 없습니다.\",\"errorCode\":\"WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED\",\"timestamp\":\"2026-03-09T12:00:00\"}";
+    public static final String ERROR_MEMBER_ADMIN_ROLE_CHANGE_NOT_ALLOWED =
+            "{\"success\":false,\"message\":\"탈퇴한 회원의 관리자 권한은 변경할 수 없습니다.\",\"errorCode\":\"CONFLICT\",\"timestamp\":\"2026-03-29T12:00:00\"}";
 }

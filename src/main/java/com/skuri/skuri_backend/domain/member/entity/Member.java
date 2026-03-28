@@ -155,6 +155,10 @@ public class Member extends BaseTimeEntity {
         );
     }
 
+    public void updateAdminRole(boolean isAdmin) {
+        this.isAdmin = isAdmin;
+    }
+
     public boolean hasUnsetNotificationSettingDefaults() {
         return notificationSetting == null || notificationSetting.hasUnsetAcademicScheduleDefaults();
     }

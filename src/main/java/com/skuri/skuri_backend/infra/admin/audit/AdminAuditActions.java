@@ -19,6 +19,7 @@ public final class AdminAuditActions {
     public static final String CAMPUS_BANNER_REORDERED = "CAMPUS_BANNER_REORDERED";
     public static final String INQUIRY_STATUS_UPDATED = "INQUIRY_STATUS_UPDATED";
     public static final String REPORT_STATUS_UPDATED = "REPORT_STATUS_UPDATED";
+    public static final String MEMBER_ADMIN_ROLE_UPDATED = "MEMBER_ADMIN_ROLE_UPDATED";
     public static final String APP_VERSION_UPSERTED = "APP_VERSION_UPSERTED";
     public static final String LEGAL_DOCUMENT_UPSERTED = "LEGAL_DOCUMENT_UPSERTED";
     public static final String LEGAL_DOCUMENT_DELETED = "LEGAL_DOCUMENT_DELETED";
