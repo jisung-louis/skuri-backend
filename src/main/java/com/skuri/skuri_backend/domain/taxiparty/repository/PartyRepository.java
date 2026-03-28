@@ -30,6 +30,14 @@ public interface PartyRepository extends JpaRepository<Party, String> {
             Pageable pageable
     );
 
+    @EntityGraph(attributePaths = {"members", "tags"})
+    @Query("""
+            select distinct p
+            from Party p
+            where p.id in :ids
+            """)
+    List<Party> findDetailsByIds(@Param("ids") Collection<String> ids);
+
     @EntityGraph(attributePaths = {"members"})
     @Query("select p from Party p where p.id = :id")
     java.util.Optional<Party> findDetailById(@Param("id") String id);
@@ -80,7 +88,7 @@ public interface PartyRepository extends JpaRepository<Party, String> {
             """)
     List<String> findTimeoutTargetIds(@Param("threshold") LocalDateTime threshold);
 
-    @EntityGraph(attributePaths = {"tags"})
+    @EntityGraph(attributePaths = {"tags", "members"})
     @Query("""
             select distinct p
             from Party p

@@ -22,6 +22,7 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyCreateResponse
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyDetailResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyLocationResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyMemberResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyParticipantSummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementAccountResponse;
@@ -113,9 +114,17 @@ public class TaxiPartyService {
             Pageable pageable
     ) {
         Page<Party> page = partyRepository.search(status, departureTime, departureName, destinationName, pageable);
-        Map<String, Member> leaderMap = getMemberMap(page.getContent().stream().map(Party::getLeaderId).toList());
+        Map<String, Party> detailedPartyMap = getDetailedPartyMap(page.getContent());
+        Map<String, Member> memberMap = getMemberMap(
+                detailedPartyMap.values().stream()
+                        .flatMap(party -> party.getMemberIds().stream())
+                        .toList()
+        );
 
-        return PageResponse.from(page.map(party -> toPartySummaryResponse(party, leaderMap.get(party.getLeaderId()))));
+        return PageResponse.from(page.map(party -> toPartySummaryResponse(
+                detailedPartyMap.getOrDefault(party.getId(), party),
+                memberMap
+        )));
     }
 
     @Transactional(readOnly = true)
@@ -571,12 +580,14 @@ public class TaxiPartyService {
         }
     }
 
-    private PartySummaryResponse toPartySummaryResponse(Party party, Member leader) {
+    private PartySummaryResponse toPartySummaryResponse(Party party, Map<String, Member> memberMap) {
+        Member leader = memberMap.get(party.getLeaderId());
         return new PartySummaryResponse(
                 party.getId(),
                 party.getLeaderId(),
                 leader != null ? leader.getNickname() : null,
                 leader != null ? leader.getPhotoUrl() : null,
+                toParticipantSummaries(party, memberMap),
                 toLocationResponse(party.getDeparture()),
                 toLocationResponse(party.getDestination()),
                 party.getDepartureTime(),
@@ -587,6 +598,20 @@ public class TaxiPartyService {
                 party.getStatus(),
                 party.getCreatedAt()
         );
+    }
+
+    private List<PartyParticipantSummaryResponse> toParticipantSummaries(Party party, Map<String, Member> memberMap) {
+        return party.getMembers().stream()
+                .map(member -> {
+                    Member profile = memberMap.get(member.getMemberId());
+                    return new PartyParticipantSummaryResponse(
+                            member.getMemberId(),
+                            profile != null ? profile.getPhotoUrl() : null,
+                            profile != null ? profile.getNickname() : null,
+                            party.isLeader(member.getMemberId())
+                    );
+                })
+                .toList();
     }
 
     private PartyDetailResponse toPartyDetailResponse(Party party, Map<String, Member> memberMap) {
@@ -845,6 +870,17 @@ public class TaxiPartyService {
         List<String> visibleMemberIds = new ArrayList<>(party.getMemberIds());
         visibleMemberIds.addAll(party.getSettlementTargetMemberIds());
         return visibleMemberIds;
+    }
+
+    private Map<String, Party> getDetailedPartyMap(Collection<Party> parties) {
+        List<String> ids = parties.stream().map(Party::getId).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, Party> result = new HashMap<>();
+        partyRepository.findDetailsByIds(ids).forEach(party -> result.put(party.getId(), party));
+        return result;
     }
 
     private Map<String, Member> getMemberMap(Collection<String> memberIds) {
