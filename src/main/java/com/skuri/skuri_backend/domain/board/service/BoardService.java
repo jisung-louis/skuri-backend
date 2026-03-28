@@ -262,14 +262,8 @@ public class BoardService {
 
     @Transactional
     public CommentResponse updateComment(String memberId, String commentId, UpdateCommentRequest request) {
-        Comment comment = commentRepository.findActiveById(commentId)
-                .orElseThrow(CommentNotFoundException::new);
-
+        Comment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        if (comment.isDeleted()) {
-            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
-        }
-
         comment.updateContent(request.content().trim());
         return toCommentResponse(
                 comment,
@@ -282,7 +276,7 @@ public class BoardService {
 
     @Transactional
     public CommentLikeResponse likeComment(String memberId, String commentId) {
-        Comment comment = findCommentForLikeOrThrow(commentId);
+        Comment comment = findCommentForWriteOrThrow(commentId);
         if (commentLikeRepository.existsById_UserIdAndId_CommentId(memberId, commentId)) {
             return new CommentLikeResponse(commentId, true, comment.getLikeCount());
         }
@@ -294,7 +288,7 @@ public class BoardService {
 
     @Transactional
     public CommentLikeResponse unlikeComment(String memberId, String commentId) {
-        Comment comment = findCommentForLikeOrThrow(commentId);
+        Comment comment = findCommentForWriteOrThrow(commentId);
         commentLikeRepository.findById_UserIdAndId_CommentId(memberId, commentId)
                 .ifPresent(commentLike -> {
                     commentLikeRepository.delete(commentLike);
@@ -305,14 +299,8 @@ public class BoardService {
 
     @Transactional
     public void deleteComment(String memberId, String commentId) {
-        Comment comment = commentRepository.findByIdForUpdate(commentId)
-                .orElseThrow(CommentNotFoundException::new);
-
+        Comment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        if (comment.isDeleted()) {
-            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
-        }
-
         Post post = findActivePostForUpdateOrThrow(comment.getPost().getId());
         comment.softDelete();
         post.increaseCommentCount(-1);
@@ -717,7 +705,7 @@ public class BoardService {
                 .orElseThrow(PostNotFoundException::new);
     }
 
-    private Comment findCommentForLikeOrThrow(String commentId) {
+    private Comment findCommentForWriteOrThrow(String commentId) {
         Comment comment = commentRepository.findByIdForUpdate(commentId)
                 .orElseThrow(CommentNotFoundException::new);
         if (comment.isDeleted()) {

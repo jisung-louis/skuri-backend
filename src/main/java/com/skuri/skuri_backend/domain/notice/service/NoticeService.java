@@ -165,21 +165,15 @@ public class NoticeService {
 
     @Transactional
     public NoticeCommentResponse updateComment(String memberId, String commentId, UpdateNoticeCommentRequest request) {
-        NoticeComment comment = noticeCommentRepository.findById(commentId)
-                .orElseThrow(NoticeCommentNotFoundException::new);
-
+        NoticeComment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        if (comment.isDeleted()) {
-            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
-        }
-
         comment.updateContent(request.content().trim());
         return toCommentResponse(comment, memberId, resolveDepth(comment), resolveCommentIsLiked(memberId, comment.getId()));
     }
 
     @Transactional
     public NoticeCommentLikeResponse likeComment(String memberId, String commentId) {
-        NoticeComment comment = findCommentForLikeOrThrow(commentId);
+        NoticeComment comment = findCommentForWriteOrThrow(commentId);
         if (noticeCommentLikeRepository.existsById_UserIdAndId_CommentId(memberId, commentId)) {
             return new NoticeCommentLikeResponse(commentId, true, comment.getLikeCount());
         }
@@ -191,7 +185,7 @@ public class NoticeService {
 
     @Transactional
     public NoticeCommentLikeResponse unlikeComment(String memberId, String commentId) {
-        NoticeComment comment = findCommentForLikeOrThrow(commentId);
+        NoticeComment comment = findCommentForWriteOrThrow(commentId);
         noticeCommentLikeRepository.findById_UserIdAndId_CommentId(memberId, commentId)
                 .ifPresent(commentLike -> {
                     noticeCommentLikeRepository.delete(commentLike);
@@ -202,14 +196,8 @@ public class NoticeService {
 
     @Transactional
     public void deleteComment(String memberId, String commentId) {
-        NoticeComment comment = noticeCommentRepository.findById(commentId)
-                .orElseThrow(NoticeCommentNotFoundException::new);
-
+        NoticeComment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        if (comment.isDeleted()) {
-            throw new BusinessException(ErrorCode.COMMENT_ALREADY_DELETED);
-        }
-
         Notice notice = findNoticeForUpdateOrThrow(comment.getNotice().getId());
         comment.softDelete();
         notice.increaseCommentCount(-1);
@@ -501,7 +489,7 @@ public class NoticeService {
         }
     }
 
-    private NoticeComment findCommentForLikeOrThrow(String commentId) {
+    private NoticeComment findCommentForWriteOrThrow(String commentId) {
         NoticeComment comment = noticeCommentRepository.findByIdForUpdate(commentId)
                 .orElseThrow(NoticeCommentNotFoundException::new);
         if (comment.isDeleted()) {
