@@ -13,6 +13,8 @@ public interface ReportRepository extends JpaRepository<Report, String> {
 
     boolean existsByReporterIdAndTargetTypeAndTargetId(String reporterId, ReportTargetType targetType, String targetId);
 
+    Page<Report> findByReporterId(String reporterId, Pageable pageable);
+
     @Query("""
             select r
             from Report r

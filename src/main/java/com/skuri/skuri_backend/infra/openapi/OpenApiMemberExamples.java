@@ -309,6 +309,78 @@ public final class OpenApiMemberExamples {
             }
             """;
 
+    public static final String SUCCESS_ADMIN_MEMBER_ACTIVITY = """
+            {
+              "success": true,
+              "data": {
+                "memberId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+                "generatedAt": "2026-03-29T16:00:00",
+                "counts": {
+                  "posts": 12,
+                  "comments": 34,
+                  "partiesCreated": 3,
+                  "partiesJoined": 7,
+                  "inquiries": 2,
+                  "reportsSubmitted": 1
+                },
+                "recentPosts": [
+                  {
+                    "id": "post-1",
+                    "title": "택시 파티 구해요",
+                    "category": "GENERAL",
+                    "createdAt": "2026-03-28T14:00:00"
+                  }
+                ],
+                "recentComments": [
+                  {
+                    "id": "comment-1",
+                    "postId": "post-1",
+                    "postTitle": "택시 파티 구해요",
+                    "contentPreview": "저도 참여하고 싶어요",
+                    "createdAt": "2026-03-28T14:10:00"
+                  }
+                ],
+                "recentParties": [
+                  {
+                    "id": "party-1",
+                    "role": "LEADER",
+                    "status": "OPEN",
+                    "routeSummary": "성결대 정문 → 안양역",
+                    "departureTime": "2026-03-30T18:00:00",
+                    "createdAt": "2026-03-29T09:00:00"
+                  },
+                  {
+                    "id": "party-2",
+                    "role": "JOINED",
+                    "status": "CLOSED",
+                    "routeSummary": "성결대 정문 → 범계역",
+                    "departureTime": "2026-03-29T18:30:00",
+                    "createdAt": "2026-03-28T20:00:00"
+                  }
+                ],
+                "recentInquiries": [
+                  {
+                    "id": "inquiry-1",
+                    "type": "ACCOUNT",
+                    "subject": "계정 문의",
+                    "status": "PENDING",
+                    "createdAt": "2026-03-28T11:00:00"
+                  }
+                ],
+                "recentReports": [
+                  {
+                    "id": "report-1",
+                    "targetType": "POST",
+                    "targetId": "post-9",
+                    "category": "SPAM",
+                    "status": "REVIEWING",
+                    "createdAt": "2026-03-27T20:00:00"
+                  }
+                ]
+              }
+            }
+            """;
+
     public static final String SUCCESS_ADMIN_MEMBER_ADMIN_ROLE_UPDATED = """
             {
               "success": true,
@@ -363,4 +435,6 @@ public final class OpenApiMemberExamples {
             "{\"success\":false,\"message\":\"자기 자신의 관리자 권한은 변경할 수 없습니다.\",\"errorCode\":\"SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED\",\"timestamp\":\"2026-03-29T12:00:00\"}";
     public static final String ERROR_MEMBER_ADMIN_ROLE_CHANGE_NOT_ALLOWED =
             "{\"success\":false,\"message\":\"탈퇴한 회원의 관리자 권한은 변경할 수 없습니다.\",\"errorCode\":\"CONFLICT\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+    public static final String ERROR_MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN =
+            "{\"success\":false,\"message\":\"탈퇴한 회원의 활동 요약은 조회할 수 없습니다.\",\"errorCode\":\"MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN\",\"timestamp\":\"2026-03-29T12:00:00\"}";
 }

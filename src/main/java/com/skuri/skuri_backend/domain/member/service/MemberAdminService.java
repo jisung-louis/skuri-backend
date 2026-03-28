@@ -3,8 +3,13 @@ package com.skuri.skuri_backend.domain.member.service;
 import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.board.entity.Comment;
+import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
+import com.skuri.skuri_backend.domain.board.repository.PostRepository;
+import com.skuri.skuri_backend.domain.board.repository.PostSummaryProjection;
 import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberAdminRoleRequest;
+import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberActivityResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberDetailResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberSummaryResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.MemberBankAccountResponse;
@@ -13,9 +18,16 @@ import com.skuri.skuri_backend.domain.member.entity.BankAccount;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import com.skuri.skuri_backend.domain.member.entity.NotificationSetting;
+import com.skuri.skuri_backend.domain.member.exception.MemberActivityNotAvailableForWithdrawnException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.exception.SelfAdminRoleChangeNotAllowedException;
+import com.skuri.skuri_backend.domain.support.entity.Inquiry;
+import com.skuri.skuri_backend.domain.support.entity.Report;
+import com.skuri.skuri_backend.domain.support.repository.InquiryRepository;
+import com.skuri.skuri_backend.domain.support.repository.ReportRepository;
+import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import com.skuri.skuri_backend.infra.admin.list.AdminPageRequestPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,17 +38,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class MemberAdminService {
 
     private static final Sort ADMIN_MEMBER_DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "joinedAt");
+    private static final Pageable ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE =
+            PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     private final MemberRepository memberRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final PartyRepository partyRepository;
+    private final InquiryRepository inquiryRepository;
+    private final ReportRepository reportRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<AdminMemberSummaryResponse> getAdminMembers(
@@ -64,6 +87,55 @@ public class MemberAdminService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
         return toDetailResponse(member);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminMemberActivityResponse getAdminMemberActivity(String memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        if (member.isWithdrawn()) {
+            throw new MemberActivityNotAvailableForWithdrawnException();
+        }
+
+        Page<PostSummaryProjection> recentPostPage =
+                postRepository.findActiveSummariesByAuthorId(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
+        Page<Comment> recentCommentPage =
+                commentRepository.findByAuthorIdAndDeletedFalse(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
+        Page<Party> recentCreatedPartyPage =
+                partyRepository.findByLeaderId(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
+        Page<Party> recentJoinedPartyPage =
+                partyRepository.findJoinedPartiesExcludingLeader(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
+        Page<Inquiry> recentInquiryPage =
+                inquiryRepository.findByUserId(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
+        Page<Report> recentReportPage =
+                reportRepository.findByReporterId(memberId, ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE);
+
+        return new AdminMemberActivityResponse(
+                memberId,
+                LocalDateTime.now(),
+                new AdminMemberActivityResponse.ActivityCounts(
+                        recentPostPage.getTotalElements(),
+                        recentCommentPage.getTotalElements(),
+                        recentCreatedPartyPage.getTotalElements(),
+                        recentJoinedPartyPage.getTotalElements(),
+                        recentInquiryPage.getTotalElements(),
+                        recentReportPage.getTotalElements()
+                ),
+                recentPostPage.getContent().stream()
+                        .map(this::toRecentPostResponse)
+                        .toList(),
+                recentCommentPage.getContent().stream()
+                        .map(this::toRecentCommentResponse)
+                        .toList(),
+                mergeRecentParties(recentCreatedPartyPage.getContent(), recentJoinedPartyPage.getContent()),
+                recentInquiryPage.getContent().stream()
+                        .map(this::toRecentInquiryResponse)
+                        .toList(),
+                recentReportPage.getContent().stream()
+                        .map(this::toRecentReportResponse)
+                        .toList()
+        );
     }
 
     @Transactional
@@ -119,6 +191,75 @@ public class MemberAdminService {
                 member.getJoinedAt(),
                 member.getLastLogin(),
                 member.getStatus()
+        );
+    }
+
+    private AdminMemberActivityResponse.RecentPost toRecentPostResponse(PostSummaryProjection post) {
+        return new AdminMemberActivityResponse.RecentPost(
+                post.getId(),
+                post.getTitle(),
+                post.getCategory(),
+                post.getCreatedAt()
+        );
+    }
+
+    private AdminMemberActivityResponse.RecentComment toRecentCommentResponse(Comment comment) {
+        return new AdminMemberActivityResponse.RecentComment(
+                comment.getId(),
+                comment.getPost().getId(),
+                comment.getPost().getTitle(),
+                comment.getContent(),
+                comment.getCreatedAt()
+        );
+    }
+
+    private List<AdminMemberActivityResponse.RecentParty> mergeRecentParties(
+            List<Party> createdParties,
+            List<Party> joinedParties
+    ) {
+        return Stream.concat(
+                        createdParties.stream()
+                                .map(party -> toRecentPartyResponse(party, AdminMemberActivityResponse.PartyRole.LEADER)),
+                        joinedParties.stream()
+                                .map(party -> toRecentPartyResponse(party, AdminMemberActivityResponse.PartyRole.JOINED))
+                )
+                .sorted(Comparator.comparing(AdminMemberActivityResponse.RecentParty::createdAt).reversed())
+                .limit(5)
+                .toList();
+    }
+
+    private AdminMemberActivityResponse.RecentParty toRecentPartyResponse(
+            Party party,
+            AdminMemberActivityResponse.PartyRole role
+    ) {
+        return new AdminMemberActivityResponse.RecentParty(
+                party.getId(),
+                role,
+                party.getStatus(),
+                party.getDeparture().getName() + " → " + party.getDestination().getName(),
+                party.getDepartureTime(),
+                party.getCreatedAt()
+        );
+    }
+
+    private AdminMemberActivityResponse.RecentInquiry toRecentInquiryResponse(Inquiry inquiry) {
+        return new AdminMemberActivityResponse.RecentInquiry(
+                inquiry.getId(),
+                inquiry.getType(),
+                inquiry.getSubject(),
+                inquiry.getStatus(),
+                inquiry.getCreatedAt()
+        );
+    }
+
+    private AdminMemberActivityResponse.RecentReport toRecentReportResponse(Report report) {
+        return new AdminMemberActivityResponse.RecentReport(
+                report.getId(),
+                report.getTargetType(),
+                report.getTargetId(),
+                report.getCategory(),
+                report.getStatus(),
+                report.getCreatedAt()
         );
     }
 
