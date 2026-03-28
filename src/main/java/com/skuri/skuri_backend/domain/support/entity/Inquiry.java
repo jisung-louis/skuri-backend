@@ -3,8 +3,10 @@ package com.skuri.skuri_backend.domain.support.entity;
 import com.skuri.skuri_backend.common.entity.BaseTimeEntity;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.support.entity.converter.InquiryAttachmentListJsonConverter;
 import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -15,6 +17,9 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Entity
@@ -36,6 +41,10 @@ public class Inquiry extends BaseTimeEntity {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Convert(converter = InquiryAttachmentListJsonConverter.class)
+    @Column(name = "attachments", columnDefinition = "json")
+    private List<InquiryAttachment> attachments = new ArrayList<>();
 
     @Column(name = "user_id", nullable = false, length = 36)
     private String userId;
@@ -63,6 +72,7 @@ public class Inquiry extends BaseTimeEntity {
             InquiryType type,
             String subject,
             String content,
+            List<InquiryAttachment> attachments,
             String userId,
             String userEmail,
             String userName,
@@ -72,6 +82,7 @@ public class Inquiry extends BaseTimeEntity {
         this.type = type;
         this.subject = subject;
         this.content = content;
+        this.attachments = new ArrayList<>(attachments == null ? List.of() : attachments);
         this.userId = userId;
         this.userEmail = userEmail;
         this.userName = userName;
@@ -84,13 +95,14 @@ public class Inquiry extends BaseTimeEntity {
             InquiryType type,
             String subject,
             String content,
+            List<InquiryAttachment> attachments,
             String userId,
             String userEmail,
             String userName,
             String userRealname,
             String userStudentId
     ) {
-        return new Inquiry(type, subject, content, userId, userEmail, userName, userRealname, userStudentId);
+        return new Inquiry(type, subject, content, attachments, userId, userEmail, userName, userRealname, userStudentId);
     }
 
     public void updateStatus(InquiryStatus status, String adminMemo) {

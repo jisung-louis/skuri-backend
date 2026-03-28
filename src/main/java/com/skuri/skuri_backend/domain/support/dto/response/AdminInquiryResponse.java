@@ -1,10 +1,12 @@
 package com.skuri.skuri_backend.domain.support.dto.response;
 
+import com.skuri.skuri_backend.domain.support.entity.InquiryAttachment;
 import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
 import com.skuri.skuri_backend.domain.support.entity.InquiryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Schema(description = "관리자 문의 목록 항목")
 public record AdminInquiryResponse(
@@ -25,6 +27,9 @@ public record AdminInquiryResponse(
 
         @Schema(description = "문의 상태", example = "PENDING")
         InquiryStatus status,
+
+        @Schema(description = "문의 첨부 이미지 목록", example = "[]")
+        List<InquiryAttachment> attachments,
 
         @Schema(description = "관리자 메모", nullable = true, example = "재현 후 수정 배포 완료")
         String memo,
