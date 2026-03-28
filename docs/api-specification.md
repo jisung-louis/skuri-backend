@@ -4486,12 +4486,12 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 - 활동 요약은 현재 DB에 남아 있는 데이터만 기준으로 계산한다. 삭제/익명화된 과거 활동을 복원하지 않는다.
 - count 정의:
   - `posts`: 현재 저장된 active post 중 `authorId = memberId`
-  - `comments`: 현재 저장된 active comment 중 `authorId = memberId`
+  - `comments`: 현재 저장된 active comment 중 `authorId = memberId`이면서 부모 post도 삭제되지 않은 경우
   - `partiesCreated`: `leaderId = memberId`
   - `partiesJoined`: party membership 기준 참여 파티 수에서 leader role 제외
   - `inquiries`: `userId = memberId`
   - `reportsSubmitted`: `reporterId = memberId`
-- recent list는 도메인별 최신순 최대 5건이며, `recentParties`는 `LEADER`/`JOINED` role을 함께 내려준다.
+- recent list는 도메인별 최신순 최대 5건이며, `recentComments`도 삭제되지 않은 부모 post 기준으로만 포함된다. `recentParties`는 `LEADER`/`JOINED` role을 함께 내려준다.
 
 **Response (200 OK):**
 ```json
