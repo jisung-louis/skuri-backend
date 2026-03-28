@@ -69,6 +69,9 @@ public class Comment extends BaseTimeEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted;
 
+    @Column(name = "like_count", nullable = false)
+    private int likeCount;
+
     private Comment(
             Post post,
             String content,
@@ -90,6 +93,7 @@ public class Comment extends BaseTimeEntity {
         this.anonymousOrder = anonymousOrder;
         this.parent = parent;
         this.deleted = false;
+        this.likeCount = 0;
     }
 
     public static Comment create(
@@ -135,6 +139,10 @@ public class Comment extends BaseTimeEntity {
     public void softDelete() {
         this.deleted = true;
         this.content = DELETED_PLACEHOLDER;
+    }
+
+    public void increaseLikeCount(int delta) {
+        this.likeCount = Math.max(0, this.likeCount + delta);
     }
 
     public void anonymizeAuthor() {
