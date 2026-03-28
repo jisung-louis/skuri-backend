@@ -25,6 +25,9 @@ class PartyRepositoryDataJpaTest {
     private PartyRepository partyRepository;
 
     @Autowired
+    private PartyTagRepository partyTagRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     @Test
@@ -55,6 +58,40 @@ class PartyRepositoryDataJpaTest {
         assertEquals(2, found.getMembers().size());
         assertEquals(1, found.getSettlementItems().size());
         assertEquals(List.of("빠른출발"), found.getTagsText());
+    }
+
+    @Test
+    void findDetailsByIds_멤버와태그가있어도_예외없이조회된다() {
+        String partyId = seedArrivedParty("party-4", "leader-4", "member-4");
+        entityManager.flush();
+        entityManager.clear();
+
+        List<Party> parties = assertDoesNotThrow(() -> partyRepository.findDetailsByIds(List.of(partyId)));
+        List<String> tags = partyTagRepository.findTagSummariesByPartyIds(List.of(partyId)).stream()
+                .map(PartyTagRepository.PartyTagSummary::getTag)
+                .toList();
+
+        assertEquals(1, parties.size());
+        assertEquals(2, parties.getFirst().getMembers().size());
+        assertEquals(List.of("빠른출발"), tags);
+    }
+
+    @Test
+    void findSseSnapshotParties_멤버와태그가있어도_예외없이조회된다() {
+        seedArrivedParty("party-5", "leader-5", "member-5");
+        entityManager.flush();
+        entityManager.clear();
+
+        List<Party> parties = assertDoesNotThrow(() -> partyRepository.findSseSnapshotParties());
+
+        assertEquals(1, parties.size());
+        assertEquals(2, parties.getFirst().getMembers().size());
+        assertEquals(
+                List.of("빠른출발"),
+                partyTagRepository.findTagSummariesByPartyIds(List.of("party-5")).stream()
+                        .map(PartyTagRepository.PartyTagSummary::getTag)
+                        .toList()
+        );
     }
 
     @Test

@@ -34,6 +34,7 @@ import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementTargetSnapshot;
 import com.skuri.skuri_backend.domain.taxiparty.entity.SettlementStatus;
 import com.skuri.skuri_backend.domain.taxiparty.repository.JoinRequestRepository;
 import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyTagRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -78,6 +79,9 @@ class TaxiPartyServiceTest {
     private MemberRepository memberRepository;
 
     @Mock
+    private PartyTagRepository partyTagRepository;
+
+    @Mock
     private PartySseService partySseService;
 
     @Mock
@@ -118,6 +122,9 @@ class TaxiPartyServiceTest {
         when(partyRepository.search(null, null, null, null, PageRequest.of(0, 20)))
                 .thenReturn(new PageImpl<>(List.of(summaryParty), PageRequest.of(0, 20), 1));
         when(partyRepository.findDetailsByIds(List.of("party-1"))).thenReturn(List.of(detailedParty));
+        when(partyTagRepository.findTagSummariesByPartyIds(List.of("party-1"))).thenReturn(List.of(
+                tagSummary("party-1", "빠른출발")
+        ));
         when(memberRepository.findAllById(List.of("leader", "member-1", "member-2"))).thenReturn(List.of(
                 member("leader", "리더", "https://cdn.skuri.app/uploads/profiles/leader.jpg"),
                 member("member-1", "김민수", null),
@@ -141,6 +148,7 @@ class TaxiPartyServiceTest {
         assertEquals(null, summary.participantSummaries().get(1).photoUrl());
         assertEquals("member-2", summary.participantSummaries().get(2).id());
         assertEquals("https://cdn.skuri.app/uploads/profiles/member-2.jpg", summary.participantSummaries().get(2).photoUrl());
+        assertEquals(List.of("빠른출발"), summary.tags());
     }
 
     @Test
@@ -1063,6 +1071,20 @@ class TaxiPartyServiceTest {
             member.updateProfile(null, null, null, photoUrl);
         }
         return member;
+    }
+
+    private PartyTagRepository.PartyTagSummary tagSummary(String partyId, String tag) {
+        return new PartyTagRepository.PartyTagSummary() {
+            @Override
+            public String getPartyId() {
+                return partyId;
+            }
+
+            @Override
+            public String getTag() {
+                return tag;
+            }
+        };
     }
 
     private ArrivePartyRequest arriveRequest(int taxiFare, List<String> settlementTargetMemberIds) {
