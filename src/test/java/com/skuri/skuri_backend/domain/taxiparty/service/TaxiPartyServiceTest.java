@@ -468,6 +468,25 @@ class TaxiPartyServiceTest {
     }
 
     @Test
+    void acceptJoinRequest_닉네임이비어있으면_합류fallback시스템메시지를생성한다() {
+        Party party = sampleParty("party-1", "leader", 3, false);
+        JoinRequest joinRequest = JoinRequest.create(party, "requester-1");
+        ReflectionTestUtils.setField(joinRequest, "id", "request-1");
+        Member requester = member("requester-1", "   ");
+
+        when(joinRequestRepository.findDetailById("request-1")).thenReturn(Optional.of(joinRequest));
+        when(memberRepository.findActiveByIdForUpdate("requester-1")).thenReturn(Optional.of(requester));
+        when(memberRepository.findById("requester-1")).thenReturn(Optional.of(requester));
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(partyRepository.existsActivePartyByMemberId(eq("requester-1"), anySet(), eq("party-1"))).thenReturn(false);
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        taxiPartyService.acceptJoinRequest("leader", "request-1");
+
+        verify(chatService).createPartyMemberJoinSystemMessage(party, "leader", "새 멤버가 입장했어요.");
+    }
+
+    @Test
     void declineJoinRequest_정상처리시_SSE업데이트발행() {
         Party party = sampleParty("party-1", "leader", 4, false);
         JoinRequest joinRequest = JoinRequest.create(party, "requester-1");
@@ -631,6 +650,18 @@ class TaxiPartyServiceTest {
                 eq("KICKED"),
                 argThat(recipients -> recipients.contains("member-1"))
         );
+    }
+
+    @Test
+    void kickMember_닉네임이비어있으면_퇴장fallback시스템메시지를생성한다() {
+        Party party = sampleParty("party-1", "leader", 4, true);
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member("member-1", " ")));
+
+        taxiPartyService.kickMember("leader", "party-1", "member-1");
+
+        verify(chatService).createPartyMemberLeaveSystemMessage(party, "leader", "멤버가 나갔어요.");
     }
 
     @Test
