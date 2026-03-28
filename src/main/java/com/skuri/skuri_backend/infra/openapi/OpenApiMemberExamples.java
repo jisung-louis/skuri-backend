@@ -359,6 +359,8 @@ public final class OpenApiMemberExamples {
             "{\"success\":false,\"message\":\"현재 상태에서는 회원 탈퇴를 진행할 수 없습니다.\",\"errorCode\":\"MEMBER_WITHDRAWAL_NOT_ALLOWED\",\"timestamp\":\"2026-03-09T12:00:00\"}";
     public static final String ERROR_WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED =
             "{\"success\":false,\"message\":\"탈퇴한 계정은 같은 인증 계정으로 재가입할 수 없습니다.\",\"errorCode\":\"WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED\",\"timestamp\":\"2026-03-09T12:00:00\"}";
+    public static final String ERROR_SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED =
+            "{\"success\":false,\"message\":\"자기 자신의 관리자 권한은 변경할 수 없습니다.\",\"errorCode\":\"SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED\",\"timestamp\":\"2026-03-29T12:00:00\"}";
     public static final String ERROR_MEMBER_ADMIN_ROLE_CHANGE_NOT_ALLOWED =
             "{\"success\":false,\"message\":\"탈퇴한 회원의 관리자 권한은 변경할 수 없습니다.\",\"errorCode\":\"CONFLICT\",\"timestamp\":\"2026-03-29T12:00:00\"}";
 }

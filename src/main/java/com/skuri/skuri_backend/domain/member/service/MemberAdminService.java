@@ -13,8 +13,9 @@ import com.skuri.skuri_backend.domain.member.entity.BankAccount;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import com.skuri.skuri_backend.domain.member.entity.NotificationSetting;
-import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
+import com.skuri.skuri_backend.domain.member.exception.SelfAdminRoleChangeNotAllowedException;
 import com.skuri.skuri_backend.infra.admin.list.AdminPageRequestPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -65,7 +67,11 @@ public class MemberAdminService {
     }
 
     @Transactional
-    public AdminMemberDetailResponse updateAdminRole(String memberId, UpdateMemberAdminRoleRequest request) {
+    public AdminMemberDetailResponse updateAdminRole(String actorId, String memberId, UpdateMemberAdminRoleRequest request) {
+        if (Objects.equals(actorId, memberId)) {
+            throw new SelfAdminRoleChangeNotAllowedException();
+        }
+
         Member member = memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 

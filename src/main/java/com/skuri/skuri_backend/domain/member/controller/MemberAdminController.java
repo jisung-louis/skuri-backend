@@ -11,6 +11,7 @@ import com.skuri.skuri_backend.infra.admin.audit.AdminAudit;
 import com.skuri.skuri_backend.infra.admin.audit.AdminAuditActions;
 import com.skuri.skuri_backend.infra.admin.audit.AdminAuditTargetTypes;
 import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
+import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiMemberExamples;
@@ -26,6 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,6 +35,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import static com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMemberSupport.requireAuthenticatedMember;
 
 @RestController
 @RequiredArgsConstructor
@@ -199,6 +203,18 @@ public class MemberAdminController {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "허용되지 않는 관리자 권한 변경 요청",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(
+                                    name = "self_admin_role_change_not_allowed",
+                                    value = OpenApiMemberExamples.ERROR_SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409",
                     description = "허용되지 않는 상태의 회원",
                     content = @Content(
@@ -235,14 +251,18 @@ public class MemberAdminController {
             action = AdminAuditActions.MEMBER_ADMIN_ROLE_UPDATED,
             targetType = AdminAuditTargetTypes.MEMBER,
             targetId = "#memberId",
-            before = "@adminAuditSnapshots.member(#memberId)",
-            after = "@adminAuditSnapshots.member(#memberId)"
+            before = "@adminAuditSnapshots.memberAdminRole(#memberId)",
+            after = "@adminAuditSnapshots.memberAdminRole(#memberId)"
     )
     public ResponseEntity<ApiResponse<AdminMemberDetailResponse>> updateAdminRole(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Parameter(description = "권한을 변경할 회원 ID(Firebase UID)", example = "dw9rPtuticbjnaYPkeiF3RGPpqk1")
             @PathVariable String memberId,
             @Valid @RequestBody UpdateMemberAdminRoleRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(memberAdminService.updateAdminRole(memberId, request)));
+        return ResponseEntity.ok(ApiResponse.success(
+                memberAdminService.updateAdminRole(requireAuthenticatedMember(authenticatedMember).uid(), memberId, request)
+        ));
     }
 }
