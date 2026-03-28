@@ -56,9 +56,11 @@ public class OpenApiConfig {
                 .group("support")
                 .pathsToMatch(
                         "/v1/app-versions/**",
+                        "/v1/legal-documents/**",
                         "/v1/inquiries/**",
                         "/v1/reports/**",
                         "/v1/cafeteria-menus/**",
+                        "/v1/admin/legal-documents/**",
                         "/v1/admin/inquiries/**",
                         "/v1/admin/reports/**",
                         "/v1/admin/app-versions/**",

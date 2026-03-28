@@ -20,6 +20,8 @@ public final class AdminAuditActions {
     public static final String INQUIRY_STATUS_UPDATED = "INQUIRY_STATUS_UPDATED";
     public static final String REPORT_STATUS_UPDATED = "REPORT_STATUS_UPDATED";
     public static final String APP_VERSION_UPSERTED = "APP_VERSION_UPSERTED";
+    public static final String LEGAL_DOCUMENT_UPSERTED = "LEGAL_DOCUMENT_UPSERTED";
+    public static final String LEGAL_DOCUMENT_DELETED = "LEGAL_DOCUMENT_DELETED";
     public static final String CAFETERIA_MENU_CREATED = "CAFETERIA_MENU_CREATED";
     public static final String CAFETERIA_MENU_UPDATED = "CAFETERIA_MENU_UPDATED";
     public static final String CAFETERIA_MENU_DELETED = "CAFETERIA_MENU_DELETED";

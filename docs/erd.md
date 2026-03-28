@@ -480,6 +480,20 @@ erDiagram
         datetime updated_at
     }
 
+    legal_documents {
+        varchar(40) document_key PK "termsOfUse,privacyPolicy"
+        varchar(100) title "NOT NULL"
+        enum banner_icon_key "DOCUMENT,SHIELD"
+        varchar(200) banner_title "NOT NULL"
+        enum banner_tone "GREEN,BLUE"
+        json banner_lines "LegalDocumentBannerLine[]"
+        json sections "LegalDocumentSection[]"
+        json footer_lines "string[]"
+        boolean is_active "NOT NULL"
+        datetime created_at
+        datetime updated_at
+    }
+
     cafeteria_menus {
         varchar(20) week_id PK "2024-W01"
         date week_start "NOT NULL"
@@ -488,6 +502,7 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+
 ```
 
 ### 1.4 Infra (Notification)
@@ -525,6 +540,11 @@ erDiagram
         json diff_before
         json diff_after
         datetime timestamp
+    }
+
+    seed_migrations {
+        varchar(120) migration_key PK
+        datetime applied_at "NOT NULL"
     }
 ```
 
@@ -705,6 +725,7 @@ Taxi history 계약 메모:
 | `notice_bookmarks` | 공지 북마크 | ~100,000 |
 | `app_notices` | 앱 공지 | ~100 |
 | `app_notice_read_status` | 앱 공지 읽음 상태 | ~500,000 |
+| `legal_documents` | 이용약관/개인정보 처리방침 | ~2 |
 
 ### 2.6 Campus 도메인
 
@@ -751,6 +772,7 @@ Taxi history 계약 메모:
 | `inquiries` | 문의 | ~500/년 |
 | `reports` | 신고 | ~200/년 |
 | `app_versions` | 앱 버전 | 2 (ios, android) |
+| `legal_documents` | 법적 문서 | ~2 |
 | `cafeteria_menus` | 학식 메뉴 | ~52/년 |
 
 ### 2.9 Notification 인프라
@@ -760,6 +782,7 @@ Taxi history 계약 메모:
 | `user_notifications` | 알림 인박스 | ~500,000/년 |
 | `fcm_tokens` | FCM 토큰 | ~10,000 |
 | `admin_audit_logs` | 감사 로그 | ~10,000/년 |
+| `seed_migrations` | 1회성 seed 적용 이력 | ~10 |
 
 **user_notifications 주요 컬럼**
 

@@ -64,6 +64,8 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
                 && (uri.equals(mediaUrlPrefix) || uri.startsWith(mediaUrlPrefix + "/"));
         return uri.startsWith("/v1/app-notices/")
                 || "/v1/app-notices".equals(uri)
+                || uri.startsWith("/v1/legal-documents/")
+                || "/v1/legal-documents".equals(uri)
                 || uri.startsWith("/v1/campus-banners/")
                 || "/v1/campus-banners".equals(uri)
                 || uri.startsWith("/v1/app-versions/")

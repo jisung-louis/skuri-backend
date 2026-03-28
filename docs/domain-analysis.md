@@ -61,7 +61,7 @@
 | 4 | **Board** | Supporting | 게시글 CRUD, 댓글, 좋아요/북마크 | Post, Comment, PostInteraction |
 | 5 | **Notice** | Supporting | 학교 공지 크롤링/조회, 앱 공지 | Notice, NoticeComment, AppNotice, NoticeReadStatus, AppNoticeReadStatus |
 | 6 | **Academic** | Generic | 강의 정보, 시간표, 학사 일정 | Course, UserTimetable, AcademicSchedule |
-| 7 | **Support** | Generic | 문의/신고 접수, 앱 버전, 학식 메뉴 | Inquiry, Report, AppVersion, CafeteriaMenu |
+| 7 | **Support** | Generic | 문의/신고 접수, 앱 버전, 법적 문서, 학식 메뉴 | Inquiry, Report, AppVersion, LegalDocument, CafeteriaMenu |
 | - | **Notification** | Infra | 도메인 이벤트 기반 알림 인박스 | UserNotification |
 
 ### 2.2 도메인 유형 정의
@@ -552,7 +552,7 @@ Hooks:
 ### 3.7 Support (지원/운영)
 
 ```
-책임: 문의/신고 접수, 앱 버전 관리, 학식 메뉴
+책임: 문의/신고 접수, 앱 버전 관리, 법적 문서 관리, 학식 메뉴
 
 Firestore 컬렉션:
   - inquiries/{docId}
@@ -583,6 +583,15 @@ Hooks:
     - minimumVersion, forceUpdate, message
     - title, showButton, buttonText, buttonUrl
     - fallback policy: 저장 데이터가 없으면 `minimumVersion=1.0.0`, `forceUpdate=false`, `showButton=false`
+  - LegalDocument
+    - documentKey (`termsOfUse`, `privacyPolicy`)
+    - title
+    - banner(iconKey, title, tone, lines[])
+    - sections[] (id, title, paragraphs[])
+    - footerLines[]
+    - isActive
+    - 공개 API는 `isActive=true` 문서만 조회 가능, 비활성/미존재는 `404 LEGAL_DOCUMENT_NOT_FOUND`
+    - 초기 2건은 1회성 seed migration으로 적재하고 이후에는 관리자 API로 수정
   - CafeteriaMenu
     - weekId, weekStart, weekEnd
     - menus: Map<date, Map<restaurant, items[]>>
@@ -795,12 +804,14 @@ com.skuri.skuri_backend
 │   ├── support
 │   │   ├── controller
 │   │   │   ├── AppVersionController.java
+│   │   │   ├── LegalDocumentController.java
 │   │   │   ├── InquiryController.java
 │   │   │   ├── ReportController.java
 │   │   │   ├── CafeteriaMenuController.java
 │   │   │   ├── InquiryAdminController.java
 │   │   │   ├── ReportAdminController.java
 │   │   │   ├── AppVersionAdminController.java
+│   │   │   ├── LegalDocumentAdminController.java
 │   │   │   └── CafeteriaMenuAdminController.java
 │   │   ├── dto
 │   │   │   ├── request
@@ -1355,7 +1366,7 @@ public enum MessageDirection {
   - [x] Member 도메인 구현
     - [x] Firebase ID Token 검증 필터/인증 컨텍스트 구성 (서버 토큰 발급 없음)
     - [x] `members.isAdmin` 기반 `ROLE_ADMIN` authority 부여 + `@PreAuthorize("hasRole('ADMIN')")` 적용
-    - [x] 공개 API(`GET /v1/app-versions/**`, `GET /v1/app-notices/**`, `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /scalar/**`) permitAll
+    - [x] 공개 API(`GET /v1/app-versions/**`, `GET /v1/app-notices/**`, `GET /v1/legal-documents/**`, `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /scalar/**`) permitAll
     - [x] 보호 API 미인증 요청 401, 이메일 도메인 불일치 403, 관리자 API 비권한 요청 `403 ADMIN_REQUIRED`
 
 - [ ] **Phase 2: 핵심 비즈니스**

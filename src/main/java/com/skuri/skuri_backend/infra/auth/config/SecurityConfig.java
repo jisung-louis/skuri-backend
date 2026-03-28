@@ -53,7 +53,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> {
                     String mediaUrlPrefix = mediaStorageProperties.normalizedUrlPrefix();
                     authorize.requestMatchers(SseDisconnectRequestSupport::isDisconnectedSseErrorDispatch).permitAll();
-                    authorize.requestMatchers(HttpMethod.GET, "/v1/app-versions/**", "/v1/app-notices/**", "/v1/campus-banners/**").permitAll();
+                    authorize.requestMatchers(
+                            HttpMethod.GET,
+                            "/v1/app-versions/**",
+                            "/v1/app-notices/**",
+                            "/v1/legal-documents/**",
+                            "/v1/campus-banners/**"
+                    ).permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll();
                     if (mediaStorageProperties.getProvider() == com.skuri.skuri_backend.infra.storage.StorageProviderType.LOCAL) {
                         authorize.requestMatchers(HttpMethod.GET, mediaUrlPrefix, mediaUrlPrefix + "/**").permitAll();

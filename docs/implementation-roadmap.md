@@ -171,7 +171,7 @@ com.skuri.skuri_backend
 | 1 | Firebase 초기화 | `infra/auth/config/FirebaseConfig.java` | Firebase Admin SDK 초기화 (`@Bean FirebaseApp`) |
 | 2 | Token 검증 | `infra/auth/firebase/FirebaseTokenVerifier.java` | `FirebaseAuth.verifyIdToken()` 래핑 |
 | 3 | 인증 필터 | `infra/auth/firebase/FirebaseAuthenticationFilter.java` | `OncePerRequestFilter` — ID Token 추출, 검증, SecurityContext 설정 |
-| 4 | Security 설정 | `infra/auth/config/SecurityConfig.java` | 필터 체인 (`/v1/app-versions/**`, `/v1/app-notices/**` permitAll, 나머지 인증 필수) |
+| 4 | Security 설정 | `infra/auth/config/SecurityConfig.java` | 필터 체인 (`/v1/app-versions/**`, `/v1/app-notices/**`, `/v1/legal-documents/**` permitAll, 나머지 인증 필수) |
 | 5 | OpenAPI 설정 | `infra/openapi/OpenApiConfig.java` | 전역 API 메타데이터, Bearer 보안 스키마, GroupedOpenApi 설정 |
 | 6 | Emulator 가드 | `infra/auth/config/FirebaseAuthEnvironmentGuard.java` | `local-emulator` 전용 허용 + emulator host 오염 차단 |
 
@@ -600,6 +600,8 @@ SSE 운영 제약:
 - `status`: `PENDING`, `REVIEWING`, `ACTIONED`, `REJECTED`
 - duplicate policy: `reporterId + targetType + targetId` 전 상태 기준 재신고 금지
 - `GET /v1/app-versions/{platform}`는 저장 데이터가 없으면 기본 `minimumVersion=1.0.0` 응답
+- `GET /v1/legal-documents/{documentKey}`는 `documentKey=termsOfUse|privacyPolicy` 고정 키만 허용하며, `isActive=false` 또는 미존재 문서는 `404 LEGAL_DOCUMENT_NOT_FOUND`
+- 초기 이용약관/개인정보 처리방침 2건은 1회성 seed migration으로 적재하고 이후에는 관리자 API로 관리
 
 #### 7-2. API
 
@@ -609,8 +611,13 @@ SSE 운영 제약:
 | `GET` | `/v1/inquiries/my` | 내 문의 목록 |
 | `POST` | `/v1/reports` | 신고 접수 |
 | `GET` | `/v1/app-versions/{platform}` | 앱 버전 정보 (**Public**) |
+| `GET` | `/v1/legal-documents/{documentKey}` | 이용약관/개인정보 처리방침 조회 (**Public**) |
 | `GET` | `/v1/cafeteria-menus` | 학식 메뉴 (이번 주) |
 | `GET` | `/v1/cafeteria-menus/{weekId}` | 특정 주차 학식 메뉴 |
+| `GET` | `/v1/admin/legal-documents` | 법적 문서 목록 조회 (관리자) |
+| `GET` | `/v1/admin/legal-documents/{documentKey}` | 법적 문서 상세 조회 (관리자) |
+| `PUT` | `/v1/admin/legal-documents/{documentKey}` | 법적 문서 생성/전체 수정 (관리자) |
+| `DELETE` | `/v1/admin/legal-documents/{documentKey}` | 법적 문서 삭제 (관리자) |
 | `GET` | `/v1/admin/inquiries` | 문의 전체 목록 조회 (관리자) |
 | `PATCH` | `/v1/admin/inquiries/{inquiryId}/status` | 문의 상태 처리 (관리자) |
 | `GET` | `/v1/admin/reports` | 신고 전체 목록 조회 (관리자) |
@@ -624,10 +631,12 @@ SSE 운영 제약:
 
 - [x] 문의/신고 접수 동작
 - [x] 앱 버전 비인증 조회 동작
+- [x] 법적 문서 비인증 조회 동작
 - [x] 학식 메뉴 조회 동작
 - [x] 관리자 문의/신고 목록 조회 및 상태 처리 동작
+- [x] 관리자 법적 문서 운영 API 동작
 - [x] 관리자 앱 버전/학식 메뉴 운영 API 동작
-- [x] Admin 권한 정책(`ROLE_ADMIN`, `403 ADMIN_REQUIRED`) 및 공개 버전 조회(`permitAll`) 반영
+- [x] Admin 권한 정책(`ROLE_ADMIN`, `403 ADMIN_REQUIRED`) 및 공개 버전/법적 문서 조회(`permitAll`) 반영
 - [x] Support 페이지 응답 포맷 `PageResponse` 일관화 및 수동 검증 컬렉션(`etc/postman_collection.json > 07. Support`) 반영
 
 ---
