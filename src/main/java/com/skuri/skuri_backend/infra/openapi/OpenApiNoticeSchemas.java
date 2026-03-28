@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.infra.openapi;
 import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeBookmarkSummaryResponse;
+import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentLikeResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeCommentResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeDetailResponse;
 import com.skuri.skuri_backend.domain.notice.dto.response.NoticeLikeResponse;
@@ -130,6 +131,21 @@ public final class OpenApiNoticeSchemas {
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
             NoticeCommentResponse data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "NoticeCommentLikeApiResponse", description = "공통 API 응답 포맷")
+    public record NoticeCommentLikeApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            NoticeCommentLikeResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)

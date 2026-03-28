@@ -353,10 +353,13 @@ Hooks:
     - id, postId, content, authorId, authorName, authorProfileImage
     - isAnonymous, anonId (= "{postId}:{userId}", 글 단위 익명 식별자)
     - anonymousOrder (서버 계산, 아래 규칙 참조)
-    - parentId (self-reference), isDeleted
+    - parentId (self-reference), likeCount, isDeleted
     - depth 제한 없음 (무제한 self-reference)
-    - 조회 응답은 flat list + `parentId` + `depth`
+    - 조회 응답은 flat list + `parentId` + `depth` + `likeCount` + `isLiked`
     - 부모 삭제 정책(B): 부모는 placeholder("삭제된 댓글입니다")로 soft delete, 자식은 유지
+  - CommentLike
+    - userId, commentId
+    - 댓글 좋아요 중복 방지 및 comment.likeCount 동기화 용도
 
   anonymousOrder 계산 규칙:
     - 게시글(postId) 단위로 Map<anonId, order> 관리
@@ -428,10 +431,13 @@ Hooks:
     - id, noticeId, userId, userDisplayName
     - content, isAnonymous, anonId (= "{noticeId}:{userId}")
     - anonymousOrder (서버 계산: Board Comment의 anonymousOrder 계산 규칙과 동일, noticeId 단위 Map 관리)
-    - parentId, isDeleted
+    - parentId, likeCount, isDeleted
     - depth 제한 없음 (무제한 self-reference)
-    - 조회 응답은 Board Comment와 동일하게 flat list + `parentId` + `depth`
+    - 조회 응답은 Board Comment와 동일하게 flat list + `parentId` + `depth` + `likeCount` + `isLiked`
     - 부모 삭제 정책: Board Comment와 동일하게 placeholder soft delete
+  - NoticeCommentLike
+    - userId, commentId
+    - 공지 댓글 좋아요 중복 방지 및 noticeComment.likeCount 동기화 용도
   - NoticeReadStatus
     - userId, noticeId, isRead, readAt
   - NoticeLike
@@ -474,7 +480,7 @@ Hooks:
 회원 탈퇴 연계 정책:
   - 공지 본문은 회원과 독립적인 외부 데이터이므로 영향 없음
   - `NoticeComment`는 본문을 유지하고 `userId`, `userDisplayName`만 익명화
-  - `NoticeLike`, `NoticeBookmark`, `NoticeReadStatus`는 탈퇴 회원 기준으로 정리
+  - `NoticeCommentLike`, `NoticeLike`, `NoticeBookmark`, `NoticeReadStatus`는 탈퇴 회원 기준으로 정리
 
 댓글 수정 정책:
   - `PATCH /v1/notice-comments/{commentId}`는 `content`만 수정 가능

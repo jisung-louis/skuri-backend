@@ -378,6 +378,7 @@ SSE 운영 제약:
 | `Post` | `posts` | 게시글 |
 | `PostImage` | `post_images` | 게시글 이미지 |
 | `Comment` | `comments` | 댓글/대댓글 (self-reference) |
+| `CommentLike` | `comment_likes` | 댓글 좋아요 |
 | `PostInteraction` | `post_interactions` | 좋아요 + 북마크 통합 |
 
 #### 4-2. 핵심 로직
@@ -387,6 +388,7 @@ SSE 운영 제약:
 | 익명 처리 | `anonId` = `{postId}:{userId}`, `anonymousOrder` 서버 계산 (글 단위 순번) |
 | 좋아요/북마크 | `PostInteraction` 단일 테이블, 등록/취소 방식 |
 | 카운트 관리 | `viewCount`, `likeCount`, `commentCount`, `bookmarkCount` 동기화 |
+| 댓글 좋아요 | `comment_likes` 저장 + `comments.likeCount` 동기화, 목록/생성/수정 응답에 `isLiked` 합성 |
 | 게시글 수정 정책 | `PATCH /v1/posts/{postId}`는 `title/content/category/isAnonymous`와 `images` 전체 교체를 지원하며 `images[]` 원소는 null 불가 |
 | 댓글 구조 | 무제한 depth 저장 + flat list 조회 응답 (`parentId`, `depth`) |
 | 부모 삭제 정책(B) | 부모 댓글은 placeholder soft delete(`삭제된 댓글입니다`), 자식 댓글은 유지 |
@@ -408,6 +410,8 @@ SSE 운영 제약:
 | `GET` | `/v1/posts/{postId}/comments` | 댓글 목록 |
 | `POST` | `/v1/posts/{postId}/comments` | 댓글 작성 |
 | `PATCH` | `/v1/comments/{commentId}` | 댓글 부분 수정 |
+| `POST` | `/v1/comments/{commentId}/like` | 댓글 좋아요 등록 |
+| `DELETE` | `/v1/comments/{commentId}/like` | 댓글 좋아요 취소 |
 | `DELETE` | `/v1/comments/{commentId}` | 댓글 삭제 |
 | `GET` | `/v1/members/me/posts` | 내가 작성한 게시글 목록 |
 | `GET` | `/v1/members/me/bookmarks` | 내가 북마크한 게시글 목록 |
@@ -433,6 +437,7 @@ SSE 운영 제약:
 |--------|--------|------|
 | `Notice` | `notices` | 학교 공지 (크롤링) |
 | `NoticeComment` | `notice_comments` | 공지 댓글 |
+| `NoticeCommentLike` | `notice_comment_likes` | 공지 댓글 좋아요 |
 | `NoticeReadStatus` | `notice_read_status` | 읽음 상태 |
 | `NoticeLike` | `notice_likes` | 공지 좋아요 |
 | `NoticeBookmark` | `notice_bookmarks` | 공지 북마크 |
@@ -450,6 +455,7 @@ SSE 운영 제약:
 | 공지 ID | `Base64(link).replace(/=+$/, '').slice(0, 120)` — 링크 기반 안정 ID |
 | 저장 구조 | `rssPreview`(RSS 미리보기), `bodyHtml`(원문 HTML), `bodyText`(정규화 text), `summary`(향후 AI 요약 예약) |
 | 공지 댓글 수정 정책 | `PATCH /v1/notice-comments/{id}`는 `content`만 수정 가능하고 익명 여부는 유지 |
+| 공지 댓글 좋아요 | `notice_comment_likes` 저장 + `notice_comments.likeCount` 동기화, 목록/생성/수정 응답에 `isLiked` 합성 |
 | 공지 북마크 저장 모델 | `NoticeLike`와 분리된 `notice_bookmarks` 테이블, 등록/취소는 idempotent |
 
 #### 5-3. API
@@ -466,6 +472,8 @@ SSE 운영 제약:
 | `GET` | `/v1/notices/{noticeId}/comments` | 공지 댓글 목록 |
 | `POST` | `/v1/notices/{noticeId}/comments` | 공지 댓글 작성 |
 | `PATCH` | `/v1/notice-comments/{id}` | 공지 댓글 본문 수정 |
+| `POST` | `/v1/notice-comments/{id}/like` | 공지 댓글 좋아요 등록 |
+| `DELETE` | `/v1/notice-comments/{id}/like` | 공지 댓글 좋아요 취소 |
 | `DELETE` | `/v1/notice-comments/{id}` | 공지 댓글 삭제 |
 | `GET` | `/v1/members/me/notice-bookmarks` | 내가 북마크한 공지 목록 |
 | `GET` | `/v1/app-notices` | 앱 공지 목록 (**Public**) |

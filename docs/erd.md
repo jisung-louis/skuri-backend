@@ -234,9 +234,15 @@ erDiagram
         varchar(36) anon_id
         int anonymous_order "익명1, 익명2..."
         varchar(36) parent_id FK "무제한 self-reference"
+        int like_count "DEFAULT 0"
         boolean is_deleted "DEFAULT false"
         datetime created_at
         datetime updated_at
+    }
+
+    comment_likes {
+        varchar(36) user_id PK "회원 ID"
+        varchar(36) comment_id PK,FK
     }
 
     post_interactions {
@@ -250,6 +256,7 @@ erDiagram
 
     posts ||--o{ post_images : "has"
     posts ||--o{ comments : "has"
+    comments ||--o{ comment_likes : "has"
     posts ||--o{ post_interactions : "has"
     comments ||--o{ comments : "parent-child"
 
@@ -297,9 +304,15 @@ erDiagram
         varchar(36) anon_id
         int anonymous_order "익명1, 익명2..."
         varchar(36) parent_id FK
+        int like_count "DEFAULT 0"
         boolean is_deleted "DEFAULT false"
         datetime created_at
         datetime updated_at
+    }
+
+    notice_comment_likes {
+        varchar(36) user_id PK "회원 ID"
+        varchar(36) comment_id PK,FK
     }
 
     notice_likes {
@@ -353,6 +366,7 @@ erDiagram
 
     notices ||--o{ notice_read_status : "has"
     notices ||--o{ notice_comments : "has"
+    notice_comments ||--o{ notice_comment_likes : "has"
     notices ||--o{ notice_likes : "has"
     notices ||--o{ notice_bookmarks : "has"
     app_notices ||--o{ app_notice_read_status : "has"
@@ -806,9 +820,11 @@ Taxi history 계약 메모:
 | 게시글-이미지 | posts | post_images | 1:N | 게시글에 여러 이미지 |
 | 게시글-댓글 | posts | comments | 1:N | 게시글에 여러 댓글 |
 | 댓글-대댓글 | comments | comments | 1:N (self) | 무제한 self-reference + placeholder soft delete |
+| 댓글-좋아요 | comments | comment_likes | 1:N | 댓글별 좋아요 |
 | 게시글-상호작용 | posts | post_interactions | 1:N | 게시글에 여러 좋아요/북마크 |
 | 공지-읽음 | notices | notice_read_status | 1:N | 공지별 읽음 상태 |
 | 공지-댓글 | notices | notice_comments | 1:N | 공지에 여러 댓글 |
+| 공지 댓글-좋아요 | notice_comments | notice_comment_likes | 1:N | 공지 댓글별 좋아요 |
 | 공지-좋아요 | notices | notice_likes | 1:N | 공지별 좋아요 |
 | 공지-북마크 | notices | notice_bookmarks | 1:N | 공지별 북마크 |
 | 앱 공지-읽음 | app_notices | app_notice_read_status | 1:N | 앱 공지별 읽음 상태 |
@@ -965,6 +981,9 @@ CREATE INDEX idx_comments_author ON comments(author_id);
 CREATE INDEX idx_comments_parent ON comments(parent_id);
 CREATE INDEX idx_comments_post_created ON comments(post_id, created_at);
 
+-- comment_likes
+CREATE INDEX idx_comment_likes_comment ON comment_likes(comment_id);
+
 -- post_interactions
 CREATE INDEX idx_post_interactions_user ON post_interactions(user_id);
 CREATE INDEX idx_post_interactions_post ON post_interactions(post_id);
@@ -990,6 +1009,9 @@ CREATE INDEX idx_app_notice_read_app_notice ON app_notice_read_status(app_notice
 -- notice_comments
 CREATE INDEX idx_notice_comments_notice ON notice_comments(notice_id);
 CREATE INDEX idx_notice_comments_parent ON notice_comments(parent_id);
+
+-- notice_comment_likes
+CREATE INDEX idx_notice_comment_likes_comment ON notice_comment_likes(comment_id);
 
 -- notice_likes
 CREATE INDEX idx_notice_likes_user ON notice_likes(user_id);

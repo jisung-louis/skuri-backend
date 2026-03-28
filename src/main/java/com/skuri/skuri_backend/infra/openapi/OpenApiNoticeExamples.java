@@ -149,6 +149,8 @@ public final class OpenApiNoticeExamples {
                   "isAnonymous": false,
                   "anonymousOrder": null,
                   "isAuthor": true,
+                  "likeCount": 5,
+                  "isLiked": true,
                   "isDeleted": false,
                   "createdAt": "2026-02-03T12:00:00",
                   "updatedAt": "2026-02-03T12:00:00"
@@ -163,6 +165,8 @@ public final class OpenApiNoticeExamples {
                   "isAnonymous": true,
                   "anonymousOrder": 2,
                   "isAuthor": false,
+                  "likeCount": 0,
+                  "isLiked": false,
                   "isDeleted": false,
                   "createdAt": "2026-02-03T12:10:00",
                   "updatedAt": "2026-02-03T12:10:00"
@@ -184,6 +188,8 @@ public final class OpenApiNoticeExamples {
                 "isAnonymous": false,
                 "anonymousOrder": null,
                 "isAuthor": true,
+                "likeCount": 5,
+                "isLiked": true,
                 "isDeleted": false,
                 "createdAt": "2026-02-03T12:00:00",
                 "updatedAt": "2026-02-03T12:00:00"
@@ -204,9 +210,33 @@ public final class OpenApiNoticeExamples {
                 "isAnonymous": false,
                 "anonymousOrder": null,
                 "isAuthor": true,
+                "likeCount": 5,
+                "isLiked": true,
                 "isDeleted": false,
                 "createdAt": "2026-02-03T12:00:00",
                 "updatedAt": "2026-02-03T12:30:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_NOTICE_COMMENT_LIKE = """
+            {
+              "success": true,
+              "data": {
+                "commentId": "notice_comment_uuid",
+                "isLiked": true,
+                "likeCount": 5
+              }
+            }
+            """;
+
+    public static final String SUCCESS_NOTICE_COMMENT_UNLIKE = """
+            {
+              "success": true,
+              "data": {
+                "commentId": "notice_comment_uuid",
+                "isLiked": false,
+                "likeCount": 4
               }
             }
             """;
