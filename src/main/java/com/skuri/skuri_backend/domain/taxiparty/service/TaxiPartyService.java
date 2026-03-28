@@ -285,9 +285,19 @@ public class TaxiPartyService {
         }
 
         List<String> recipientsBeforeRemoval = party.getMemberIds();
+        String removedMemberName = memberRepository.findById(memberId)
+                .map(Member::getNickname)
+                .orElse(null);
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
+        chatService.createPartyMemberLeaveSystemMessage(
+                party,
+                actorId,
+                removedMemberName != null
+                        ? removedMemberName + "님이 나갔어요."
+                        : "멤버가 나갔어요."
+        );
         partySseService.publishPartyMemberLeft(party, memberId, "KICKED", recipientsBeforeRemoval);
         eventPublisher.publish(new NotificationDomainEvent.PartyMemberKicked(party.getId(), memberId));
     }
@@ -308,8 +318,8 @@ public class TaxiPartyService {
 
         Member leavingMember = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
         String leaveSystemMessage = leavingMember.getNickname() != null && !leavingMember.getNickname().isBlank()
-                ? leavingMember.getNickname() + "님이 파티에서 나갔어요."
-                : "멤버가 파티에서 나갔어요.";
+                ? leavingMember.getNickname() + "님이 나갔어요."
+                : "멤버가 나갔어요.";
 
         if (party.getStatus() == PartyStatus.ARRIVED) {
             leaveArrivedParty(party, memberId, leaveSystemMessage);
@@ -379,12 +389,12 @@ public class TaxiPartyService {
         String requesterName = memberRepository.findById(requesterId)
                 .map(Member::getNickname)
                 .orElse(null);
-        chatService.createPartySystemMessage(
+        chatService.createPartyMemberJoinSystemMessage(
                 party,
                 leaderId,
                 requesterName != null
-                        ? requesterName + "님이 파티에 합류했어요."
-                        : "새 멤버가 파티에 합류했어요."
+                        ? requesterName + "님이 입장했어요."
+                        : "새 멤버가 입장했어요."
         );
         if (beforeStatus == PartyStatus.OPEN && party.getStatus() == PartyStatus.CLOSED) {
             chatService.createPartySystemMessage(party, leaderId, "모집이 마감되었어요.");
@@ -764,7 +774,7 @@ public class TaxiPartyService {
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
-        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
+        chatService.createPartyMemberLeaveSystemMessage(party, memberId, leaveSystemMessage);
         partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
     }
 
@@ -773,7 +783,7 @@ public class TaxiPartyService {
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
         chatService.syncPartyArrivalMessageSnapshot(party);
-        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
+        chatService.createPartyMemberLeaveSystemMessage(party, memberId, leaveSystemMessage);
         partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
     }
 

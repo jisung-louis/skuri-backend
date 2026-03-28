@@ -211,7 +211,7 @@ public class ChatService {
 
     @Transactional
     public ChatRoomDetailResponse joinChatRoom(String memberId, String chatRoomId) {
-        requireActiveMember(memberId);
+        Member memberProfile = requireActiveMember(memberId);
         ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
         ChatRoom room = access.room();
         validatePublicRoomMembershipAction(room, "참여");
@@ -227,19 +227,35 @@ public class ChatService {
         member.advanceLastReadAt(initialLastReadAt(room));
         chatRoomMemberRepository.save(member);
         room.increaseMemberCount();
-        chatRoomRepository.save(room);
-        publishAfterCommit(() -> publishChatRoomSummaryEvent(room));
+        String displayName = resolveMembershipDisplayName(memberProfile);
+        createMembershipSystemMessage(
+                room,
+                memberId,
+                displayName,
+                displayName != null ? displayName + "님이 입장했어요." : "새 멤버가 입장했어요.",
+                ChatMessage.SOURCE_MEMBER_JOIN
+        );
+        member.advanceLastReadAt(room.getLastMessageTimestamp());
         return toDetailResponse(room, member);
     }
 
     @Transactional
     public ChatRoomDetailResponse leaveChatRoom(String memberId, String chatRoomId) {
+        Member memberProfile = requireActiveMember(memberId);
         ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
         ChatRoom room = access.room();
         validatePublicRoomMembershipAction(room, "나가기");
 
         ChatRoomMember member = requireChatRoomMember(access.member());
-        removeMembership(member, true);
+        removeMembership(member, true, false);
+        String displayName = resolveMembershipDisplayName(memberProfile);
+        createMembershipSystemMessage(
+                room,
+                memberId,
+                displayName,
+                displayName != null ? displayName + "님이 나갔어요." : "멤버가 나갔어요.",
+                ChatMessage.SOURCE_MEMBER_LEAVE
+        );
         return toDetailResponse(room, null);
     }
 
@@ -283,7 +299,8 @@ public class ChatService {
                 text,
                 type,
                 accountData,
-                arrivalData
+                arrivalData,
+                null
         );
     }
 
@@ -298,7 +315,34 @@ public class ChatService {
                 text,
                 ChatMessageType.SYSTEM,
                 null,
+                null,
                 null
+        );
+    }
+
+    @Transactional
+    public ChatMessageResponse createPartyMemberJoinSystemMessage(Party party, String senderId, String text) {
+        Member sender = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
+        ChatRoom room = findRoomOrThrow("party:" + party.getId());
+        return createMembershipSystemMessage(
+                room,
+                senderId,
+                sender.getNickname(),
+                text,
+                ChatMessage.SOURCE_MEMBER_JOIN
+        );
+    }
+
+    @Transactional
+    public ChatMessageResponse createPartyMemberLeaveSystemMessage(Party party, String senderId, String text) {
+        Member sender = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
+        ChatRoom room = findRoomOrThrow("party:" + party.getId());
+        return createMembershipSystemMessage(
+                room,
+                senderId,
+                sender.getNickname(),
+                text,
+                ChatMessage.SOURCE_MEMBER_LEAVE
         );
     }
 
@@ -314,7 +358,8 @@ public class ChatService {
                 payload.text(),
                 ChatMessageType.ARRIVED,
                 payload.accountData(),
-                payload.arrivalData()
+                payload.arrivalData(),
+                null
         );
     }
 
@@ -343,7 +388,8 @@ public class ChatService {
                 payload.text(),
                 ChatMessageType.END,
                 payload.accountData(),
-                payload.arrivalData()
+                payload.arrivalData(),
+                null
         );
     }
 
@@ -351,18 +397,27 @@ public class ChatService {
     public void removeMemberFromAllChatRooms(String memberId) {
         List<ChatRoomMember> memberships = chatRoomMemberRepository.findById_MemberId(memberId);
         for (ChatRoomMember membership : memberships) {
-            removeMembership(membership, false);
+            removeMembership(membership, false, true);
         }
     }
 
     @Transactional
     public void removeMemberFromDepartmentChatRooms(String memberId) {
+        Member memberProfile = requireActiveMember(memberId);
+        String displayName = resolveMembershipDisplayName(memberProfile);
         List<ChatRoomMember> memberships = chatRoomMemberRepository.findById_MemberId(memberId).stream()
                 .filter(membership -> membership.getChatRoom().getType() == ChatRoomType.DEPARTMENT)
                 .toList();
 
         for (ChatRoomMember membership : memberships) {
-            removeMembership(membership, true);
+            removeMembership(membership, true, false);
+            createMembershipSystemMessage(
+                    membership.getChatRoom(),
+                    memberId,
+                    displayName,
+                    displayName != null ? displayName + "님이 나갔어요." : "멤버가 나갔어요.",
+                    ChatMessage.SOURCE_MEMBER_LEAVE
+            );
         }
     }
 
@@ -567,7 +622,8 @@ public class ChatService {
             String text,
             ChatMessageType type,
             ChatAccountData accountData,
-            ChatArrivalData arrivalData
+            ChatArrivalData arrivalData,
+            String source
     ) {
         String chatRoomId = room.getId();
         ChatMessage message = ChatMessage.create(
@@ -580,6 +636,7 @@ public class ChatService {
                 accountData,
                 arrivalData
         );
+        message.markSource(source);
         ChatMessage saved = chatMessageRepository.save(message);
 
         room.applyNewMessage(saved);
@@ -593,6 +650,25 @@ public class ChatService {
         eventPublisher.publish(new NotificationDomainEvent.ChatMessageCreated(chatRoomId, saved.getId()));
 
         return response;
+    }
+
+    private ChatMessageResponse createMembershipSystemMessage(
+            ChatRoom room,
+            String senderId,
+            String senderName,
+            String text,
+            String source
+    ) {
+        return saveAndPublishMessage(
+                room,
+                senderId,
+                senderName,
+                text,
+                ChatMessageType.SYSTEM,
+                null,
+                null,
+                source
+        );
     }
 
     private String requireText(String text) {
@@ -673,6 +749,16 @@ public class ChatService {
                 .orElseThrow(MemberNotFoundException::new);
     }
 
+    private String resolveMembershipDisplayName(Member member) {
+        if (StringUtils.hasText(member.getNickname())) {
+            return member.getNickname();
+        }
+        if (StringUtils.hasText(member.getRealname())) {
+            return member.getRealname();
+        }
+        return null;
+    }
+
     private void validatePublicRoomMembershipAction(ChatRoom room, String actionName) {
         if (room.getType() == ChatRoomType.PARTY) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "파티 채팅방 " + actionName + "는 택시 파티 API로 처리해야 합니다.");
@@ -712,14 +798,16 @@ public class ChatService {
         return normalized != null ? normalized : normalizeNullable(value);
     }
 
-    private void removeMembership(ChatRoomMember membership, boolean notifyRemovedMember) {
+    private void removeMembership(ChatRoomMember membership, boolean notifyRemovedMember, boolean publishSummaryEvent) {
         ChatRoom room = membership.getChatRoom();
         String memberId = membership.getMemberId();
         chatRoomMemberRepository.delete(membership);
         room.decreaseMemberCount();
         chatRoomRepository.save(room);
         publishAfterCommit(() -> {
-            publishChatRoomSummaryEvent(room);
+            if (publishSummaryEvent) {
+                publishChatRoomSummaryEvent(room);
+            }
             if (notifyRemovedMember) {
                 publishChatRoomRemovedEvent(room, memberId);
             }
