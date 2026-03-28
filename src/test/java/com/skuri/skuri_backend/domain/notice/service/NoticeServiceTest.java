@@ -296,7 +296,7 @@ class NoticeServiceTest {
     void deleteComment_작성자위반이면_예외() {
         Notice notice = notice("notice-1");
         CommentFixture fixture = comment("comment-1", notice, null, "author-1", false, null);
-        when(noticeCommentRepository.findById("comment-1")).thenReturn(Optional.of(fixture.comment));
+        when(noticeCommentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(fixture.comment));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -304,13 +304,17 @@ class NoticeServiceTest {
         );
 
         assertEquals(ErrorCode.NOT_NOTICE_COMMENT_AUTHOR, exception.getErrorCode());
+        verify(noticeCommentRepository).findByIdForUpdate("comment-1");
+        verify(noticeCommentRepository, never()).findById("comment-1");
     }
 
     @Test
     void updateComment_작성자이면_본문을수정한다() {
         Notice notice = notice("notice-1");
         CommentFixture fixture = comment("comment-1", notice, null, "member-1", false, null);
-        when(noticeCommentRepository.findById("comment-1")).thenReturn(Optional.of(fixture.comment));
+        ReflectionTestUtils.setField(fixture.comment, "likeCount", 3);
+        when(noticeCommentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(fixture.comment));
+        when(noticeCommentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(true);
 
         NoticeCommentResponse response = noticeService.updateComment(
                 "member-1",
@@ -320,6 +324,10 @@ class NoticeServiceTest {
 
         assertEquals("수정된 댓글", response.content());
         assertEquals("수정된 댓글", fixture.comment.getContent());
+        assertEquals(3, response.likeCount());
+        assertTrue(response.isLiked());
+        verify(noticeCommentRepository).findByIdForUpdate("comment-1");
+        verify(noticeCommentRepository, never()).findById("comment-1");
     }
 
     @Test
@@ -327,7 +335,7 @@ class NoticeServiceTest {
         Notice notice = notice("notice-1");
         CommentFixture fixture = comment("comment-1", notice, null, "member-1", false, null);
         fixture.comment.softDelete();
-        when(noticeCommentRepository.findById("comment-1")).thenReturn(Optional.of(fixture.comment));
+        when(noticeCommentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(fixture.comment));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -335,6 +343,8 @@ class NoticeServiceTest {
         );
 
         assertEquals(ErrorCode.COMMENT_ALREADY_DELETED, exception.getErrorCode());
+        verify(noticeCommentRepository).findByIdForUpdate("comment-1");
+        verify(noticeCommentRepository, never()).findById("comment-1");
     }
 
     @Test

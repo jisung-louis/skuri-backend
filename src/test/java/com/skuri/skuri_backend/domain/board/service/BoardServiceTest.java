@@ -6,6 +6,7 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.board.dto.request.CreateCommentRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostImageRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostRequest;
+import com.skuri.skuri_backend.domain.board.dto.request.UpdateCommentRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.UpdatePostRequest;
 import com.skuri.skuri_backend.domain.board.dto.response.CommentLikeResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.CommentResponse;
@@ -325,6 +326,29 @@ class BoardServiceTest {
         assertEquals(1, liked.likeCount());
         assertFalse(unliked.isLiked());
         assertEquals(0, unliked.likeCount());
+    }
+
+    @Test
+    void updateComment_행잠금을사용해_본문을수정한다() {
+        Post post = post("post-1", "author-1");
+        Comment comment = comment("comment-1", post, null, "member-1", false, null);
+        ReflectionTestUtils.setField(comment, "likeCount", 2);
+
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(commentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(true);
+
+        CommentResponse response = boardService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateCommentRequest("수정된 댓글")
+        );
+
+        assertEquals("수정된 댓글", response.content());
+        assertEquals("수정된 댓글", comment.getContent());
+        assertEquals(2, response.likeCount());
+        assertTrue(response.isLiked());
+        verify(commentRepository).findByIdForUpdate("comment-1");
+        verify(commentRepository, never()).findActiveById("comment-1");
     }
 
     @Test
