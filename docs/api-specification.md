@@ -1105,7 +1105,7 @@ FCM 토큰 삭제
   - `memberSettlements[*].leftParty`, `leftAt`, `displayName`으로 이탈 멤버를 식별
   - 리더는 나간 정산 대상 멤버에 대해서도 계속 `confirmSettlement` 가능
 - 리더가 탈퇴(회원탈퇴)하면 파티 강제 종료 (`endReason: WITHDRAWED`)
-- 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"홍길동님이 파티에서 나갔어요."`가 추가됩니다. 닉네임을 찾지 못하면 `"멤버가 파티에서 나갔어요."`를 사용합니다.
+- 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"홍길동님이 나갔어요."`가 추가됩니다. 닉네임이 비어 있거나 찾지 못하면 `"멤버가 나갔어요."`를 사용합니다.
 
 **Response:**
 ```json
@@ -1191,7 +1191,7 @@ FCM 토큰 삭제
 동승 요청 수락 (리더만)
 
 - 요청 수락으로 파티 인원이 정원(`maxMembers`)에 도달하면 파티 상태는 자동으로 `CLOSED` 전이됩니다.
-- 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"{requesterName}님이 파티에 합류했어요."`가 추가됩니다. 닉네임을 찾지 못하면 `"새 멤버가 파티에 합류했어요."`를 사용합니다.
+- 성공 시 파티 채팅방에 서버 생성 `SYSTEM` 메시지 `"{requesterName}님이 입장했어요."`가 추가됩니다. 닉네임이 비어 있거나 찾지 못하면 `"새 멤버가 입장했어요."`를 사용합니다.
 - 정원 도달로 자동 `CLOSED` 되면 같은 트랜잭션 안에서 위 합류 안내 뒤에 `"모집이 마감되었어요."` `SYSTEM` 메시지가 추가됩니다.
 - 실시간 브로드캐스트는 `합류 안내 -> 모집 마감 안내` 순서로 수행됩니다.
 - history 조회는 기본 정렬이 `createdAt DESC`라서 더 나중에 저장된 모집 마감 메시지가 먼저 보일 수 있으며, 같은 `createdAt`인 경우에도 서버가 저장 순서를 기준으로 결정적으로 tie-break 합니다.
@@ -1669,8 +1669,9 @@ Authorization:Bearer <firebase_id_token>
 | `TEXT` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 안녕하세요` | `chatRoomId=party:party_uuid` |
 | `IMAGE` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 사진을 보냈어요.` | `chatRoomId=party:party_uuid` |
 | `ACCOUNT` | `명학역 → 성결대학교 파티 채팅방` | `홍길동 : 계좌 정보를 공유했어요. (카카오뱅크 3333-01-1234567)` | `chatRoomId=party:party_uuid` |
-| `SYSTEM` (일반 안내) | `파티 안내 메시지` | `김철수님이 파티에서 나갔어요.` | `chatRoomId=party:party_uuid` |
+| `SYSTEM` (일반 안내) | `파티 안내 메시지` | `김철수님이 나갔어요.` | `chatRoomId=party:party_uuid` |
 
+> 파티 채팅의 멤버 입장/퇴장 `SYSTEM` 메시지(`"{nickname}님이 입장했어요."`, `"{nickname}님이 나갔어요."`, fallback 포함)는 히스토리와 STOMP에는 노출되지만 `CHAT_MESSAGE` push는 보내지 않습니다.
 > `SYSTEM`의 `"모집이 마감되었어요."`, `"모집이 재개되었어요."`, `ARRIVED`, `END` 메시지는 각각 `PARTY_CLOSED`, `PARTY_REOPENED`, `PARTY_ARRIVED`, `PARTY_ENDED` 도메인 알림으로만 푸시되며, 중복 `CHAT_MESSAGE` push는 보내지 않습니다.
 
 **수신 포맷 (서버 → 클라이언트):**
@@ -3109,8 +3110,8 @@ Authorization:Bearer <firebase_id_token>
 | `SETTLEMENT_COMPLETED` | 마지막 정산 완료 | 파티 전체 멤버 | `allNotifications` + `partyNotifications` | O |
 | `MEMBER_KICKED` | 강퇴 감지 | 강퇴된 멤버 | `allNotifications` + `partyNotifications` | O |
 | `PARTY_ENDED` | 파티 해체 | 리더 제외 파티 멤버 | `allNotifications` + `partyNotifications` | O |
-| `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 | 채팅방 멤버(송신자 제외) | `allNotifications` + 채팅방 mute | X |
-| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 (`TEXT`, `IMAGE`, `ACCOUNT`, 일반 `SYSTEM`) | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외, `data`는 `chatRoomId` canonical 사용. `모집 마감`/`모집 재개`/`도착`/`종료`는 `PARTY_*` 알림으로 전송 | X |
+| `CHAT_MESSAGE` (공개 채팅) | 공개 채팅방 메시지 | 채팅방 멤버(송신자 제외) | `allNotifications` + 채팅방 mute. 멤버 입장/퇴장 `SYSTEM` 메시지는 push 제외 | X |
+| `CHAT_MESSAGE` (파티 채팅) | 파티 채팅 메시지 (`TEXT`, `IMAGE`, `ACCOUNT`, 일반 `SYSTEM`) | 파티 멤버(송신자 제외) | 파티 채팅 mute 대상 제외, `data`는 `chatRoomId` canonical 사용. 멤버 입장/퇴장 `SYSTEM` 메시지와 `모집 마감`/`모집 재개`/`도착`/`종료`는 `CHAT_MESSAGE` push 제외 | X |
 | `POST_LIKED` | 게시글 좋아요 | 게시글 작성자 | `allNotifications` + `boardLikeNotifications` | O |
 | `COMMENT_CREATED` (게시글) | 댓글/답글 생성 | 게시글 작성자, 부모 댓글 작성자, 게시글 북마크 사용자 | `allNotifications` + `commentNotifications` + `bookmarkedPostCommentNotifications` (중복 수신자는 1회 dedupe) | O |
 | `COMMENT_CREATED` (공지) | 공지 댓글 답글 생성 | 부모 댓글 작성자 | `allNotifications` + `commentNotifications` | O |

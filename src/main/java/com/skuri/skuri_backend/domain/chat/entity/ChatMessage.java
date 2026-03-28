@@ -29,6 +29,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatMessage extends BaseTimeEntity {
 
+    public static final String SOURCE_MEMBER_JOIN = "MEMBER_JOIN";
+    public static final String SOURCE_MEMBER_LEAVE = "MEMBER_LEAVE";
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length = 36)
@@ -123,6 +126,14 @@ public class ChatMessage extends BaseTimeEntity {
             ChatArrivalData arrivalData
     ) {
         return new ChatMessage(chatRoomId, senderId, senderName, messageOrder, text, type, accountData, arrivalData);
+    }
+
+    public void markSource(String source) {
+        this.source = source;
+    }
+
+    public boolean hasSource(String source) {
+        return this.source != null && this.source.equals(source);
     }
 
     public void updateArrivalData(ChatArrivalData arrivalData) {

@@ -52,6 +52,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -285,9 +286,15 @@ public class TaxiPartyService {
         }
 
         List<String> recipientsBeforeRemoval = party.getMemberIds();
+        String removedMemberName = resolveMembershipDisplayName(memberId);
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
+        chatService.createPartyMemberLeaveSystemMessage(
+                party,
+                actorId,
+                toMemberLeaveSystemMessage(removedMemberName)
+        );
         partySseService.publishPartyMemberLeft(party, memberId, "KICKED", recipientsBeforeRemoval);
         eventPublisher.publish(new NotificationDomainEvent.PartyMemberKicked(party.getId(), memberId));
     }
@@ -307,9 +314,7 @@ public class TaxiPartyService {
         }
 
         Member leavingMember = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
-        String leaveSystemMessage = leavingMember.getNickname() != null && !leavingMember.getNickname().isBlank()
-                ? leavingMember.getNickname() + "님이 파티에서 나갔어요."
-                : "멤버가 파티에서 나갔어요.";
+        String leaveSystemMessage = toMemberLeaveSystemMessage(leavingMember.getNickname());
 
         if (party.getStatus() == PartyStatus.ARRIVED) {
             leaveArrivedParty(party, memberId, leaveSystemMessage);
@@ -376,15 +381,11 @@ public class TaxiPartyService {
         joinRequestRepository.save(joinRequest);
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
-        String requesterName = memberRepository.findById(requesterId)
-                .map(Member::getNickname)
-                .orElse(null);
-        chatService.createPartySystemMessage(
+        String requesterName = resolveMembershipDisplayName(requesterId);
+        chatService.createPartyMemberJoinSystemMessage(
                 party,
                 leaderId,
-                requesterName != null
-                        ? requesterName + "님이 파티에 합류했어요."
-                        : "새 멤버가 파티에 합류했어요."
+                toMemberJoinSystemMessage(requesterName)
         );
         if (beforeStatus == PartyStatus.OPEN && party.getStatus() == PartyStatus.CLOSED) {
             chatService.createPartySystemMessage(party, leaderId, "모집이 마감되었어요.");
@@ -764,7 +765,7 @@ public class TaxiPartyService {
         party.removeMember(memberId);
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
-        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
+        chatService.createPartyMemberLeaveSystemMessage(party, memberId, leaveSystemMessage);
         partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
     }
 
@@ -773,7 +774,7 @@ public class TaxiPartyService {
         savePartyWithLockHandling(party);
         chatService.syncPartyChatRoomMembers(party);
         chatService.syncPartyArrivalMessageSnapshot(party);
-        chatService.createPartySystemMessage(party, memberId, leaveSystemMessage);
+        chatService.createPartyMemberLeaveSystemMessage(party, memberId, leaveSystemMessage);
         partySseService.publishPartyMemberLeft(party, memberId, "LEFT", party.getMemberIds());
     }
 
@@ -813,6 +814,27 @@ public class TaxiPartyService {
             return member.getNickname();
         }
         return fallback;
+    }
+
+    private String resolveMembershipDisplayName(String memberId) {
+        return memberRepository.findById(memberId)
+                .map(Member::getNickname)
+                .filter(StringUtils::hasText)
+                .orElse(null);
+    }
+
+    private String toMemberJoinSystemMessage(String displayName) {
+        if (StringUtils.hasText(displayName)) {
+            return displayName + "님이 입장했어요.";
+        }
+        return "새 멤버가 입장했어요.";
+    }
+
+    private String toMemberLeaveSystemMessage(String displayName) {
+        if (StringUtils.hasText(displayName)) {
+            return displayName + "님이 나갔어요.";
+        }
+        return "멤버가 나갔어요.";
     }
 
     private String normalizeMemberId(String memberId) {

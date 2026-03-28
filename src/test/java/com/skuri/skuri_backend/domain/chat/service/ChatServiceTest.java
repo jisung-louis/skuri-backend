@@ -25,6 +25,7 @@ import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -181,8 +182,9 @@ class ChatServiceTest {
         ReflectionTestUtils.setField(room, "memberCount", 10);
         ReflectionTestUtils.setField(room, "lastMessageTimestamp", LocalDateTime.of(2026, 3, 5, 22, 0, 0));
         AtomicReference<ChatRoomMember> savedMemberRef = new AtomicReference<>();
+        Member joinedMember = activeMember("member-1", "컴퓨터공학과");
 
-        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과")));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(joinedMember));
         when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
         when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1")).thenReturn(Optional.empty());
         when(chatRoomMemberRepository.save(any(ChatRoomMember.class))).thenAnswer(invocation -> {
@@ -191,6 +193,13 @@ class ChatServiceTest {
             savedMemberRef.set(member);
             return member;
         });
+        when(chatMessageOrderGenerator.nextOrder()).thenReturn(42L);
+        when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", "message-join-1");
+            ReflectionTestUtils.setField(message, "createdAt", LocalDateTime.of(2026, 3, 5, 22, 5, 0));
+            return message;
+        });
         when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(chatRoomMemberRepository.findById_ChatRoomId("room-1")).thenAnswer(invocation -> List.of(savedMemberRef.get()));
 
@@ -198,8 +207,15 @@ class ChatServiceTest {
 
         assertTrue(response.joined());
         assertEquals(0, response.unreadCount());
-        assertEquals(toInstant(LocalDateTime.of(2026, 3, 5, 22, 0, 0)), response.lastReadAt());
+        assertEquals(toInstant(LocalDateTime.of(2026, 3, 5, 22, 5, 0)), response.lastReadAt());
         assertEquals(11, response.memberCount());
+        ArgumentCaptor<ChatMessage> joinMessageCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(chatMessageRepository).save(joinMessageCaptor.capture());
+        assertEquals(Long.valueOf(42L), joinMessageCaptor.getValue().getMessageOrder());
+        assertEquals(ChatMessageType.SYSTEM, joinMessageCaptor.getValue().getType());
+        assertEquals(ChatMessage.SOURCE_MEMBER_JOIN, joinMessageCaptor.getValue().getSource());
+        assertEquals("홍길동님이 입장했어요.", joinMessageCaptor.getValue().getText());
+        verify(messagingTemplate).convertAndSend(eq("/topic/chat/room-1"), any(ChatMessageResponse.class));
         verify(messagingTemplate).convertAndSendToUser(eq("member-1"), eq("/queue/chat-rooms"), any());
     }
 
@@ -222,8 +238,16 @@ class ChatServiceTest {
         ChatRoomMember membership = membership(room, "room-1", "member-1");
         ChatRoomMember remainingMember = membership(room, "room-1", "member-2");
 
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과")));
         when(chatRoomRepository.findById("room-1")).thenReturn(Optional.of(room));
         when(chatRoomMemberRepository.findById_ChatRoomIdAndId_MemberId("room-1", "member-1")).thenReturn(Optional.of(membership));
+        when(chatMessageOrderGenerator.nextOrder()).thenReturn(43L);
+        when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", "message-leave-1");
+            ReflectionTestUtils.setField(message, "createdAt", LocalDateTime.of(2026, 3, 5, 22, 6, 0));
+            return message;
+        });
         when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(chatRoomMemberRepository.findById_ChatRoomId("room-1")).thenReturn(List.of(remainingMember));
 
@@ -233,6 +257,13 @@ class ChatServiceTest {
         assertNull(response.lastReadAt());
         assertEquals(1, response.memberCount());
         verify(chatRoomMemberRepository).delete(membership);
+        ArgumentCaptor<ChatMessage> leaveMessageCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(chatMessageRepository).save(leaveMessageCaptor.capture());
+        assertEquals(Long.valueOf(43L), leaveMessageCaptor.getValue().getMessageOrder());
+        assertEquals(ChatMessageType.SYSTEM, leaveMessageCaptor.getValue().getType());
+        assertEquals(ChatMessage.SOURCE_MEMBER_LEAVE, leaveMessageCaptor.getValue().getSource());
+        assertEquals("홍길동님이 나갔어요.", leaveMessageCaptor.getValue().getText());
+        verify(messagingTemplate).convertAndSend(eq("/topic/chat/room-1"), any(ChatMessageResponse.class));
         verify(messagingTemplate, times(2)).convertAndSendToUser(anyString(), eq("/queue/chat-rooms"), any());
     }
 
@@ -245,7 +276,15 @@ class ChatServiceTest {
         ChatRoomMember departmentMembership = membership(departmentRoom, "public:department:cs", "member-1");
         ChatRoomMember customMembership = membership(customRoom, "room-1", "member-1");
 
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과")));
         when(chatRoomMemberRepository.findById_MemberId("member-1")).thenReturn(List.of(departmentMembership, customMembership));
+        when(chatMessageOrderGenerator.nextOrder()).thenReturn(44L);
+        when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            ReflectionTestUtils.setField(message, "id", "message-dept-leave-1");
+            ReflectionTestUtils.setField(message, "createdAt", LocalDateTime.of(2026, 3, 5, 22, 7, 0));
+            return message;
+        });
         when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(chatRoomMemberRepository.findById_ChatRoomId("public:department:cs")).thenReturn(List.of());
 
@@ -253,6 +292,11 @@ class ChatServiceTest {
 
         verify(chatRoomMemberRepository).delete(departmentMembership);
         verify(chatRoomMemberRepository, times(1)).delete(any(ChatRoomMember.class));
+        ArgumentCaptor<ChatMessage> departmentLeaveCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(chatMessageRepository).save(departmentLeaveCaptor.capture());
+        assertEquals(ChatMessage.SOURCE_MEMBER_LEAVE, departmentLeaveCaptor.getValue().getSource());
+        assertEquals("홍길동님이 나갔어요.", departmentLeaveCaptor.getValue().getText());
+        verify(messagingTemplate).convertAndSend(eq("/topic/chat/public:department:cs"), any(ChatMessageResponse.class));
     }
 
     @Test
@@ -476,7 +520,7 @@ class ChatServiceTest {
 
     private Member activeMember(String memberId, String department) {
         Member member = Member.create(memberId, memberId + "@sungkyul.ac.kr", "홍길동", LocalDateTime.now().minusDays(1));
-        member.updateProfile(null, null, department, null);
+        member.updateProfile("홍길동", null, department, null);
         return member;
     }
 

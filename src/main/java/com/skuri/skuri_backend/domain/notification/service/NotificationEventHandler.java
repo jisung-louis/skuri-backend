@@ -267,6 +267,9 @@ public class NotificationEventHandler {
     }
 
     private void handlePublicChatMessage(ChatRoom room, ChatMessage message) {
+        if (isMembershipSystemMessage(message)) {
+            return;
+        }
         if (message.getType() == ChatMessageType.SYSTEM && room.getType() != ChatRoomType.GAME) {
             return;
         }
@@ -675,11 +678,20 @@ public class NotificationEventHandler {
     }
 
     private boolean shouldSuppressPartyChatNotification(ChatMessage message) {
+        if (isMembershipSystemMessage(message)) {
+            return true;
+        }
         return switch (message.getType()) {
             case ARRIVED, END -> true;
             case SYSTEM -> isDuplicatedPartyStatusMessage(message.getText());
             default -> false;
         };
+    }
+
+    private boolean isMembershipSystemMessage(ChatMessage message) {
+        return message.getType() == ChatMessageType.SYSTEM
+                && (message.hasSource(ChatMessage.SOURCE_MEMBER_JOIN)
+                || message.hasSource(ChatMessage.SOURCE_MEMBER_LEAVE));
     }
 
     private boolean isDuplicatedPartyStatusMessage(String text) {

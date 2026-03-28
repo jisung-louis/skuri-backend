@@ -282,7 +282,7 @@ class NotificationEventHandlerTest {
                 "party:party-1",
                 "leader-1",
                 "리더",
-                "김철수님이 파티에서 나갔어요.",
+                "정산 계좌를 확인해주세요.",
                 ChatMessageType.SYSTEM,
                 null,
                 null
@@ -301,7 +301,55 @@ class NotificationEventHandlerTest {
         verify(pushNotificationService).send(captor.getValue());
         assertEquals(NotificationType.CHAT_MESSAGE, captor.getValue().type());
         assertEquals("파티 안내 메시지", captor.getValue().title());
-        assertEquals("김철수님이 파티에서 나갔어요.", captor.getValue().message());
+        assertEquals("정산 계좌를 확인해주세요.", captor.getValue().message());
+    }
+
+    @Test
+    void handleChatMessageCreated_파티멤버입퇴장시스템메시지는_CHAT_MESSAGE푸시를생략한다() {
+        ChatRoom room = ChatRoom.createPartyRoom("party-1");
+        ChatMessage message = ChatMessage.create(
+                "party:party-1",
+                "leader-1",
+                "리더",
+                "김철수님이 나갔어요.",
+                ChatMessageType.SYSTEM,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(message, "id", "message-1");
+        ReflectionTestUtils.setField(message, "source", ChatMessage.SOURCE_MEMBER_LEAVE);
+
+        when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(room));
+        when(chatMessageRepository.findById("message-1")).thenReturn(Optional.of(message));
+
+        notificationEventHandler.handle(new NotificationDomainEvent.ChatMessageCreated("party:party-1", "message-1"));
+
+        verify(notificationService, never()).createInboxNotifications(org.mockito.ArgumentMatchers.any());
+        verify(pushNotificationService, never()).send(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void handleChatMessageCreated_GAME공개채팅_멤버입퇴장시스템메시지는_CHAT_MESSAGE푸시를생략한다() {
+        ChatRoom room = ChatRoom.create("public:game:minecraft", "마인크래프트 채팅방", ChatRoomType.GAME, null, null, null, true, null);
+        ChatMessage message = ChatMessage.create(
+                "public:game:minecraft",
+                "member-1",
+                "홍길동",
+                "홍길동님이 입장했어요.",
+                ChatMessageType.SYSTEM,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(message, "id", "message-2");
+        ReflectionTestUtils.setField(message, "source", ChatMessage.SOURCE_MEMBER_JOIN);
+
+        when(chatRoomRepository.findById("public:game:minecraft")).thenReturn(Optional.of(room));
+        when(chatMessageRepository.findById("message-2")).thenReturn(Optional.of(message));
+
+        notificationEventHandler.handle(new NotificationDomainEvent.ChatMessageCreated("public:game:minecraft", "message-2"));
+
+        verify(notificationService, never()).createInboxNotifications(org.mockito.ArgumentMatchers.any());
+        verify(pushNotificationService, never()).send(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

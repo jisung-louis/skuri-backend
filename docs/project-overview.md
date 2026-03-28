@@ -101,6 +101,7 @@
 #### 공개 채팅
 
 - 공개 채팅방 목록/상세/참여/나가기 지원
+- 공개 채팅방 참여/나가기와 파티 채팅 멤버 입장/퇴장은 실제 `SYSTEM` chat message로 저장되고 STOMP topic으로 브로드캐스트됨
 - 공개 채팅과 택시 파티 채팅은 같은 채팅 도메인을 공유하되 계약은 분리되어 있음
 
 #### 공지/게시판
@@ -131,7 +132,7 @@
 - 파티 채팅/공개 채팅: `CHAT_MESSAGE`
 - 동승 요청: `JOIN_REQUEST_CREATED`, `JOIN_REQUEST_ACCEPTED` 등
 
-파티 상태 변화는 채팅 푸시가 아니라 `PARTY_*` 알림이 책임진다. 일반 채팅 메시지만 `CHAT_MESSAGE` 푸시를 사용한다.
+파티 상태 변화는 채팅 푸시가 아니라 `PARTY_*` 알림이 책임진다. 일반 채팅 메시지만 `CHAT_MESSAGE` 푸시를 사용하고, 채팅방 멤버 입장/퇴장 `SYSTEM` 메시지는 히스토리/실시간 표시만 하고 push는 보내지 않는다.
 
 세부 계약은 [api-specification.md](/Users/jisung/skuri-backend/docs/api-specification.md) 를 기준으로 본다.
 
