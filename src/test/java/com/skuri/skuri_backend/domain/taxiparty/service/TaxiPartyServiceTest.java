@@ -436,7 +436,7 @@ class TaxiPartyServiceTest {
         assertTrue(party.isMember("requester-1"));
         InOrder chatInOrder = inOrder(chatService);
         chatInOrder.verify(chatService).syncPartyChatRoomMembers(party);
-        chatInOrder.verify(chatService).createPartySystemMessage(party, "leader", "스쿠리 유저님이 파티에 합류했어요.");
+        chatInOrder.verify(chatService).createPartyMemberJoinSystemMessage(party, "leader", "스쿠리 유저님이 입장했어요.");
         chatInOrder.verify(chatService).createPartySystemMessage(party, "leader", "모집이 마감되었어요.");
         verify(partySseService).publishPartyMemberJoined(party, "requester-1", "스쿠리 유저", party.getMemberIds());
         verify(joinRequestSseService).publishJoinRequestUpdated(joinRequest, JoinRequestStatus.PENDING);
@@ -462,7 +462,7 @@ class TaxiPartyServiceTest {
         assertEquals(JoinRequestStatus.ACCEPTED, response.status());
         assertEquals(2, party.getCurrentMembers());
         assertEquals(PartyStatus.OPEN, party.getStatus());
-        verify(chatService).createPartySystemMessage(party, "leader", "스쿠리 유저님이 파티에 합류했어요.");
+        verify(chatService).createPartyMemberJoinSystemMessage(party, "leader", "스쿠리 유저님이 입장했어요.");
         verify(chatService, never()).createPartySystemMessage(party, "leader", "모집이 마감되었어요.");
         verify(partySseService, never()).publishPartyStatusChanged(party);
     }
@@ -565,7 +565,7 @@ class TaxiPartyServiceTest {
 
         assertFalse(party.isMember("member-1"));
         verify(chatService).syncPartyChatRoomMembers(party);
-        verify(chatService).createPartySystemMessage(party, "member-1", "홍길동님이 파티에서 나갔어요.");
+        verify(chatService).createPartyMemberLeaveSystemMessage(party, "member-1", "홍길동님이 나갔어요.");
         verify(partySseService).publishPartyMemberLeft(party, "member-1", "LEFT", party.getMemberIds());
     }
 
@@ -598,7 +598,7 @@ class TaxiPartyServiceTest {
 
         verify(chatService).syncPartyChatRoomMembers(party);
         verify(chatService).syncPartyArrivalMessageSnapshot(party);
-        verify(chatService).createPartySystemMessage(party, "member-1", "홍길동님이 파티에서 나갔어요.");
+        verify(chatService).createPartyMemberLeaveSystemMessage(party, "member-1", "홍길동님이 나갔어요.");
         verify(partySseService).publishPartyMemberLeft(party, "member-1", "LEFT", party.getMemberIds());
     }
 
@@ -611,7 +611,7 @@ class TaxiPartyServiceTest {
 
         taxiPartyService.leaveParty("member-1", "party-1");
 
-        verify(chatService).createPartySystemMessage(party, "member-1", "멤버가 파티에서 나갔어요.");
+        verify(chatService).createPartyMemberLeaveSystemMessage(party, "member-1", "멤버가 나갔어요.");
     }
 
     @Test
@@ -619,10 +619,12 @@ class TaxiPartyServiceTest {
         Party party = sampleParty("party-1", "leader", 4, true);
         when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
         when(partyRepository.saveAndFlush(any(Party.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberRepository.findById("member-1")).thenReturn(Optional.of(member("member-1", "홍길동")));
 
         taxiPartyService.kickMember("leader", "party-1", "member-1");
 
         verify(chatService).syncPartyChatRoomMembers(party);
+        verify(chatService).createPartyMemberLeaveSystemMessage(party, "leader", "홍길동님이 나갔어요.");
         verify(partySseService).publishPartyMemberLeft(
                 eq(party),
                 eq("member-1"),
