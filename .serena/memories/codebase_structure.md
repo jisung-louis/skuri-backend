@@ -7,7 +7,7 @@
 - 주요 문서: `docs/project-overview.md`, `docs/implementation-roadmap.md`, `docs/api-specification.md`, `docs/domain-analysis.md`, `docs/erd.md`, `docs/role-definition.md`
 
 ## 주요 패키지 메모
-- `domain/taxiparty`: 파티 상태 전이, 정산 snapshot, taxi history/summary
+- `domain/taxiparty`: 파티 상태 전이, 정산 snapshot, taxi history/summary, 목록/SSE 요약 DTO가 `participantSummaries`로 현재 멤버 프로필 사진(`members.photo_url`)과 리더 여부를 함께 노출
 - `domain/chat`: 공개/파티 채팅, SYSTEM 메시지, 읽음 처리, 공개방 seed, `ChatService`가 REST/STOMP `ChatMessageResponse.senderPhotoUrl`을 `members.photo_url`로 매핑
 - `domain/board`: 게시글/댓글/좋아요/북마크, 이미지 연결
 - `domain/notice`: 학교 공지, 공지 댓글, 북마크, 앱 공지
