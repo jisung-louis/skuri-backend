@@ -5236,7 +5236,7 @@
                     "exec": [
                       "const j = pm.response.json();",
                       "pm.test('Core 강의 초기화 semester 일치', function () { pm.expect(j.data.semester).to.eql(pm.collectionVariables.get('academicCoreSemester')); });",
-                      "['academicCoreCourseId', 'academicCoreAltCourseId', 'academicTimetableId'].forEach(function (key) { pm.collectionVariables.set(key, ''); });"
+                      "['academicCoreCourseId', 'academicCoreAltCourseId', 'academicCoreManualCourseId', 'academicTimetableId'].forEach(function (key) { pm.collectionVariables.set(key, ''); });"
                     ]
                   }
                 }
@@ -5310,8 +5310,41 @@
                       "const first = content.find(function (course) { return course.code === 'P6CORE101'; });",
                       "const second = content.find(function (course) { return course.code === 'P6CORE102'; });",
                       "pm.test('Core 강의 2건이 필터 결과에 포함됨', function () { pm.expect(first).to.exist; pm.expect(second).to.exist; });",
+                      "pm.test('공식 강의 응답에 isOnline=false가 포함됨', function () { pm.expect(first && first.isOnline).to.eql(false); pm.expect(second && second.isOnline).to.eql(false); });",
                       "if (first && first.id) pm.collectionVariables.set('academicCoreCourseId', first.id);",
                       "if (second && second.id) pm.collectionVariables.set('academicCoreAltCourseId', second.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 시간표 학기 목록 조회",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/v1/timetables/my/semesters",
+                "description": "## 기능\n- 강의 카탈로그 학기와 사용자가 가진 시간표 학기의 합집합을 최신 학기 우선으로 조회합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/timetables/my/semesters`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 응답이 배열이 아니면 `TimetableController.getMySemesters` 직렬화 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (getMySemesters)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (getMySemesters)\n- Repository: src/main/java/com/skuri/skuri_backend/domain/academic/repository/CourseRepository.java / UserTimetableRepository.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = j.data || [];",
+                      "pm.test('학기 목록은 배열이다', function () { pm.expect(data).to.be.an('array'); });",
+                      "if (data.length > 0) { pm.test('학기 목록 항목은 id/label을 포함한다', function () { pm.expect(data[0]).to.have.property('id'); pm.expect(data[0]).to.have.property('label'); }); }"
                     ]
                   }
                 }
@@ -5343,6 +5376,7 @@
                       "const j = pm.response.json();",
                       "const data = j.data || {};",
                       "pm.test('시간표 기본 배열 필드 존재', function () { pm.expect(data.courses).to.be.an('array'); pm.expect(data.slots).to.be.an('array'); });",
+                      "pm.test('시간표 응답은 color 필드를 노출하지 않음', function () { pm.expect(((data.courses || [])[0] || {})).to.not.have.property('color'); pm.expect(((data.slots || [])[0] || {})).to.not.have.property('color'); });",
                       "if (data.id) pm.collectionVariables.set('academicTimetableId', data.id);"
                     ]
                   }
@@ -5384,8 +5418,10 @@
                     "exec": [
                       "const j = pm.response.json();",
                       "const data = j.data || {};",
+                      "const addedCourse = (data.courses || []).find(function (course) { return course.id === pm.collectionVariables.get('academicCoreCourseId'); });",
                       "pm.test('시간표 추가 후 color 필드가 노출되지 않음', function () { pm.expect(((data.courses || [])[0] || {})).to.not.have.property('color'); pm.expect(((data.slots || [])[0] || {})).to.not.have.property('color'); });",
                       "pm.test('시간표 추가 후 courseCount 증가', function () { pm.expect(data.courseCount).to.be.at.least(1); });",
+                      "pm.test('추가된 공식 강의는 isOnline=false를 가진다', function () { pm.expect(addedCourse).to.exist; pm.expect(addedCourse.isOnline).to.eql(false); });",
                       "if (data.id) pm.collectionVariables.set('academicTimetableId', data.id);"
                     ]
                   }
@@ -5450,6 +5486,86 @@
                       "const j = pm.response.json();",
                       "const data = j.data || {};",
                       "pm.test('강의 삭제 후 목록이 비어 있음', function () { pm.expect(data.courseCount).to.eql(0); pm.expect(data.courses).to.be.an('array').that.has.lengthOf(0); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 시간표 직접 입력 강의 추가(온라인)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/manual-courses",
+                "description": "## 기능\n- 온라인 직접 입력 강의를 내 시간표에 추가합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n- 대상 학기: `{{academicCoreSemester}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/manual-courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- `academicCoreManualCourseId` 저장\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- 요청 필드가 비정상이면 `422 VALIDATION_ERROR`\n- 오프라인 강의와 시간이 겹친다면 `409 TIMETABLE_CONFLICT`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addManualCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (addManualCourse)\n- Request DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/CreateMyManualTimetableCourseRequest.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"semester\": \"{{academicCoreSemester}}\",\n  \"name\": \"플랫폼세미나\",\n  \"professor\": \"\",\n  \"credits\": 2,\n  \"isOnline\": true,\n  \"locationLabel\": null,\n  \"dayOfWeek\": null,\n  \"startPeriod\": null,\n  \"endPeriod\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = j.data || {};",
+                      "const manual = (data.courses || []).find(function (course) { return course.name === '플랫폼세미나'; });",
+                      "pm.test('온라인 직접 입력 강의가 courses에 포함된다', function () { pm.expect(manual).to.exist; pm.expect(manual.isOnline).to.eql(true); pm.expect(manual.schedule).to.be.an('array').that.has.lengthOf(0); });",
+                      "pm.test('온라인 직접 입력 강의는 slots에 포함되지 않는다', function () { pm.expect((data.slots || []).some(function (slot) { return manual && slot.courseId === manual.id; })).to.eql(false); });",
+                      "if (manual && manual.id) pm.collectionVariables.set('academicCoreManualCourseId', manual.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "내 시간표 직접 입력 강의 삭제",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{baseUrl}}/v1/timetables/my/courses/{{academicCoreManualCourseId}}?semester={{academicCoreSemester}}",
+                "description": "## 기능\n- 방금 추가한 직접 입력 강의를 기존 삭제 API로 제거합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Core\n\n## 선행조건\n- `내 시간표 직접 입력 강의 추가(온라인)`이 선행되어야 합니다.\n- `{{academicCoreManualCourseId}}` 값이 준비되어 있어야 합니다.\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `DELETE`\n- URL: `{{baseUrl}}/v1/timetables/my/courses/{{academicCoreManualCourseId}}?semester={{academicCoreSemester}}`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `200`\n- Collection 공통 Tests 통과\n- 에러 코드: 없음\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 토큰 누락/만료 시 `401 UNAUTHORIZED`\n- courseId가 없으면 `404 COURSE_NOT_FOUND`\n- semester 파라미터를 빼먹으면 `400 INVALID_REQUEST`\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (removeCourse)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/TimetableService.java (removeCourse)\n- Entity: src/main/java/com/skuri/skuri_backend/domain/academic/entity/UserTimetable.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = j.data || {};",
+                      "pm.test('직접 입력 강의 삭제 후 목록이 비어 있음', function () { pm.expect(data.courseCount).to.eql(0); pm.expect(data.courses).to.be.an('array').that.has.lengthOf(0); });"
                     ]
                   }
                 }
@@ -5793,7 +5909,7 @@
                       "const data = j.data || {};",
                       "const firstCourse = (data.courses || [])[0] || {};",
                       "const firstSlot = (data.slots || [])[0] || {};",
-                      "pm.test('시간표 슬롯 구조 필드 확인', function () { pm.expect(firstCourse).to.have.property('schedule'); pm.expect(firstSlot).to.have.property('dayOfWeek'); pm.expect(firstSlot).to.not.have.property('color'); });"
+                      "pm.test('시간표 슬롯 구조 필드 확인', function () { pm.expect(firstCourse).to.have.property('schedule'); pm.expect(firstCourse).to.have.property('isOnline'); pm.expect(firstSlot).to.have.property('dayOfWeek'); pm.expect(firstSlot).to.not.have.property('color'); });"
                     ]
                   }
                 }
@@ -6041,7 +6157,7 @@
                 },
                 "method": "GET",
                 "url": "{{baseUrl}}/v1/courses?dayOfWeek=0",
-                "description": "## 기능\n- 강의 검색 필터 검증 실패를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/courses?dayOfWeek=0`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- dayOfWeek 범위 검증이 빠졌다면 `CourseService.validateCourseFilters` 확인\n- 응답 포맷이 다르면 `GlobalExceptionHandler` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseController.java (getCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (validateCourseFilters)\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
+                "description": "## 기능\n- 강의 검색 필터 검증 실패를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `GET`\n- URL: `{{baseUrl}}/v1/courses?dayOfWeek=0`\n- Body: 없음\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- dayOfWeek(1-6) 범위 검증이 빠졌다면 `CourseService.validateCourseFilters` 확인\n- 응답 포맷이 다르면 `GlobalExceptionHandler` 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/CourseController.java (getCourses)\n- Service: src/main/java/com/skuri/skuri_backend/domain/academic/service/CourseService.java (validateCourseFilters)\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java"
               }
             },
             {
@@ -6080,6 +6196,39 @@
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"courseId\": \"\",\n  \"semester\": \"\"\n}"
+                }
+              }
+            },
+            {
+              "name": "직접 입력 강의 추가 검증 실패 확인(422)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{baseUrl}}/v1/timetables/my/manual-courses",
+                "description": "## 기능\n- 직접 입력 강의 추가 요청의 오프라인 필수 필드 검증 실패를 확인합니다.\n\n## 테스트 모드 (Core / Scenario Regression / Contract Guard / Realtime)\n- Contract Guard\n\n## 선행조건\n- Auth 토큰: `{{member1Token}}`\n\n## 요청\n- Method: `POST`\n- URL: `{{baseUrl}}/v1/timetables/my/manual-courses`\n- Body: JSON (`raw`) 본문 사용\n\n## 기대 결과\n- HTTP 상태코드: `422`\n- Collection 공통 Tests 통과\n- 에러 코드: `VALIDATION_ERROR`\n\n## 출력 변수\n- 없음\n\n## 실패 시 확인\n- 오프라인 강의의 location/dayOfWeek/startPeriod/endPeriod 검증이 빠졌는지 확인\n- 응답이 500이면 `GlobalExceptionHandler` 매핑 확인\n\n## 관련 백엔드 코드\n- Controller: src/main/java/com/skuri/skuri_backend/domain/academic/controller/TimetableController.java (addManualCourse)\n- Request DTO: src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/CreateMyManualTimetableCourseRequest.java\n- 예외 처리: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"semester\": \"{{academicGuardSemester}}\",\n  \"name\": \"검증 실패 강의\",\n  \"professor\": \"Guard교수\",\n  \"credits\": 1,\n  \"isOnline\": false,\n  \"locationLabel\": null,\n  \"dayOfWeek\": null,\n  \"startPeriod\": null,\n  \"endPeriod\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 }
               }
             },

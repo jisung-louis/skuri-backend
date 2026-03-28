@@ -2557,7 +2557,7 @@ Authorization:Bearer <firebase_id_token>
 | `department` | string | 학과 |
 | `professor` | string | 교수명 |
 | `search` | string | 강의명/과목코드/카테고리/교수/강의실/비고 키워드 검색 |
-| `dayOfWeek` | int | 요일 (1-5) |
+| `dayOfWeek` | int | 요일 (1-6, 월-토) |
 | `grade` | int | 학년 |
 | `page` | int | 페이지 번호 (기본: 0) |
 | `size` | int | 페이지 크기 (기본: 20, 최대: 100) |
@@ -2575,6 +2575,7 @@ Authorization:Bearer <firebase_id_token>
         "division": "001",
         "name": "민법총칙",
         "credits": 3,
+        "isOnline": false,
         "professor": "문상혁",
         "department": "법학과",
         "grade": 2,
@@ -2605,7 +2606,26 @@ Authorization:Bearer <firebase_id_token>
 }
 ```
 
+공식 강의 카탈로그는 현재 모두 오프라인 강의로 취급하므로 `isOnline`은 `false`로 내려간다.
+
 ### 7.2 시간표
+
+#### GET /v1/timetables/my/semesters
+내 시간표 학기 목록 조회
+
+강의 카탈로그 학기와 사용자가 이미 가진 시간표 학기의 합집합을 최신 학기 우선으로 반환한다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    { "id": "2026-1", "label": "2026-1학기" },
+    { "id": "2025-2", "label": "2025-2학기" },
+    { "id": "2025-1", "label": "2025-1학기" }
+  ]
+}
+```
 
 #### GET /v1/timetables/my
 내 시간표 조회
@@ -2623,8 +2643,8 @@ Authorization:Bearer <firebase_id_token>
   "data": {
     "id": "timetable_uuid",
     "semester": "2026-1",
-    "courseCount": 1,
-    "totalCredits": 3,
+    "courseCount": 2,
+    "totalCredits": 5,
     "courses": [
       {
         "id": "course_uuid",
@@ -2635,9 +2655,22 @@ Authorization:Bearer <firebase_id_token>
         "location": "영401",
         "category": "전공선택",
         "credits": 3,
+        "isOnline": false,
         "schedule": [
           { "dayOfWeek": 1, "startPeriod": 3, "endPeriod": 4 }
         ]
+      },
+      {
+        "id": "manual_course_uuid",
+        "code": "직접 입력",
+        "division": null,
+        "name": "플랫폼세미나",
+        "professor": "직접 입력",
+        "location": null,
+        "category": null,
+        "credits": 2,
+        "isOnline": true,
+        "schedule": []
       }
     ],
     "slots": [
@@ -2657,6 +2690,7 @@ Authorization:Bearer <firebase_id_token>
 ```
 
 시간표가 아직 생성되지 않은 경우에도 `200 OK`를 반환하며, `id`는 `null`, `courses`/`slots`는 빈 배열로 내려간다.
+직접 입력 온라인 강의는 `courses[]`에는 포함되지만 `slots[]`에는 포함되지 않는다.
 `semester`를 생략하면 서버는 현재 날짜 기준 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙으로 학기를 계산한다.
 성결대학교 실제 학기 시작은 3월/9월이지만, 스쿠리는 수강신청과 시간표 준비 수요를 반영해 한 달 앞선 2월/8월부터 새 학기를 사용한다.
 
@@ -2675,8 +2709,53 @@ Authorization:Bearer <firebase_id_token>
 
 `GET /v1/timetables/my`와 동일한 형태의 최신 시간표를 반환한다.
 
+#### POST /v1/timetables/my/manual-courses
+시간표에 직접 입력 강의 추가
+
+오프라인 직접 입력 강의 예시:
+```json
+{
+  "semester": "2026-1",
+  "name": "캡스톤세미나",
+  "professor": "정태현",
+  "credits": 3,
+  "isOnline": false,
+  "locationLabel": "공학관 502",
+  "dayOfWeek": 2,
+  "startPeriod": 9,
+  "endPeriod": 11
+}
+```
+
+온라인 직접 입력 강의 예시:
+```json
+{
+  "semester": "2026-1",
+  "name": "플랫폼세미나",
+  "professor": "",
+  "credits": 2,
+  "isOnline": true,
+  "locationLabel": null,
+  "dayOfWeek": null,
+  "startPeriod": null,
+  "endPeriod": null
+}
+```
+
+검증 규칙:
+- `isOnline = true`면 `locationLabel`, `dayOfWeek`, `startPeriod`, `endPeriod`는 모두 선택값이다.
+- `isOnline = false`면 `locationLabel`, `dayOfWeek`, `startPeriod`, `endPeriod`가 모두 필요하다.
+- `dayOfWeek`는 `1-6 (월-토)` 범위를 사용한다.
+- 온라인 강의는 시간 충돌 검사 대상이 아니며 `slots[]`에 포함되지 않는다.
+
+**Response (200 OK):**
+
+`GET /v1/timetables/my`와 동일한 형태의 최신 시간표를 반환한다.
+
 #### DELETE /v1/timetables/my/courses/{courseId}
 시간표에서 강의 삭제
+
+일반 강의 ID와 직접 입력 강의 ID를 모두 사용할 수 있다.
 
 **Query Parameters:**
 
