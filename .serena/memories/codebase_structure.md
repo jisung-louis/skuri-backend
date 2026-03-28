@@ -48,9 +48,9 @@
 - `src/test/java/com/skuri/skuri_backend/infra/openapi/OpenApiSuccessSchemaCoverageIntegrationTest.java`
 
 ## Admin Member API 관련 파일
-- `src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberAdminController.java`: 관리자 회원 목록/상세/권한 변경 API와 OpenAPI 어노테이션, self role change `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED` 계약 포함
-- `src/main/java/com/skuri/skuri_backend/domain/member/service/MemberAdminService.java`: 회원 검색/필터/상세/권한 변경 비즈니스 로직과 자기 자신의 관리자 권한 변경 차단
-- `src/main/java/com/skuri/skuri_backend/domain/member/dto/response/AdminMemberSummaryResponse.java`, `AdminMemberDetailResponse.java`, `dto/request/UpdateMemberAdminRoleRequest.java`: 관리자 전용 DTO (`AdminMemberDetailResponse`는 `bankAccount`, `notificationSetting` 유지)
+- `src/main/java/com/skuri/skuri_backend/domain/member/controller/MemberAdminController.java`: 관리자 회원 목록/상세/활동 요약/권한 변경 API와 OpenAPI 어노테이션, self role change `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED` 계약 포함
+- `src/main/java/com/skuri/skuri_backend/domain/member/service/MemberAdminService.java`: 회원 검색/필터/상세/활동 요약/권한 변경 비즈니스 로직과 자기 자신의 관리자 권한 변경 차단
+- `src/main/java/com/skuri/skuri_backend/domain/member/dto/response/AdminMemberSummaryResponse.java`, `AdminMemberDetailResponse.java`, `AdminMemberActivityResponse.java`, `dto/request/UpdateMemberAdminRoleRequest.java`: 관리자 전용 DTO (`AdminMemberDetailResponse`는 `bankAccount`, `notificationSetting` 유지, `AdminMemberActivityResponse`는 count + recent lists)
 - `src/main/java/com/skuri/skuri_backend/domain/member/repository/MemberRepository.java`: 관리자 회원 검색 JPQL, 권한 변경용 lock 조회 재사용
 - `src/main/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditSnapshotFactory.java`: 관리자 권한 변경용 최소 member snapshot(`id/email/nickname/isAdmin/status`) 감사 로그 지원
 - `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiMemberSchemas.java`, `OpenApiMemberExamples.java`, `OpenApiConfig.java`: 관리자 회원 API schema/example/group 반영

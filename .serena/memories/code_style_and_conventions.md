@@ -47,6 +47,7 @@
 - CD workflow는 `production-deploy` concurrency 그룹으로 최신 run만 유지하고 이전 run은 자동 취소한다.
 - 관리자 회원 목록 API는 Support Admin 목록 규약과 동일하게 `AdminPageRequestPolicy`를 사용하되 정렬은 `joinedAt,DESC`로 고정하고 필터는 `query/status/isAdmin/department`만 허용한다.
 - 관리자 회원 검색의 `department` 입력은 `DepartmentCatalog.normalize`로 정규화하고, 지원하지 않는 값은 `VALIDATION_ERROR`로 처리한다.
+- 관리자 회원 활동 요약 API는 ACTIVE 회원만 허용하고, 현재 저장된 post/comment/party/inquiry/report 데이터만 읽는 read-only orchestration으로 구현한다. 탈퇴 회원은 `CONFLICT + MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 막고, 과거 활동 복원/상태 변경 로직을 넣지 않는다.
 - 회원 관리자 권한 변경은 Service에서만 판단하고, 탈퇴 회원은 `CONFLICT`, 자기 자신의 권한 변경은 `BAD_REQUEST + SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 막는다.
 - 관리자 회원 상세 응답은 `bankAccount`, `notificationSetting`을 유지하되, 관리자 권한 변경 감사는 `@AdminAudit` + 최소 member snapshot(`id/email/nickname/isAdmin/status`)만 before/after diff에 남긴다.
 - 마지막 관리자 수 계산 정책은 코드/문서 근거가 생기기 전까지 임의 추가하지 않는다.
