@@ -11,7 +11,7 @@
 - `domain/chat`: 공개/파티 채팅, SYSTEM 메시지, 읽음 처리, 공개방 seed, `ChatService`가 REST/STOMP `ChatMessageResponse.senderPhotoUrl`을 `members.photo_url`로 매핑
 - `domain/board`: 게시글/댓글/좋아요/북마크, 이미지 연결
 - `domain/notice`: 학교 공지, 공지 댓글, 북마크, 앱 공지
-- `domain/academic`: 강의, 시간표, 학사 일정, 시간표 학기 목록/직접 입력 강의/온라인 강의 `isOnline` 계약; `TimetableService`, `TimetableController`, `UserTimetableManualCourse`, `CreateMyManualTimetableCourseRequest` 중심
+- `domain/academic`: 강의, 시간표, 학사 일정, 시간표 학기 목록/직접 입력 강의/온라인 강의 `isOnline` 계약; 공식 강의 `Course`도 `isOnline`을 가지며 bulk 업로드(`AdminBulkCourseRequest`)에서 온라인 강의를 받을 수 있다. `TimetableService`는 공식 온라인 강의와 직접 입력 온라인 강의를 모두 `slots[]`/충돌 검사에서 제외하고, `CourseService`는 온라인 공식 강의를 `schedule=[]`, `location=null`로 정규화한다.
 - `domain/campus`: 캠퍼스 배너 공개/관리자 API
 - `domain/support`: 문의, 신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티), 앱 버전, 법적 문서, 학식; `ReportService`가 board/chat/taxiparty 저장소를 조회해 `targetAuthorId`를 해석한다.
 - `domain/notification`: 인앱 알림, unread count, SSE snapshot
