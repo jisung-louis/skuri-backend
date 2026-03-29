@@ -169,6 +169,26 @@ class CafeteriaMenuAdminControllerContractTest {
     }
 
     @Test
+    void createMenu_카테고리코드형식오류_400() throws Exception {
+        mockToken("admin-token", true);
+        when(cafeteriaMenuService.createMenu(any()))
+                .thenThrow(new BusinessException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "menuEntries.category는 영문, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다."
+                ));
+
+        mockMvc.perform(
+                        post("/v1/admin/cafeteria-menus")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(invalidCategoryCreateRequest())
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("menuEntries.category는 영문, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다."));
+    }
+
+    @Test
     void updateMenu_관리자정상요청_200() throws Exception {
         mockToken("admin-token", true);
         when(cafeteriaMenuService.updateMenu(eq("2026-W08"), any())).thenReturn(menuResponse());
@@ -371,6 +391,26 @@ class CafeteriaMenuAdminControllerContractTest {
                           ],
                           "likeCount": 179,
                           "dislikeCount": 22
+                        }
+                      ]
+                    }
+                  }
+                }
+                """;
+    }
+
+    private String invalidCategoryCreateRequest() {
+        return """
+                {
+                  "weekId": "2026-W08",
+                  "weekStart": "2026-02-16",
+                  "weekEnd": "2026-02-20",
+                  "menuEntries": {
+                    "2026-02-16": {
+                      "special.v1": [
+                        {
+                          "title": "우동",
+                          "badges": []
                         }
                       ]
                     }

@@ -322,6 +322,31 @@ class CafeteriaMenuServiceTest {
     }
 
     @Test
+    void createMenu_카테고리코드에점이포함되면_예외() {
+        when(cafeteriaMenuRepository.existsById("2026-W08")).thenReturn(false);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cafeteriaMenuService.createMenu(new CreateCafeteriaMenuRequest(
+                        "2026-W08",
+                        LocalDate.of(2026, 2, 16),
+                        LocalDate.of(2026, 2, 20),
+                        null,
+                        Map.of(
+                                "2026-02-16",
+                                Map.of(
+                                        "special.v1",
+                                        List.of(new CafeteriaMenuEntryRequest("우동", List.of(), 0, 0))
+                                )
+                        )
+                ))
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        assertEquals("menuEntries.category는 영문, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다.", exception.getMessage());
+    }
+
+    @Test
     void getMenuByWeekId_기존행에menuEntries가없어도_기본메타데이터를응답한다() {
         when(cafeteriaMenuRepository.findById("2026-W08")).thenReturn(Optional.of(CafeteriaMenu.create(
                 "2026-W08",

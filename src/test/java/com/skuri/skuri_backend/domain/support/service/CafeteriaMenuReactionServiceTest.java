@@ -27,6 +27,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,6 +60,7 @@ class CafeteriaMenuReactionServiceTest {
 
         ArgumentCaptor<CafeteriaMenuReaction> captor = ArgumentCaptor.forClass(CafeteriaMenuReaction.class);
         verify(cafeteriaMenuReactionRepository).save(captor.capture());
+        verify(cafeteriaMenuRepository).findByWeekIdForUpdate("2026-W08");
         assertEquals("user-1", captor.getValue().getId().getMemberId());
         assertEquals(CafeteriaMenuReactionType.LIKE, captor.getValue().getReaction());
         assertEquals(CafeteriaMenuReactionType.LIKE, response.myReaction());
@@ -158,8 +160,33 @@ class CafeteriaMenuReactionServiceTest {
         assertEquals("menuId 형식이 올바르지 않습니다.", exception.getMessage());
     }
 
+    @Test
+    void upsertReaction_모든쓰기경로는_주차잠금을통해직렬화한다() {
+        String menuId = CafeteriaMenuIdCodec.encode("2026-W08", "rollNoodles", "존슨부대찌개");
+        CafeteriaMenuReaction existing = CafeteriaMenuReaction.create(
+                "user-1",
+                menuId,
+                "2026-W08",
+                "rollNoodles",
+                "존슨부대찌개",
+                CafeteriaMenuReactionType.LIKE
+        );
+        mockWeeklyMenu("존슨부대찌개");
+        when(cafeteriaMenuReactionRepository.findById_MemberIdAndId_MenuId("user-1", menuId)).thenReturn(Optional.of(existing));
+        when(cafeteriaMenuReactionRepository.summarizeCounts("2026-W08", Set.of(menuId)))
+                .thenReturn(List.of(countProjection(menuId, 4, 2)));
+
+        cafeteriaMenuReactionService.upsertReaction(
+                "user-1",
+                menuId,
+                new UpsertCafeteriaMenuReactionRequest(null)
+        );
+
+        verify(cafeteriaMenuRepository, atLeastOnce()).findByWeekIdForUpdate("2026-W08");
+    }
+
     private void mockWeeklyMenu(String title) {
-        when(cafeteriaMenuRepository.findById("2026-W08")).thenReturn(Optional.of(CafeteriaMenu.create(
+        when(cafeteriaMenuRepository.findByWeekIdForUpdate("2026-W08")).thenReturn(Optional.of(CafeteriaMenu.create(
                 "2026-W08",
                 LocalDate.of(2026, 2, 16),
                 LocalDate.of(2026, 2, 20),
