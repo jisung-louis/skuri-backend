@@ -63,3 +63,24 @@ curl http://127.0.0.1:18081/v3/api-docs
 curl http://127.0.0.1:18081/swagger-ui/index.html
 curl http://127.0.0.1:18081/scalar
 ```
+
+
+## Admin TaxiParty API 작업 검증
+```bash
+./gradlew test --tests "com.skuri.skuri_backend.domain.taxiparty.controller.PartyAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyAdminServiceTest" --tests "com.skuri.skuri_backend.infra.admin.audit.AdminAuditIntegrationTest" --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest"
+./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
+./gradlew build
+```
+
+## Admin TaxiParty 수동 검증
+```bash
+source .env
+firebase emulators:start --only auth --project "$FIREBASE_PROJECT_ID"
+DB_URL=$DB_URL DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD FIREBASE_AUTH_USE_EMULATOR=true FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS_PATH= GOOGLE_APPLICATION_CREDENTIALS= SPRING_PROFILES_ACTIVE=local-emulator SERVER_PORT=18080 ./gradlew bootRun
+curl "http://127.0.0.1:18080/v1/admin/parties?page=0&size=20" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl "http://127.0.0.1:18080/v1/admin/parties/<PARTY_ID>" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl -X PATCH "http://127.0.0.1:18080/v1/admin/parties/<PARTY_ID>/status" -H "Authorization: Bearer <ADMIN_ID_TOKEN>" -H 'Content-Type: application/json' -d '{"action":"CLOSE"}'
+curl http://127.0.0.1:18080/v3/api-docs
+curl http://127.0.0.1:18080/swagger-ui/index.html
+curl http://127.0.0.1:18080/scalar
+```

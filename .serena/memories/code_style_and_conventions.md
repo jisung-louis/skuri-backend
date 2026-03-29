@@ -52,3 +52,11 @@
 - 회원 관리자 권한 변경은 Service에서만 판단하고, 탈퇴 회원은 `CONFLICT`, 자기 자신의 권한 변경은 `BAD_REQUEST + SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 막는다.
 - 관리자 회원 상세 응답은 `bankAccount`, `notificationSetting`을 유지하되, 관리자 권한 변경 감사는 `@AdminAudit` + 최소 member snapshot(`id/email/nickname/isAdmin/status`)만 before/after diff에 남긴다.
 - 마지막 관리자 수 계산 정책은 코드/문서 근거가 생기기 전까지 임의 추가하지 않는다.
+
+
+## Admin TaxiParty API 규칙
+- 관리자 TaxiParty API도 class-level `@AdminApiAccess`와 상태 변경용 `@AdminAudit`를 사용한다.
+- 관리자 강제 상태 변경은 새 상태 머신을 만들지 않고 `Party.close/reopen/cancel/forceEnd` 같은 기존 엔티티 전이만 재사용한다. 허용 액션은 현재 `CLOSE`, `REOPEN`, `CANCEL`, `END` subset이며, 임의 상태 점프나 별도 override policy는 문서 근거 없이 추가하지 않는다.
+- `END`는 현재 `ARRIVED -> ENDED`로만 허용되는 `forceEnd()`를 그대로 따른다. 운영 편의보다 도메인 불변식을 우선한다.
+- 관리자 파티 목록은 `AdminPageRequestPolicy` 기준 `page=0`, `size=20`, `size<=100`을 유지하고 기본 정렬은 `departureTime,DESC` 후 `createdAt,DESC`다.
+- 관리자 파티 상태 변경 감사 snapshot은 `id/status/endReason/settlementStatus/endedAt` 최소 필드만 저장하고, 멤버/채팅 개인정보 diff는 넣지 않는다.
