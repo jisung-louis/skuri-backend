@@ -40,7 +40,10 @@ public class CourseController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = OpenApiAcademicSchemas.CourseSummaryPageApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_COURSE_LIST_PAGE)
+                            examples = {
+                                    @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_COURSE_LIST_PAGE),
+                                    @ExampleObject(name = "official_online_course", value = OpenApiAcademicExamples.SUCCESS_COURSE_LIST_PAGE_WITH_OFFICIAL_ONLINE)
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(

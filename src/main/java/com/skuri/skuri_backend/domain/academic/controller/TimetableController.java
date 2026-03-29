@@ -85,7 +85,10 @@ public class TimetableController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = OpenApiAcademicSchemas.UserTimetableApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_TIMETABLE)
+                            examples = {
+                                    @ExampleObject(name = "default", value = OpenApiAcademicExamples.SUCCESS_TIMETABLE),
+                                    @ExampleObject(name = "official_online_course", value = OpenApiAcademicExamples.SUCCESS_TIMETABLE_WITH_OFFICIAL_ONLINE)
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(

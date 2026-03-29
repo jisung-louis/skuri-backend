@@ -2802,19 +2802,37 @@ Authorization:Bearer <firebase_id_token>
             "endPeriod": 4
           }
         ]
+      },
+      {
+        "id": "course_online_uuid",
+        "semester": "2026-1",
+        "code": "20797",
+        "division": "001",
+        "name": "사랑의인문학(KCU온라인강좌)",
+        "credits": 3,
+        "isOnline": true,
+        "professor": null,
+        "department": "교양",
+        "grade": 1,
+        "category": "교양선택",
+        "location": null,
+        "note": null,
+        "schedule": []
       }
     ],
     "page": 0,
     "size": 20,
-    "totalElements": 500,
-    "totalPages": 25,
-    "hasNext": true,
+    "totalElements": 2,
+    "totalPages": 1,
+    "hasNext": false,
     "hasPrevious": false
   }
 }
 ```
 
-공식 강의 카탈로그는 현재 모두 오프라인 강의로 취급하므로 `isOnline`은 `false`로 내려간다.
+- 공식 강의도 `isOnline`을 가질 수 있다.
+- 공식 온라인 강의는 `schedule=[]`, `location=null`로 응답될 수 있다.
+- 공식 강의와 직접 입력 강의는 저장 모델은 분리하지만, 온라인 의미와 시간표 노출 규칙은 동일하게 맞춘다.
 
 ### 7.2 시간표
 
@@ -2852,7 +2870,7 @@ Authorization:Bearer <firebase_id_token>
     "id": "timetable_uuid",
     "semester": "2026-1",
     "courseCount": 2,
-    "totalCredits": 5,
+    "totalCredits": 6,
     "courses": [
       {
         "id": "course_uuid",
@@ -2869,14 +2887,14 @@ Authorization:Bearer <firebase_id_token>
         ]
       },
       {
-        "id": "manual_course_uuid",
-        "code": "직접 입력",
-        "division": null,
-        "name": "플랫폼세미나",
-        "professor": "직접 입력",
+        "id": "course_online_uuid",
+        "code": "20797",
+        "division": "001",
+        "name": "사랑의인문학(KCU온라인강좌)",
+        "professor": null,
         "location": null,
-        "category": null,
-        "credits": 2,
+        "category": "교양선택",
+        "credits": 3,
         "isOnline": true,
         "schedule": []
       }
@@ -2898,7 +2916,8 @@ Authorization:Bearer <firebase_id_token>
 ```
 
 시간표가 아직 생성되지 않은 경우에도 `200 OK`를 반환하며, `id`는 `null`, `courses`/`slots`는 빈 배열로 내려간다.
-직접 입력 온라인 강의는 `courses[]`에는 포함되지만 `slots[]`에는 포함되지 않는다.
+- 공식 온라인 강의와 직접 입력 온라인 강의는 모두 `courses[]`에는 포함되지만 `slots[]`에는 포함되지 않는다.
+- 공식 온라인 강의는 직접 입력 온라인 강의와 동일하게 시간 충돌 검사 대상에서도 제외된다.
 `semester`를 생략하면 서버는 현재 날짜 기준 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙으로 학기를 계산한다.
 성결대학교 실제 학기 시작은 3월/9월이지만, 스쿠리는 수강신청과 시간표 준비 수요를 반영해 한 달 앞선 2월/8월부터 새 학기를 사용한다.
 
@@ -5497,24 +5516,27 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
   "semester": "2026-1",
   "courses": [
     {
-      "code": "CSE301",
+      "grade": 1,
+      "category": "교양선택",
+      "code": "20797",
       "division": "001",
-      "name": "소프트웨어공학",
-      "professor": "홍길동",
-      "department": "컴퓨터공학과",
+      "name": "사랑의인문학(KCU온라인강좌)",
       "credits": 3,
-      "grade": 3,
-      "category": "전공필수",
-      "location": "공학관 301",
+      "professor": null,
+      "location": null,
+      "department": "교양",
       "note": null,
-      "schedule": [
-        { "dayOfWeek": 1, "startPeriod": 1, "endPeriod": 2 },
-        { "dayOfWeek": 3, "startPeriod": 1, "endPeriod": 2 }
-      ]
+      "isOnline": true,
+      "schedule": []
     }
   ]
 }
 ```
+
+- `isOnline`은 nullable Boolean이며, 값이 없으면 `false`로 처리한다.
+- `isOnline = false`면 `schedule`이 최소 1개 이상 필요하다.
+- `isOnline = true`면 `schedule`은 비어 있어야 하며, 현재 직접 입력 온라인 강의와 같은 의미로 취급한다.
+- `isOnline = true`일 때 `location`은 입력돼도 서버에서 의미상 사용하지 않고 `null`로 정규화할 수 있다.
 
 **Response (200 OK):**
 ```json

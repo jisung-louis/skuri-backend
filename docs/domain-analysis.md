@@ -572,8 +572,9 @@ Hooks:
 엔티티:
   - Course
     - id, grade, category, code, division, name
-    - credits, professor, schedule[], location, isOnline(false)
+    - credits, professor, schedule[], location, isOnline
     - note, semester, department
+    - 공식 강의도 `isOnline=true`를 가질 수 있으며, 이 경우 `schedule[]`은 비어 있어야 한다.
   - CourseSchedule (Embedded)
     - dayOfWeek (1-6), startPeriod, endPeriod
   - UserTimetable
@@ -582,9 +583,10 @@ Hooks:
     - 공식 강의는 `UserTimetableCourse`, 직접 입력 강의는 `UserTimetableManualCourse`로 별도 저장
     - 같은 시간표 내 동일 공식 강의 중복 추가 금지
     - 오프라인 강의 추가 시 dayOfWeek/startPeriod/endPeriod overlap 차단
-    - 온라인 직접 입력 강의는 시간 충돌 검사 대상이 아니며 `slots[]`에 포함되지 않음
+    - 온라인 공식 강의와 온라인 직접 입력 강의는 모두 시간 충돌 검사 대상이 아니며 `slots[]`에 포함되지 않음
     - 조회 응답은 공식 강의와 직접 입력 강의를 합친 `courses[] + slots[]` 구조를 사용
-    - `courses[]` 각 항목은 `isOnline`을 포함하고, 직접 입력 강의는 자체 ID를 사용
+    - `courses[]` 각 항목은 `isOnline`을 포함하고, 공식 강의/직접 입력 강의 모두 실제 온라인 여부를 그대로 반영한다.
+    - 공식 온라인 강의는 직접 입력 온라인 강의와 같은 의미로 취급하지만 저장 모델은 합치지 않는다.
     - `GET /v1/timetables/my`는 semester 미지정 시 현재 날짜 기준 `2~7월 -> yyyy-1`, `8~12월 -> yyyy-2`, `1월 -> 전년도 yyyy-2` 규칙으로 현재 학기를 해석
     - 실제 학교 학기 시작은 3월/9월이지만, 수강신청/시간표 준비 수요를 반영해 스쿠리 학기 기준을 한 달 앞당겨 사용
   - UserTimetableCourse
@@ -599,6 +601,7 @@ Hooks:
   - Course 검색
     - semester/department/professor/dayOfWeek(1-6)/grade 필터 지원
     - search는 강의명/과목코드/카테고리/교수/강의실/비고를 대상으로 한다
+    - 공식 온라인 강의는 `isOnline=true`, `schedule=[]`, `location=null`로 정규화해 반환할 수 있다.
   - Timetable 학기 옵션
     - `GET /v1/timetables/my/semesters`
     - 강의 카탈로그 학기 + 내 시간표 학기(직접 입력 포함)의 합집합을 최신 학기 우선으로 반환
