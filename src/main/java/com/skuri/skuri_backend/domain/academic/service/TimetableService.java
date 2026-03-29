@@ -257,7 +257,7 @@ public class TimetableService {
                 course.getLocation(),
                 course.getCategory(),
                 course.getCredits(),
-                false,
+                course.isOnline(),
                 course.getSchedules().stream()
                         .map(this::toScheduleResponse)
                         .toList()

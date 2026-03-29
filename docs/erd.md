@@ -391,6 +391,7 @@ erDiagram
         varchar(50) professor
         varchar(100) location
         varchar(500) note
+        boolean is_online "NOT NULL DEFAULT false"
         varchar(10) semester "2024-2"
         varchar(50) department
         datetime created_at
@@ -451,6 +452,7 @@ erDiagram
     %% runtime contract note:
     %% 강의 일괄 등록 계약은 credits + 강의 단위 location을 사용하며,
     %% 개별 course_schedules에는 강의실 컬럼을 두지 않는다.
+    %% 공식 온라인 강의는 courses.is_online=true 이고 course_schedules row 없이 운영한다.
 
     %% ===== SUPPORT 도메인 =====
     inquiries {

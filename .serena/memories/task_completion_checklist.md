@@ -14,6 +14,7 @@
 8-4. 공개 채팅방 계약을 바꿨다면 공식 공개방 seed 생성, joined/not joined summary 필드, 미참여 공개방 detail 허용 + messages 차단, 학과 변경 시 학과방 membership 제거를 함께 확인
 8-5. 회원/공개방 정책을 바꿨다면 active member 없이 create/join이 가능한지, department alias 정규화와 unsupported department 422가 맞는지, seed가 multi-instance에서도 중복 실패 없이 올라가는지 확인
 8-6. 일반 Chat 읽음 계약을 바꿨다면 `PATCH /v1/chat-rooms/{id}/read`가 JS `new Date().toISOString()` UTC 문자열을 그대로 받고, markAsRead 후 summary/detail 재조회에서도 unread가 복원되지 않는지 확인한다. shared 문서를 수정했다면 `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`를 같은 작업에서 즉시 동기화한다.
+8-7. Academic 계약을 바꿨다면 공식 강의 `isOnline` 값이 `/v1/courses`와 `/v1/timetables/my`에 실제로 반영되는지, 공식 온라인 강의가 `courses[]`에는 보이지만 `slots[]`에는 없고 충돌 검사에서도 제외되는지, `POST /v1/admin/courses/bulk`에서 `isOnline=true + schedule=[]` 성공 / `isOnline=true + schedule 존재` 422 / `isOnline` 생략 하위호환을 함께 확인한다. backend 문서와 `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`, `/Users/jisung/SKTaxi/docs/spring-migration/domain-analysis.md`, `/Users/jisung/SKTaxi/docs/spring-migration/implementation-roadmap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/README.md` 동기화를 확인한다.
 9. 회원 라이프사이클 변경이면 탈퇴 후 접근 차단, 동일 UID 재가입 차단, 연관 도메인 정합성 회귀 확인
 10. SSE/Auth long-lived 경로를 건드렸다면 subscribe 메서드가 트랜잭션을 오래 유지하지 않는지, `spring.jpa.open-in-view=false`가 공통 설정에 유지되는지, Firebase auth async 재디스패치에서 member 조회가 재실행되지 않는지 확인
 11. Serena Memory 동기화 확인

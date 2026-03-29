@@ -48,6 +48,38 @@ public final class OpenApiAcademicExamples {
             }
             """;
 
+    public static final String SUCCESS_COURSE_LIST_PAGE_WITH_OFFICIAL_ONLINE = """
+            {
+              "success": true,
+              "data": {
+                "content": [
+                  {
+                    "id": "course_online_uuid",
+                    "semester": "2026-1",
+                    "code": "20797",
+                    "division": "001",
+                    "name": "사랑의인문학(KCU온라인강좌)",
+                    "credits": 3,
+                    "isOnline": true,
+                    "professor": null,
+                    "department": "교양",
+                    "grade": 1,
+                    "category": "교양선택",
+                    "location": null,
+                    "note": null,
+                    "schedule": []
+                  }
+                ],
+                "page": 0,
+                "size": 20,
+                "totalElements": 1,
+                "totalPages": 1,
+                "hasNext": false,
+                "hasPrevious": false
+              }
+            }
+            """;
+
     public static final String SUCCESS_TIMETABLE = """
             {
               "success": true,
@@ -88,6 +120,33 @@ public final class OpenApiAcademicExamples {
                     "location": "영401"
                   }
                 ]
+              }
+            }
+            """;
+
+    public static final String SUCCESS_TIMETABLE_WITH_OFFICIAL_ONLINE = """
+            {
+              "success": true,
+              "data": {
+                "id": "timetable_uuid",
+                "semester": "2026-1",
+                "courseCount": 1,
+                "totalCredits": 3,
+                "courses": [
+                  {
+                    "id": "course_online_uuid",
+                    "code": "20797",
+                    "division": "001",
+                    "name": "사랑의인문학(KCU온라인강좌)",
+                    "professor": null,
+                    "location": null,
+                    "category": "교양선택",
+                    "credits": 3,
+                    "isOnline": true,
+                    "schedule": []
+                  }
+                ],
+                "slots": []
               }
             }
             """;
@@ -190,6 +249,9 @@ public final class OpenApiAcademicExamples {
 
     public static final String ERROR_ADMIN_COURSE_BULK_CONFLICT =
             "{\"success\":false,\"message\":\"강의 bulk 처리 중 충돌이 발생했습니다.\",\"errorCode\":\"CONFLICT\",\"timestamp\":\"2026-03-07T14:00:00\"}";
+
+    public static final String ERROR_ADMIN_ONLINE_COURSE_SCHEDULE_NOT_EMPTY =
+            "{\"success\":false,\"message\":\"온라인 강의는 schedule을 비워야 합니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-29T10:00:00\"}";
 
     public static final String SUCCESS_ADMIN_COURSE_DELETE = """
             {

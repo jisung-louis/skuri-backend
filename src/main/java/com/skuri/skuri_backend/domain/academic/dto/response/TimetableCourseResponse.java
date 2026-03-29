@@ -33,7 +33,7 @@ public record TimetableCourseResponse(
         @Schema(description = "온라인 강의 여부", example = "false")
         boolean isOnline,
 
-        @Schema(description = "강의 시간 목록")
+        @Schema(description = "강의 시간 목록. 온라인 강의는 빈 배열입니다.")
         List<CourseScheduleResponse> schedule
 ) {
 }

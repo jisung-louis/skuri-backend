@@ -59,7 +59,7 @@ class CourseRepositoryDataJpaTest {
             int startPeriod,
         int endPeriod
     ) {
-        Course course = Course.create(grade, "전공선택", code, "001", name, 3, professor, "영401", null, semester, department);
+        Course course = Course.create(grade, "전공선택", code, "001", name, 3, professor, "영401", null, false, semester, department);
         course.appendSchedule(dayOfWeek, startPeriod, endPeriod);
         return course;
     }

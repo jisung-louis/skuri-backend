@@ -500,6 +500,7 @@ class AdminAuditIntegrationTest {
                 "문상혁",
                 "영401",
                 null,
+                false,
                 "2026-1",
                 "법학과"
         );
@@ -555,6 +556,7 @@ class AdminAuditIntegrationTest {
                 "문상혁",
                 "영401",
                 null,
+                false,
                 "2026-1",
                 "법학과"
         );

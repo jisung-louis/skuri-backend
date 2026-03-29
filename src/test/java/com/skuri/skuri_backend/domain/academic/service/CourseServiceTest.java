@@ -67,6 +67,7 @@ class CourseServiceTest {
                                 "전공선택",
                                 "영401",
                                 null,
+                                false,
                                 List.of(new AdminBulkCourseScheduleRequest(1, 3, 4))
                         ),
                         new AdminBulkCourseRequest(
@@ -80,6 +81,7 @@ class CourseServiceTest {
                                 "전공필수",
                                 "영402",
                                 null,
+                                false,
                                 List.of(new AdminBulkCourseScheduleRequest(2, 5, 6))
                         )
                 )
@@ -98,6 +100,68 @@ class CourseServiceTest {
             Course first = iterator.next();
             return "course-delete".equals(first.getId()) && !iterator.hasNext();
         }));
+    }
+
+    @Test
+    void bulkUpsertCourses_공식온라인강의를성공적으로업서트한다() {
+        when(courseRepository.findAllBySemesterWithSchedules("2026-1")).thenReturn(List.of());
+        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AdminBulkCoursesResponse response = courseService.bulkUpsertCourses(new AdminBulkCoursesRequest(
+                "2026-1",
+                List.of(new AdminBulkCourseRequest(
+                        "20797",
+                        "001",
+                        "사랑의인문학(KCU온라인강좌)",
+                        3,
+                        null,
+                        "교양",
+                        1,
+                        "교양선택",
+                        "온라인",
+                        null,
+                        true,
+                        List.of()
+                ))
+        ));
+
+        assertEquals(1, response.created());
+        verify(courseRepository).save(argThat(course ->
+                course.isOnline()
+                        && course.getSchedules().isEmpty()
+                        && course.getLocation() == null
+                        && "사랑의인문학(KCU온라인강좌)".equals(course.getName())
+        ));
+    }
+
+    @Test
+    void bulkUpsertCourses_isOnline생략시_false로처리한다() {
+        when(courseRepository.findAllBySemesterWithSchedules("2026-1")).thenReturn(List.of());
+        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        courseService.bulkUpsertCourses(new AdminBulkCoursesRequest(
+                "2026-1",
+                List.of(new AdminBulkCourseRequest(
+                        "01255",
+                        "001",
+                        "민법총칙",
+                        3,
+                        "문상혁",
+                        "법학과",
+                        2,
+                        "전공선택",
+                        "영401",
+                        null,
+                        null,
+                        List.of(new AdminBulkCourseScheduleRequest(1, 3, 4))
+                ))
+        ));
+
+        verify(courseRepository).save(argThat(course ->
+                !course.isOnline()
+                        && course.getSchedules().size() == 1
+                        && "영401".equals(course.getLocation())
+        ));
     }
 
     @Test
@@ -134,6 +198,7 @@ class CourseServiceTest {
                                 "전공선택",
                                 "영401",
                                 null,
+                                false,
                                 List.of(new AdminBulkCourseScheduleRequest(1, 3, 4))
                         ))
                 ))
@@ -141,6 +206,33 @@ class CourseServiceTest {
 
         assertEquals(ErrorCode.CONFLICT, exception.getErrorCode());
         assertEquals("강의 bulk 처리 중 충돌이 발생했습니다.", exception.getMessage());
+    }
+
+    @Test
+    void bulkUpsertCourses_온라인강의에schedule이있으면_검증예외() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> courseService.bulkUpsertCourses(new AdminBulkCoursesRequest(
+                        "2026-1",
+                        List.of(new AdminBulkCourseRequest(
+                                "20797",
+                                "001",
+                                "사랑의인문학(KCU온라인강좌)",
+                                3,
+                                null,
+                                "교양",
+                                1,
+                                "교양선택",
+                                "온라인",
+                                null,
+                                true,
+                                List.of(new AdminBulkCourseScheduleRequest(1, 1, 1))
+                        ))
+                ))
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        assertEquals("온라인 강의는 schedule을 비워야 합니다.", exception.getMessage());
     }
 
     @Test
@@ -171,6 +263,7 @@ class CourseServiceTest {
                                 "전공선택",
                                 "영401",
                                 null,
+                                false,
                                 Collections.singletonList(null)
                         ))
                 ))
@@ -197,6 +290,7 @@ class CourseServiceTest {
                                 "전공선택",
                                 "영401",
                                 null,
+                                false,
                                 List.of(new AdminBulkCourseScheduleRequest(1, 3, 4))
                         ))
                 ))
@@ -207,7 +301,7 @@ class CourseServiceTest {
     }
 
     private Course course(String id, String code, String name, String semester) {
-        Course course = Course.create(2, "전공선택", code, "001", name, 3, "문상혁", "영401", null, semester, "법학과");
+        Course course = Course.create(2, "전공선택", code, "001", name, 3, "문상혁", "영401", null, false, semester, "법학과");
         ReflectionTestUtils.setField(course, "id", id);
         course.appendSchedule(1, 3, 4);
         return course;

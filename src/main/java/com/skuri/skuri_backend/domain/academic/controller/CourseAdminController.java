@@ -84,7 +84,10 @@ public class CourseAdminController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "validation_error", value = OpenApiCommonExamples.ERROR_VALIDATION)
+                            examples = {
+                                    @ExampleObject(name = "validation_error", value = OpenApiCommonExamples.ERROR_VALIDATION),
+                                    @ExampleObject(name = "online_course_schedule_not_empty", value = OpenApiAcademicExamples.ERROR_ADMIN_ONLINE_COURSE_SCHEDULE_NOT_EMPTY)
+                            }
                     )
             )
     })
@@ -93,29 +96,59 @@ public class CourseAdminController {
             description = "학기 강의 일괄 등록 요청",
             content = @Content(
                     schema = @Schema(implementation = AdminBulkCoursesRequest.class),
-                    examples = @ExampleObject(value = """
-                            {
-                              "semester": "2026-1",
-                              "courses": [
-                                {
-                                  "code": "01255",
-                                  "division": "001",
-                                  "name": "민법총칙",
-                                  "credits": 3,
-                                  "professor": "문상혁",
-                                  "department": "법학과",
-                                  "grade": 2,
-                                  "category": "전공선택",
-                                  "location": "영401",
-                                  "note": null,
-                                  "schedule": [
-                                    { "dayOfWeek": 1, "startPeriod": 3, "endPeriod": 4 },
-                                    { "dayOfWeek": 3, "startPeriod": 3, "endPeriod": 4 }
-                                  ]
-                                }
-                              ]
-                            }
-                            """)
+                    examples = {
+                            @ExampleObject(
+                                    name = "offline_course",
+                                    value = """
+                                            {
+                                              "semester": "2026-1",
+                                              "courses": [
+                                                {
+                                                  "code": "01255",
+                                                  "division": "001",
+                                                  "name": "민법총칙",
+                                                  "credits": 3,
+                                                  "professor": "문상혁",
+                                                  "department": "법학과",
+                                                  "grade": 2,
+                                                  "category": "전공선택",
+                                                  "location": "영401",
+                                                  "note": null,
+                                                  "isOnline": false,
+                                                  "schedule": [
+                                                    { "dayOfWeek": 1, "startPeriod": 3, "endPeriod": 4 },
+                                                    { "dayOfWeek": 3, "startPeriod": 3, "endPeriod": 4 }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "official_online_course",
+                                    value = """
+                                            {
+                                              "semester": "2026-1",
+                                              "courses": [
+                                                {
+                                                  "grade": 1,
+                                                  "category": "교양선택",
+                                                  "code": "20797",
+                                                  "division": "001",
+                                                  "name": "사랑의인문학(KCU온라인강좌)",
+                                                  "credits": 3,
+                                                  "professor": null,
+                                                  "location": null,
+                                                  "department": "교양",
+                                                  "note": null,
+                                                  "isOnline": true,
+                                                  "schedule": []
+                                                }
+                                              ]
+                                            }
+                                            """
+                            )
+                    }
             )
     )
     @AdminAudit(

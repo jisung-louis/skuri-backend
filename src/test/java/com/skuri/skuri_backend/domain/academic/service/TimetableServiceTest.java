@@ -75,6 +75,35 @@ class TimetableServiceTest {
     }
 
     @Test
+    void addCourse_공식온라인강의는시간충돌검사와slots에서제외된다() {
+        Course existingCourse = course("course-existing", "01255", "민법총칙", "2026-1", 2, 9, 11);
+        Course targetCourse = onlineCourse("course-online", "20797", "사랑의인문학(KCU온라인강좌)", "2026-1");
+        UserTimetable timetable = timetable("timetable-1", "user-1", "2026-1");
+        timetable.addCourse(existingCourse);
+
+        when(courseRepository.findDetailById("course-online")).thenReturn(Optional.of(targetCourse));
+        when(userTimetableRepository.findDetailByUserIdAndSemesterForUpdate("user-1", "2026-1"))
+                .thenReturn(Optional.of(timetable));
+        when(courseRepository.findAllWithSchedulesByIdIn(List.of("course-existing", "course-online")))
+                .thenReturn(List.of(existingCourse, targetCourse));
+
+        UserTimetableResponse response = timetableService.addCourse(
+                "user-1",
+                new AddMyTimetableCourseRequest("course-online", "2026-1")
+        );
+
+        assertEquals(2, response.courseCount());
+        assertEquals(6, response.totalCredits());
+        assertEquals("course-online", response.courses().stream()
+                .filter(course -> course.isOnline())
+                .findFirst()
+                .orElseThrow()
+                .id());
+        assertEquals(1, response.slots().size());
+        assertEquals("민법총칙", response.slots().get(0).courseName());
+    }
+
+    @Test
     void addCourse_같은강의중복이면_예외() {
         Course targetCourse = course("course-1", "01255", "민법총칙", "2026-1", 1, 3, 4);
         UserTimetable timetable = timetable("timetable-1", "user-1", "2026-1");
@@ -222,9 +251,15 @@ class TimetableServiceTest {
             int startPeriod,
             int endPeriod
     ) {
-        Course course = Course.create(2, "전공선택", code, "001", name, 3, "문상혁", "영401", null, semester, "법학과");
+        Course course = Course.create(2, "전공선택", code, "001", name, 3, "문상혁", "영401", null, false, semester, "법학과");
         ReflectionTestUtils.setField(course, "id", id);
         course.appendSchedule(dayOfWeek, startPeriod, endPeriod);
+        return course;
+    }
+
+    private Course onlineCourse(String id, String code, String name, String semester) {
+        Course course = Course.create(1, "교양선택", code, "001", name, 3, null, null, null, true, semester, "교양");
+        ReflectionTestUtils.setField(course, "id", id);
         return course;
     }
 

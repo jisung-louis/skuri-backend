@@ -3,7 +3,6 @@ package com.skuri.skuri_backend.domain.academic.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -56,9 +55,11 @@ public record AdminBulkCourseRequest(
         @Schema(description = "비고", nullable = true, example = "영어 강의")
         String note,
 
+        @Schema(description = "온라인 강의 여부. null이면 false로 처리됩니다.", nullable = true, example = "false")
+        Boolean isOnline,
+
         @Valid
-        @NotEmpty(message = "schedule은 최소 1개 이상이어야 합니다.")
-        @Schema(description = "강의 시간 목록")
+        @Schema(description = "강의 시간 목록. 오프라인 강의는 최소 1개 이상 필요하고, 온라인 강의는 빈 배열 또는 null이어야 합니다.", nullable = true)
         List<@NotNull(message = "schedule 항목은 null일 수 없습니다.") @Valid AdminBulkCourseScheduleRequest> schedule
 ) {
 }

@@ -28,6 +28,14 @@
 ./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest"
 ```
 
+## Academic 온라인 강의 검증
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home ./gradlew test --tests "com.skuri.skuri_backend.domain.academic.controller.CourseControllerContractTest" --tests "com.skuri.skuri_backend.domain.academic.controller.CourseAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.academic.controller.TimetableControllerContractTest" --tests "com.skuri.skuri_backend.domain.academic.service.CourseServiceTest" --tests "com.skuri.skuri_backend.domain.academic.service.CourseServiceDataJpaTest" --tests "com.skuri.skuri_backend.domain.academic.service.TimetableServiceTest" --tests "com.skuri.skuri_backend.domain.academic.repository.CourseRepositoryDataJpaTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
+source .env
+firebase emulators:start --only auth --project "$FIREBASE_PROJECT_ID"
+DB_URL=$DB_URL DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD FIREBASE_AUTH_USE_EMULATOR=true FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS_PATH= GOOGLE_APPLICATION_CREDENTIALS= SPRING_PROFILES_ACTIVE=local-emulator SERVER_PORT=18081 ./gradlew bootRun
+```
+
 ## 서버 실행
 ```bash
 docker compose up -d mysql redis
