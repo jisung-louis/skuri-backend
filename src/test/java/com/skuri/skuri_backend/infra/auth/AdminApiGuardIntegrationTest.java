@@ -46,6 +46,8 @@ import com.skuri.skuri_backend.domain.support.controller.ReportAdminController;
 import com.skuri.skuri_backend.domain.support.dto.response.AdminInquiryResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.AdminReportResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.AppVersionAdminUpdateResponse;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuCategoryResponse;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuEntryResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.entity.InquiryAttachment;
 import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
@@ -531,7 +533,29 @@ class AdminApiGuardIntegrationTest {
                                         "2026-W08",
                                         LocalDate.of(2026, 2, 16),
                                         LocalDate.of(2026, 2, 20),
-                                        Map.of("2026-02-16", Map.of("rollNoodles", java.util.List.of("우동", "김밥")))
+                                        Map.of("2026-02-16", Map.of("rollNoodles", java.util.List.of("우동", "김밥"))),
+                                        java.util.List.of(
+                                                new CafeteriaMenuCategoryResponse("rollNoodles", "Roll & Noodles"),
+                                                new CafeteriaMenuCategoryResponse("theBab", "The bab"),
+                                                new CafeteriaMenuCategoryResponse("fryRice", "Fry & Rice")
+                                        ),
+                                        Map.of(
+                                                "2026-02-16",
+                                                Map.of(
+                                                        "rollNoodles",
+                                                        java.util.List.of(new CafeteriaMenuEntryResponse(
+                                                                "2026-02-16-rollNoodles-우동",
+                                                                "우동",
+                                                                java.util.List.of(),
+                                                                0,
+                                                                0
+                                                        )),
+                                                        "theBab",
+                                                        java.util.List.of(),
+                                                        "fryRice",
+                                                        java.util.List.of()
+                                                )
+                                        )
                                 )),
                         status().isCreated(),
                         jsonPath("$.data.weekId").value("2026-W08")

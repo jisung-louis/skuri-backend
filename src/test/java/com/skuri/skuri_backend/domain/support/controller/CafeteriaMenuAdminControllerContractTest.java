@@ -4,6 +4,9 @@ import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuBadgeResponse;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuCategoryResponse;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuEntryResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.service.CafeteriaMenuService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
@@ -68,6 +71,22 @@ class CafeteriaMenuAdminControllerContractTest {
                                 .header(AUTHORIZATION, "Bearer admin-token")
                                 .contentType(APPLICATION_JSON)
                                 .content(createRequest())
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.weekId").value("2026-W08"))
+                .andExpect(jsonPath("$.data.menuEntries['2026-02-16'].rollNoodles[0].likeCount").value(178));
+    }
+
+    @Test
+    void createMenu_기존menus요청도_201() throws Exception {
+        mockToken("admin-token", true);
+        when(cafeteriaMenuService.createMenu(any())).thenReturn(menuResponse());
+
+        mockMvc.perform(
+                        post("/v1/admin/cafeteria-menus")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(legacyCreateRequest())
                 )
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.weekId").value("2026-W08"));
@@ -195,11 +214,60 @@ class CafeteriaMenuAdminControllerContractTest {
                                 "rollNoodles", List.of("우동", "김밥"),
                                 "theBab", List.of("돈까스", "된장찌개")
                         )
+                ),
+                List.of(
+                        new CafeteriaMenuCategoryResponse("rollNoodles", "Roll & Noodles"),
+                        new CafeteriaMenuCategoryResponse("theBab", "The bab"),
+                        new CafeteriaMenuCategoryResponse("fryRice", "Fry & Rice")
+                ),
+                Map.of(
+                        "2026-02-16",
+                        Map.of(
+                                "rollNoodles", List.of(
+                                        new CafeteriaMenuEntryResponse(
+                                                "2026-02-16-rollNoodles-존슨부대찌개",
+                                                "존슨부대찌개",
+                                                List.of(new CafeteriaMenuBadgeResponse("TAKEOUT", "테이크아웃")),
+                                                178,
+                                                22
+                                        )
+                                ),
+                                "theBab", List.of(),
+                                "fryRice", List.of()
+                        )
                 )
         );
     }
 
     private String createRequest() {
+        return """
+                {
+                  "weekId": "2026-W08",
+                  "weekStart": "2026-02-16",
+                  "weekEnd": "2026-02-20",
+                  "menuEntries": {
+                    "2026-02-16": {
+                      "rollNoodles": [
+                        {
+                          "title": "존슨부대찌개",
+                          "badges": [
+                            {
+                              "label": "테이크아웃"
+                            }
+                          ],
+                          "likeCount": 178,
+                          "dislikeCount": 22
+                        }
+                      ],
+                      "theBab": [],
+                      "fryRice": []
+                    }
+                  }
+                }
+                """;
+    }
+
+    private String legacyCreateRequest() {
         return """
                 {
                   "weekId": "2026-W08",
@@ -220,10 +288,23 @@ class CafeteriaMenuAdminControllerContractTest {
                 {
                   "weekStart": "2026-02-16",
                   "weekEnd": "2026-02-20",
-                  "menus": {
+                  "menuEntries": {
                     "2026-02-16": {
-                      "rollNoodles": ["우동", "김밥"],
-                      "theBab": ["돈까스", "된장찌개"]
+                      "rollNoodles": [
+                        {
+                          "title": "존슨부대찌개",
+                          "badges": [
+                            {
+                              "code": "TAKEOUT",
+                              "label": "테이크아웃"
+                            }
+                          ],
+                          "likeCount": 178,
+                          "dislikeCount": 22
+                        }
+                      ],
+                      "theBab": [],
+                      "fryRice": []
                     }
                   }
                 }
