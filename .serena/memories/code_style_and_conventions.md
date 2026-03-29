@@ -63,3 +63,13 @@
 - 관리자 시스템 메시지는 party chat room이 있어야 하고, leader/member를 사칭하지 않는다. 내부 source는 `ADMIN_SYSTEM`, 표시 기준은 `senderName=관리자`, `senderPhotoUrl=null`이다.
 - 관리자 join request 조회는 현재 `PENDING`만 latest-first(`requestedAt DESC`)로 읽는다. 승인/거절 액션은 후속 범위다.
 - 관리자 파티 상태 변경 감사 snapshot은 `id/status/endReason/settlementStatus/endedAt` 최소 필드만 저장하고, 멤버 제거/시스템 메시지도 각각 최소 snapshot(`partyId/memberId/isLeader/joinedAt`, `id/chatRoomId/senderId/senderName/type/source/text/createdAt`)만 남긴다.
+
+## Admin Board API 규칙
+- 관리자 Board API도 class-level `@AdminApiAccess`와 write API용 `@AdminAudit`를 사용한다.
+- moderation 상태는 `VISIBLE`, `HIDDEN`, `DELETED`만 사용한다. 새 상태 머신을 만들지 않고 `isHidden` + 기존 soft delete(`isDeleted`) 조합으로 표현한다.
+- 허용 전이는 게시글/댓글 모두 `VISIBLE -> HIDDEN`, `HIDDEN -> VISIBLE`, `VISIBLE/HIDDEN -> DELETED`만 지원한다. `DELETED`는 terminal로 두고 복구하지 않는다.
+- hard delete는 추가하지 않는다. 게시글 `DELETED`는 기존 `Post.markDeleted()`, 댓글 `DELETED`는 기존 placeholder soft delete를 재사용한다.
+- public board 조회는 `HIDDEN` 게시글을 제외한다. 댓글은 thread 구조 보존을 위해 `HIDDEN`도 public 응답에서 placeholder로 마스킹하고 write/like lookup에서는 active 대상에서 제외한다.
+- 관리자 board 목록은 `AdminPageRequestPolicy` 기준 `page=0`, `size=20`, `size<=100`을 유지하고 기본 정렬은 게시글/댓글 모두 `createdAt,DESC`다.
+- 관리자 moderation 감사 snapshot은 과도한 개인정보나 본문 전문을 남기지 않는다. 게시글은 `id/authorId/category/anonymous/hidden/deleted`, 댓글은 `id/postId/authorId/parentId/anonymous/hidden/deleted` 최소 필드만 저장한다.
+- pin/공지 고정, 신고 연계 뷰, 작성자 제재, batch moderation은 문서 근거 전까지 board admin 범위에 섞지 않는다.

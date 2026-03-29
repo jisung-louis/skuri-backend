@@ -1830,6 +1830,11 @@ Authorization:Bearer <firebase_id_token>
 | `DELETE` | `/v1/comments/{commentId}` | 댓글 삭제 (작성자, placeholder soft delete) |
 | `GET` | `/v1/members/me/posts` | 내가 작성한 게시글 목록 |
 | `GET` | `/v1/members/me/bookmarks` | 내가 북마크한 게시글 목록 |
+| `GET` | `/v1/admin/posts` | 관리자 게시글 목록 조회 |
+| `GET` | `/v1/admin/posts/{postId}` | 관리자 게시글 상세 조회 |
+| `PATCH` | `/v1/admin/posts/{postId}/moderation` | 관리자 게시글 moderation 상태 변경 |
+| `GET` | `/v1/admin/comments` | 관리자 댓글 목록 조회 |
+| `PATCH` | `/v1/admin/comments/{commentId}/moderation` | 관리자 댓글 moderation 상태 변경 |
 
 ### 5.2 게시글 목록/상세
 
@@ -1954,6 +1959,7 @@ Authorization:Bearer <firebase_id_token>
 
 - `posts.is_deleted=true`로 soft delete 처리한다.
 - 삭제된 게시글은 목록/상세/북마크 조회에서 제외한다.
+- `HIDDEN` moderation 게시글도 public 목록/상세/내 게시글/북마크 조회에서 제외한다.
 
 ### 5.4 상호작용(좋아요/북마크)
 
@@ -1980,6 +1986,7 @@ Authorization:Bearer <firebase_id_token>
 
 - 부모 댓글 삭제 시 하드 삭제하지 않고 `isDeleted=true`, `content="삭제된 댓글입니다"`로 placeholder 처리
 - 자식 댓글은 유지한다.
+- 관리자 `HIDDEN` moderation 댓글도 thread 구조 유지를 위해 public 응답에서는 placeholder로 마스킹한다.
 - 조회 응답은 flat list를 반환한다.
 - 각 댓글은 최소 `id`, `parentId`, `depth`, `likeCount`, `isLiked`, `createdAt`, `updatedAt`, `isDeleted`를 포함한다.
 - `likeCount`는 전체 댓글 좋아요 수다.
@@ -2048,7 +2055,203 @@ Authorization:Bearer <firebase_id_token>
 - 내 북마크 페이징 조회.
 - 응답 아이템은 `GET /v1/posts`와 같은 summary 스키마를 사용하며 `isLiked`, `isBookmarked`, `isCommentedByMe`, `thumbnailUrl`을 포함한다.
 
-### 5.7 에러 코드
+### 5.7 관리자 moderation API
+
+#### moderation 상태
+
+- `VISIBLE`
+  - `isHidden=false`, `isDeleted=false`
+- `HIDDEN`
+  - `isHidden=true`, `isDeleted=false`
+- `DELETED`
+  - 기존 soft delete 재사용 (`Post.isDeleted=true`, `Comment`는 placeholder soft delete)
+- `DELETED`는 복구하지 않는다.
+- 허용 전이:
+  - 게시글: `VISIBLE -> HIDDEN`, `HIDDEN -> VISIBLE`, `VISIBLE/HIDDEN -> DELETED`
+  - 댓글: `VISIBLE -> HIDDEN`, `HIDDEN -> VISIBLE`, `VISIBLE/HIDDEN -> DELETED`
+- 금지 전이:
+  - 동일 상태 재요청
+  - `DELETED -> VISIBLE`
+  - `DELETED -> HIDDEN`
+  - `DELETED -> DELETED`
+- 댓글 `commentCount`는 public active comment 기준이므로 `VISIBLE -> HIDDEN/DELETED` 시 감소하고 `HIDDEN -> VISIBLE` 시 증가한다.
+
+#### GET /v1/admin/posts
+
+관리자용 게시글 목록/검색/필터/페이지네이션 조회
+
+**Query Parameters**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `page` | number | 기본 0 |
+| `size` | number | 기본 20 (1~100) |
+| `query` | string | 제목/본문/작성자 검색 |
+| `category` | string | `GENERAL`, `QUESTION`, `REVIEW`, `ANNOUNCEMENT` |
+| `moderationStatus` | string | `VISIBLE`, `HIDDEN`, `DELETED` |
+| `authorId` | string | 특정 작성자 필터 |
+
+기본 정렬:
+
+- `createdAt DESC`
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": "post_uuid",
+        "category": "GENERAL",
+        "title": "관리 대상 게시글",
+        "authorId": "member-1",
+        "authorNickname": "스쿠리유저",
+        "authorRealname": "홍길동",
+        "isAnonymous": false,
+        "commentCount": 5,
+        "likeCount": 10,
+        "createdAt": "2026-03-29T12:00:00",
+        "updatedAt": "2026-03-29T12:30:00",
+        "moderationStatus": "VISIBLE",
+        "thumbnailUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  }
+}
+```
+
+#### GET /v1/admin/posts/{postId}
+
+관리자용 게시글 상세 조회
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "post_uuid",
+    "category": "GENERAL",
+    "title": "관리 대상 게시글",
+    "content": "관리자 상세에서 확인하는 본문 전체 내용",
+    "authorId": "member-1",
+    "authorNickname": "스쿠리유저",
+    "authorRealname": "홍길동",
+    "isAnonymous": false,
+    "viewCount": 42,
+    "likeCount": 10,
+    "commentCount": 5,
+    "bookmarkCount": 3,
+    "createdAt": "2026-03-29T12:00:00",
+    "updatedAt": "2026-03-29T12:30:00",
+    "moderationStatus": "HIDDEN",
+    "thumbnailUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg",
+    "images": [
+      {
+        "url": "https://cdn.skuri.app/posts/post-1/image-1.jpg",
+        "thumbUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg",
+        "width": 800,
+        "height": 600,
+        "size": 245123,
+        "mime": "image/jpeg"
+      }
+    ]
+  }
+}
+```
+
+#### PATCH /v1/admin/posts/{postId}/moderation
+
+```json
+{
+  "status": "HIDDEN"
+}
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "post_uuid",
+    "moderationStatus": "HIDDEN"
+  }
+}
+```
+
+#### GET /v1/admin/comments
+
+관리자용 댓글 목록/검색/필터/페이지네이션 조회
+
+**Query Parameters**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `page` | number | 기본 0 |
+| `size` | number | 기본 20 (1~100) |
+| `postId` | string | 게시글 필터 |
+| `query` | string | 댓글/게시글/작성자 검색 |
+| `moderationStatus` | string | `VISIBLE`, `HIDDEN`, `DELETED` |
+| `authorId` | string | 특정 작성자 필터 |
+
+기본 정렬:
+
+- `createdAt DESC`
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": "comment_uuid",
+        "postId": "post_uuid",
+        "postTitle": "관리 대상 게시글",
+        "authorId": "member-2",
+        "authorNickname": "댓글유저",
+        "authorRealname": "김철수",
+        "contentPreview": "문제되는 댓글 내용 일부...",
+        "parentCommentId": null,
+        "createdAt": "2026-03-29T13:00:00",
+        "moderationStatus": "VISIBLE"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  }
+}
+```
+
+#### PATCH /v1/admin/comments/{commentId}/moderation
+
+```json
+{
+  "status": "DELETED"
+}
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "comment_uuid",
+    "moderationStatus": "DELETED"
+  }
+}
+```
+
+### 5.8 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
 |---|---|---|
@@ -2057,6 +2260,8 @@ Authorization:Bearer <firebase_id_token>
 | `NOT_POST_AUTHOR` | 403 | 게시글 작성자만 수정/삭제 가능 |
 | `NOT_COMMENT_AUTHOR` | 403 | 댓글 작성자만 수정/삭제 가능 |
 | `COMMENT_ALREADY_DELETED` | 409 | 이미 삭제된 댓글 수정/삭제 시도 |
+| `INVALID_POST_MODERATION_STATUS_TRANSITION` | 409 | 허용되지 않는 게시글 moderation 상태 전이 |
+| `INVALID_COMMENT_MODERATION_STATUS_TRANSITION` | 409 | 허용되지 않는 댓글 moderation 상태 전이 |
 
 ---
 

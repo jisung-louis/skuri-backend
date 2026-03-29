@@ -31,6 +31,21 @@
 - 예외 대상은 기존 정책대로 `ApiResponse<Void>`, `204`, SSE로 유지한다.
 - `/v3/api-docs` 전수 회귀 테스트를 추가해 대상 성공 응답이 다시 generic `data`로 후퇴하지 않도록 검증한다.
 
+## 1.3 완료 작업: Board Admin moderation P1
+
+- 관리자 게시글/댓글 운영 P1 계약을 추가했다.
+  - `GET /v1/admin/posts`
+  - `GET /v1/admin/posts/{postId}`
+  - `PATCH /v1/admin/posts/{postId}/moderation`
+  - `GET /v1/admin/comments`
+  - `PATCH /v1/admin/comments/{commentId}/moderation`
+- moderation 상태는 `VISIBLE`, `HIDDEN`, `DELETED`를 지원한다.
+- 내부 표현은 Board 기존 soft delete 규칙을 유지하면서 `is_hidden` visibility 플래그를 최소 확장해 구현한다.
+  - `DELETED`: 기존 soft delete 재사용 (`posts.is_deleted=true`, `comments`는 placeholder soft delete)
+  - `HIDDEN`: hard delete 없이 관리자 visibility 차단
+- public board 조회는 `HIDDEN` 게시글을 제외하고, `HIDDEN` 댓글은 thread 구조 유지를 위해 placeholder로 노출한다.
+- 관리자 write API 2개는 `@AdminAudit` 대상으로 포함하고, snapshot은 moderation 판단에 필요한 최소 필드만 남긴다.
+
 ---
 
 ## 2. 구현 순서 총괄

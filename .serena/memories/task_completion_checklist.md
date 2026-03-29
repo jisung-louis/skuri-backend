@@ -49,3 +49,9 @@
 21. 관리자 멤버 제거를 건드렸다면 leader 제거 금지, `ARRIVED`/`ENDED` 제거 금지, 채팅방 membership sync, leave 시스템 메시지, SSE `KICKED`, `PartyMemberKicked` notification event 재사용 여부를 확인한다.
 22. 관리자 시스템 메시지를 건드렸다면 party chat room 없음 `404 CHAT_ROOM_NOT_FOUND`, blank/too-long validation `422`, `senderName=관리자`, `senderPhotoUrl=null`, admin audit chat-message snapshot을 함께 확인한다.
 23. 관리자 join request 조회를 건드렸다면 `PENDING`만 latest-first(`requestedAt DESC`)로 내려가는지, 응답 필드가 현재 member 도메인 값(`nickname/realname/photoUrl/department/studentId`)만 사용하는지 확인한다.
+24. 관리자 `/boards` placeholder를 닫는 작업이면 backend 문서뿐 아니라 `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/README.md`, `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`, `/Users/jisung/SKTaxi/docs/spring-migration/frontend-api-coverage.md`, `/Users/jisung/SKTaxi/docs/spring-migration/frontend-migration-status.md`, `/Users/jisung/SKTaxi/docs/spring-migration/user-screens-backend-api-gaps.md` 동기화를 확인한다.
+25. 관리자 Board API를 건드렸다면 `GET /v1/admin/posts`, `GET /v1/admin/posts/{postId}`, `PATCH /v1/admin/posts/{postId}/moderation`, `GET /v1/admin/comments`, `PATCH /v1/admin/comments/{commentId}/moderation`의 관리자 성공/비관리자 `403`/도메인 `404|409|422`를 함께 확인한다.
+26. 관리자 Board moderation을 건드렸다면 `VISIBLE/HIDDEN/DELETED` 전이만 허용되는지, `DELETED` 복구를 열지 않았는지, hard delete를 추가하지 않았는지 확인한다.
+27. public board 규칙을 건드렸다면 `HIDDEN` 게시글이 public 목록/상세/내 게시글/북마크에서 제외되는지, `HIDDEN` 댓글이 public 댓글 응답에서 placeholder로 마스킹되는지, commentCount 증감이 active comment 기준과 일치하는지 확인한다.
+28. 관리자 Board write API를 건드렸다면 `admin_audit_logs` row 생성과 before/after snapshot이 최소 필드만 담는지, 본문 전문/과도한 개인정보가 diff에 남지 않는지 확인한다.
+29. Board OpenAPI를 건드렸다면 `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar`에서 admin board 200/4xx example이 분리 노출되는지 함께 확인한다.
