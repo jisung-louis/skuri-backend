@@ -102,6 +102,7 @@ public class OpenApiConfig {
                 .group("taxiparty")
                 .pathsToMatch(
                         "/v1/parties/**",
+                        "/v1/admin/parties/**",
                         "/v1/join-requests/**",
                         "/v1/members/me/parties",
                         "/v1/members/me/taxi-history",

@@ -49,6 +49,10 @@ import com.skuri.skuri_backend.domain.support.service.AppVersionService;
 import com.skuri.skuri_backend.domain.support.service.CafeteriaMenuService;
 import com.skuri.skuri_backend.domain.support.service.InquiryService;
 import com.skuri.skuri_backend.domain.support.service.ReportService;
+import com.skuri.skuri_backend.domain.taxiparty.controller.PartyAdminController;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartySummaryResponse;
+import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
+import com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyAdminService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
 import com.skuri.skuri_backend.infra.auth.config.SecurityConfig;
@@ -99,7 +103,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         InquiryAdminController.class,
         ReportAdminController.class,
         AppVersionAdminController.class,
-        CafeteriaMenuAdminController.class
+        CafeteriaMenuAdminController.class,
+        PartyAdminController.class
 })
 @Import({
         SecurityConfig.class,
@@ -145,6 +150,9 @@ class AdminApiGuardIntegrationTest {
 
     @MockitoBean
     private CafeteriaMenuService cafeteriaMenuService;
+
+    @MockitoBean
+    private TaxiPartyAdminService taxiPartyAdminService;
 
     @MockitoBean
     private FirebaseTokenVerifier firebaseTokenVerifier;
@@ -463,6 +471,32 @@ class AdminApiGuardIntegrationTest {
                                 )),
                         status().isCreated(),
                         jsonPath("$.data.weekId").value("2026-W08")
+                ),
+                endpoint(
+                        "party list",
+                        () -> get("/v1/admin/parties"),
+                        () -> when(taxiPartyAdminService.getAdminParties(null, null, null, 0, 20))
+                                .thenReturn(PageResponse.<AdminPartySummaryResponse>builder()
+                                        .content(java.util.List.of(new AdminPartySummaryResponse(
+                                                "party-1",
+                                                PartyStatus.OPEN,
+                                                "leader-1",
+                                                "스쿠리 유저",
+                                                "성결대학교 -> 안양역",
+                                                LocalDateTime.of(2026, 3, 29, 18, 30),
+                                                2,
+                                                4,
+                                                LocalDateTime.of(2026, 3, 29, 12, 0)
+                                        )))
+                                        .page(0)
+                                        .size(20)
+                                        .totalElements(1)
+                                        .totalPages(1)
+                                        .hasNext(false)
+                                        .hasPrevious(false)
+                                        .build()),
+                        status().isOk(),
+                        jsonPath("$.data.content[0].id").value("party-1")
                 )
         );
     }

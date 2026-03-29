@@ -10,6 +10,7 @@ import com.skuri.skuri_backend.domain.support.controller.AppVersionAdminControll
 import com.skuri.skuri_backend.domain.support.controller.CafeteriaMenuAdminController;
 import com.skuri.skuri_backend.domain.support.controller.InquiryAdminController;
 import com.skuri.skuri_backend.domain.support.controller.ReportAdminController;
+import com.skuri.skuri_backend.domain.taxiparty.controller.PartyAdminController;
 import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,7 +35,8 @@ class AdminOpenApiConventionTest {
             InquiryAdminController.class,
             ReportAdminController.class,
             AppVersionAdminController.class,
-            CafeteriaMenuAdminController.class
+            CafeteriaMenuAdminController.class,
+            PartyAdminController.class
     );
 
     @Test

@@ -28,6 +28,7 @@ import com.skuri.skuri_backend.domain.support.controller.InquiryController;
 import com.skuri.skuri_backend.domain.support.controller.ReportAdminController;
 import com.skuri.skuri_backend.domain.support.controller.ReportController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.JoinRequestController;
+import com.skuri.skuri_backend.domain.taxiparty.controller.PartyAdminController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.PartyController;
 import com.skuri.skuri_backend.domain.taxiparty.controller.PartySseController;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -72,6 +73,7 @@ class OpenApiResponseExamplesConventionTest {
             NotificationController.class,
             FcmTokenController.class,
             NotificationSseController.class,
+            PartyAdminController.class,
             PartyController.class,
             JoinRequestController.class,
             PartySseController.class

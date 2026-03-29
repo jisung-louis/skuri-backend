@@ -221,11 +221,24 @@ Hooks:
   - `PartyMember`, `PartyTag`, `MemberSettlement`는 `Party` aggregate 내부 컬렉션으로 관리
   - 영속화는 `PartyRepository` 단일 저장으로 처리(cascade + orphanRemoval)
   - 하위 엔티티 전용 Repository는 현재 운영 코드에서 사용하지 않음
+  - 관리자 운영 목록 조회는 `PartyRepository.searchAdminParties(status, departureDate, query)`로 제공하며, `query`는 출발지/도착지/leaderId/leader nickname을 검색한다.
 
 파티 수정 정책:
   - `PATCH /v1/parties/{id}`는 `departureTime`, `detail`만 허용 (화이트리스트)
   - `OPEN`, `CLOSED` 상태에서만 수정 가능
   - `CLOSED` 상태에서 수정해도 상태 자동 변경 없음 (`reopen`으로만 모집 재개)
+
+관리자 운영 API(P1):
+  - `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`
+  - 관리자 상태 변경 액션은 `CLOSE | REOPEN | CANCEL | END` 4개만 제공한다.
+  - 관리자라도 기존 상태 머신을 우회하지 않는다.
+    - `CLOSE`: `OPEN`에서만 가능
+    - `REOPEN`: `CLOSED`에서만 가능
+    - `CANCEL`: `OPEN | CLOSED`에서만 가능
+    - `END`: `ARRIVED`에서만 가능 (`forceEnd()` 재사용)
+  - 상태 변경 후 파티 채팅방 시스템 메시지/SSE/Notification event는 기존 public service와 동일한 규칙을 재사용한다.
+  - 관리자 audit snapshot은 최소 상태 필드(`id`, `status`, `endReason`, `settlementStatus`, `endedAt`)만 저장한다.
+  - 운영 응답에서는 현재 도메인에 없는 `gender`, `lastStatusChangedAt` 같은 파생 필드를 억지로 만들지 않는다.
 
 파티 자동 종료 정책 (@Scheduled):
   - 실행 주기: 4시간마다
@@ -1435,3 +1448,4 @@ public enum MessageDirection {
 > - 2026-03-10: Phase 11 Admin 공통 인프라 반영 — `AdminAuditLog` 엔티티를 `actorId/action/targetType/targetId/diffBefore/diffAfter/timestamp` 구조로 구체화하고, Support 운영 목록/인가 공통 규약을 반영
 > - 2026-03-25: Notice 북마크 구현 반영 — `NoticeBookmark` 저장 모델, 내 북마크 공지 목록 naming parity(`rssPreview`, `postedAt`), withdrawal cleanup 정책 추가
 > - 2026-03-29: Member Admin API review fix — self role change 금지와 admin-role 감사 로그 최소 snapshot 정책을 Member 도메인 설명에 반영하고, 관리자 상세 응답의 `bankAccount` 유지 계약을 명시
+> - 2026-03-29: TaxiParty Admin P1 반영 — 관리자 파티 목록/상세/상태 변경 API와 검색 기준, 상태 전이 재사용 정책, 최소 감사 snapshot 범위를 TaxiParty 도메인 설명에 반영

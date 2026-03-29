@@ -51,3 +51,11 @@
 - 관리자 활동 요약은 ACTIVE 회원만 제공하며, 현재 저장된 post/comment/party/inquiry/report 데이터 기준 count + domain별 recent 5건 read model을 반환한다. 댓글은 삭제되지 않은 comment이면서 부모 post도 삭제되지 않은 경우만 포함하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리한다.
 - 관리자 권한 변경은 기존 `members.is_admin` boolean만 갱신하며, 탈퇴 회원은 `409 CONFLICT`, 자기 자신의 권한 변경은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 차단한다. 마지막 관리자 수 계산 정책은 후속 결정 전까지 추가하지 않는다.
 - 관리자 상세 응답은 `bankAccount`, `notificationSetting`을 유지하지만 admin-role 감사 snapshot은 `id/email/nickname/isAdmin/status` 최소 필드만 저장한다.
+
+
+## Admin TaxiParty API 메모
+- `taxiparty` 도메인은 관리자 백오피스용 TaxiParty P1 API를 제공한다: `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`.
+- 관리자 목록은 `page/size/status/departureDate/query` 필터를 지원하고, 기본 정렬은 `departureTime desc, createdAt desc`다. 검색 범위는 출발지/도착지/leader uid/leader nickname이다.
+- 관리자 상세는 목록 필드 외에 `leader`, `members`, `pendingJoinRequestCount`, `settlementStatus`, `settlement`, `chatRoomId`, `createdAt/updatedAt/endedAt`를 제공한다. 현재 도메인에 없는 `gender`, `lastStatusChangedAt`는 억지로 만들지 않는다.
+- 관리자 상태 변경 액션은 현재 상태 머신을 재사용하는 `CLOSE`, `REOPEN`, `CANCEL`, `END`만 허용한다. 임의 상태 점프는 허용하지 않는다.
+- 관리자 status 변경 감사 로그는 `admin_audit_logs`에 최소 snapshot(`id/status/endReason/settlementStatus/endedAt`)만 남기고 멤버 개인정보 diff는 넣지 않는다.

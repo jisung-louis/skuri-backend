@@ -1,6 +1,8 @@
 package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyDetailResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestAcceptResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestListItemResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestResponse;
@@ -52,12 +54,42 @@ public final class OpenApiTaxiPartySchemas {
     ) {
     }
 
+    @Schema(name = "AdminTaxiPartySummaryPageApiResponse", description = "공통 API 응답 포맷")
+    public record AdminPartySummaryPageApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            PageResponse<AdminPartySummaryResponse> data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
     @Schema(name = "TaxiPartyDetailApiResponse", description = "공통 API 응답 포맷")
     public record PartyDetailApiResponse(
             @Schema(description = "요청 성공 여부")
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
             PartyDetailResponse data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "AdminTaxiPartyDetailApiResponse", description = "공통 API 응답 포맷")
+    public record AdminPartyDetailApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            AdminPartyDetailResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
