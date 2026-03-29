@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.domain.app.entity.AppNotice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,14 @@ public interface AppNoticeRepository extends JpaRepository<AppNotice, String> {
               and a.publishedAt <= :now
             """)
     Optional<AppNotice> findPublishedById(@Param("appNoticeId") String appNoticeId, @Param("now") LocalDateTime now);
+
+    @Query("""
+            select a
+            from AppNotice a
+            where a.publishedAt <= :now
+            order by a.createdAt desc
+            """)
+    List<AppNotice> findRecentPublishedForAdmin(@Param("now") LocalDateTime now, Pageable pageable);
 
     @Query("""
             select count(a)
