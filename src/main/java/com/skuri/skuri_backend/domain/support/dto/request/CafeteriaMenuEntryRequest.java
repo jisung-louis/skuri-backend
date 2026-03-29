@@ -15,10 +15,10 @@ public record CafeteriaMenuEntryRequest(
         @Schema(description = "보조 태그 목록", nullable = true)
         List<@Valid CafeteriaMenuBadgeRequest> badges,
 
-        @Schema(description = "좋아요 수. 생략 시 0으로 저장됩니다.", example = "178", nullable = true)
+        @Schema(description = "좋아요 수. deprecated 필드이며 실제 사용자 반응 집계가 사용됩니다. 전달해도 저장 시 반영되지 않습니다.", example = "178", nullable = true, deprecated = true)
         Integer likeCount,
 
-        @Schema(description = "싫어요 수. 생략 시 0으로 저장됩니다.", example = "22", nullable = true)
+        @Schema(description = "싫어요 수. deprecated 필드이며 실제 사용자 반응 집계가 사용됩니다. 전달해도 저장 시 반영되지 않습니다.", example = "22", nullable = true, deprecated = true)
         Integer dislikeCount
 ) {
 }

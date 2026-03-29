@@ -12,8 +12,11 @@ import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuEntryRes
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.entity.CafeteriaMenu;
 import com.skuri.skuri_backend.domain.support.exception.CafeteriaMenuNotFoundException;
+import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuIdCodec;
 import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuBadgeMetadata;
 import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuEntryMetadata;
+import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuReactionType;
+import com.skuri.skuri_backend.domain.support.repository.CafeteriaMenuReactionRepository;
 import com.skuri.skuri_backend.domain.support.repository.CafeteriaMenuRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,17 +46,28 @@ public class CafeteriaMenuService {
     private static final List<String> KNOWN_CATEGORY_ORDER = List.of("rollNoodles", "theBab", "fryRice");
 
     private final CafeteriaMenuRepository cafeteriaMenuRepository;
+    private final CafeteriaMenuReactionRepository cafeteriaMenuReactionRepository;
 
     @Transactional(readOnly = true)
     public CafeteriaMenuResponse getCurrentWeekMenu(LocalDate date) {
-        return getMenuByWeekId(toWeekId(date));
+        return getCurrentWeekMenu(null, date);
+    }
+
+    @Transactional(readOnly = true)
+    public CafeteriaMenuResponse getCurrentWeekMenu(String memberId, LocalDate date) {
+        return getMenuByWeekId(memberId, toWeekId(date));
     }
 
     @Transactional(readOnly = true)
     public CafeteriaMenuResponse getMenuByWeekId(String weekId) {
+        return getMenuByWeekId(null, weekId);
+    }
+
+    @Transactional(readOnly = true)
+    public CafeteriaMenuResponse getMenuByWeekId(String memberId, String weekId) {
         CafeteriaMenu cafeteriaMenu = cafeteriaMenuRepository.findById(normalizeWeekId(weekId))
                 .orElseThrow(CafeteriaMenuNotFoundException::new);
-        return toResponse(cafeteriaMenu);
+        return toResponse(cafeteriaMenu, memberId);
     }
 
     @Transactional
@@ -85,6 +99,7 @@ public class CafeteriaMenuService {
 
         NormalizedCafeteriaMenuPayload payload = normalizePayload(request.menus(), request.menuEntries());
         cafeteriaMenu.update(request.weekStart(), request.weekEnd(), payload.menus(), payload.menuEntries());
+        purgeObsoleteReactions(normalizedWeekId, payload.menuEntries());
         return toResponse(cafeteriaMenu);
     }
 
@@ -92,14 +107,24 @@ public class CafeteriaMenuService {
     public void deleteMenu(String weekId) {
         CafeteriaMenu cafeteriaMenu = cafeteriaMenuRepository.findById(normalizeWeekId(weekId))
                 .orElseThrow(CafeteriaMenuNotFoundException::new);
+        cafeteriaMenuReactionRepository.deleteByWeekId(cafeteriaMenu.getWeekId());
         cafeteriaMenuRepository.delete(cafeteriaMenu);
     }
 
     public CafeteriaMenuResponse toResponse(CafeteriaMenu cafeteriaMenu) {
+        return toResponse(cafeteriaMenu, null);
+    }
+
+    public CafeteriaMenuResponse toResponse(CafeteriaMenu cafeteriaMenu, String memberId) {
         Map<String, Map<String, List<CafeteriaMenuEntryMetadata>>> normalizedEntries =
                 cafeteriaMenu.getMenuEntries().isEmpty()
                         ? synthesizeMenuEntries(cafeteriaMenu.getMenus())
                         : completeCategoryEntries(cafeteriaMenu.getMenuEntries());
+        Map<String, CafeteriaReactionSummary> reactionSummaries = buildReactionSummaries(
+                cafeteriaMenu.getWeekId(),
+                collectMenuIds(cafeteriaMenu.getWeekId(), normalizedEntries),
+                memberId
+        );
 
         return new CafeteriaMenuResponse(
                 cafeteriaMenu.getWeekId(),
@@ -107,7 +132,7 @@ public class CafeteriaMenuService {
                 cafeteriaMenu.getWeekEnd(),
                 deepCopyMenus(cafeteriaMenu.getMenus()),
                 buildCategoryResponses(cafeteriaMenu.getMenus(), normalizedEntries),
-                toResponseMenuEntries(normalizedEntries)
+                toResponseMenuEntries(cafeteriaMenu.getWeekId(), normalizedEntries, reactionSummaries)
         );
     }
 
@@ -234,13 +259,10 @@ public class CafeteriaMenuService {
     }
 
     private int normalizeReactionCount(String fieldName, Integer value) {
-        if (value == null) {
-            return 0;
-        }
-        if (value < 0) {
+        if (value != null && value < 0) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, fieldName + "는 0 이상이어야 합니다.");
         }
-        return value;
+        return 0;
     }
 
     private String normalizeBadgeCode(String code, String label) {
@@ -386,48 +408,110 @@ public class CafeteriaMenuService {
         source.values().forEach(categories -> target.addAll(categories.keySet()));
     }
 
-    private Map<String, Map<String, List<CafeteriaMenuEntryResponse>>> toResponseMenuEntries(
+    private Set<String> collectMenuIds(
+            String weekId,
             Map<String, Map<String, List<CafeteriaMenuEntryMetadata>>> source
+    ) {
+        Set<String> menuIds = new LinkedHashSet<>();
+        source.values().forEach(categories -> categories.forEach((category, items) ->
+                items.forEach(item -> menuIds.add(CafeteriaMenuIdCodec.encode(weekId, category, item.title())))
+        ));
+        return menuIds;
+    }
+
+    private Map<String, CafeteriaReactionSummary> buildReactionSummaries(
+            String weekId,
+            Set<String> menuIds,
+            String memberId
+    ) {
+        if (menuIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, CafeteriaReactionSummary> summaries = new LinkedHashMap<>();
+        List<CafeteriaMenuReactionRepository.CafeteriaMenuReactionCountProjection> countResults =
+                cafeteriaMenuReactionRepository.summarizeCounts(weekId, menuIds);
+        if (countResults != null) {
+            countResults.forEach(summary ->
+                    summaries.put(
+                            summary.getMenuId(),
+                            new CafeteriaReactionSummary(
+                                    Math.toIntExact(summary.getLikeCount()),
+                                    Math.toIntExact(summary.getDislikeCount()),
+                                    null
+                            )
+                    )
+            );
+        }
+
+        if (memberId != null) {
+            List<CafeteriaMenuReactionRepository.CafeteriaMenuReactionSelectionProjection> selections =
+                    cafeteriaMenuReactionRepository.findSelections(memberId, weekId, menuIds);
+            if (selections != null) {
+                selections.forEach(selection -> {
+                    CafeteriaReactionSummary summary = summaries.getOrDefault(selection.getMenuId(), CafeteriaReactionSummary.empty());
+                    summaries.put(
+                            selection.getMenuId(),
+                            new CafeteriaReactionSummary(summary.likeCount(), summary.dislikeCount(), selection.getReaction())
+                    );
+                });
+            }
+        }
+
+        return summaries;
+    }
+
+    private void purgeObsoleteReactions(
+            String weekId,
+            Map<String, Map<String, List<CafeteriaMenuEntryMetadata>>> menuEntries
+    ) {
+        Set<String> activeMenuIds = collectMenuIds(weekId, menuEntries);
+        if (activeMenuIds.isEmpty()) {
+            cafeteriaMenuReactionRepository.deleteByWeekId(weekId);
+            return;
+        }
+        cafeteriaMenuReactionRepository.deleteObsoleteReactions(weekId, activeMenuIds);
+    }
+
+    private Map<String, Map<String, List<CafeteriaMenuEntryResponse>>> toResponseMenuEntries(
+            String weekId,
+            Map<String, Map<String, List<CafeteriaMenuEntryMetadata>>> source,
+            Map<String, CafeteriaReactionSummary> reactionSummaries
     ) {
         Map<String, Map<String, List<CafeteriaMenuEntryResponse>>> result = new LinkedHashMap<>();
         source.forEach((date, categories) -> {
             Map<String, List<CafeteriaMenuEntryResponse>> responseCategories = new LinkedHashMap<>();
-            categories.forEach((category, items) -> responseCategories.put(category, toResponseItems(date, category, items)));
+            categories.forEach((category, items) -> responseCategories.put(
+                    category,
+                    toResponseItems(weekId, category, items, reactionSummaries)
+            ));
             result.put(date, responseCategories);
         });
         return result;
     }
 
     private List<CafeteriaMenuEntryResponse> toResponseItems(
-            String date,
+            String weekId,
             String category,
-            List<CafeteriaMenuEntryMetadata> items
+            List<CafeteriaMenuEntryMetadata> items,
+            Map<String, CafeteriaReactionSummary> reactionSummaries
     ) {
-        Map<String, Integer> slugOccurrence = new LinkedHashMap<>();
         List<CafeteriaMenuEntryResponse> responses = new ArrayList<>();
         for (CafeteriaMenuEntryMetadata item : items) {
-            String slug = slugify(item.title());
-            int occurrence = slugOccurrence.merge(slug, 1, Integer::sum);
-            String id = date + "-" + category + "-" + slug + (occurrence > 1 ? "-" + occurrence : "");
+            String id = CafeteriaMenuIdCodec.encode(weekId, category, item.title());
+            CafeteriaReactionSummary reactionSummary = reactionSummaries.getOrDefault(id, CafeteriaReactionSummary.empty());
             responses.add(new CafeteriaMenuEntryResponse(
                     id,
                     item.title(),
                     item.badges().stream()
                             .map(badge -> new CafeteriaMenuBadgeResponse(badge.code(), badge.label()))
                             .toList(),
-                    item.likeCount(),
-                    item.dislikeCount()
+                    reactionSummary.likeCount(),
+                    reactionSummary.dislikeCount(),
+                    reactionSummary.myReaction()
             ));
         }
         return List.copyOf(responses);
-    }
-
-    private String slugify(String title) {
-        String normalized = title.trim()
-                .toLowerCase(Locale.ROOT)
-                .replaceAll("\\s+", "-")
-                .replaceAll("[^a-z0-9가-힣-]", "");
-        return StringUtils.hasText(normalized) ? normalized : "menu";
     }
 
     private Map<String, Map<String, List<String>>> deepCopyMenus(Map<String, Map<String, List<String>>> source) {
@@ -444,5 +528,15 @@ public class CafeteriaMenuService {
             Map<String, Map<String, List<String>>> menus,
             Map<String, Map<String, List<CafeteriaMenuEntryMetadata>>> menuEntries
     ) {
+    }
+
+    private record CafeteriaReactionSummary(
+            int likeCount,
+            int dislikeCount,
+            CafeteriaMenuReactionType myReaction
+    ) {
+        private static CafeteriaReactionSummary empty() {
+            return new CafeteriaReactionSummary(0, 0, null);
+        }
     }
 }

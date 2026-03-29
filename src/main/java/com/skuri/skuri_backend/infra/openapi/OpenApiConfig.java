@@ -68,6 +68,7 @@ public class OpenApiConfig {
                         "/v1/inquiries/**",
                         "/v1/reports/**",
                         "/v1/cafeteria-menus/**",
+                        "/v1/cafeteria-menu-reactions/**",
                         "/v1/admin/legal-documents/**",
                         "/v1/admin/inquiries/**",
                         "/v1/admin/reports/**",
