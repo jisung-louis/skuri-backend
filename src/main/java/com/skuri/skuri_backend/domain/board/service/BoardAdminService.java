@@ -185,6 +185,8 @@ public class BoardAdminService {
     public BoardModerationResponse updateCommentModeration(String commentId, UpdateBoardModerationRequest request) {
         Comment comment = commentRepository.findByIdForAdminUpdate(commentId)
                 .orElseThrow(CommentNotFoundException::new);
+        Post post = postRepository.findByIdForAdminUpdate(comment.getPost().getId())
+                .orElseThrow(PostNotFoundException::new);
 
         BoardModerationStatus target = BoardModerationStatus.parse(request.status(), "status");
         BoardModerationStatus current = BoardModerationStatus.fromComment(comment);
@@ -195,21 +197,21 @@ public class BoardAdminService {
                     throw new BusinessException(ErrorCode.INVALID_COMMENT_MODERATION_STATUS_TRANSITION);
                 }
                 comment.unhide();
-                comment.getPost().increaseCommentCount(1);
+                post.increaseCommentCount(1);
             }
             case HIDDEN -> {
                 if (current != BoardModerationStatus.VISIBLE) {
                     throw new BusinessException(ErrorCode.INVALID_COMMENT_MODERATION_STATUS_TRANSITION);
                 }
                 comment.hide();
-                comment.getPost().increaseCommentCount(-1);
+                post.increaseCommentCount(-1);
             }
             case DELETED -> {
                 if (current == BoardModerationStatus.DELETED) {
                     throw new BusinessException(ErrorCode.INVALID_COMMENT_MODERATION_STATUS_TRANSITION);
                 }
                 if (current == BoardModerationStatus.VISIBLE) {
-                    comment.getPost().increaseCommentCount(-1);
+                    post.increaseCommentCount(-1);
                 }
                 comment.softDelete();
             }
