@@ -66,7 +66,16 @@ class MemberAdminControllerContractTest {
     @Test
     void getAdminMembers_관리자정상요청_200() throws Exception {
         mockToken("admin-token", true);
-        when(memberAdminService.getAdminMembers("홍길동", MemberStatus.ACTIVE, false, "컴퓨터공학과", 0, 20))
+        when(memberAdminService.getAdminMembers(
+                "홍길동",
+                MemberStatus.ACTIVE,
+                false,
+                "컴퓨터공학과",
+                "lastLoginOs",
+                "ASC",
+                0,
+                20
+        ))
                 .thenReturn(PageResponse.<AdminMemberSummaryResponse>builder()
                         .content(java.util.List.of(adminMemberSummaryResponse()))
                         .page(0)
@@ -84,14 +93,27 @@ class MemberAdminControllerContractTest {
                                 .param("status", "ACTIVE")
                                 .param("isAdmin", "false")
                                 .param("department", "컴퓨터공학과")
+                                .param("sortBy", "lastLoginOs")
+                                .param("sortDirection", "ASC")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value("member-1"))
                 .andExpect(jsonPath("$.data.content[0].isAdmin").value(false))
+                .andExpect(jsonPath("$.data.content[0].realname").value("홍길동"))
+                .andExpect(jsonPath("$.data.content[0].lastLoginOs").value("ios"))
                 .andExpect(jsonPath("$.data.content[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.data.content[0].bankAccount").doesNotExist());
 
-        verify(memberAdminService).getAdminMembers("홍길동", MemberStatus.ACTIVE, false, "컴퓨터공학과", 0, 20);
+        verify(memberAdminService).getAdminMembers(
+                "홍길동",
+                MemberStatus.ACTIVE,
+                false,
+                "컴퓨터공학과",
+                "lastLoginOs",
+                "ASC",
+                0,
+                20
+        );
     }
 
     @Test
@@ -119,6 +141,30 @@ class MemberAdminControllerContractTest {
                 .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"));
 
         verifyNoInteractions(memberAdminService);
+    }
+
+    @Test
+    void getAdminMembers_잘못된sortBy면_422() throws Exception {
+        mockToken("admin-token", true);
+        when(memberAdminService.getAdminMembers(
+                null,
+                null,
+                null,
+                null,
+                "providerDisplayName",
+                null,
+                0,
+                20
+        )).thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "지원하지 않는 sortBy입니다."));
+
+        mockMvc.perform(
+                        get("/v1/admin/members")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("sortBy", "providerDisplayName")
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("지원하지 않는 sortBy입니다."));
     }
 
     @Test
@@ -316,6 +362,7 @@ class MemberAdminControllerContractTest {
                 false,
                 LocalDateTime.of(2025, 3, 1, 9, 0),
                 LocalDateTime.of(2026, 3, 29, 10, 5),
+                "ios",
                 MemberStatus.ACTIVE
         );
     }
