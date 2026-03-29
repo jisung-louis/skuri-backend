@@ -15,6 +15,7 @@ public record AdminMemberSummaryProjection(
         LocalDateTime joinedAt,
         LocalDateTime lastLogin,
         String lastLoginOs,
+        String currentAppVersion,
         MemberStatus status
 ) {
 }

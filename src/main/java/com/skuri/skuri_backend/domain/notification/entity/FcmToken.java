@@ -42,6 +42,9 @@ public class FcmToken {
     @Column(nullable = false, length = 10)
     private String platform;
 
+    @Column(name = "app_version", length = 32)
+    private String appVersion;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -49,20 +52,24 @@ public class FcmToken {
     @Column(name = "last_used_at")
     private LocalDateTime lastUsedAt;
 
-    private FcmToken(String userId, String token, String platform) {
+    private FcmToken(String userId, String token, String platform, String appVersion) {
         this.userId = userId;
         this.token = token;
         this.platform = platform;
+        this.appVersion = appVersion;
         this.lastUsedAt = LocalDateTime.now();
     }
 
-    public static FcmToken create(String userId, String token, String platform) {
-        return new FcmToken(userId, token, platform);
+    public static FcmToken create(String userId, String token, String platform, String appVersion) {
+        return new FcmToken(userId, token, platform, appVersion);
     }
 
-    public void registerTo(String userId, String platform) {
+    public void registerTo(String userId, String platform, String appVersion) {
         this.userId = userId;
         this.platform = platform;
+        if (appVersion != null) {
+            this.appVersion = appVersion;
+        }
         touch();
     }
 

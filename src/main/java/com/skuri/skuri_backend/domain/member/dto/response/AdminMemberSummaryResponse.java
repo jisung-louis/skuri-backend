@@ -27,6 +27,8 @@ public record AdminMemberSummaryResponse(
         LocalDateTime lastLogin,
         @Schema(description = "최근 활성 FCM 토큰 플랫폼(OS 컬럼)", example = "ios", nullable = true)
         String lastLoginOs,
+        @Schema(description = "최근 활성 FCM 토큰의 앱 버전", example = "1.4.2", nullable = true)
+        String currentAppVersion,
         @Schema(description = "회원 상태", example = "ACTIVE")
         MemberStatus status
 ) {

@@ -16,7 +16,8 @@ public enum AdminMemberSortField {
     STUDENT_ID("studentId"),
     JOINED_AT("joinedAt"),
     LAST_LOGIN("lastLogin"),
-    LAST_LOGIN_OS("lastLoginOs");
+    LAST_LOGIN_OS("lastLoginOs"),
+    CURRENT_APP_VERSION("currentAppVersion");
 
     private final String parameterValue;
 

@@ -23,11 +23,12 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
 
     private static final String LATEST_FCM_JOIN = """
             left join (
-                select ranked.user_id, ranked.platform
+                select ranked.user_id, ranked.platform, ranked.app_version
                 from (
                     select
                         ft.user_id,
                         ft.platform,
+                        ft.app_version,
                         row_number() over (
                             partition by ft.user_id
                             order by coalesce(ft.last_used_at, ft.created_at) desc, ft.id desc
@@ -63,6 +64,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 m.joined_at,
                 m.last_login,
                 latest_fcm.platform as last_login_os,
+                latest_fcm.app_version as current_app_version,
                 m.status
             """;
 
@@ -142,6 +144,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
             case JOINED_AT -> "m.joined_at";
             case LAST_LOGIN -> "m.last_login";
             case LAST_LOGIN_OS -> "latest_fcm.platform";
+            case CURRENT_APP_VERSION -> "latest_fcm.app_version";
         };
     }
 
@@ -157,7 +160,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 toLocalDateTime(row[7]),
                 toLocalDateTime(row[8]),
                 (String) row[9],
-                MemberStatus.valueOf((String) row[10])
+                (String) row[10],
+                MemberStatus.valueOf((String) row[11])
         );
     }
 

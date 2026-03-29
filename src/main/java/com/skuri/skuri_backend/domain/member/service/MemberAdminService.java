@@ -218,6 +218,7 @@ public class MemberAdminService {
                 member.joinedAt(),
                 member.lastLogin(),
                 member.lastLoginOs(),
+                member.currentAppVersion(),
                 member.status()
         );
     }

@@ -14,6 +14,13 @@ public record RegisterFcmTokenRequest(
         @NotBlank(message = "platform은 필수입니다.")
         @Pattern(regexp = "ios|android", message = "platform은 ios 또는 android만 허용됩니다.")
         @Schema(description = "플랫폼", example = "ios")
-        String platform
+        String platform,
+        @Size(max = 32, message = "appVersion은 32자를 초과할 수 없습니다.")
+        @Schema(
+                description = "앱 버전. optional이며, 미전송 또는 빈 문자열이면 null로 저장됩니다.",
+                example = "1.4.2",
+                nullable = true
+        )
+        String appVersion
 ) {
 }

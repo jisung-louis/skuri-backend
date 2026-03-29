@@ -243,6 +243,7 @@ public final class OpenApiMemberExamples {
                     "joinedAt": "2024-03-01T09:00:00",
                     "lastLogin": "2026-03-29T11:20:00",
                     "lastLoginOs": "android",
+                    "currentAppVersion": "1.4.2",
                     "status": "ACTIVE"
                   },
                   {
@@ -256,6 +257,7 @@ public final class OpenApiMemberExamples {
                     "joinedAt": "2025-09-01T08:30:00",
                     "lastLogin": "2026-03-28T18:00:00",
                     "lastLoginOs": null,
+                    "currentAppVersion": null,
                     "status": "ACTIVE"
                   }
                 ],
