@@ -4369,11 +4369,18 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 #### GET /v1/admin/members
 회원 목록 조회
 
-- 목적: `/users` 화면의 목록/검색/필터/페이지네이션
-- 기본 정렬: `joinedAt DESC`
+- 목적: `/users` 화면의 목록/검색/필터/페이지네이션/컬럼 정렬
+- `sortBy`, `sortDirection`을 생략하면 기본 정렬은 `joinedAt DESC`다.
+- 허용 정렬 필드는 `id`, `realname`, `email`, `nickname`, `department`, `studentId`, `joinedAt`, `lastLogin`, `lastLoginOs`다.
+- 정렬 시 `null` 값은 항상 마지막에 배치한다.
+- `id`는 Firebase UID이므로 프론트의 UID 컬럼으로 그대로 사용한다.
+- 이름 컬럼은 `members.realname`을 사용한다.
+- `lastLoginOs`는 최근 활성 FCM 토큰(`fcm_tokens`)의 `platform`을 기준으로 계산한다.
+- `currentAppVersion`은 member별 canonical 저장 source가 아직 없어 이번 계약에 포함하지 않는다.
 - `query`는 `email`, `nickname`, `realname`, `studentId` 부분 검색에 사용한다.
 - `status`는 현재 `MemberStatus`(`ACTIVE`, `WITHDRAWN`)만 허용한다.
 - `department`는 회원 프로필 수정과 동일한 학과 카탈로그를 사용한다. legacy alias(예: `소프트웨어학과`)는 canonical 값으로 정규화하고, 지원하지 않는 값은 `422 VALIDATION_ERROR`를 반환한다.
+- 지원하지 않는 `sortBy`, `sortDirection`은 `422 VALIDATION_ERROR`를 반환한다.
 
 **Query Parameters:**
 
@@ -4385,6 +4392,8 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 | `status` | enum | `null` | `ACTIVE`, `WITHDRAWN` |
 | `isAdmin` | boolean | `null` | 관리자 여부 필터 |
 | `department` | string | `null` | canonical 학과명 필터 |
+| `sortBy` | string | `joinedAt` | `id`, `realname`, `email`, `nickname`, `department`, `studentId`, `joinedAt`, `lastLogin`, `lastLoginOs` |
+| `sortDirection` | string | `DESC` | `ASC`, `DESC` |
 
 **Response (200 OK):**
 ```json
@@ -4402,6 +4411,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
         "isAdmin": true,
         "joinedAt": "2024-03-01T09:00:00",
         "lastLogin": "2026-03-29T11:20:00",
+        "lastLoginOs": "android",
         "status": "ACTIVE"
       },
       {
@@ -4414,6 +4424,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
         "isAdmin": false,
         "joinedAt": "2025-09-01T08:30:00",
         "lastLogin": "2026-03-28T18:00:00",
+        "lastLoginOs": null,
         "status": "ACTIVE"
       }
     ],
@@ -5595,6 +5606,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, source of truth를 `members.photo_url`로 고정하고 `null` 직렬화 정책을 명시
 > - 2026-03-29: Admin Member Activity API 추가 — `GET /v1/admin/members/{memberId}/activity`를 ACTIVE 회원 + 현재 저장 데이터 기준 read model로 추가하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리
 > - 2026-03-29: Admin Member API review fix — `PATCH /v1/admin/members/{memberId}/admin-role`에 self role change 금지(`400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`)를 추가하고, admin-role 감사 로그 snapshot을 최소 필드만 저장하도록 조정. 관리자 상세 응답의 `bankAccount`/`notificationSetting` 계약은 유지
+> - 2026-03-29: Admin Member List contract 확장 — `GET /v1/admin/members`에 `sortBy/sortDirection` 기반 컬럼 정렬과 `lastLoginOs`(`fcm_tokens.platform`)를 추가하고, 이름 컬럼은 `realname` 기준으로 고정. member별 canonical source가 없는 `currentAppVersion`은 follow-up으로 유지
 > - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강
