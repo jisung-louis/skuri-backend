@@ -9,6 +9,10 @@ import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionTarget;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionType;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBannerPaletteKey;
 import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
+import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
+import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
+import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
+import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
@@ -18,6 +22,10 @@ import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
 import com.skuri.skuri_backend.domain.support.entity.InquiryType;
 import com.skuri.skuri_backend.domain.support.repository.AppVersionRepository;
 import com.skuri.skuri_backend.domain.support.repository.InquiryRepository;
+import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
+import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenClaims;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseTokenVerifier;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,6 +83,18 @@ class AdminAuditIntegrationTest {
     @Autowired
     private AcademicScheduleRepository academicScheduleRepository;
 
+    @Autowired
+    private PartyRepository partyRepository;
+
+    @Autowired
+    private ChatRoomRepository chatRoomRepository;
+
+    @Autowired
+    private ChatRoomMemberRepository chatRoomMemberRepository;
+
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
+
     @MockitoBean
     private FirebaseTokenVerifier firebaseTokenVerifier;
 
@@ -84,6 +104,10 @@ class AdminAuditIntegrationTest {
     @BeforeEach
     void setUp() {
         adminAuditLogRepository.deleteAll();
+        chatMessageRepository.deleteAllInBatch();
+        chatRoomMemberRepository.deleteAllInBatch();
+        chatRoomRepository.deleteAllInBatch();
+        partyRepository.deleteAll();
         appVersionRepository.deleteAll();
         courseRepository.deleteAll();
         inquiryRepository.deleteAll();
@@ -136,6 +160,51 @@ class AdminAuditIntegrationTest {
         assertThat(after.get("status").asText()).isEqualTo(InquiryStatus.RESOLVED.name());
         assertThat(after.get("memo").asText()).isEqualTo("재현 후 수정 배포 완료");
         assertThat(after.get("subject").asText()).isEqualTo("채팅 오류");
+    }
+
+    @Test
+    void 파티상태변경_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        saveMember("leader-uid", false);
+        Party party = partyRepository.saveAndFlush(Party.create(
+                "leader-uid",
+                Location.of("성결대학교", 37.382742, 126.928031),
+                Location.of("안양역", 37.401000, 126.922000),
+                LocalDateTime.of(2026, 3, 29, 18, 30),
+                4,
+                java.util.List.of("빠른출발"),
+                "정문 앞 택시승강장 집합"
+        ));
+        chatRoomRepository.saveAndFlush(ChatRoom.createPartyRoom(party.getId()));
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        patch("/v1/admin/parties/{partyId}/status", party.getId())
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "action": "CLOSE"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getActorId()).isEqualTo("admin-uid");
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.PARTY_STATUS_UPDATED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.PARTY);
+        assertThat(auditLog.getTargetId()).isEqualTo(party.getId());
+
+        JsonNode before = auditLog.getDiffBefore();
+        JsonNode after = auditLog.getDiffAfter();
+        assertThat(before.get("id").asText()).isEqualTo(party.getId());
+        assertThat(before.get("status").asText()).isEqualTo(PartyStatus.OPEN.name());
+        assertThat(before.path("endReason").isNull()).isTrue();
+        assertThat(after.get("status").asText()).isEqualTo(PartyStatus.CLOSED.name());
+        assertThat(after.path("endReason").isNull()).isTrue();
+        assertThat(after.path("settlementStatus").isNull()).isTrue();
+        assertThat(after.path("endedAt").isNull()).isTrue();
     }
 
     @Test
