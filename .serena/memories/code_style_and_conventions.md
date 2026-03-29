@@ -45,7 +45,8 @@
 - 브라우저 기반 관리자 페이지의 REST API CORS 허용 Origin은 `API_ALLOWED_ORIGIN_PATTERNS`로, WebSocket `/ws` Origin은 `CHAT_WS_ALLOWED_ORIGIN_PATTERNS`로 분리 관리한다.
 - CD의 admin REST CORS smoke check는 `CD_SMOKE_CORS_ORIGIN`을 우선 사용하고, 비어 있으면 `API_ALLOWED_ORIGIN_PATTERNS`의 첫 번째 exact origin을 재사용한다.
 - CD workflow는 `production-deploy` concurrency 그룹으로 최신 run만 유지하고 이전 run은 자동 취소한다.
-- 관리자 회원 목록 API는 Support Admin 목록 규약과 동일하게 `AdminPageRequestPolicy`를 사용하고 필터는 `query/status/isAdmin/department`를 유지한다. 정렬은 `sortBy/sortDirection`으로 확장하되 기본값은 `joinedAt,DESC`, null 값은 항상 마지막이다. 이름 컬럼은 `members.realname`, OS 컬럼은 최근 활성 FCM 토큰의 `fcm_tokens.platform`을 사용하고, member별 canonical source가 없는 `currentAppVersion`은 계약에 포함하지 않는다.
+- 관리자 회원 목록 API는 Support Admin 목록 규약과 동일하게 `AdminPageRequestPolicy`를 사용하고 필터는 `query/status/isAdmin/department`를 유지한다. 정렬은 `sortBy/sortDirection`으로 확장하되 기본값은 `joinedAt,DESC`, null 값은 항상 마지막이다. 이름 컬럼은 `members.realname`을 사용하고, `lastLoginOs`, `currentAppVersion`은 최근 활성 FCM 대표 토큰의 `fcm_tokens.platform`, `fcm_tokens.app_version`을 함께 사용한다.
+- `POST /v1/members/me/fcm-tokens`의 `appVersion`은 optional이다. 신규 토큰 등록 시 미전송하면 `null`로 저장하고, 같은 token 재등록 시 `null` 또는 빈 문자열이면 기존 값을 유지한다.
 - 관리자 회원 검색의 `department` 입력은 `DepartmentCatalog.normalize`로 정규화하고, 지원하지 않는 값은 `VALIDATION_ERROR`로 처리한다.
 - 관리자 회원 활동 요약 API는 ACTIVE 회원만 허용하고, 현재 저장된 post/comment/party/inquiry/report 데이터만 읽는 read-only orchestration으로 구현한다. 댓글 집계/최근 댓글은 삭제되지 않은 comment이면서 부모 post도 삭제되지 않은 경우만 포함한다. 탈퇴 회원은 `CONFLICT + MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 막고, 과거 활동 복원/상태 변경 로직을 넣지 않는다.
 - 회원 관리자 권한 변경은 Service에서만 판단하고, 탈퇴 회원은 `CONFLICT`, 자기 자신의 권한 변경은 `BAD_REQUEST + SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 막는다.

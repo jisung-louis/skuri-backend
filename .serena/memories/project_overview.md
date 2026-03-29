@@ -45,7 +45,8 @@
 
 ## Admin Member API 메모
 - `member` 도메인은 관리자 백오피스 회원 관리 API를 제공한다: `GET /v1/admin/members`, `GET /v1/admin/members/{memberId}`, `GET /v1/admin/members/{memberId}/activity`, `PATCH /v1/admin/members/{memberId}/admin-role`.
-- 관리자 목록은 `query/status/isAdmin/department` 필터와 `sortBy/sortDirection` 정렬을 지원한다. 기본값은 `joinedAt desc`, null 값은 항상 마지막이며 이름 컬럼은 `realname`, OS 컬럼은 최근 활성 FCM 토큰의 `lastLoginOs`(`fcm_tokens.platform`)를 사용한다. `currentAppVersion`은 member별 canonical source가 아직 없어 계약에서 제외한다.
+- 관리자 목록은 `query/status/isAdmin/department` 필터와 `sortBy/sortDirection` 정렬을 지원한다. 기본값은 `joinedAt desc`, null 값은 항상 마지막이며 이름 컬럼은 `realname`을 사용한다. `lastLoginOs`, `currentAppVersion`은 최근 활성 FCM 토큰(`coalesce(last_used_at, created_at)` 최신)의 `fcm_tokens.platform`, `fcm_tokens.app_version`을 같은 대표 토큰 기준으로 사용한다.
+- `POST /v1/members/me/fcm-tokens`는 optional `appVersion`을 받는다. 신규 토큰 등록 시 미전송하면 `null`로 저장하고, 같은 토큰 재등록 시 `null` 또는 빈 문자열이면 기존 값을 유지한다.
 - 관리자 상세는 목록 필드 외에 `photoUrl`, `withdrawnAt`, `bankAccount`, `notificationSetting`을 포함한다.
 - 관리자 활동 요약은 ACTIVE 회원만 제공하며, 현재 저장된 post/comment/party/inquiry/report 데이터 기준 count + domain별 recent 5건 read model을 반환한다. 댓글은 삭제되지 않은 comment이면서 부모 post도 삭제되지 않은 경우만 포함하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리한다.
 - 관리자 권한 변경은 기존 `members.is_admin` boolean만 갱신하며, 탈퇴 회원은 `409 CONFLICT`, 자기 자신의 권한 변경은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 차단한다. 마지막 관리자 수 계산 정책은 후속 결정 전까지 추가하지 않는다.
