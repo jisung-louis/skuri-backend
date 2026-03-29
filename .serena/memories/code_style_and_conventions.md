@@ -81,3 +81,9 @@
 - 관리자 대시보드 집계/일자 버킷은 `Asia/Seoul`로 고정한다. `activity.days`는 `7 | 30`만 허용하고, `recent-items`는 Inquiry/Report/AppNotice/Party를 `createdAt DESC`로 병합한 결과만 노출한다.
 - `summary.totalMembers`처럼 의미가 애매할 수 있는 KPI는 구현과 문서/PR에서 같은 정의를 사용한다. 현재는 `members` 전체 row 기준이며 tombstone(`WITHDRAWN`)을 포함한다.
 - 관리자 대시보드 AppNotice source는 `publishedAt <= now`인 게시 공지로 한정한다. 학교 공지 sync 이력 같은 별도 계약이 없는 데이터를 임의로 섞지 않는다.
+
+- 학사 일정 bulk sync는 새 상태 머신이나 `academicYear` 같은 스키마 컬럼을 추가하지 않고 기존 엔티티/테이블을 유지한 채 read/write model만 확장한다.
+- bulk sync는 bulk create가 아니라 범위 sync semantics를 따른다. `scopeStartDate ~ scopeEndDate` 안에서는 자연키 `title + startDate + endDate + type` 기준으로 update/create/delete를 계산하고, scope 밖 일정은 건드리지 않는다.
+- bulk API의 `type` 하위호환 정규화(`single|multi` -> enum 대문자)는 `PUT /v1/admin/academic-schedules/bulk`에만 적용하고 기존 단건 CRUD 계약은 그대로 유지한다.
+- bulk sync 검증 실패(잘못된 scope, scope 밖 일정, 요청 내부 자연키 중복)는 새 CONFLICT 코드를 만들지 않고 기존 `VALIDATION_ERROR` + 422 흐름으로 처리한다.
+- 관리자 학사 일정 bulk write 감사는 row별 전체 before/after diff보다 summary snapshot(`scopeStartDate`, `scopeEndDate`, `created`, `updated`, `deleted`)을 우선한다.

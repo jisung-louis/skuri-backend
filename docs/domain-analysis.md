@@ -598,6 +598,9 @@ Hooks:
   - AcademicSchedule
     - id, title, startDate, endDate
     - type (SINGLE, MULTI), isPrimary, description
+    - 관리자 bulk sync API(`PUT /v1/admin/academic-schedules/bulk`)는 `scopeStartDate ~ scopeEndDate` 범위 안에 완전히 포함되는 기존 일정만 대상으로 한다.
+    - bulk sync 자연키는 `title + startDate + endDate + type`이며, 같은 자연키는 같은 일정으로 보고 `description`, `isPrimary`만 변경 가능 필드로 취급한다.
+    - bulk sync는 legacy Firebase 스크립트 호환을 위해 `type: single | multi | SINGLE | MULTI`를 모두 허용한다.
   - Course 검색
     - semester/department/professor/dayOfWeek(1-6)/grade 필터 지원
     - search는 강의명/과목코드/카테고리/교수/강의실/비고를 대상으로 한다

@@ -5772,6 +5772,69 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 **Request / Response:** `POST /v1/admin/academic-schedules`와 동일한 필드를 사용하며, 성공 시 `200 OK`로 전체 학사 일정 객체를 반환한다.
 
+#### PUT /v1/admin/academic-schedules/bulk
+학사 일정 bulk sync
+
+연간 JSON 업로드 같은 관리자 일괄 동기화용 API다.
+
+- `scopeStartDate ~ scopeEndDate` 범위 **안에 완전히 포함되는 기존 일정만** sync 대상이다.
+- 자연키는 `title + startDate + endDate + type` 이다.
+- 같은 자연키가 있으면 같은 일정으로 보고 `description`, `isPrimary`만 변경 필드로 간주한다.
+- 요청에 없는 scope 내부 기존 일정은 삭제한다.
+- scope 밖 일정(`startDate < scopeStartDate` 또는 `endDate > scopeEndDate`)은 유지한다.
+- bulk API에 한해 legacy 스크립트 호환을 위해 `type: single | multi | SINGLE | MULTI`를 모두 허용한다.
+- 같은 payload를 다시 호출하면 changed-only update 규칙으로 `created/updated/deleted`가 모두 `0`일 수 있다.
+
+**Request:**
+```json
+{
+  "scopeStartDate": "2026-03-01",
+  "scopeEndDate": "2027-02-28",
+  "schedules": [
+    {
+      "title": "입학식 / 개강",
+      "startDate": "2026-03-03",
+      "endDate": "2026-03-03",
+      "type": "single",
+      "description": "정상수업",
+      "isPrimary": true
+    },
+    {
+      "title": "수강신청 변경기간",
+      "startDate": "2026-03-04",
+      "endDate": "2026-03-09",
+      "type": "MULTI",
+      "description": null,
+      "isPrimary": true
+    }
+  ]
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "scopeStartDate": "2026-03-01",
+    "scopeEndDate": "2027-02-28",
+    "created": 12,
+    "updated": 37,
+    "deleted": 5
+  }
+}
+```
+
+**Validation rules:**
+
+- `scopeStartDate`, `scopeEndDate`는 필수이며 `scopeStartDate <= scopeEndDate`
+- 각 일정은 scope 범위 안에 완전히 포함되어야 함
+- 각 일정은 `title`, `startDate`, `endDate`, `type`, `isPrimary` 필수
+- `startDate <= endDate`
+- `type == SINGLE`이면 `startDate == endDate`
+- 요청 내부에서 같은 `title + startDate + endDate + type` 중복 금지
+- `schedules`는 최소 1개 이상
+
 #### DELETE /v1/admin/academic-schedules/{scheduleId}
 학사 일정 삭제
 

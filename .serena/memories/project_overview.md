@@ -77,3 +77,11 @@
 - 모든 집계와 일자 버킷 기준은 `Asia/Seoul`이다. `summary.newMembersToday`는 `members.joinedAt` 기준 오늘 `00:00 ~ generatedAt`, `activity.days`는 `7 | 30`만 허용한다.
 - `summary.totalMembers`는 `members` 전체 row 기준이다. soft delete tombstone(`WITHDRAWN`)도 포함하며, ACTIVE-only count는 현재 계약에 포함하지 않는다.
 - `recent-items` source는 Inquiry/Report/AppNotice/Party만 사용하고, AppNotice는 `publishedAt <= now`인 게시 공지만 포함한다. 학교 공지 sync 이력이나 운영 action API는 이 read model 범위에 포함하지 않는다.
+
+
+## Admin AcademicSchedule API 메모
+- `academic` 도메인은 기존 단건 CRUD(`POST /v1/admin/academic-schedules`, `PUT /v1/admin/academic-schedules/{scheduleId}`, `DELETE /v1/admin/academic-schedules/{scheduleId}`)를 유지하면서 `PUT /v1/admin/academic-schedules/bulk` 범위 bulk sync API를 추가했다.
+- bulk sync는 `scopeStartDate ~ scopeEndDate` 안에 완전히 포함되는 기존 일정만 대상으로 하고, 자연키 `title + startDate + endDate + type` 기준으로 create/update/delete를 한 번에 계산한다.
+- `description`, `isPrimary`는 자연키가 같은 일정의 변경 가능 필드다.
+- bulk API의 `type`은 하위호환을 위해 `single|multi|SINGLE|MULTI` 입력을 모두 허용하고 서비스에서 대문자 enum으로 정규화한다.
+- 관리자 write audit은 row별 상세 diff 대신 `scopeStartDate`, `scopeEndDate`, `created`, `updated`, `deleted` 요약 snapshot을 남긴다.
