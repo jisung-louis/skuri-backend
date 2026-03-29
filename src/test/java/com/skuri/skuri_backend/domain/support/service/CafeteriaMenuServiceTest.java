@@ -124,6 +124,48 @@ class CafeteriaMenuServiceTest {
     }
 
     @Test
+    void createMenu_주간동일메뉴메타데이터가다르면_예외() {
+        when(cafeteriaMenuRepository.existsById("2026-W08")).thenReturn(false);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cafeteriaMenuService.createMenu(new CreateCafeteriaMenuRequest(
+                        "2026-W08",
+                        LocalDate.of(2026, 2, 16),
+                        LocalDate.of(2026, 2, 20),
+                        null,
+                        Map.of(
+                                "2026-02-16",
+                                Map.of(
+                                        "rollNoodles",
+                                        List.of(new CafeteriaMenuEntryRequest(
+                                                "존슨부대찌개",
+                                                List.of(new CafeteriaMenuBadgeRequest("TAKEOUT", "테이크아웃")),
+                                                10,
+                                                1
+                                        ))
+                                ),
+                                "2026-02-17",
+                                Map.of(
+                                        "rollNoodles",
+                                        List.of(new CafeteriaMenuEntryRequest(
+                                                "존슨부대찌개",
+                                                List.of(new CafeteriaMenuBadgeRequest("TAKEOUT", "테이크아웃")),
+                                                11,
+                                                1
+                                        ))
+                                )
+                        )
+                ))
+        );
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다."));
+        assertTrue(exception.getMessage().contains("category=rollNoodles"));
+        assertTrue(exception.getMessage().contains("title=존슨부대찌개"));
+    }
+
+    @Test
     void getMenuByWeekId_기존행에menuEntries가없어도_기본메타데이터를응답한다() {
         when(cafeteriaMenuRepository.findById("2026-W08")).thenReturn(Optional.of(CafeteriaMenu.create(
                 "2026-W08",

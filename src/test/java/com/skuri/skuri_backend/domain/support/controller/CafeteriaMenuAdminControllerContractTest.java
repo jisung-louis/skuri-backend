@@ -144,6 +144,30 @@ class CafeteriaMenuAdminControllerContractTest {
     }
 
     @Test
+    void createMenu_주간동일메뉴메타데이터충돌_400() throws Exception {
+        mockToken("admin-token", true);
+        when(cafeteriaMenuService.createMenu(any()))
+                .thenThrow(new BusinessException(
+                        ErrorCode.INVALID_REQUEST,
+                        "같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다. "
+                                + "category=rollNoodles, title=존슨부대찌개, firstDate=2026-02-16, date=2026-02-17"
+                ));
+
+        mockMvc.perform(
+                        post("/v1/admin/cafeteria-menus")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(weeklyConflictCreateRequest())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value(
+                        "같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다. "
+                                + "category=rollNoodles, title=존슨부대찌개, firstDate=2026-02-16, date=2026-02-17"
+                ));
+    }
+
+    @Test
     void updateMenu_관리자정상요청_200() throws Exception {
         mockToken("admin-token", true);
         when(cafeteriaMenuService.updateMenu(eq("2026-W08"), any())).thenReturn(menuResponse());
@@ -305,6 +329,48 @@ class CafeteriaMenuAdminControllerContractTest {
                       ],
                       "theBab": [],
                       "fryRice": []
+                    }
+                  }
+                }
+                """;
+    }
+
+    private String weeklyConflictCreateRequest() {
+        return """
+                {
+                  "weekId": "2026-W08",
+                  "weekStart": "2026-02-16",
+                  "weekEnd": "2026-02-20",
+                  "menuEntries": {
+                    "2026-02-16": {
+                      "rollNoodles": [
+                        {
+                          "title": "존슨부대찌개",
+                          "badges": [
+                            {
+                              "code": "TAKEOUT",
+                              "label": "테이크아웃"
+                            }
+                          ],
+                          "likeCount": 178,
+                          "dislikeCount": 22
+                        }
+                      ]
+                    },
+                    "2026-02-17": {
+                      "rollNoodles": [
+                        {
+                          "title": "존슨부대찌개",
+                          "badges": [
+                            {
+                              "code": "TAKEOUT",
+                              "label": "테이크아웃"
+                            }
+                          ],
+                          "likeCount": 179,
+                          "dislikeCount": 22
+                        }
+                      ]
                     }
                   }
                 }
