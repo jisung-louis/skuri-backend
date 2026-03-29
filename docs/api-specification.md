@@ -5564,16 +5564,231 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
-### 12.12 에러 코드
+### 12.12 택시 파티 운영 관리
+
+#### GET /v1/admin/parties
+택시 파티 운영 목록 조회 (관리자)
+
+운영 화면 `/parties`의 목록/필터/검색/페이지네이션용 API다.
+
+**Query Parameters:**
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---|---|---|---|
+| `page` | int | `0` | 페이지 번호 |
+| `size` | int | `20` | 페이지 크기 |
+| `status` | string | - | `OPEN`, `CLOSED`, `ARRIVED`, `ENDED` |
+| `departureDate` | string (`yyyy-MM-dd`) | - | 출발일 필터 |
+| `query` | string | - | 출발지/도착지/leader uid/leader nickname 검색 |
+
+정렬 규칙:
+
+- 기본 정렬은 `departureTime DESC`, tie-breaker는 `createdAt DESC`
+- 별도 `sort` 파라미터는 이번 범위에 제공하지 않는다.
+
+운영 응답 메모:
+
+- 목록 최소 필드는 `id`, `status`, `leaderId`, `leaderNickname`, `routeSummary`, `departureTime`, `currentMembers`, `maxMembers`, `createdAt`
+- 현재 TaxiParty 도메인에는 `gender`가 persisted field로 존재하지 않으므로 목록 응답에 포함하지 않는다.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": "party-20260304-001",
+        "status": "OPEN",
+        "leaderId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+        "leaderNickname": "스쿠리 유저",
+        "routeSummary": "성결대학교 -> 안양역",
+        "departureTime": "2026-03-04T21:00:00",
+        "currentMembers": 2,
+        "maxMembers": 4,
+        "createdAt": "2026-03-04T19:00:00"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  }
+}
+```
+
+#### GET /v1/admin/parties/{partyId}
+택시 파티 운영 상세 조회 (관리자)
+
+운영 화면 `/parties`의 상세 패널/모달 조회용 API다.
+
+운영 응답 메모:
+
+- 상세는 목록 필드 외에 `leader`, `members`, `pendingJoinRequestCount`, `settlementStatus`, `settlement`, `chatRoomId`, `createdAt`, `updatedAt`, `endedAt`를 포함한다.
+- `chatRoomId`는 실제 연결된 파티 채팅방이 있을 때만 반환한다.
+- 현재 도메인에 `lastStatusChangedAt`가 없으므로 별도 운영 메타로 만들지 않는다.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "party-20260304-001",
+    "status": "ARRIVED",
+    "leaderId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+    "leaderNickname": "스쿠리 유저",
+    "leader": {
+      "id": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+      "nickname": "스쿠리 유저",
+      "photoUrl": "https://cdn.skuri.app/profiles/user-1.png"
+    },
+    "routeSummary": "성결대학교 -> 안양역",
+    "departure": {
+      "name": "성결대학교",
+      "lat": 37.382742,
+      "lng": 126.928031
+    },
+    "destination": {
+      "name": "안양역",
+      "lat": 37.401,
+      "lng": 126.922
+    },
+    "departureTime": "2026-03-04T21:00:00",
+    "currentMembers": 3,
+    "maxMembers": 4,
+    "members": [
+      {
+        "id": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+        "nickname": "스쿠리 유저",
+        "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+        "isLeader": true,
+        "joinedAt": "2026-03-04T19:00:00"
+      },
+      {
+        "id": "member-2",
+        "nickname": "김철수",
+        "photoUrl": null,
+        "isLeader": false,
+        "joinedAt": "2026-03-04T19:10:00"
+      }
+    ],
+    "tags": ["빠른출발", "정문"],
+    "detail": "정문 앞 택시승강장 집합",
+    "pendingJoinRequestCount": 2,
+    "settlementStatus": "PENDING",
+    "settlement": {
+      "status": "PENDING",
+      "taxiFare": 15000,
+      "splitMemberCount": 3,
+      "perPersonAmount": 5000,
+      "settlementTargetMemberIds": ["member-2", "member-3"],
+      "account": {
+        "bankName": "카카오뱅크",
+        "accountNumber": "3333-01-1234567",
+        "accountHolder": "홍*동",
+        "hideName": true
+      },
+      "memberSettlements": [
+        {
+          "memberId": "member-2",
+          "displayName": "김철수",
+          "settled": false,
+          "settledAt": null,
+          "leftParty": false,
+          "leftAt": null
+        }
+      ]
+    },
+    "chatRoomId": "party:party-20260304-001",
+    "createdAt": "2026-03-04T19:00:00",
+    "updatedAt": "2026-03-04T21:10:00"
+  }
+}
+```
+
+#### PATCH /v1/admin/parties/{partyId}/status
+택시 파티 상태 변경 (관리자)
+
+관리자가 리더 권한 없이 운영 액션을 수행할 수 있는 상태 변경 API다.
+단, **기존 TaxiParty 상태 머신을 우회하지 않고 동일 전이 규칙만 재사용**한다.
+
+**Request:**
+```json
+{
+  "action": "CLOSE"
+}
+```
+
+`action` enum:
+
+| 값 | 의미 | 허용 전이 |
+|---|---|---|
+| `CLOSE` | 모집 마감 | `OPEN -> CLOSED` |
+| `REOPEN` | 모집 재개 | `CLOSED -> OPEN` |
+| `CANCEL` | 파티 취소 | `OPEN/CLOSED -> ENDED(CANCELLED)` |
+| `END` | 파티 강제 종료 | `ARRIVED -> ENDED(FORCE_ENDED)` |
+
+정책 메모:
+
+- 관리자라도 `END`는 `ARRIVED` 상태에서만 가능하다.
+- 관리자라도 `CANCEL`은 `OPEN`, `CLOSED`에서만 가능하다.
+- 임의 상태 점프(예: `OPEN -> ENDED(FORCE_ENDED)`)는 허용하지 않는다.
+- 감사 로그는 최소 snapshot(`id`, `status`, `endReason`, `settlementStatus`, `endedAt`)만 저장한다.
+
+**Response (200 OK, CLOSE 예시):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "party-20260304-001",
+    "status": "CLOSED"
+  }
+}
+```
+
+**Response (200 OK, END 예시):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "party-20260304-001",
+    "status": "ENDED",
+    "endReason": "FORCE_ENDED"
+  }
+}
+```
+
+**Response (409 Conflict, 허용되지 않은 전이 예시):**
+```json
+{
+  "success": false,
+  "message": "ARRIVED 상태에서만 강제 종료할 수 있습니다.",
+  "errorCode": "INVALID_PARTY_STATE_TRANSITION",
+  "timestamp": "2026-03-29T12:00:00"
+}
+```
+
+### 12.13 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
 | `ADMIN_REQUIRED` | 403 | 관리자 권한 필요 |
 | `CAMPUS_BANNER_NOT_FOUND` | 404 | 존재하지 않는 캠퍼스 홈 배너 |
+| `PARTY_NOT_FOUND` | 404 | 존재하지 않는 파티 |
+| `INVALID_PARTY_STATE_TRANSITION` | 409 | 허용되지 않은 파티 상태 전이 |
+| `PARTY_NOT_CANCELABLE` | 409 | 현재 상태에서는 파티 취소 불가 |
+| `PARTY_ENDED` | 409 | 이미 종료된 파티 |
+| `PARTY_CONCURRENT_MODIFICATION` | 409 | 파티 상태 변경 중 동시성 충돌 |
 
 ---
 
 > 변경 이력
+> - 2026-03-29: TaxiParty Admin P1 계약 추가
+>   - `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`를 추가
+>   - 관리자 상태 변경 액션을 `CLOSE | REOPEN | CANCEL | END`로 고정하고, 기존 state machine만 재사용하도록 명시
+>   - Admin Party 응답에서 현재 도메인에 없는 `gender`, `lastStatusChangedAt`는 제외한다고 명시
 > - 2026-03-29: Support 신고 대상 확장
 >   - `Report.targetType`에 `CHAT_MESSAGE`, `CHAT_ROOM`, `TAXI_PARTY` 추가
 >   - `POST /v1/reports`를 채팅 메시지/일반 채팅방/택시파티 신고까지 확장
@@ -5613,6 +5828,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-29: Admin Member API review fix — `PATCH /v1/admin/members/{memberId}/admin-role`에 self role change 금지(`400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`)를 추가하고, admin-role 감사 로그 snapshot을 최소 필드만 저장하도록 조정. 관리자 상세 응답의 `bankAccount`/`notificationSetting` 계약은 유지
 > - 2026-03-29: Admin Member List contract 확장 — `GET /v1/admin/members`에 `sortBy/sortDirection` 기반 컬럼 정렬과 `lastLoginOs`(`fcm_tokens.platform`)를 추가하고, 이름 컬럼은 `realname` 기준으로 고정
 > - 2026-03-29: FCM token app version 반영 — `POST /v1/members/me/fcm-tokens`에 optional `appVersion`을 추가하고, `GET /v1/admin/members`의 `currentAppVersion`을 최근 활성 FCM 토큰의 `app_version` 기준으로 제공
+> - 2026-03-29: TaxiParty Admin P1 구현 반영 — 관리자 파티 목록/상세/상태 변경 계약과 관련 404/409 에러코드를 `/v3/api-docs` 기준으로 동기화
 > - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강
