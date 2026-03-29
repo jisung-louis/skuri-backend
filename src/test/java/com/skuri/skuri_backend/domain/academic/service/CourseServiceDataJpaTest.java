@@ -39,7 +39,7 @@ class CourseServiceDataJpaTest {
 
     @Test
     void deleteSemesterCourses_강의시간과시간표매핑까지함께삭제한다() {
-        Course course = Course.create(2, "전공선택", "01255", "001", "민법총칙", 3, "문상혁", "영401", null, "2026-1", "법학과");
+        Course course = Course.create(2, "전공선택", "01255", "001", "민법총칙", 3, "문상혁", "영401", null, false, "2026-1", "법학과");
         course.appendSchedule(1, 3, 4);
         course = courseRepository.saveAndFlush(course);
 

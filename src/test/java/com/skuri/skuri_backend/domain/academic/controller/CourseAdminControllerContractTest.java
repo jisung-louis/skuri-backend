@@ -71,6 +71,22 @@ class CourseAdminControllerContractTest {
     }
 
     @Test
+    void bulkUpsertCourses_공식온라인강의정상요청_200() throws Exception {
+        mockToken("admin-token", true);
+        when(courseService.bulkUpsertCourses(any(AdminBulkCoursesRequest.class)))
+                .thenReturn(new AdminBulkCoursesResponse("2026-1", 1, 0, 0));
+
+        mockMvc.perform(
+                        post("/v1/admin/courses/bulk")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(validOnlineBulkRequest())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.created").value(1));
+    }
+
+    @Test
     void bulkUpsertCourses_비관리자요청_403() throws Exception {
         mockToken("user-token", false);
 
@@ -117,6 +133,38 @@ class CourseAdminControllerContractTest {
                 )
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void bulkUpsertCourses_온라인강의에schedule이있으면_422() throws Exception {
+        mockToken("admin-token", true);
+        when(courseService.bulkUpsertCourses(any(AdminBulkCoursesRequest.class)))
+                .thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "온라인 강의는 schedule을 비워야 합니다."));
+
+        mockMvc.perform(
+                        post("/v1/admin/courses/bulk")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(onlineScheduleNotEmptyBulkRequest())
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void bulkUpsertCourses_isOnline생략하위호환요청_200() throws Exception {
+        mockToken("admin-token", true);
+        when(courseService.bulkUpsertCourses(any(AdminBulkCoursesRequest.class)))
+                .thenReturn(new AdminBulkCoursesResponse("2026-1", 1, 0, 0));
+
+        mockMvc.perform(
+                        post("/v1/admin/courses/bulk")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(legacyBulkRequestWithoutIsOnline())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.created").value(1));
     }
 
     @Test
@@ -268,6 +316,82 @@ class CourseAdminControllerContractTest {
     }
 
     private String validBulkRequest() {
+        return """
+                {
+                  "semester": "2026-1",
+                  "courses": [
+                    {
+                      "code": "01255",
+                      "division": "001",
+                      "name": "민법총칙",
+                      "credits": 3,
+                      "professor": "문상혁",
+                      "department": "법학과",
+                      "grade": 2,
+                      "category": "전공선택",
+                      "location": "영401",
+                      "note": null,
+                      "isOnline": false,
+                      "schedule": [
+                        { "dayOfWeek": 1, "startPeriod": 3, "endPeriod": 4 }
+                      ]
+                    }
+                  ]
+                }
+                """;
+    }
+
+    private String validOnlineBulkRequest() {
+        return """
+                {
+                  "semester": "2026-1",
+                  "courses": [
+                    {
+                      "grade": 1,
+                      "category": "교양선택",
+                      "code": "20797",
+                      "division": "001",
+                      "name": "사랑의인문학(KCU온라인강좌)",
+                      "credits": 3,
+                      "professor": null,
+                      "location": null,
+                      "department": "교양",
+                      "note": null,
+                      "isOnline": true,
+                      "schedule": []
+                    }
+                  ]
+                }
+                """;
+    }
+
+    private String onlineScheduleNotEmptyBulkRequest() {
+        return """
+                {
+                  "semester": "2026-1",
+                  "courses": [
+                    {
+                      "grade": 1,
+                      "category": "교양선택",
+                      "code": "20797",
+                      "division": "001",
+                      "name": "사랑의인문학(KCU온라인강좌)",
+                      "credits": 3,
+                      "professor": null,
+                      "location": "온라인",
+                      "department": "교양",
+                      "note": null,
+                      "isOnline": true,
+                      "schedule": [
+                        { "dayOfWeek": 1, "startPeriod": 1, "endPeriod": 1 }
+                      ]
+                    }
+                  ]
+                }
+                """;
+    }
+
+    private String legacyBulkRequestWithoutIsOnline() {
         return """
                 {
                   "semester": "2026-1",

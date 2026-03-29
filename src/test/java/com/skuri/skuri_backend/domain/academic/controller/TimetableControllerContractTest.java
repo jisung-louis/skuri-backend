@@ -97,6 +97,25 @@ class TimetableControllerContractTest {
     }
 
     @Test
+    void getMyTimetable_공식온라인강의는courses에만포함된다_200() throws Exception {
+        mockValidToken();
+        when(timetableService.getMyTimetable("firebase-uid", "2026-1")).thenReturn(officialOnlineTimetableResponse());
+
+        mockMvc.perform(
+                        get("/v1/timetables/my")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .param("semester", "2026-1")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.courses[0].id").value("course-online-1"))
+                .andExpect(jsonPath("$.data.courses[0].isOnline").value(true))
+                .andExpect(jsonPath("$.data.courses[0].schedule").isArray())
+                .andExpect(jsonPath("$.data.courses[0].schedule").isEmpty())
+                .andExpect(jsonPath("$.data.slots").isArray())
+                .andExpect(jsonPath("$.data.slots").isEmpty());
+    }
+
+    @Test
     void getMyTimetable_비인증요청_401() throws Exception {
         mockMvc.perform(get("/v1/timetables/my"))
                 .andExpect(status().isUnauthorized())
@@ -364,6 +383,28 @@ class TimetableControllerContractTest {
                         null,
                         null,
                         2,
+                        true,
+                        List.of()
+                )),
+                List.of()
+        );
+    }
+
+    private UserTimetableResponse officialOnlineTimetableResponse() {
+        return new UserTimetableResponse(
+                "timetable-1",
+                "2026-1",
+                1,
+                3,
+                List.of(new TimetableCourseResponse(
+                        "course-online-1",
+                        "20797",
+                        "001",
+                        "사랑의인문학(KCU온라인강좌)",
+                        null,
+                        null,
+                        "교양선택",
+                        3,
                         true,
                         List.of()
                 )),

@@ -50,7 +50,7 @@ class CourseControllerContractTest {
     void getCourses_정상요청_200() throws Exception {
         mockValidToken();
         when(courseService.getCourses("2026-1", "법학과", "문상혁", "민법", 1, 2, null, null))
-                .thenReturn(PageResponse.from(new PageImpl<>(List.of(courseResponse()))));
+                .thenReturn(PageResponse.from(new PageImpl<>(List.of(courseResponse(false)))));
 
         mockMvc.perform(
                         get("/v1/courses")
@@ -66,6 +66,25 @@ class CourseControllerContractTest {
                 .andExpect(jsonPath("$.data.content[0].id").value("course-1"))
                 .andExpect(jsonPath("$.data.content[0].credits").value(3))
                 .andExpect(jsonPath("$.data.content[0].isOnline").value(false));
+    }
+
+    @Test
+    void getCourses_공식온라인강의응답_200() throws Exception {
+        mockValidToken();
+        when(courseService.getCourses("2026-1", null, null, "KCU", null, null, null, null))
+                .thenReturn(PageResponse.from(new PageImpl<>(List.of(courseResponse(true)))));
+
+        mockMvc.perform(
+                        get("/v1/courses")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .param("semester", "2026-1")
+                                .param("search", "KCU")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].id").value("course-online-1"))
+                .andExpect(jsonPath("$.data.content[0].isOnline").value(true))
+                .andExpect(jsonPath("$.data.content[0].schedule").isArray())
+                .andExpect(jsonPath("$.data.content[0].schedule").isEmpty());
     }
 
     @Test
@@ -102,22 +121,24 @@ class CourseControllerContractTest {
                 ));
     }
 
-    private CourseSummaryResponse courseResponse() {
+    private CourseSummaryResponse courseResponse(boolean isOnline) {
         return new CourseSummaryResponse(
-                "course-1",
+                isOnline ? "course-online-1" : "course-1",
                 "2026-1",
-                "01255",
+                isOnline ? "20797" : "01255",
                 "001",
-                "민법총칙",
+                isOnline ? "사랑의인문학(KCU온라인강좌)" : "민법총칙",
                 3,
-                false,
-                "문상혁",
-                "법학과",
-                2,
-                "전공선택",
-                "영401",
+                isOnline,
+                isOnline ? null : "문상혁",
+                isOnline ? "교양" : "법학과",
+                isOnline ? 1 : 2,
+                isOnline ? "교양선택" : "전공선택",
+                isOnline ? null : "영401",
                 null,
-                List.of(
+                isOnline
+                        ? List.of()
+                        : List.of(
                         new CourseScheduleResponse(1, 3, 4),
                         new CourseScheduleResponse(3, 3, 4)
                 )
