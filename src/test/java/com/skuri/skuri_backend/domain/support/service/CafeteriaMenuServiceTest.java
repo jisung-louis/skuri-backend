@@ -5,8 +5,11 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.support.dto.request.CafeteriaMenuBadgeRequest;
 import com.skuri.skuri_backend.domain.support.dto.request.CafeteriaMenuEntryRequest;
 import com.skuri.skuri_backend.domain.support.dto.request.CreateCafeteriaMenuRequest;
+import com.skuri.skuri_backend.domain.support.dto.request.UpdateCafeteriaMenuRequest;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.entity.CafeteriaMenu;
+import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuBadgeMetadata;
+import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuEntryMetadata;
 import com.skuri.skuri_backend.domain.support.repository.CafeteriaMenuRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -93,6 +96,105 @@ class CafeteriaMenuServiceTest {
         assertEquals(0, response.menuEntries().get("2026-02-16").get("rollNoodles").get(0).likeCount());
         assertTrue(response.menuEntries().get("2026-02-16").get("rollNoodles").get(0).badges().isEmpty());
         assertTrue(response.menuEntries().get("2026-02-16").get("theBab").isEmpty());
+    }
+
+    @Test
+    void createMenu_menus가빈카테고리를생략해도_menuEntries의빈배열과동일하게본다() {
+        when(cafeteriaMenuRepository.existsById("2026-W08")).thenReturn(false);
+        when(cafeteriaMenuRepository.save(any(CafeteriaMenu.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CafeteriaMenuResponse response = cafeteriaMenuService.createMenu(new CreateCafeteriaMenuRequest(
+                "2026-W08",
+                LocalDate.of(2026, 2, 16),
+                LocalDate.of(2026, 2, 20),
+                Map.of(
+                        "2026-02-16",
+                        Map.of("rollNoodles", List.of("존슨부대찌개"))
+                ),
+                Map.of(
+                        "2026-02-16",
+                        Map.of(
+                                "rollNoodles",
+                                List.of(new CafeteriaMenuEntryRequest(
+                                        "존슨부대찌개",
+                                        List.of(new CafeteriaMenuBadgeRequest("TAKEOUT", "테이크아웃")),
+                                        178,
+                                        22
+                                )),
+                                "theBab",
+                                List.of(),
+                                "fryRice",
+                                List.of()
+                        )
+                )
+        ));
+
+        assertIterableEquals(
+                List.of("존슨부대찌개"),
+                response.menus().get("2026-02-16").get("rollNoodles")
+        );
+        assertTrue(response.menuEntries().get("2026-02-16").get("theBab").isEmpty());
+        assertTrue(response.menuEntries().get("2026-02-16").get("fryRice").isEmpty());
+    }
+
+    @Test
+    void updateMenu_응답을그대로라운드트립해도_빈카테고리차이로실패하지않는다() {
+        when(cafeteriaMenuRepository.findById("2026-W08")).thenReturn(Optional.of(CafeteriaMenu.create(
+                "2026-W08",
+                LocalDate.of(2026, 2, 16),
+                LocalDate.of(2026, 2, 20),
+                Map.of(
+                        "2026-02-16",
+                        Map.of("rollNoodles", List.of("존슨부대찌개"))
+                ),
+                Map.of(
+                        "2026-02-16",
+                        Map.of(
+                                "rollNoodles",
+                                List.of(new CafeteriaMenuEntryMetadata(
+                                        "존슨부대찌개",
+                                        List.of(new CafeteriaMenuBadgeMetadata("TAKEOUT", "테이크아웃")),
+                                        178,
+                                        22
+                                ))
+                        )
+                )
+        )));
+
+        CafeteriaMenuResponse response = cafeteriaMenuService.updateMenu(
+                "2026-W08",
+                new UpdateCafeteriaMenuRequest(
+                        LocalDate.of(2026, 2, 16),
+                        LocalDate.of(2026, 2, 20),
+                        Map.of(
+                                "2026-02-16",
+                                Map.of("rollNoodles", List.of("존슨부대찌개"))
+                        ),
+                        Map.of(
+                                "2026-02-16",
+                                Map.of(
+                                        "rollNoodles",
+                                        List.of(new CafeteriaMenuEntryRequest(
+                                                "존슨부대찌개",
+                                                List.of(new CafeteriaMenuBadgeRequest("TAKEOUT", "테이크아웃")),
+                                                178,
+                                                22
+                                        )),
+                                        "theBab",
+                                        List.of(),
+                                        "fryRice",
+                                        List.of()
+                                )
+                        )
+                )
+        );
+
+        assertIterableEquals(
+                List.of("존슨부대찌개"),
+                response.menus().get("2026-02-16").get("rollNoodles")
+        );
+        assertTrue(response.menuEntries().get("2026-02-16").get("theBab").isEmpty());
+        assertTrue(response.menuEntries().get("2026-02-16").get("fryRice").isEmpty());
     }
 
     @Test
