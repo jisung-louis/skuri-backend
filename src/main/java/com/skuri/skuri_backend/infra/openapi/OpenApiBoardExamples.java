@@ -103,6 +103,119 @@ public final class OpenApiBoardExamples {
             }
             """;
 
+    public static final String SUCCESS_ADMIN_POST_LIST_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "content": [
+                  {
+                    "id": "post_uuid",
+                    "category": "GENERAL",
+                    "title": "관리 대상 게시글",
+                    "authorId": "member-1",
+                    "authorNickname": "스쿠리유저",
+                    "authorRealname": "홍길동",
+                    "isAnonymous": false,
+                    "commentCount": 5,
+                    "likeCount": 10,
+                    "createdAt": "2026-03-29T12:00:00",
+                    "updatedAt": "2026-03-29T12:30:00",
+                    "moderationStatus": "VISIBLE",
+                    "thumbnailUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg"
+                  }
+                ],
+                "page": 0,
+                "size": 20,
+                "totalElements": 1,
+                "totalPages": 1,
+                "hasNext": false,
+                "hasPrevious": false
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_POST_DETAIL = """
+            {
+              "success": true,
+              "data": {
+                "id": "post_uuid",
+                "category": "GENERAL",
+                "title": "관리 대상 게시글",
+                "content": "관리자 상세에서 확인하는 본문 전체 내용",
+                "authorId": "member-1",
+                "authorNickname": "스쿠리유저",
+                "authorRealname": "홍길동",
+                "isAnonymous": false,
+                "viewCount": 42,
+                "likeCount": 10,
+                "commentCount": 5,
+                "bookmarkCount": 3,
+                "createdAt": "2026-03-29T12:00:00",
+                "updatedAt": "2026-03-29T12:30:00",
+                "moderationStatus": "HIDDEN",
+                "thumbnailUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg",
+                "images": [
+                  {
+                    "url": "https://cdn.skuri.app/posts/post-1/image-1.jpg",
+                    "thumbUrl": "https://cdn.skuri.app/posts/post-1/image-1-thumb.jpg",
+                    "width": 800,
+                    "height": 600,
+                    "size": 245123,
+                    "mime": "image/jpeg"
+                  }
+                ]
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_POST_MODERATION_UPDATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "post_uuid",
+                "moderationStatus": "HIDDEN"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_COMMENT_LIST_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "content": [
+                  {
+                    "id": "comment_uuid",
+                    "postId": "post_uuid",
+                    "postTitle": "관리 대상 게시글",
+                    "authorId": "member-2",
+                    "authorNickname": "댓글유저",
+                    "authorRealname": "김철수",
+                    "contentPreview": "문제되는 댓글 내용 일부...",
+                    "parentCommentId": null,
+                    "createdAt": "2026-03-29T13:00:00",
+                    "moderationStatus": "VISIBLE"
+                  }
+                ],
+                "page": 0,
+                "size": 20,
+                "totalElements": 1,
+                "totalPages": 1,
+                "hasNext": false,
+                "hasPrevious": false
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_COMMENT_MODERATION_UPDATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "comment_uuid",
+                "moderationStatus": "DELETED"
+              }
+            }
+            """;
+
     public static final String SUCCESS_LIKE = """
             {
               "success": true,
@@ -299,6 +412,51 @@ public final class OpenApiBoardExamples {
               "errorCode": "COMMENT_ALREADY_DELETED",
               "message": "이미 삭제된 댓글입니다.",
               "timestamp": "2026-03-05T20:30:00"
+            }
+            """;
+
+    public static final String ERROR_ADMIN_POST_CATEGORY_INVALID = """
+            {
+              "success": false,
+              "errorCode": "VALIDATION_ERROR",
+              "message": "category는 GENERAL, QUESTION, REVIEW, ANNOUNCEMENT 중 하나여야 합니다.",
+              "timestamp": "2026-03-29T14:00:00"
+            }
+            """;
+
+    public static final String ERROR_ADMIN_MODERATION_STATUS_INVALID = """
+            {
+              "success": false,
+              "errorCode": "VALIDATION_ERROR",
+              "message": "moderationStatus는 VISIBLE, HIDDEN, DELETED 중 하나여야 합니다.",
+              "timestamp": "2026-03-29T14:00:00"
+            }
+            """;
+
+    public static final String ERROR_ADMIN_REQUEST_STATUS_INVALID = """
+            {
+              "success": false,
+              "errorCode": "VALIDATION_ERROR",
+              "message": "status는 VISIBLE, HIDDEN, DELETED 중 하나여야 합니다.",
+              "timestamp": "2026-03-29T14:00:00"
+            }
+            """;
+
+    public static final String ERROR_INVALID_POST_MODERATION_STATUS_TRANSITION = """
+            {
+              "success": false,
+              "errorCode": "INVALID_POST_MODERATION_STATUS_TRANSITION",
+              "message": "허용되지 않는 게시글 moderation 상태 전이입니다.",
+              "timestamp": "2026-03-29T14:00:00"
+            }
+            """;
+
+    public static final String ERROR_INVALID_COMMENT_MODERATION_STATUS_TRANSITION = """
+            {
+              "success": false,
+              "errorCode": "INVALID_COMMENT_MODERATION_STATUS_TRANSITION",
+              "message": "허용되지 않는 댓글 moderation 상태 전이입니다.",
+              "timestamp": "2026-03-29T14:00:00"
             }
             """;
 }

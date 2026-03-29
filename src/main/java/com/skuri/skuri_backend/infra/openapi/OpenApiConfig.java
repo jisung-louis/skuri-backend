@@ -128,6 +128,8 @@ public class OpenApiConfig {
                 .group("board")
                 .pathsToMatch(
                         "/v1/posts/**",
+                        "/v1/admin/posts/**",
+                        "/v1/admin/comments/**",
                         "/v1/comments/**",
                         "/v1/members/me/posts",
                         "/v1/members/me/bookmarks"

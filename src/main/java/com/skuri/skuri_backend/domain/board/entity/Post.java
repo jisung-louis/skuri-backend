@@ -72,6 +72,9 @@ public class Post extends BaseTimeEntity {
     @Column(name = "is_pinned", nullable = false)
     private boolean pinned;
 
+    @Column(name = "is_hidden", nullable = false)
+    private boolean hidden;
+
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted;
 
@@ -103,6 +106,7 @@ public class Post extends BaseTimeEntity {
         this.commentCount = 0;
         this.bookmarkCount = 0;
         this.pinned = false;
+        this.hidden = false;
         this.deleted = false;
     }
 
@@ -143,7 +147,16 @@ public class Post extends BaseTimeEntity {
     }
 
     public void markDeleted() {
+        this.hidden = false;
         this.deleted = true;
+    }
+
+    public void hide() {
+        this.hidden = true;
+    }
+
+    public void unhide() {
+        this.hidden = false;
     }
 
     public void appendImage(

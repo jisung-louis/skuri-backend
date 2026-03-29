@@ -9,6 +9,8 @@ public final class AdminAuditActions {
     public static final String COURSE_SEMESTER_DELETED = "COURSE_SEMESTER_DELETED";
     public static final String CHAT_ROOM_CREATED = "CHAT_ROOM_CREATED";
     public static final String CHAT_ROOM_DELETED = "CHAT_ROOM_DELETED";
+    public static final String POST_MODERATION_UPDATED = "POST_MODERATION_UPDATED";
+    public static final String COMMENT_MODERATION_UPDATED = "COMMENT_MODERATION_UPDATED";
     public static final String NOTICE_SYNC_TRIGGERED = "NOTICE_SYNC_TRIGGERED";
     public static final String APP_NOTICE_CREATED = "APP_NOTICE_CREATED";
     public static final String APP_NOTICE_UPDATED = "APP_NOTICE_UPDATED";

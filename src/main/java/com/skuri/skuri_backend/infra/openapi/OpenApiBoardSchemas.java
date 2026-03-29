@@ -1,6 +1,10 @@
 package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.domain.board.dto.response.AdminCommentSummaryResponse;
+import com.skuri.skuri_backend.domain.board.dto.response.AdminPostDetailResponse;
+import com.skuri.skuri_backend.domain.board.dto.response.AdminPostSummaryResponse;
+import com.skuri.skuri_backend.domain.board.dto.response.BoardModerationResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.CommentLikeResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.CommentResponse;
 import com.skuri.skuri_backend.domain.board.dto.response.PostBookmarkResponse;
@@ -38,6 +42,66 @@ public final class OpenApiBoardSchemas {
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
             PageResponse<PostSummaryResponse> data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "AdminBoardPostSummaryPageApiResponse", description = "공통 API 응답 포맷")
+    public record AdminPostSummaryPageApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            PageResponse<AdminPostSummaryResponse> data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "AdminBoardPostDetailApiResponse", description = "공통 API 응답 포맷")
+    public record AdminPostDetailApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            AdminPostDetailResponse data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "AdminBoardCommentSummaryPageApiResponse", description = "공통 API 응답 포맷")
+    public record AdminCommentSummaryPageApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            PageResponse<AdminCommentSummaryResponse> data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "BoardModerationApiResponse", description = "공통 API 응답 포맷")
+    public record BoardModerationApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            BoardModerationResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)

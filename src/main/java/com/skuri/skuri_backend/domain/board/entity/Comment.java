@@ -27,6 +27,7 @@ import java.util.List;
 public class Comment extends BaseTimeEntity {
 
     public static final String DELETED_PLACEHOLDER = "삭제된 댓글입니다";
+    public static final String HIDDEN_PLACEHOLDER = "관리자에 의해 숨김 처리된 댓글입니다.";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -66,6 +67,9 @@ public class Comment extends BaseTimeEntity {
     @OneToMany(mappedBy = "parent")
     private final List<Comment> replies = new ArrayList<>();
 
+    @Column(name = "is_hidden", nullable = false)
+    private boolean hidden;
+
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted;
 
@@ -92,6 +96,7 @@ public class Comment extends BaseTimeEntity {
         this.anonId = anonId;
         this.anonymousOrder = anonymousOrder;
         this.parent = parent;
+        this.hidden = false;
         this.deleted = false;
         this.likeCount = 0;
     }
@@ -137,8 +142,17 @@ public class Comment extends BaseTimeEntity {
     }
 
     public void softDelete() {
+        this.hidden = false;
         this.deleted = true;
         this.content = DELETED_PLACEHOLDER;
+    }
+
+    public void hide() {
+        this.hidden = true;
+    }
+
+    public void unhide() {
+        this.hidden = false;
     }
 
     public void increaseLikeCount(int delta) {

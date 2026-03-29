@@ -38,6 +38,7 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
             from Comment c
             where c.id = :commentId
               and c.post.deleted = false
+              and c.hidden = false
             """)
     Optional<Comment> findActiveById(@Param("commentId") String commentId);
 
@@ -47,8 +48,17 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
             from Comment c
             where c.id = :commentId
               and c.post.deleted = false
+              and c.hidden = false
             """)
     Optional<Comment> findByIdForUpdate(@Param("commentId") String commentId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select c
+            from Comment c
+            where c.id = :commentId
+            """)
+    Optional<Comment> findByIdForAdminUpdate(@Param("commentId") String commentId);
 
     Optional<Comment> findFirstByPost_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(String postId, String anonId);
 
@@ -68,6 +78,7 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
                     from Comment c
                     where c.authorId = :authorId
                       and c.deleted = false
+                      and c.hidden = false
                       and c.post.deleted = false
                     """,
             countQuery = """
@@ -75,6 +86,7 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
                     from Comment c
                     where c.authorId = :authorId
                       and c.deleted = false
+                      and c.hidden = false
                       and c.post.deleted = false
                     """
     )
@@ -85,8 +97,45 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
             from Comment c
             where c.authorId = :authorId
               and c.deleted = false
+              and c.hidden = false
               and c.post.deleted = false
               and c.post.id in :postIds
             """)
     List<String> findCommentedPostIds(@Param("authorId") String authorId, @Param("postIds") Collection<String> postIds);
+
+    @Query("""
+            select c.id as id,
+                   c.post.id as postId,
+                   c.post.title as postTitle,
+                   c.authorId as authorId,
+                   coalesce(m.nickname, c.authorName) as authorNickname,
+                   m.realname as authorRealname,
+                   c.content as content,
+                   c.parent.id as parentCommentId,
+                   c.createdAt as createdAt,
+                   c.hidden as hidden,
+                   c.deleted as deleted
+            from Comment c
+            left join Member m on m.id = c.authorId
+            where (:postId is null or c.post.id = :postId)
+              and (:authorId is null or c.authorId = :authorId)
+              and (:query is null
+                    or lower(c.content) like lower(concat('%', :query, '%'))
+                    or lower(c.post.title) like lower(concat('%', :query, '%'))
+                    or lower(coalesce(coalesce(m.nickname, c.authorName), '')) like lower(concat('%', :query, '%'))
+                    or lower(coalesce(m.realname, '')) like lower(concat('%', :query, '%')))
+              and (
+                    :moderationStatus is null
+                    or (:moderationStatus = 'VISIBLE' and c.deleted = false and c.hidden = false)
+                    or (:moderationStatus = 'HIDDEN' and c.deleted = false and c.hidden = true)
+                    or (:moderationStatus = 'DELETED' and c.deleted = true)
+              )
+            """)
+    Page<AdminCommentSummaryProjection> searchAdminSummaries(
+            @Param("postId") String postId,
+            @Param("query") String query,
+            @Param("moderationStatus") String moderationStatus,
+            @Param("authorId") String authorId,
+            Pageable pageable
+    );
 }

@@ -13,6 +13,10 @@ import com.skuri.skuri_backend.domain.app.repository.AppNoticeRepository;
 import com.skuri.skuri_backend.domain.campus.dto.response.CampusBannerAdminResponse;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBanner;
 import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
+import com.skuri.skuri_backend.domain.board.entity.Comment;
+import com.skuri.skuri_backend.domain.board.entity.Post;
+import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
+import com.skuri.skuri_backend.domain.board.repository.PostRepository;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessage;
 import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
@@ -46,6 +50,8 @@ public class AdminAuditSnapshotFactory {
     private final CourseRepository courseRepository;
     private final AppNoticeRepository appNoticeRepository;
     private final CampusBannerRepository campusBannerRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final MemberRepository memberRepository;
@@ -163,6 +169,18 @@ public class AdminAuditSnapshotFactory {
     public MemberAdminRoleSnapshot memberAdminRole(String memberId) {
         return memberRepository.findById(memberId)
                 .map(this::toMemberAdminRoleSnapshot)
+                .orElse(null);
+    }
+
+    public PostModerationSnapshot postModeration(String postId) {
+        return postRepository.findById(postId)
+                .map(this::toPostModerationSnapshot)
+                .orElse(null);
+    }
+
+    public CommentModerationSnapshot commentModeration(String commentId) {
+        return commentRepository.findById(commentId)
+                .map(this::toCommentModerationSnapshot)
                 .orElse(null);
     }
 
@@ -319,6 +337,29 @@ public class AdminAuditSnapshotFactory {
         );
     }
 
+    private PostModerationSnapshot toPostModerationSnapshot(Post post) {
+        return new PostModerationSnapshot(
+                post.getId(),
+                post.getAuthorId(),
+                post.getCategory(),
+                post.isAnonymous(),
+                post.isHidden(),
+                post.isDeleted()
+        );
+    }
+
+    private CommentModerationSnapshot toCommentModerationSnapshot(Comment comment) {
+        return new CommentModerationSnapshot(
+                comment.getId(),
+                comment.getPost().getId(),
+                comment.getAuthorId(),
+                comment.hasParent() ? comment.getParent().getId() : null,
+                comment.isAnonymous(),
+                comment.isHidden(),
+                comment.isDeleted()
+        );
+    }
+
     public record CourseSemesterSnapshot(
             String semester,
             int totalCourses,
@@ -403,6 +444,27 @@ public class AdminAuditSnapshotFactory {
             String nickname,
             boolean isAdmin,
             Object status
+    ) {
+    }
+
+    public record PostModerationSnapshot(
+            String id,
+            String authorId,
+            Object category,
+            boolean anonymous,
+            boolean hidden,
+            boolean deleted
+    ) {
+    }
+
+    public record CommentModerationSnapshot(
+            String id,
+            String postId,
+            String authorId,
+            String parentId,
+            boolean anonymous,
+            boolean hidden,
+            boolean deleted
     ) {
     }
 
