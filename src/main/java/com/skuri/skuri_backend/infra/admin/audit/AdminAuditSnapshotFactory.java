@@ -17,6 +17,8 @@ import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import com.skuri.skuri_backend.domain.taxiparty.repository.PartyRepository;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.LegalDocumentAdminResponse;
 import com.skuri.skuri_backend.domain.support.entity.AppVersion;
@@ -44,6 +46,7 @@ public class AdminAuditSnapshotFactory {
     private final CampusBannerRepository campusBannerRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final MemberRepository memberRepository;
+    private final PartyRepository partyRepository;
     private final InquiryRepository inquiryRepository;
     private final ReportRepository reportRepository;
     private final AppVersionRepository appVersionRepository;
@@ -142,6 +145,12 @@ public class AdminAuditSnapshotFactory {
     public MemberAdminRoleSnapshot memberAdminRole(String memberId) {
         return memberRepository.findById(memberId)
                 .map(this::toMemberAdminRoleSnapshot)
+                .orElse(null);
+    }
+
+    public PartyStatusSnapshot partyStatus(String partyId) {
+        return partyRepository.findById(partyId)
+                .map(this::toPartyStatusSnapshot)
                 .orElse(null);
     }
 
@@ -268,6 +277,16 @@ public class AdminAuditSnapshotFactory {
         );
     }
 
+    private PartyStatusSnapshot toPartyStatusSnapshot(Party party) {
+        return new PartyStatusSnapshot(
+                party.getId(),
+                party.getStatus(),
+                party.getEndReason(),
+                party.getSettlementStatus(),
+                party.getEndedAt()
+        );
+    }
+
     public record CourseSemesterSnapshot(
             String semester,
             int totalCourses,
@@ -340,6 +359,15 @@ public class AdminAuditSnapshotFactory {
             String nickname,
             boolean isAdmin,
             Object status
+    ) {
+    }
+
+    public record PartyStatusSnapshot(
+            String id,
+            Object status,
+            Object endReason,
+            Object settlementStatus,
+            LocalDateTime endedAt
     ) {
     }
 

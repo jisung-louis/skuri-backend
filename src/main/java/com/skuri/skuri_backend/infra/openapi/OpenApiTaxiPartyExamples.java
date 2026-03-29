@@ -255,6 +255,131 @@ public final class OpenApiTaxiPartyExamples {
             }
             """;
 
+    public static final String SUCCESS_ADMIN_PARTY_LIST_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "content": [
+                  {
+                    "id": "party-20260304-001",
+                    "status": "OPEN",
+                    "leaderId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+                    "leaderNickname": "스쿠리 유저",
+                    "routeSummary": "성결대학교 -> 안양역",
+                    "departureTime": "2026-03-04T21:00:00",
+                    "currentMembers": 2,
+                    "maxMembers": 4,
+                    "createdAt": "2026-03-04T19:00:00"
+                  }
+                ],
+                "page": 0,
+                "size": 20,
+                "totalElements": 1,
+                "totalPages": 1,
+                "hasNext": false,
+                "hasPrevious": false
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_PARTY_DETAIL = """
+            {
+              "success": true,
+              "data": {
+                "id": "party-20260304-001",
+                "status": "ARRIVED",
+                "leaderId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+                "leaderNickname": "스쿠리 유저",
+                "leader": {
+                  "id": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+                  "nickname": "스쿠리 유저",
+                  "photoUrl": "https://cdn.skuri.app/profiles/user-1.png"
+                },
+                "routeSummary": "성결대학교 -> 안양역",
+                "departure": {
+                  "name": "성결대학교",
+                  "lat": 37.382742,
+                  "lng": 126.928031
+                },
+                "destination": {
+                  "name": "안양역",
+                  "lat": 37.401,
+                  "lng": 126.922
+                },
+                "departureTime": "2026-03-04T21:00:00",
+                "currentMembers": 3,
+                "maxMembers": 4,
+                "members": [
+                  {
+                    "id": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+                    "nickname": "스쿠리 유저",
+                    "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                    "isLeader": true,
+                    "joinedAt": "2026-03-04T19:00:00"
+                  },
+                  {
+                    "id": "member-2",
+                    "nickname": "김철수",
+                    "photoUrl": null,
+                    "isLeader": false,
+                    "joinedAt": "2026-03-04T19:10:00"
+                  },
+                  {
+                    "id": "member-3",
+                    "nickname": "이영희",
+                    "photoUrl": "https://cdn.skuri.app/profiles/user-3.png",
+                    "isLeader": false,
+                    "joinedAt": "2026-03-04T19:15:00"
+                  }
+                ],
+                "tags": [
+                  "빠른출발",
+                  "정문"
+                ],
+                "detail": "정문 앞 택시승강장 집합",
+                "pendingJoinRequestCount": 2,
+                "settlementStatus": "PENDING",
+                "settlement": {
+                  "status": "PENDING",
+                  "taxiFare": 15000,
+                  "splitMemberCount": 3,
+                  "perPersonAmount": 5000,
+                  "settlementTargetMemberIds": [
+                    "member-2",
+                    "member-3"
+                  ],
+                  "memberSettlements": [
+                    {
+                      "memberId": "member-2",
+                      "displayName": "김철수",
+                      "settled": false,
+                      "settledAt": null,
+                      "leftParty": false,
+                      "leftAt": null
+                    },
+                    {
+                      "memberId": "member-3",
+                      "displayName": "이영희",
+                      "settled": true,
+                      "settledAt": "2026-03-04T21:20:00",
+                      "leftParty": false,
+                      "leftAt": null
+                    }
+                  ],
+                  "account": {
+                    "bankName": "카카오뱅크",
+                    "accountNumber": "3333-01-1234567",
+                    "accountHolder": "홍*동",
+                    "hideName": true
+                  }
+                },
+                "chatRoomId": "party:party-20260304-001",
+                "createdAt": "2026-03-04T19:00:00",
+                "updatedAt": "2026-03-04T21:10:00"
+              }
+            }
+            """;
+
     public static final String SUCCESS_PARTY_STATUS_CLOSED = """
             {
               "success": true,

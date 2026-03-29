@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -27,6 +28,43 @@ public interface PartyRepository extends JpaRepository<Party, String> {
             @Param("departureTime") LocalDateTime departureTime,
             @Param("departureName") String departureName,
             @Param("destinationName") String destinationName,
+            Pageable pageable
+    );
+
+    @Query(
+            value = """
+                    select p
+                    from Party p
+                    left join Member leader on leader.id = p.leaderId
+                    where (:status is null or p.status = :status)
+                      and (:departureDate is null or function('date', p.departureTime) = :departureDate)
+                      and (
+                            :query is null
+                            or lower(p.departure.name) like lower(concat('%', :query, '%'))
+                            or lower(p.destination.name) like lower(concat('%', :query, '%'))
+                            or lower(p.leaderId) like lower(concat('%', :query, '%'))
+                            or lower(coalesce(leader.nickname, '')) like lower(concat('%', :query, '%'))
+                      )
+                    """,
+            countQuery = """
+                    select count(p)
+                    from Party p
+                    left join Member leader on leader.id = p.leaderId
+                    where (:status is null or p.status = :status)
+                      and (:departureDate is null or function('date', p.departureTime) = :departureDate)
+                      and (
+                            :query is null
+                            or lower(p.departure.name) like lower(concat('%', :query, '%'))
+                            or lower(p.destination.name) like lower(concat('%', :query, '%'))
+                            or lower(p.leaderId) like lower(concat('%', :query, '%'))
+                            or lower(coalesce(leader.nickname, '')) like lower(concat('%', :query, '%'))
+                      )
+                    """
+    )
+    Page<Party> searchAdminParties(
+            @Param("status") PartyStatus status,
+            @Param("departureDate") LocalDate departureDate,
+            @Param("query") String query,
             Pageable pageable
     );
 
