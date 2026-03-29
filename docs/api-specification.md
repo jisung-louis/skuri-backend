@@ -3253,6 +3253,9 @@ Authorization:Bearer <firebase_id_token>
 #### GET /v1/cafeteria-menus
 학식 메뉴
 
+`menus`는 기존 호환용 원본 메뉴 문자열 배열이고, `categories`/`menuEntries`는 학식 상세 화면과 Campus home preview용 구조화 필드다.
+이번 계약에는 가격이 포함되지 않으며, `likeCount`/`dislikeCount`와 `badges`는 관리자 입력 메타데이터로 관리한다.
+
 **Query Parameters:**
 
 | 파라미터 | 타입 | 설명 |
@@ -3273,6 +3276,55 @@ Authorization:Bearer <firebase_id_token>
         "theBab": ["돈까스", "된장찌개"],
         "fryRice": ["볶음밥", "짜장면"]
       }
+    },
+    "categories": [
+      {
+        "code": "rollNoodles",
+        "label": "Roll & Noodles"
+      },
+      {
+        "code": "theBab",
+        "label": "The bab"
+      },
+      {
+        "code": "fryRice",
+        "label": "Fry & Rice"
+      }
+    ],
+    "menuEntries": {
+      "2026-02-03": {
+        "rollNoodles": [
+          {
+            "id": "2026-02-03-rollNoodles-우동",
+            "title": "우동",
+            "badges": [],
+            "likeCount": 12,
+            "dislikeCount": 1
+          },
+          {
+            "id": "2026-02-03-rollNoodles-김밥",
+            "title": "김밥",
+            "badges": [
+              {
+                "code": "TAKEOUT",
+                "label": "테이크아웃"
+              }
+            ],
+            "likeCount": 31,
+            "dislikeCount": 2
+          }
+        ],
+        "theBab": [
+          {
+            "id": "2026-02-03-theBab-돈까스",
+            "title": "돈까스",
+            "badges": [],
+            "likeCount": 18,
+            "dislikeCount": 4
+          }
+        ],
+        "fryRice": []
+      }
     }
   }
 }
@@ -3280,6 +3332,8 @@ Authorization:Bearer <firebase_id_token>
 
 #### GET /v1/cafeteria-menus/{weekId}
 특정 주차 학식 메뉴
+
+응답 계약은 `GET /v1/cafeteria-menus`와 동일하다.
 
 **Path Parameters:**
 
@@ -3300,6 +3354,55 @@ Authorization:Bearer <firebase_id_token>
         "rollNoodles": ["우동", "김밥"],
         "theBab": ["돈까스", "된장찌개"],
         "fryRice": ["볶음밥", "짜장면"]
+      }
+    },
+    "categories": [
+      {
+        "code": "rollNoodles",
+        "label": "Roll & Noodles"
+      },
+      {
+        "code": "theBab",
+        "label": "The bab"
+      },
+      {
+        "code": "fryRice",
+        "label": "Fry & Rice"
+      }
+    ],
+    "menuEntries": {
+      "2026-02-03": {
+        "rollNoodles": [
+          {
+            "id": "2026-02-03-rollNoodles-우동",
+            "title": "우동",
+            "badges": [],
+            "likeCount": 12,
+            "dislikeCount": 1
+          },
+          {
+            "id": "2026-02-03-rollNoodles-김밥",
+            "title": "김밥",
+            "badges": [
+              {
+                "code": "TAKEOUT",
+                "label": "테이크아웃"
+              }
+            ],
+            "likeCount": 31,
+            "dislikeCount": 2
+          }
+        ],
+        "theBab": [
+          {
+            "id": "2026-02-03-theBab-돈까스",
+            "title": "돈까스",
+            "badges": [],
+            "likeCount": 18,
+            "dislikeCount": 4
+          }
+        ],
+        "fryRice": []
       }
     }
   }
@@ -5396,7 +5499,49 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 #### POST /v1/admin/cafeteria-menus
 학식 메뉴 등록
 
+`menus` 또는 `menuEntries` 중 하나는 반드시 전달해야 한다.
+둘 다 전달하면 각 날짜/카테고리별 메뉴 제목 배열이 정확히 일치해야 하며, 불일치 시 `400 INVALID_REQUEST`를 반환한다.
+단, `menus`에서 비어 있는 카테고리를 생략한 경우는 `menuEntries`의 빈 배열과 동일하게 취급한다.
+`menuEntries.badges`는 자유 입력 라벨과 optional code를 받으며, code를 생략하면 서버가 label 기반으로 자동 생성한다.
+좋아요/싫어요 카운트는 이번 범위에서 관리자 입력 메타데이터로만 관리한다.
+같은 주 안에서 동일한 `category + title`이 여러 날짜에 반복되면 `badges`, `likeCount`, `dislikeCount`는 모두 동일해야 한다. badge 순서도 동일성 비교에 포함된다.
+
 **Request:**
+```json
+{
+  "weekId": "2026-W08",
+  "weekStart": "2026-02-16",
+  "weekEnd": "2026-02-20",
+  "menuEntries": {
+    "2026-02-16": {
+      "rollNoodles": [
+        {
+          "title": "존슨부대찌개",
+          "badges": [
+            {
+              "code": "TAKEOUT",
+              "label": "테이크아웃"
+            }
+          ],
+          "likeCount": 178,
+          "dislikeCount": 22
+        }
+      ],
+      "theBab": [
+        {
+          "title": "돈까스",
+          "badges": [],
+          "likeCount": 31,
+          "dislikeCount": 4
+        }
+      ],
+      "fryRice": []
+    }
+  }
+}
+```
+
+기존 하위호환 요청 예시:
 ```json
 {
   "weekId": "2026-W08",
@@ -5412,6 +5557,16 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
+주간 동일성 검증 실패 예시:
+```json
+{
+  "success": false,
+  "message": "같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다. category=rollNoodles, title=존슨부대찌개, firstDate=2026-02-16, date=2026-02-17",
+  "errorCode": "INVALID_REQUEST",
+  "timestamp": "2026-03-29T12:00:00"
+}
+```
+
 **Response (201 Created):**
 ```json
 {
@@ -5422,9 +5577,51 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
     "weekEnd": "2026-02-20",
     "menus": {
       "2026-02-16": {
-        "rollNoodles": ["우동", "김밥"],
-        "theBab": ["돈까스", "된장찌개"],
-        "fryRice": ["볶음밥", "짜장면"]
+        "rollNoodles": ["존슨부대찌개"],
+        "theBab": ["돈까스"],
+        "fryRice": []
+      }
+    },
+    "categories": [
+      {
+        "code": "rollNoodles",
+        "label": "Roll & Noodles"
+      },
+      {
+        "code": "theBab",
+        "label": "The bab"
+      },
+      {
+        "code": "fryRice",
+        "label": "Fry & Rice"
+      }
+    ],
+    "menuEntries": {
+      "2026-02-16": {
+        "rollNoodles": [
+          {
+            "id": "2026-02-16-rollNoodles-존슨부대찌개",
+            "title": "존슨부대찌개",
+            "badges": [
+              {
+                "code": "TAKEOUT",
+                "label": "테이크아웃"
+              }
+            ],
+            "likeCount": 178,
+            "dislikeCount": 22
+          }
+        ],
+        "theBab": [
+          {
+            "id": "2026-02-16-theBab-돈까스",
+            "title": "돈까스",
+            "badges": [],
+            "likeCount": 31,
+            "dislikeCount": 4
+          }
+        ],
+        "fryRice": []
       }
     }
   }

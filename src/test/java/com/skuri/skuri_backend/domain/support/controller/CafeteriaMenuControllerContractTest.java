@@ -2,7 +2,10 @@ package com.skuri.skuri_backend.domain.support.controller;
 
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuCategoryResponse;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuEntryResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuBadgeResponse;
 import com.skuri.skuri_backend.domain.support.service.CafeteriaMenuService;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
@@ -57,7 +60,10 @@ class CafeteriaMenuControllerContractTest {
                                 .param("date", "2026-02-03")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.weekId").value("2026-W06"));
+                .andExpect(jsonPath("$.data.weekId").value("2026-W06"))
+                .andExpect(jsonPath("$.data.categories[0].code").value("rollNoodles"))
+                .andExpect(jsonPath("$.data.menuEntries['2026-02-03'].rollNoodles[0].title").value("우동"))
+                .andExpect(jsonPath("$.data.menuEntries['2026-02-03'].rollNoodles[0].likeCount").value(0));
     }
 
     @Test
@@ -89,7 +95,8 @@ class CafeteriaMenuControllerContractTest {
 
         mockMvc.perform(get("/v1/cafeteria-menus/2026-W06").header(AUTHORIZATION, "Bearer user-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.weekId").value("2026-W06"));
+                .andExpect(jsonPath("$.data.weekId").value("2026-W06"))
+                .andExpect(jsonPath("$.data.menuEntries['2026-02-03'].theBab[0].dislikeCount").value(3));
     }
 
     @Test
@@ -113,6 +120,35 @@ class CafeteriaMenuControllerContractTest {
                         Map.of(
                                 "rollNoodles", List.of("우동", "김밥"),
                                 "theBab", List.of("돈까스", "된장찌개")
+                        )
+                ),
+                List.of(
+                        new CafeteriaMenuCategoryResponse("rollNoodles", "Roll & Noodles"),
+                        new CafeteriaMenuCategoryResponse("theBab", "The bab"),
+                        new CafeteriaMenuCategoryResponse("fryRice", "Fry & Rice")
+                ),
+                Map.of(
+                        "2026-02-03",
+                        Map.of(
+                                "rollNoodles", List.of(
+                                        new CafeteriaMenuEntryResponse(
+                                                "2026-02-03-rollNoodles-우동",
+                                                "우동",
+                                                List.of(),
+                                                0,
+                                                0
+                                        )
+                                ),
+                                "theBab", List.of(
+                                        new CafeteriaMenuEntryResponse(
+                                                "2026-02-03-theBab-돈까스",
+                                                "돈까스",
+                                                List.of(new CafeteriaMenuBadgeResponse("TAKEOUT", "테이크아웃")),
+                                                12,
+                                                3
+                                        )
+                                ),
+                                "fryRice", List.of()
                         )
                 )
         );

@@ -83,6 +83,55 @@ public final class OpenApiSupportExamples {
                     "theBab": ["돈까스", "된장찌개"],
                     "fryRice": ["볶음밥", "짜장면"]
                   }
+                },
+                "categories": [
+                  {
+                    "code": "rollNoodles",
+                    "label": "Roll & Noodles"
+                  },
+                  {
+                    "code": "theBab",
+                    "label": "The bab"
+                  },
+                  {
+                    "code": "fryRice",
+                    "label": "Fry & Rice"
+                  }
+                ],
+                "menuEntries": {
+                  "2026-02-03": {
+                    "rollNoodles": [
+                      {
+                        "id": "2026-02-03-rollNoodles-우동",
+                        "title": "우동",
+                        "badges": [],
+                        "likeCount": 12,
+                        "dislikeCount": 1
+                      },
+                      {
+                        "id": "2026-02-03-rollNoodles-김밥",
+                        "title": "김밥",
+                        "badges": [
+                          {
+                            "code": "TAKEOUT",
+                            "label": "테이크아웃"
+                          }
+                        ],
+                        "likeCount": 31,
+                        "dislikeCount": 2
+                      }
+                    ],
+                    "theBab": [
+                      {
+                        "id": "2026-02-03-theBab-돈까스",
+                        "title": "돈까스",
+                        "badges": [],
+                        "likeCount": 18,
+                        "dislikeCount": 4
+                      }
+                    ],
+                    "fryRice": []
+                  }
                 }
               }
             }
@@ -277,4 +326,10 @@ public final class OpenApiSupportExamples {
 
     public static final String ERROR_CAFETERIA_MENU_ALREADY_EXISTS =
             "{\"success\":false,\"message\":\"이미 등록된 주차의 학식 메뉴입니다.\",\"errorCode\":\"CAFETERIA_MENU_ALREADY_EXISTS\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_CAFETERIA_MENU_MENU_ENTRIES_MISMATCH =
+            "{\"success\":false,\"message\":\"menus와 menuEntries의 메뉴명이 일치하지 않습니다.\",\"errorCode\":\"INVALID_REQUEST\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+
+    public static final String ERROR_CAFETERIA_MENU_WEEKLY_METADATA_CONFLICT =
+            "{\"success\":false,\"message\":\"같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다. category=rollNoodles, title=존슨부대찌개, firstDate=2026-02-16, date=2026-02-17\",\"errorCode\":\"INVALID_REQUEST\",\"timestamp\":\"2026-03-29T12:00:00\"}";
 }

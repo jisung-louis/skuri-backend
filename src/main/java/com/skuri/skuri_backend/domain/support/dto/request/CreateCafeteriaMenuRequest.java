@@ -1,8 +1,9 @@
 package com.skuri.skuri_backend.domain.support.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
@@ -25,9 +26,8 @@ public record CreateCafeteriaMenuRequest(
         @Schema(description = "주 종료일", example = "2026-02-20")
         LocalDate weekEnd,
 
-        @NotEmpty(message = "menus는 비어 있을 수 없습니다.")
         @Schema(
-                description = "날짜별 식당 메뉴 맵",
+                description = "기존 날짜별 식당 메뉴 맵. menuEntries만으로도 등록할 수 있으며, 둘 다 전달하면 제목 목록이 일치해야 합니다. menus에서 비어 있는 카테고리를 생략한 경우는 menuEntries의 빈 배열과 동일하게 취급합니다.",
                 example = """
                         {
                           "2026-02-16": {
@@ -36,8 +36,46 @@ public record CreateCafeteriaMenuRequest(
                             "fryRice": ["볶음밥", "짜장면"]
                           }
                         }
-                        """
+                        """,
+                nullable = true
         )
-        Map<String, Map<String, List<String>>> menus
+        Map<String, Map<String, List<String>>> menus,
+
+        @Schema(
+                description = "프론트 렌더링용 구조화 메뉴 메타데이터. menus 없이 단독으로 전달할 수 있습니다. 같은 주 안에서 동일 카테고리의 동일 title은 날짜가 달라도 badges/likeCount/dislikeCount가 동일해야 하며, menus와 함께 비교할 때 빈 카테고리 배열은 생략과 동일하게 취급합니다.",
+                example = """
+                        {
+                          "2026-02-16": {
+                            "rollNoodles": [
+                              {
+                                "title": "존슨부대찌개",
+                                "badges": [
+                                  {
+                                    "code": "TAKEOUT",
+                                    "label": "테이크아웃"
+                                  }
+                                ],
+                                "likeCount": 178,
+                                "dislikeCount": 22
+                              }
+                            ],
+                            "theBab": [],
+                            "fryRice": []
+                          }
+                        }
+                        """,
+                nullable = true
+        )
+        Map<String, Map<String, List<@Valid CafeteriaMenuEntryRequest>>> menuEntries
 ) {
+
+    @AssertTrue(message = "menus 또는 menuEntries 중 하나는 비어 있을 수 없습니다.")
+    @Schema(hidden = true)
+    public boolean hasMenuPayload() {
+        return hasValue(menus) || hasValue(menuEntries);
+    }
+
+    private static boolean hasValue(Map<?, ?> source) {
+        return source != null && !source.isEmpty();
+    }
 }
