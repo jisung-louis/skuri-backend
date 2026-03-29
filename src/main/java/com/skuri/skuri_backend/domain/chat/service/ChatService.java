@@ -326,6 +326,22 @@ public class ChatService {
     }
 
     @Transactional
+    public ChatMessageResponse createPartyAdminSystemMessage(Party party, String adminActorId, String text) {
+        ChatRoom room = findRoomOrThrow("party:" + party.getId());
+        return saveAndPublishMessage(
+                room,
+                adminActorId,
+                "관리자",
+                null,
+                text,
+                ChatMessageType.SYSTEM,
+                null,
+                null,
+                ChatMessage.SOURCE_ADMIN_SYSTEM
+        );
+    }
+
+    @Transactional
     public ChatMessageResponse createPartyMemberJoinSystemMessage(Party party, String senderId, String text) {
         Member sender = memberRepository.findById(senderId).orElseThrow(MemberNotFoundException::new);
         ChatRoom room = findRoomOrThrow("party:" + party.getId());
@@ -610,13 +626,14 @@ public class ChatService {
 
         String imageUrl = message.getType() == ChatMessageType.IMAGE ? message.getText() : null;
         String text = message.getType() == ChatMessageType.IMAGE ? null : message.getText();
+        String resolvedSenderPhotoUrl = message.hasSource(ChatMessage.SOURCE_ADMIN_SYSTEM) ? null : senderPhotoUrl;
 
         return new ChatMessageResponse(
                 message.getId(),
                 message.getChatRoomId(),
                 message.getSenderId(),
                 message.getSenderName(),
-                senderPhotoUrl,
+                resolvedSenderPhotoUrl,
                 message.getType(),
                 text,
                 imageUrl,

@@ -1,7 +1,9 @@
 package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyDetailResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyJoinRequestResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestAcceptResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.JoinRequestListItemResponse;
@@ -114,6 +116,36 @@ public final class OpenApiTaxiPartySchemas {
     ) {
     }
 
+    @Schema(name = "TaxiPartyVoidApiResponse", description = "공통 API 응답 포맷")
+    public record VoidApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            Object data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "TaxiPartyChatMessageApiResponse", description = "공통 API 응답 포맷")
+    public record ChatMessageApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            ChatMessageResponse data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
     @Schema(name = "TaxiPartyJoinRequestApiResponse", description = "공통 API 응답 포맷")
     public record JoinRequestApiResponse(
             @Schema(description = "요청 성공 여부")
@@ -150,6 +182,21 @@ public final class OpenApiTaxiPartySchemas {
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
             List<JoinRequestListItemResponse> data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "AdminTaxiPartyJoinRequestListApiResponse", description = "공통 API 응답 포맷")
+    public record AdminPartyJoinRequestListApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            List<AdminPartyJoinRequestResponse> data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
