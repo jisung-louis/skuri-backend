@@ -73,3 +73,9 @@
 - 관리자 board 목록은 `AdminPageRequestPolicy` 기준 `page=0`, `size=20`, `size<=100`을 유지하고 기본 정렬은 게시글/댓글 모두 `createdAt,DESC`다.
 - 관리자 moderation 감사 snapshot은 과도한 개인정보나 본문 전문을 남기지 않는다. 게시글은 `id/authorId/category/anonymous/hidden/deleted`, 댓글은 `id/postId/authorId/parentId/anonymous/hidden/deleted` 최소 필드만 저장한다.
 - pin/공지 고정, 신고 연계 뷰, 작성자 제재, batch moderation은 문서 근거 전까지 board admin 범위에 섞지 않는다.
+
+
+- 관리자 대시보드 API는 read-only 조회 모델로 유지한다. 상태 변경, sync 실행, 배치성 보정 로직을 끼워 넣지 않는다.
+- 관리자 대시보드 집계/일자 버킷은 `Asia/Seoul`로 고정한다. `activity.days`는 `7 | 30`만 허용하고, `recent-items`는 Inquiry/Report/AppNotice/Party를 `createdAt DESC`로 병합한 결과만 노출한다.
+- `summary.totalMembers`처럼 의미가 애매할 수 있는 KPI는 구현과 문서/PR에서 같은 정의를 사용한다. 현재는 `members` 전체 row 기준이며 tombstone(`WITHDRAWN`)을 포함한다.
+- 관리자 대시보드 AppNotice source는 `publishedAt <= now`인 게시 공지로 한정한다. 학교 공지 sync 이력 같은 별도 계약이 없는 데이터를 임의로 섞지 않는다.

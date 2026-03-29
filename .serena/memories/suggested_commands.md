@@ -109,3 +109,24 @@ curl http://127.0.0.1:18082/v3/api-docs
 curl http://127.0.0.1:18082/swagger-ui/index.html
 curl http://127.0.0.1:18082/scalar
 ```
+
+
+## Admin Dashboard API 작업 검증
+```bash
+./gradlew test --tests "com.skuri.skuri_backend.domain.admin.dashboard.controller.AdminDashboardControllerContractTest" --tests "com.skuri.skuri_backend.domain.admin.dashboard.service.AdminDashboardServiceTest" --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest"
+./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
+./gradlew build
+```
+
+## Admin Dashboard 수동 검증
+```bash
+source .env
+firebase emulators:start --only auth --project "$FIREBASE_PROJECT_ID"
+DB_URL=$DB_URL DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD FIREBASE_AUTH_USE_EMULATOR=true FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS_PATH= GOOGLE_APPLICATION_CREDENTIALS= SPRING_PROFILES_ACTIVE=local-emulator SERVER_PORT=18083 ./gradlew bootRun
+curl "http://127.0.0.1:18083/v1/admin/dashboard/summary" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl "http://127.0.0.1:18083/v1/admin/dashboard/activity?days=7" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl "http://127.0.0.1:18083/v1/admin/dashboard/recent-items?limit=10" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl http://127.0.0.1:18083/v3/api-docs
+curl http://127.0.0.1:18083/swagger-ui/index.html
+curl http://127.0.0.1:18083/scalar
+```

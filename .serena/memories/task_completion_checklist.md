@@ -55,3 +55,8 @@
 27. public board 규칙을 건드렸다면 `HIDDEN` 게시글이 public 목록/상세/내 게시글/북마크에서 제외되는지, `HIDDEN` 댓글이 public 댓글 응답에서 placeholder로 마스킹되는지, commentCount 증감이 active comment 기준과 일치하는지 확인한다.
 28. 관리자 Board write API를 건드렸다면 `admin_audit_logs` row 생성과 before/after snapshot이 최소 필드만 담는지, 본문 전문/과도한 개인정보가 diff에 남지 않는지 확인한다.
 29. Board OpenAPI를 건드렸다면 `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar`에서 admin board 200/4xx example이 분리 노출되는지 함께 확인한다.
+
+
+30. 관리자 `/dashboard` read-model을 건드렸다면 `GET /v1/admin/dashboard/summary`, `GET /v1/admin/dashboard/activity`, `GET /v1/admin/dashboard/recent-items`의 관리자 성공/비관리자 `403`/validation `422`를 함께 확인한다.
+31. 관리자 대시보드 집계를 바꿨다면 `Asia/Seoul` 버킷, `summary.newMembersToday`의 `joinedAt` 기준, `summary.totalMembers`의 전체 row 기준, `recent-items`의 AppNotice source(`publishedAt <= now`)와 `createdAt DESC` 병합 정렬을 문서/테스트/PR에 같이 남긴다.
+32. 관리자 `/dashboard` 작업이면 backend 문서뿐 아니라 `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/README.md`, `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`, `/Users/jisung/SKTaxi/docs/spring-migration/frontend-api-coverage.md`, `/Users/jisung/SKTaxi/docs/spring-migration/frontend-migration-status.md`, `/Users/jisung/SKTaxi/docs/spring-migration/user-screens-backend-api-gaps.md` 동기화를 확인한다.
