@@ -35,6 +35,7 @@ import com.skuri.skuri_backend.domain.support.repository.CafeteriaMenuRepository
 import com.skuri.skuri_backend.domain.support.repository.InquiryRepository;
 import com.skuri.skuri_backend.domain.support.repository.LegalDocumentRepository;
 import com.skuri.skuri_backend.domain.support.repository.ReportRepository;
+import com.skuri.skuri_backend.domain.support.service.CafeteriaMenuService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -61,6 +62,7 @@ public class AdminAuditSnapshotFactory {
     private final AppVersionRepository appVersionRepository;
     private final LegalDocumentRepository legalDocumentRepository;
     private final CafeteriaMenuRepository cafeteriaMenuRepository;
+    private final CafeteriaMenuService cafeteriaMenuService;
 
     public AcademicScheduleResponse academicSchedule(String scheduleId) {
         return academicScheduleRepository.findById(scheduleId)
@@ -261,12 +263,7 @@ public class AdminAuditSnapshotFactory {
 
     public CafeteriaMenuResponse cafeteriaMenu(String weekId) {
         return cafeteriaMenuRepository.findById(weekId)
-                .map(menu -> new CafeteriaMenuResponse(
-                        menu.getWeekId(),
-                        menu.getWeekStart(),
-                        menu.getWeekEnd(),
-                        menu.getMenus()
-                ))
+                .map(cafeteriaMenuService::toResponse)
                 .orElse(null);
     }
 
