@@ -55,8 +55,11 @@
 
 
 ## Admin TaxiParty API 규칙
-- 관리자 TaxiParty API도 class-level `@AdminApiAccess`와 상태 변경용 `@AdminAudit`를 사용한다.
+- 관리자 TaxiParty API도 class-level `@AdminApiAccess`와 상태 변경/운영 write용 `@AdminAudit`를 사용한다.
 - 관리자 강제 상태 변경은 새 상태 머신을 만들지 않고 `Party.close/reopen/cancel/forceEnd` 같은 기존 엔티티 전이만 재사용한다. 허용 액션은 현재 `CLOSE`, `REOPEN`, `CANCEL`, `END` subset이며, 임의 상태 점프나 별도 override policy는 문서 근거 없이 추가하지 않는다.
 - `END`는 현재 `ARRIVED -> ENDED`로만 허용되는 `forceEnd()`를 그대로 따른다. 운영 편의보다 도메인 불변식을 우선한다.
 - 관리자 파티 목록은 `AdminPageRequestPolicy` 기준 `page=0`, `size=20`, `size<=100`을 유지하고 기본 정렬은 `departureTime,DESC` 후 `createdAt,DESC`다.
-- 관리자 파티 상태 변경 감사 snapshot은 `id/status/endReason/settlementStatus/endedAt` 최소 필드만 저장하고, 멤버/채팅 개인정보 diff는 넣지 않는다.
+- 관리자 멤버 제거도 기존 aggregate 규칙을 재사용한다. leader 제거/리더 승계는 이번 범위에 포함하지 않고, `ARRIVED`, `ENDED` 상태에서는 제거를 허용하지 않는다.
+- 관리자 시스템 메시지는 party chat room이 있어야 하고, leader/member를 사칭하지 않는다. 내부 source는 `ADMIN_SYSTEM`, 표시 기준은 `senderName=관리자`, `senderPhotoUrl=null`이다.
+- 관리자 join request 조회는 현재 `PENDING`만 latest-first(`requestedAt DESC`)로 읽는다. 승인/거절 액션은 후속 범위다.
+- 관리자 파티 상태 변경 감사 snapshot은 `id/status/endReason/settlementStatus/endedAt` 최소 필드만 저장하고, 멤버 제거/시스템 메시지도 각각 최소 snapshot(`partyId/memberId/isLeader/joinedAt`, `id/chatRoomId/senderId/senderName/type/source/text/createdAt`)만 남긴다.

@@ -45,3 +45,7 @@
 17. 관리자 TaxiParty status action을 바꿨다면 허용 액션 subset(`CLOSE/REOPEN/CANCEL/END`)이 현재 엔티티 상태 머신과 정확히 일치하는지, 임의 상태 점프를 열지 않았는지 확인한다.
 18. 관리자 TaxiParty status 변경을 건드렸다면 `admin_audit_logs` before/after snapshot이 최소 필드(`id/status/endReason/settlementStatus/endedAt`)만 담는지 확인한다.
 19. 관리자 `/parties` placeholder를 닫는 작업이면 backend 문서뿐 아니라 `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/README.md`, `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`, `/Users/jisung/SKTaxi/docs/spring-migration/frontend-api-coverage.md`, `/Users/jisung/SKTaxi/docs/spring-migration/frontend-migration-status.md`, `/Users/jisung/SKTaxi/docs/spring-migration/user-screens-backend-api-gaps.md` 동기화를 확인한다.
+20. 관리자 TaxiParty follow-up API를 건드렸다면 `DELETE /v1/admin/parties/{partyId}/members/{memberId}`, `POST /v1/admin/parties/{partyId}/messages/system`, `GET /v1/admin/parties/{partyId}/join-requests`의 관리자 성공/비관리자 `403`/도메인 `404|409|422`를 함께 확인한다.
+21. 관리자 멤버 제거를 건드렸다면 leader 제거 금지, `ARRIVED`/`ENDED` 제거 금지, 채팅방 membership sync, leave 시스템 메시지, SSE `KICKED`, `PartyMemberKicked` notification event 재사용 여부를 확인한다.
+22. 관리자 시스템 메시지를 건드렸다면 party chat room 없음 `404 CHAT_ROOM_NOT_FOUND`, blank/too-long validation `422`, `senderName=관리자`, `senderPhotoUrl=null`, admin audit chat-message snapshot을 함께 확인한다.
+23. 관리자 join request 조회를 건드렸다면 `PENDING`만 latest-first(`requestedAt DESC`)로 내려가는지, 응답 필드가 현재 member 도메인 값(`nickname/realname/photoUrl/department/studentId`)만 사용하는지 확인한다.
