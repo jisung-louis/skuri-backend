@@ -675,6 +675,7 @@ Hooks:
     - 조회 응답은 기존 `menus`를 유지하면서 `categories`, `menuEntries`를 함께 제공한다.
     - 가격은 학식 API 계약에 포함하지 않는다.
     - 좋아요/싫어요 수와 보조 태그는 관리자 입력 메타데이터로 저장하며, 이번 범위에 사용자 반응 등록 API는 포함하지 않는다.
+    - 같은 주 안에서 동일한 `category + title`이 여러 날짜에 반복되면 `badges`, `likeCount`, `dislikeCount`는 모두 동일해야 하며, badge 순서도 비교에 포함한다.
   - AdminAuditLog
     - id, actorId, action, targetType, targetId
     - diffBefore (JSON snapshot), diffAfter (JSON snapshot), timestamp

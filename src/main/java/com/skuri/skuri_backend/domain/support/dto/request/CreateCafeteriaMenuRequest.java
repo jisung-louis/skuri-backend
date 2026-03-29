@@ -42,7 +42,7 @@ public record CreateCafeteriaMenuRequest(
         Map<String, Map<String, List<String>>> menus,
 
         @Schema(
-                description = "프론트 렌더링용 구조화 메뉴 메타데이터. menus 없이 단독으로 전달할 수 있습니다.",
+                description = "프론트 렌더링용 구조화 메뉴 메타데이터. menus 없이 단독으로 전달할 수 있습니다. 같은 주 안에서 동일 카테고리의 동일 title은 날짜가 달라도 badges/likeCount/dislikeCount가 동일해야 합니다.",
                 example = """
                         {
                           "2026-02-16": {

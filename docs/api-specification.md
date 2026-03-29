@@ -5503,6 +5503,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 둘 다 전달하면 각 날짜/카테고리별 메뉴 제목 배열이 정확히 일치해야 하며, 불일치 시 `400 INVALID_REQUEST`를 반환한다.
 `menuEntries.badges`는 자유 입력 라벨과 optional code를 받으며, code를 생략하면 서버가 label 기반으로 자동 생성한다.
 좋아요/싫어요 카운트는 이번 범위에서 관리자 입력 메타데이터로만 관리한다.
+같은 주 안에서 동일한 `category + title`이 여러 날짜에 반복되면 `badges`, `likeCount`, `dislikeCount`는 모두 동일해야 한다. badge 순서도 동일성 비교에 포함된다.
 
 **Request:**
 ```json
@@ -5552,6 +5553,16 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
       "fryRice": ["볶음밥", "짜장면"]
     }
   }
+}
+```
+
+주간 동일성 검증 실패 예시:
+```json
+{
+  "success": false,
+  "message": "같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다. category=rollNoodles, title=존슨부대찌개, firstDate=2026-02-16, date=2026-02-17",
+  "errorCode": "INVALID_REQUEST",
+  "timestamp": "2026-03-29T12:00:00"
 }
 ```
 

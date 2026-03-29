@@ -329,4 +329,7 @@ public final class OpenApiSupportExamples {
 
     public static final String ERROR_CAFETERIA_MENU_MENU_ENTRIES_MISMATCH =
             "{\"success\":false,\"message\":\"menus와 menuEntries의 메뉴명이 일치하지 않습니다.\",\"errorCode\":\"INVALID_REQUEST\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+
+    public static final String ERROR_CAFETERIA_MENU_WEEKLY_METADATA_CONFLICT =
+            "{\"success\":false,\"message\":\"같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다. category=rollNoodles, title=존슨부대찌개, firstDate=2026-02-16, date=2026-02-17\",\"errorCode\":\"INVALID_REQUEST\",\"timestamp\":\"2026-03-29T12:00:00\"}";
 }

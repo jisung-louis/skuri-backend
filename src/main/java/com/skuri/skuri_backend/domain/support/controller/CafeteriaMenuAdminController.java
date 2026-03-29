@@ -66,6 +66,10 @@ public class CafeteriaMenuAdminController {
                                     @ExampleObject(
                                             name = "menus_menu_entries_mismatch",
                                             value = OpenApiSupportExamples.ERROR_CAFETERIA_MENU_MENU_ENTRIES_MISMATCH
+                                    ),
+                                    @ExampleObject(
+                                            name = "weekly_metadata_conflict",
+                                            value = OpenApiSupportExamples.ERROR_CAFETERIA_MENU_WEEKLY_METADATA_CONFLICT
                                     )
                             }
                     )
@@ -208,6 +212,10 @@ public class CafeteriaMenuAdminController {
                                     @ExampleObject(
                                             name = "menus_menu_entries_mismatch",
                                             value = OpenApiSupportExamples.ERROR_CAFETERIA_MENU_MENU_ENTRIES_MISMATCH
+                                    ),
+                                    @ExampleObject(
+                                            name = "weekly_metadata_conflict",
+                                            value = OpenApiSupportExamples.ERROR_CAFETERIA_MENU_WEEKLY_METADATA_CONFLICT
                                     )
                             }
                     )
