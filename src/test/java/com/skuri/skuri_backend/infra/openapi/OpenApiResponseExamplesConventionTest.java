@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.domain.app.controller.AppNoticeAdminController;
 import com.skuri.skuri_backend.domain.app.controller.MemberAppNoticeController;
 import com.skuri.skuri_backend.domain.academic.controller.AcademicScheduleAdminController;
 import com.skuri.skuri_backend.domain.academic.controller.CourseAdminController;
+import com.skuri.skuri_backend.domain.admin.dashboard.controller.AdminDashboardController;
 import com.skuri.skuri_backend.domain.board.controller.CommentController;
 import com.skuri.skuri_backend.domain.board.controller.BoardAdminController;
 import com.skuri.skuri_backend.domain.board.controller.MemberBoardController;
@@ -49,6 +50,7 @@ class OpenApiResponseExamplesConventionTest {
     private static final List<Class<?>> TARGET_CONTROLLERS = List.of(
             AppVersionController.class,
             AppVersionAdminController.class,
+            AdminDashboardController.class,
             AppNoticeController.class,
             AppNoticeAdminController.class,
             MemberAppNoticeController.class,
