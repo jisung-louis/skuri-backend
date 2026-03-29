@@ -41,7 +41,7 @@ public class CafeteriaMenuReactionController {
     @PutMapping("/{menuId}")
     @Operation(
             summary = "학식 메뉴 반응 저장",
-            description = "주간 기준 메뉴 ID에 대해 좋아요/싫어요를 등록, 전환, 취소합니다."
+            description = "주간 기준 메뉴 ID에 대해 좋아요/싫어요를 등록, 전환, 취소합니다. 같은 요청을 재시도해도 안전하도록 주차 단위로 직렬화합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -124,7 +124,7 @@ public class CafeteriaMenuReactionController {
     public ResponseEntity<ApiResponse<CafeteriaMenuReactionResponse>> upsertReaction(
             @Parameter(hidden = true)
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
-            @Parameter(description = "주간 기준 메뉴 ID", example = "2026-W08.rollNoodles.c4973864db4f8815")
+            @Parameter(description = "주간 기준 메뉴 ID. 응답에서 받은 opaque 값을 그대로 사용합니다.", example = "2026-W08.rollNoodles.c4973864db4f8815")
             @PathVariable String menuId,
             @Valid @RequestBody UpsertCafeteriaMenuReactionRequest request
     ) {

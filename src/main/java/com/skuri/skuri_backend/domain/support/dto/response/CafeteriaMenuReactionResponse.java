@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "학식 메뉴 반응 저장 결과 응답")
 public record CafeteriaMenuReactionResponse(
-        @Schema(description = "주간 기준 안정적인 메뉴 ID", example = "2026-W08.rollNoodles.c4973864db4f8815")
+        @Schema(description = "주간 기준 안정적인 메뉴 ID. 구조를 파싱하지 말고 그대로 사용해야 합니다.", example = "2026-W08.rollNoodles.c4973864db4f8815")
         String menuId,
 
         @Schema(description = "현재 사용자 반응 상태", nullable = true, implementation = CafeteriaMenuReactionType.class)

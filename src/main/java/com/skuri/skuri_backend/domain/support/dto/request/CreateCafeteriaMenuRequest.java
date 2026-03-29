@@ -27,7 +27,7 @@ public record CreateCafeteriaMenuRequest(
         LocalDate weekEnd,
 
         @Schema(
-                description = "기존 날짜별 식당 메뉴 맵. menuEntries만으로도 등록할 수 있으며, 둘 다 전달하면 제목 목록이 일치해야 합니다. menus에서 비어 있는 카테고리를 생략한 경우는 menuEntries의 빈 배열과 동일하게 취급합니다.",
+                description = "기존 날짜별 식당 메뉴 맵. menuEntries만으로도 등록할 수 있으며, 둘 다 전달하면 제목 목록이 일치해야 합니다. category key는 메뉴 ID 안정성을 위해 영문/숫자/_/-만 허용합니다. menus에서 비어 있는 카테고리를 생략한 경우는 menuEntries의 빈 배열과 동일하게 취급합니다.",
                 example = """
                         {
                           "2026-02-16": {
@@ -42,7 +42,7 @@ public record CreateCafeteriaMenuRequest(
         Map<String, Map<String, List<String>>> menus,
 
         @Schema(
-                description = "프론트 렌더링용 구조화 메뉴 메타데이터. menus 없이 단독으로 전달할 수 있습니다. 같은 주 안에서 동일 카테고리의 동일 title은 날짜가 달라도 badges/likeCount/dislikeCount가 동일해야 하며, menus와 함께 비교할 때 빈 카테고리 배열은 생략과 동일하게 취급합니다. likeCount/dislikeCount 요청값은 deprecated이며 저장 시 무시됩니다.",
+                description = "프론트 렌더링용 구조화 메뉴 메타데이터. menus 없이 단독으로 전달할 수 있습니다. category key는 메뉴 ID 안정성을 위해 영문/숫자/_/-만 허용합니다. 같은 주 안에서 동일 카테고리의 동일 title은 날짜가 달라도 badges/likeCount/dislikeCount가 동일해야 하며, menus와 함께 비교할 때 빈 카테고리 배열은 생략과 동일하게 취급합니다. likeCount/dislikeCount 요청값은 deprecated이며 저장 시 무시됩니다.",
                 example = """
                         {
                           "2026-02-16": {
