@@ -518,6 +518,7 @@ erDiagram
         date week_start "NOT NULL"
         date week_end "NOT NULL"
         json menus "Map<date, Map<restaurant, items[]>>"
+        json menu_entries "Map<date, Map<category, entry[]>>"
         datetime created_at
         datetime updated_at
     }

@@ -57,11 +57,17 @@ public class CafeteriaMenuAdminController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "weekId/기간 불일치",
+                    description = "weekId/기간 불일치 또는 menus/menuEntries 불일치",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "invalid_request", value = OpenApiCommonExamples.ERROR_INVALID_REQUEST)
+                            examples = {
+                                    @ExampleObject(name = "invalid_request", value = OpenApiCommonExamples.ERROR_INVALID_REQUEST),
+                                    @ExampleObject(
+                                            name = "menus_menu_entries_mismatch",
+                                            value = OpenApiSupportExamples.ERROR_CAFETERIA_MENU_MENU_ENTRIES_MISMATCH
+                                    )
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -106,22 +112,63 @@ public class CafeteriaMenuAdminController {
             description = "학식 메뉴 등록 요청",
             content = @Content(
                     schema = @Schema(implementation = CreateCafeteriaMenuRequest.class),
-                    examples = @ExampleObject(
-                            value = """
-                                    {
-                                      "weekId": "2026-W08",
-                                      "weekStart": "2026-02-16",
-                                      "weekEnd": "2026-02-20",
-                                      "menus": {
-                                        "2026-02-16": {
-                                          "rollNoodles": ["우동", "김밥"],
-                                          "theBab": ["돈까스", "된장찌개"],
-                                          "fryRice": ["볶음밥", "짜장면"]
-                                        }
-                                      }
-                                    }
-                                    """
-                    )
+                    examples = {
+                            @ExampleObject(
+                                    name = "structured_menu_entries",
+                                    summary = "프론트용 구조화 메타데이터만 등록",
+                                    value = """
+                                            {
+                                              "weekId": "2026-W08",
+                                              "weekStart": "2026-02-16",
+                                              "weekEnd": "2026-02-20",
+                                              "menuEntries": {
+                                                "2026-02-16": {
+                                                  "rollNoodles": [
+                                                    {
+                                                      "title": "존슨부대찌개",
+                                                      "badges": [
+                                                        {
+                                                          "code": "TAKEOUT",
+                                                          "label": "테이크아웃"
+                                                        }
+                                                      ],
+                                                      "likeCount": 178,
+                                                      "dislikeCount": 22
+                                                    }
+                                                  ],
+                                                  "theBab": [
+                                                    {
+                                                      "title": "돈까스",
+                                                      "badges": [],
+                                                      "likeCount": 31,
+                                                      "dislikeCount": 4
+                                                    }
+                                                  ],
+                                                  "fryRice": []
+                                                }
+                                              }
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "legacy_menus",
+                                    summary = "기존 menus 기반 등록",
+                                    value = """
+                                            {
+                                              "weekId": "2026-W08",
+                                              "weekStart": "2026-02-16",
+                                              "weekEnd": "2026-02-20",
+                                              "menus": {
+                                                "2026-02-16": {
+                                                  "rollNoodles": ["우동", "김밥"],
+                                                  "theBab": ["돈까스", "된장찌개"],
+                                                  "fryRice": ["볶음밥", "짜장면"]
+                                                }
+                                              }
+                                            }
+                                            """
+                            )
+                    }
             )
     )
     @AdminAudit(
@@ -152,11 +199,17 @@ public class CafeteriaMenuAdminController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "weekId/기간 불일치",
+                    description = "weekId/기간 불일치 또는 menus/menuEntries 불일치",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "invalid_request", value = OpenApiCommonExamples.ERROR_INVALID_REQUEST)
+                            examples = {
+                                    @ExampleObject(name = "invalid_request", value = OpenApiCommonExamples.ERROR_INVALID_REQUEST),
+                                    @ExampleObject(
+                                            name = "menus_menu_entries_mismatch",
+                                            value = OpenApiSupportExamples.ERROR_CAFETERIA_MENU_MENU_ENTRIES_MISMATCH
+                                    )
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -201,21 +254,61 @@ public class CafeteriaMenuAdminController {
             description = "학식 메뉴 수정 요청",
             content = @Content(
                     schema = @Schema(implementation = UpdateCafeteriaMenuRequest.class),
-                    examples = @ExampleObject(
-                            value = """
-                                    {
-                                      "weekStart": "2026-02-16",
-                                      "weekEnd": "2026-02-20",
-                                      "menus": {
-                                        "2026-02-16": {
-                                          "rollNoodles": ["우동", "김밥"],
-                                          "theBab": ["돈까스", "된장찌개"],
-                                          "fryRice": ["볶음밥", "짜장면"]
-                                        }
-                                      }
-                                    }
-                                    """
-                    )
+                    examples = {
+                            @ExampleObject(
+                                    name = "structured_menu_entries",
+                                    summary = "프론트용 구조화 메타데이터만 수정",
+                                    value = """
+                                            {
+                                              "weekStart": "2026-02-16",
+                                              "weekEnd": "2026-02-20",
+                                              "menuEntries": {
+                                                "2026-02-16": {
+                                                  "rollNoodles": [
+                                                    {
+                                                      "title": "존슨부대찌개",
+                                                      "badges": [
+                                                        {
+                                                          "code": "TAKEOUT",
+                                                          "label": "테이크아웃"
+                                                        }
+                                                      ],
+                                                      "likeCount": 178,
+                                                      "dislikeCount": 22
+                                                    }
+                                                  ],
+                                                  "theBab": [
+                                                    {
+                                                      "title": "돈까스",
+                                                      "badges": [],
+                                                      "likeCount": 31,
+                                                      "dislikeCount": 4
+                                                    }
+                                                  ],
+                                                  "fryRice": []
+                                                }
+                                              }
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "legacy_menus",
+                                    summary = "기존 menus 기반 수정",
+                                    value = """
+                                            {
+                                              "weekStart": "2026-02-16",
+                                              "weekEnd": "2026-02-20",
+                                              "menus": {
+                                                "2026-02-16": {
+                                                  "rollNoodles": ["우동", "김밥"],
+                                                  "theBab": ["돈까스", "된장찌개"],
+                                                  "fryRice": ["볶음밥", "짜장면"]
+                                                }
+                                              }
+                                            }
+                                            """
+                            )
+                    }
             )
     )
     @AdminAudit(

@@ -647,6 +647,9 @@ SSE 운영 제약:
 - 문의 첨부 이미지는 `POST /v1/images?context=INQUIRY_IMAGE` 2단계 업로드 후 `POST /v1/inquiries` 본문의 `attachments[]`로 저장한다.
 - 문의는 첨부 이미지를 최대 3개까지 허용하며, 메타데이터 전체(`url`, `thumbUrl`, `width`, `height`, `size`, `mime`)를 JSON 컬럼으로 보존한다.
 - 문의 첨부는 모든 문의 유형에서 허용하며, 탈퇴 후에도 문의 기록과 함께 보존한다.
+- 학식 메뉴 조회 응답은 기존 `menus`를 유지하면서 `categories`, `menuEntries`를 추가 제공한다.
+- `menuEntries`는 날짜/카테고리별 메뉴 제목, 보조 태그, 좋아요/싫어요 수를 담는 구조화 필드이며 가격은 포함하지 않는다.
+- 학식 좋아요/싫어요 수와 보조 태그는 이번 범위에서 별도 사용자 반응 도메인이 아니라 관리자 입력 메타데이터로 관리한다.
 
 #### 7-2. API
 
