@@ -13,7 +13,7 @@
 - `domain/notice`: 학교 공지, 공지 댓글, 북마크, 앱 공지
 - `domain/academic`: 강의, 시간표, 학사 일정, 시간표 학기 목록/직접 입력 강의/온라인 강의 `isOnline` 계약; 공식 강의 `Course`도 `isOnline`을 가지며 bulk 업로드(`AdminBulkCourseRequest`)에서 온라인 강의를 받을 수 있다. `TimetableService`는 공식 온라인 강의와 직접 입력 온라인 강의를 모두 `slots[]`/충돌 검사에서 제외하고, `CourseService`는 온라인 공식 강의를 `schedule=[]`, `location=null`로 정규화한다.
 - `domain/campus`: 캠퍼스 배너 공개/관리자 API
-- `domain/support`: 문의, 신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티), 앱 버전, 법적 문서, 학식; 학식은 `CafeteriaMenu.menu_entries` JSON 컬럼과 구조화 응답 `categories`, `menuEntries`를 함께 사용하고, `ReportService`가 board/chat/taxiparty 저장소를 조회해 `targetAuthorId`를 해석한다.
+- `domain/support`: 문의, 신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티), 앱 버전, 법적 문서, 학식; 학식은 `CafeteriaMenu.menu_entries` JSON 컬럼과 구조화 응답 `categories`, `menuEntries`를 함께 사용한다. `CafeteriaMenuService`가 저장 시 같은 주의 동일 `category + title` 메타데이터 일관성을 검증하고, `ReportService`가 board/chat/taxiparty 저장소를 조회해 `targetAuthorId`를 해석한다.
 - `domain/notification`: 인앱 알림, unread count, SSE snapshot
 - `infra/auth`: Firebase 인증 필터, Admin guard, Security 설정
 - `infra/admin`: admin audit, admin list 공통 인프라
