@@ -671,11 +671,16 @@ Hooks:
     - weekId, weekStart, weekEnd
     - menus: Map<date, Map<restaurant, items[]>>
     - menuEntries: Map<date, Map<category, entries[]>>
-    - entry: title, badges[] (code, label), likeCount, dislikeCount
-    - 조회 응답은 기존 `menus`를 유지하면서 `categories`, `menuEntries`를 함께 제공한다.
+    - entry: id(weekId+category+title 기반 stable id), title, badges[] (code, label), likeCount, dislikeCount, myReaction
+    - 조회 응답은 기존 `menus`를 유지하면서 `categories`, `menuEntries`를 함께 제공하고, `likeCount`/`dislikeCount`는 실제 사용자 반응 집계다.
     - 가격은 학식 API 계약에 포함하지 않는다.
-    - 좋아요/싫어요 수와 보조 태그는 관리자 입력 메타데이터로 저장하며, 이번 범위에 사용자 반응 등록 API는 포함하지 않는다.
+    - 보조 태그는 관리자 입력 메타데이터로 저장하고, 관리자 요청의 `likeCount`/`dislikeCount`는 deprecated 입력으로만 남기며 저장 시 무시한다.
     - 같은 주 안에서 동일한 `category + title`이 여러 날짜에 반복되면 `badges`, `likeCount`, `dislikeCount`는 모두 동일해야 하며, badge 순서도 비교에 포함한다.
+  - CafeteriaMenuReaction
+    - PK: (memberId, menuId)
+    - weekId, category, title, reaction(LIKE/DISLIKE)
+    - 한 사용자당 한 주간 메뉴에 하나의 반응만 허용하고, `PUT /v1/cafeteria-menu-reactions/{menuId}`로 등록/전환/취소한다.
+    - 메뉴 삭제 시 해당 주차 반응을 함께 제거하고, 메뉴 수정 시 현재 주차 메뉴 집합에 없는 반응 row는 정리한다.
   - AdminAuditLog
     - id, actorId, action, targetType, targetId
     - diffBefore (JSON snapshot), diffAfter (JSON snapshot), timestamp

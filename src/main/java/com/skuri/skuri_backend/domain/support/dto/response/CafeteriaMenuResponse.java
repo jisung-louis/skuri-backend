@@ -59,7 +59,7 @@ public record CafeteriaMenuResponse(
                           "2026-02-03": {
                             "rollNoodles": [
                               {
-                                "id": "2026-02-03-rollNoodles-존슨부대찌개",
+                                "id": "2026-W06.rollNoodles.76af7fdde6f4de15",
                                 "title": "존슨부대찌개",
                                 "badges": [
                                   {
@@ -68,7 +68,8 @@ public record CafeteriaMenuResponse(
                                   }
                                 ],
                                 "likeCount": 178,
-                                "dislikeCount": 22
+                                "dislikeCount": 22,
+                                "myReaction": "LIKE"
                               }
                             ],
                             "theBab": [],

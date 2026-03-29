@@ -44,7 +44,7 @@ public class CafeteriaMenuAdminController {
     private final CafeteriaMenuService cafeteriaMenuService;
 
     @PostMapping
-    @Operation(summary = "학식 메뉴 등록(관리자)", description = "주차 단위 학식 메뉴를 등록합니다.")
+    @Operation(summary = "학식 메뉴 등록(관리자)", description = "주차 단위 학식 메뉴를 등록합니다. menuEntries의 likeCount/dislikeCount 입력값은 deprecated이며 실제 사용자 반응 집계에는 사용되지 않습니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
@@ -135,17 +135,13 @@ public class CafeteriaMenuAdminController {
                                                           "code": "TAKEOUT",
                                                           "label": "테이크아웃"
                                                         }
-                                                      ],
-                                                      "likeCount": 178,
-                                                      "dislikeCount": 22
+                                                      ]
                                                     }
                                                   ],
                                                   "theBab": [
                                                     {
                                                       "title": "돈까스",
-                                                      "badges": [],
-                                                      "likeCount": 31,
-                                                      "dislikeCount": 4
+                                                      "badges": []
                                                     }
                                                   ],
                                                   "fryRice": []
@@ -190,7 +186,7 @@ public class CafeteriaMenuAdminController {
     }
 
     @PutMapping("/{weekId}")
-    @Operation(summary = "학식 메뉴 수정(관리자)", description = "기존 주차의 학식 메뉴를 전체 수정합니다.")
+    @Operation(summary = "학식 메뉴 수정(관리자)", description = "기존 주차의 학식 메뉴를 전체 수정합니다. menuEntries의 likeCount/dislikeCount 입력값은 deprecated이며 실제 사용자 반응 집계에는 사용되지 않습니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -280,17 +276,13 @@ public class CafeteriaMenuAdminController {
                                                           "code": "TAKEOUT",
                                                           "label": "테이크아웃"
                                                         }
-                                                      ],
-                                                      "likeCount": 178,
-                                                      "dislikeCount": 22
+                                                      ]
                                                     }
                                                   ],
                                                   "theBab": [
                                                     {
                                                       "title": "돈까스",
-                                                      "badges": [],
-                                                      "likeCount": 31,
-                                                      "dislikeCount": 4
+                                                      "badges": []
                                                     }
                                                   ],
                                                   "fryRice": []

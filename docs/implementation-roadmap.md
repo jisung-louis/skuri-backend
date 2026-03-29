@@ -648,8 +648,10 @@ SSE 운영 제약:
 - 문의는 첨부 이미지를 최대 3개까지 허용하며, 메타데이터 전체(`url`, `thumbUrl`, `width`, `height`, `size`, `mime`)를 JSON 컬럼으로 보존한다.
 - 문의 첨부는 모든 문의 유형에서 허용하며, 탈퇴 후에도 문의 기록과 함께 보존한다.
 - 학식 메뉴 조회 응답은 기존 `menus`를 유지하면서 `categories`, `menuEntries`를 추가 제공한다.
-- `menuEntries`는 날짜/카테고리별 메뉴 제목, 보조 태그, 좋아요/싫어요 수를 담는 구조화 필드이며 가격은 포함하지 않는다.
-- 학식 좋아요/싫어요 수와 보조 태그는 이번 범위에서 별도 사용자 반응 도메인이 아니라 관리자 입력 메타데이터로 관리한다.
+- `menuEntries`는 날짜/카테고리별 메뉴 제목, 보조 태그, 실제 좋아요/싫어요 집계, `myReaction`을 담는 구조화 필드이며 가격은 포함하지 않는다.
+- 학식 메뉴 ID는 `weekId + category + title` 기준의 stable weekly identifier를 사용한다.
+- 학식 좋아요/싫어요는 `cafeteria_menu_reactions` 도메인으로 분리하고, `PUT /v1/cafeteria-menu-reactions/{menuId}` 한 개의 upsert API로 등록/전환/취소를 처리한다.
+- 관리자 `likeCount`/`dislikeCount` 입력값은 deprecated이며 저장 시 무시한다. 실제 응답 카운트는 사용자 반응 row가 source of truth다.
 - 같은 주 안에서 동일 카테고리의 동일 메뉴 제목은 날짜가 달라도 `badges`, `likeCount`, `dislikeCount`가 동일해야 하며, 관리자 저장 시 서버가 이를 검증한다.
 
 #### 7-2. API
@@ -663,6 +665,7 @@ SSE 운영 제약:
 | `GET` | `/v1/legal-documents/{documentKey}` | 이용약관/개인정보 처리방침 조회 (**Public**) |
 | `GET` | `/v1/cafeteria-menus` | 학식 메뉴 (이번 주) |
 | `GET` | `/v1/cafeteria-menus/{weekId}` | 특정 주차 학식 메뉴 |
+| `PUT` | `/v1/cafeteria-menu-reactions/{menuId}` | 학식 메뉴 반응 등록/전환/취소 |
 | `GET` | `/v1/admin/legal-documents` | 법적 문서 목록 조회 (관리자) |
 | `GET` | `/v1/admin/legal-documents/{documentKey}` | 법적 문서 상세 조회 (관리자) |
 | `PUT` | `/v1/admin/legal-documents/{documentKey}` | 법적 문서 생성/전체 수정 (관리자) |

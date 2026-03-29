@@ -123,6 +123,7 @@ public enum ErrorCode {
     // 학식(Cafeteria) 도메인 에러.
     // 주차별 학식 메뉴 등록과 조회에서 사용하는 오류 코드다.
     CAFETERIA_MENU_NOT_FOUND(HttpStatus.NOT_FOUND, "CAFETERIA_MENU_NOT_FOUND", "학식 메뉴를 찾을 수 없습니다."),
+    CAFETERIA_MENU_ENTRY_NOT_FOUND(HttpStatus.NOT_FOUND, "CAFETERIA_MENU_ENTRY_NOT_FOUND", "학식 메뉴 항목을 찾을 수 없습니다."),
     CAFETERIA_MENU_ALREADY_EXISTS(HttpStatus.CONFLICT, "CAFETERIA_MENU_ALREADY_EXISTS", "이미 등록된 주차의 학식 메뉴입니다."),
 
     // 공통 시스템 에러.

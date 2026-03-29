@@ -6555,7 +6555,7 @@
     },
     {
       "name": "07. Support",
-      "description": "## 목적\n- Phase 7 Support 도메인의 문의/신고/앱 버전/학식 메뉴 API를 검증합니다.\n\n## 실행 전\n- `01. Member > 00. Core` 실행 후 `leaderToken`, `member1Token`, `member2Token`, `adminToken`, `leaderId`, `member1Id`, `member2Id` 확보\n- 신고 생성 요청은 전 상태 중복 금지 정책 때문에 동일 신고자/대상 조합을 재사용하면 `409 REPORT_ALREADY_SUBMITTED`\n- 학식 메뉴는 예약 주차(`2099-W08`, `2099-W09`, `2099-W10`)를 사용하고 Core/Guard에서 삭제로 정리\n- 2026-03-29 기준 학식 응답은 기존 `menus`와 함께 `categories`, `menuEntries`를 제공하며, 가격 없이 보조 태그/좋아요/싫어요 메타데이터를 포함합니다.\n- 같은 주 안에서 동일한 `category + title`은 날짜가 달라도 `badges`, `likeCount`, `dislikeCount`가 동일해야 하며, badge 순서도 비교에 포함됩니다.\n- `menus`는 빈 카테고리를 생략해도 되고, 이 경우 `menuEntries`의 빈 배열과 동일하게 취급됩니다.\n\n## 하위 폴더\n- `00. Core`\n- `10. Scenario Regression`\n- `20. Contract Guard`",
+      "description": "## 목적\n- Phase 7 Support 도메인의 문의/신고/앱 버전/학식 메뉴/학식 반응 API를 검증합니다.\n\n## 실행 전\n- `01. Member > 00. Core` 실행 후 `leaderToken`, `member1Token`, `member2Token`, `adminToken`, `leaderId`, `member1Id`, `member2Id` 확보\n- 신고 생성 요청은 전 상태 중복 금지 정책 때문에 동일 신고자/대상 조합을 재사용하면 `409 REPORT_ALREADY_SUBMITTED`\n- 학식 메뉴는 예약 주차(`2099-W08`, `2099-W09`, `2099-W10`)를 사용하고 Core/Guard에서 삭제로 정리\n- 2026-03-29 기준 학식 응답은 기존 `menus`와 함께 `categories`, `menuEntries`를 제공하며, 가격 없이 보조 태그, 실제 좋아요/싫어요 집계, `myReaction`을 포함합니다.\n- 같은 주 안에서 동일한 `category + title`은 날짜가 달라도 동일 메뉴로 취급되며, `menuEntries[*][*][*].id`는 stable weekly menu id입니다.\n- `menuEntries[*][*][*].id`와 reaction API의 `menuId`는 opaque identifier로 취급하고 파싱하지 않습니다.\n- 관리자 category key는 메뉴 ID 안정성을 위해 영문/숫자/_/-만 허용합니다.\n- 관리자 요청의 `likeCount`/`dislikeCount`는 deprecated 입력값으로 남아 있지만 저장 시 무시됩니다.\n- `menus`는 빈 카테고리를 생략해도 되고, 이 경우 `menuEntries`의 빈 배열과 동일하게 취급됩니다.\n\n## 하위 폴더\n- `00. Core`\n- `10. Scenario Regression`\n- `20. Contract Guard`",
       "item": [
         {
           "name": "00. Core",
@@ -6931,7 +6931,7 @@
                 },
                 "method": "POST",
                 "url": "{{baseUrl}}/v1/admin/cafeteria-menus",
-                "description": "## 기능\n    - 관리자가 Core 주차 학식 메뉴를 등록합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus`\n    - Body:\n```json\n{\n  \"weekId\": \"{{supportCoreWeekId}}\",\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menuEntries\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        {\n          \"title\": \"존슨부대찌개\",\n          \"badges\": [\n            {\n              \"label\": \"테이크아웃\"\n            }\n          ],\n          \"likeCount\": 178,\n          \"dislikeCount\": 22\n        }\n      ],\n      \"theBab\": [\n        {\n          \"title\": \"돈까스\",\n          \"badges\": [],\n          \"likeCount\": 31,\n          \"dislikeCount\": 4\n        }\n      ],\n      \"fryRice\": []\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportCoreWeekId 저장\n\n    ## 실패 시 확인\n    - 이미 등록된 주차면 `409 CAFETERIA_MENU_ALREADY_EXISTS`\n- weekId와 weekStart가 맞지 않으면 `400 INVALID_REQUEST`\n- `menus`와 `menuEntries`를 함께 보냈다면 제목 배열이 일치해야 합니다. 단, `menus`에서 비어 있는 카테고리를 생략한 경우는 `menuEntries`의 빈 배열과 동일하게 취급합니다.\n- `menus`와 `menuEntries`가 모두 비어 있으면 `422 VALIDATION_ERROR`\n- 같은 주의 동일 카테고리/메뉴 메타데이터가 날짜마다 다르면 `400 INVALID_REQUEST`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "description": "## 기능\n    - 관리자가 Core 주차 학식 메뉴를 등록합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `01. Member > 00. Core` 실행 후 `adminToken` 확보\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `POST`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus`\n    - Body:\n```json\n{\n  \"weekId\": \"{{supportCoreWeekId}}\",\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menuEntries\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        {\n          \"title\": \"존슨부대찌개\",\n          \"badges\": [\n            {\n              \"label\": \"테이크아웃\"\n            }\n          ],\n          \"likeCount\": 178,\n          \"dislikeCount\": 22\n        }\n      ],\n      \"theBab\": [\n        {\n          \"title\": \"돈까스\",\n          \"badges\": [],\n          \"likeCount\": 31,\n          \"dislikeCount\": 4\n        }\n      ],\n      \"fryRice\": []\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `201`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - supportCoreWeekId 저장\n\n    ## 실패 시 확인\n    - 이미 등록된 주차면 `409 CAFETERIA_MENU_ALREADY_EXISTS`\n- weekId와 weekStart가 맞지 않으면 `400 INVALID_REQUEST`\n- `menus`와 `menuEntries`를 함께 보냈다면 제목 배열이 일치해야 합니다. 단, `menus`에서 비어 있는 카테고리를 생략한 경우는 `menuEntries`의 빈 배열과 동일하게 취급합니다.\n- `menus`와 `menuEntries`가 모두 비어 있으면 `422 VALIDATION_ERROR`\n- 같은 주의 동일 카테고리/메뉴 메타데이터가 날짜마다 다르면 `400 INVALID_REQUEST`\n- 관리자 요청의 `likeCount`/`dislikeCount`는 deprecated이며 저장 시 무시됩니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"weekId\": \"{{supportCoreWeekId}}\",\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menuEntries\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        {\n          \"title\": \"존슨부대찌개\",\n          \"badges\": [\n            {\n              \"label\": \"테이크아웃\"\n            }\n          ],\n          \"likeCount\": 178,\n          \"dislikeCount\": 22\n        }\n      ],\n      \"theBab\": [\n        {\n          \"title\": \"돈까스\",\n          \"badges\": [],\n          \"likeCount\": 31,\n          \"dislikeCount\": 4\n        }\n      ],\n      \"fryRice\": []\n    }\n  }\n}",
@@ -6974,7 +6974,7 @@
                 },
                 "method": "GET",
                 "url": "{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}",
-                "description": "## 기능\n    - 특정 날짜 기준으로 Core 주차 학식 메뉴를 조회합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n    - 응답에 기존 `menus`와 함께 `categories`, `menuEntries`가 포함됨\n\n    ## 출력 변수\n    - supportCoreWeekId 저장\n\n    ## 실패 시 확인\n    - date를 생략하면 서버가 Asia/Seoul 기준 오늘을 사용합니다.\n- 등록된 메뉴가 없으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+                "description": "## 기능\n    - 특정 날짜 기준으로 Core 주차 학식 메뉴를 조회합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n    - 응답에 기존 `menus`와 함께 `categories`, `menuEntries`, stable weekly menu id, 실제 반응 집계, `myReaction`이 포함됨\n\n    ## 출력 변수\n    - supportCoreWeekId 저장\n    - supportCoreReactionMenuId 저장\n\n    ## 실패 시 확인\n    - date를 생략하면 서버가 Asia/Seoul 기준 오늘을 사용합니다.\n- 등록된 메뉴가 없으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
               },
               "event": [
                 {
@@ -6986,7 +6986,10 @@
                       "const data = (j || {}).data || {};",
                       "pm.test('menuEntries 구조 검증', function () { pm.expect(data.menuEntries).to.be.an('object'); });",
                       "pm.test('categories 구조 검증', function () { pm.expect(data.categories).to.be.an('array'); });",
-                      "if (data.weekId) pm.collectionVariables.set('supportCoreWeekId', data.weekId);"
+                      "const firstDate = Object.keys(data.menuEntries || {})[0];",
+                      "const firstEntry = (((data.menuEntries || {})[firstDate] || {}).rollNoodles || [])[0];",
+                      "if (data.weekId) pm.collectionVariables.set('supportCoreWeekId', data.weekId);",
+                      "if (firstEntry && firstEntry.id) pm.collectionVariables.set('supportCoreReactionMenuId', firstEntry.id);"
                     ]
                   }
                 }
@@ -7007,7 +7010,7 @@
                 },
                 "method": "GET",
                 "url": "{{baseUrl}}/v1/cafeteria-menus/{{supportCoreWeekId}}",
-                "description": "## 기능\n    - weekId로 Core 학식 메뉴를 조회합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus/{{supportCoreWeekId}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n    - 응답에 기존 `menus`와 함께 `categories`, `menuEntries`가 포함됨\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - weekId 형식이 잘못되면 `400 INVALID_REQUEST`\n- 메뉴가 없으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
+                "description": "## 기능\n    - weekId로 Core 학식 메뉴를 조회합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{member1Token}}`\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus/{{supportCoreWeekId}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n    - 응답에 기존 `menus`와 함께 `categories`, `menuEntries`, stable weekly menu id, 실제 반응 집계, `myReaction`이 포함됨\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - weekId 형식이 잘못되면 `400 INVALID_REQUEST`\n- 메뉴가 없으면 `404 CAFETERIA_MENU_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java"
               },
               "event": [
                 {
@@ -7020,6 +7023,48 @@
                       "pm.test('menuEntries 구조 검증', function () { pm.expect(data.menuEntries).to.be.an('object'); });",
                       "pm.test('categories 구조 검증', function () { pm.expect(data.categories).to.be.an('array'); });",
                       "if (data.weekId) pm.collectionVariables.set('supportCoreWeekId', data.weekId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "학식 메뉴 반응 저장",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{member1Token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/cafeteria-menu-reactions/{{supportCoreReactionMenuId}}",
+                "description": "## 기능\n    - Core 학식 메뉴에 현재 사용자 반응을 저장합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `이번 주 학식 메뉴 조회` 선행\n- Auth 토큰: `{{member1Token}}`\n- `supportCoreReactionMenuId` 확보\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/cafeteria-menu-reactions/{{supportCoreReactionMenuId}}`\n    - Body:\n```json\n{\n  \"reaction\": \"LIKE\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n    - 응답에 `menuId`, `myReaction`, `likeCount`, `dislikeCount` 포함\n    - `menuId`는 파싱하지 않고 응답에서 받은 opaque 값을 그대로 재사용\n    - 같은 요청 재시도나 더블탭에서도 500 없이 처리\n\n    ## 출력 변수\n    - supportCoreReactionMenuId 저장\n\n    ## 실패 시 확인\n    - 인증 없으면 `401 UNAUTHORIZED`\n- menuId 형식이 잘못되면 `400 INVALID_REQUEST`\n- 주차 메뉴가 없으면 `404 CAFETERIA_MENU_NOT_FOUND`\n- menuId와 일치하는 항목이 없으면 `404 CAFETERIA_MENU_ENTRY_NOT_FOUND`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuReactionController.java\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuReactionService.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reaction\": \"LIKE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const data = (j || {}).data || {};",
+                      "pm.test('reaction 응답 검증', function () { pm.expect(data.myReaction).to.eql('LIKE'); });",
+                      "pm.test('집계 필드 검증', function () { pm.expect(data.likeCount).to.be.a('number'); pm.expect(data.dislikeCount).to.be.a('number'); });",
+                      "if (data.menuId) pm.collectionVariables.set('supportCoreReactionMenuId', data.menuId);"
                     ]
                   }
                 }
@@ -7040,7 +7085,7 @@
                 },
                 "method": "PUT",
                 "url": "{{baseUrl}}/v1/admin/cafeteria-menus/{{supportCoreWeekId}}",
-                "description": "## 기능\n    - 관리자가 Core 학식 메뉴를 전체 수정합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus/{{supportCoreWeekId}}`\n    - Body:\n```json\n{\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menuEntries\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        {\n          \"title\": \"존슨부대찌개\",\n          \"badges\": [\n            {\n              \"code\": \"TAKEOUT\",\n              \"label\": \"테이크아웃\"\n            }\n          ],\n          \"likeCount\": 201,\n          \"dislikeCount\": 25\n        }\n      ],\n      \"theBab\": [\n        {\n          \"title\": \"제육볶음\",\n          \"badges\": [],\n          \"likeCount\": 44,\n          \"dislikeCount\": 5\n        }\n      ],\n      \"fryRice\": [\n        {\n          \"title\": \"볶음밥\",\n          \"badges\": [],\n          \"likeCount\": 12,\n          \"dislikeCount\": 0\n        }\n      ]\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 존재하지 않는 주차면 `404 CAFETERIA_MENU_NOT_FOUND`\n- weekStart/weekEnd/menuEntries 형식 오류면 `422 VALIDATION_ERROR` 또는 `400 INVALID_REQUEST`\n- `menus`와 `menuEntries`를 함께 보냈다면 제목 배열이 일치해야 합니다. 단, `menus`에서 비어 있는 카테고리를 생략한 경우는 `menuEntries`의 빈 배열과 동일하게 취급합니다.\n- 같은 주의 동일 카테고리/메뉴 메타데이터가 날짜마다 다르면 `400 INVALID_REQUEST`\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
+                "description": "## 기능\n    - 관리자가 Core 학식 메뉴를 전체 수정합니다.\n\n    ## 테스트 모드\n    - Core\n\n    ## 선행조건\n    - `학식 메뉴 등록(201)` 선행\n- Auth 토큰: `{{adminToken}}`\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/admin/cafeteria-menus/{{supportCoreWeekId}}`\n    - Body:\n```json\n{\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menuEntries\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        {\n          \"title\": \"존슨부대찌개\",\n          \"badges\": [\n            {\n              \"code\": \"TAKEOUT\",\n              \"label\": \"테이크아웃\"\n            }\n          ],\n          \"likeCount\": 201,\n          \"dislikeCount\": 25\n        }\n      ],\n      \"theBab\": [\n        {\n          \"title\": \"제육볶음\",\n          \"badges\": [],\n          \"likeCount\": 44,\n          \"dislikeCount\": 5\n        }\n      ],\n      \"fryRice\": [\n        {\n          \"title\": \"볶음밥\",\n          \"badges\": [],\n          \"likeCount\": 12,\n          \"dislikeCount\": 0\n        }\n      ]\n    }\n  }\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `200`\n    - Collection 공통 Tests 통과\n    - 에러 코드: 없음\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 존재하지 않는 주차면 `404 CAFETERIA_MENU_NOT_FOUND`\n- weekStart/weekEnd/menuEntries 형식 오류면 `422 VALIDATION_ERROR` 또는 `400 INVALID_REQUEST`\n- `menus`와 `menuEntries`를 함께 보냈다면 제목 배열이 일치해야 합니다. 단, `menus`에서 비어 있는 카테고리를 생략한 경우는 `menuEntries`의 빈 배열과 동일하게 취급합니다.\n- 같은 주의 동일 카테고리/메뉴 메타데이터가 날짜마다 다르면 `400 INVALID_REQUEST`\n- 관리자 요청의 `likeCount`/`dislikeCount`는 deprecated이며 저장 시 무시됩니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuAdminController.java (createMenu/updateMenu/deleteMenu)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (createMenu/updateMenu/deleteMenu)\n- DTO 검증: src/main/java/com/skuri/skuri_backend/domain/support/dto/request/CreateCafeteriaMenuRequest.java\n- 관리자 인가: src/main/java/com/skuri/skuri_backend/infra/auth/config/SecurityConfig.java (securityFilterChain)",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"weekStart\": \"{{supportCoreWeekStart}}\",\n  \"weekEnd\": \"{{supportCoreWeekEnd}}\",\n  \"menuEntries\": {\n    \"{{supportCoreWeekStart}}\": {\n      \"rollNoodles\": [\n        {\n          \"title\": \"존슨부대찌개\",\n          \"badges\": [\n            {\n              \"code\": \"TAKEOUT\",\n              \"label\": \"테이크아웃\"\n            }\n          ],\n          \"likeCount\": 201,\n          \"dislikeCount\": 25\n        }\n      ],\n      \"theBab\": [\n        {\n          \"title\": \"제육볶음\",\n          \"badges\": [],\n          \"likeCount\": 44,\n          \"dislikeCount\": 5\n        }\n      ],\n      \"fryRice\": [\n        {\n          \"title\": \"볶음밥\",\n          \"badges\": [],\n          \"likeCount\": 12,\n          \"dislikeCount\": 0\n        }\n      ]\n    }\n  }\n}",
@@ -8159,6 +8204,38 @@
                 "method": "GET",
                 "url": "{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}",
                 "description": "## 기능\n    - 학식 메뉴 조회 API가 인증 없이는 호출되지 않는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - 추가 선행 변수 없음\n- Auth: 없음\n\n    ## 요청\n    - Method: `GET`\n    - URL: `{{baseUrl}}/v1/cafeteria-menus?date={{supportCoreMenuDate}}`\n    - Body: 없음\n\n    ## 기대 결과\n    - HTTP 상태코드: `401`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `UNAUTHORIZED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 401이 아니면 Support 보호 API 인증 정책을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuController.java (getCurrentWeekMenu/getMenuByWeekId)\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuService.java (getCurrentWeekMenu/getMenuByWeekId)\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.test('errorCode=UNAUTHORIZED 검증', function () { pm.expect(j.errorCode).to.eql('UNAUTHORIZED'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "인증 없이 학식 반응 저장(401 확인)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "PUT",
+                "url": "{{baseUrl}}/v1/cafeteria-menu-reactions/2026-W08.rollNoodles.c4973864db4f8815",
+                "description": "## 기능\n    - 학식 반응 저장 API가 인증 없이는 호출되지 않는지 확인합니다.\n\n    ## 테스트 모드\n    - Contract Guard\n\n    ## 선행조건\n    - 추가 선행 변수 없음\n- Auth: 없음\n\n    ## 요청\n    - Method: `PUT`\n    - URL: `{{baseUrl}}/v1/cafeteria-menu-reactions/2026-W08.rollNoodles.c4973864db4f8815`\n    - Body:\n```json\n{\n  \"reaction\": \"LIKE\"\n}\n```\n\n    ## 기대 결과\n    - HTTP 상태코드: `401`\n    - Collection 공통 Tests 통과\n    - 에러 코드: `UNAUTHORIZED`\n\n    ## 출력 변수\n    - 없음\n\n    ## 실패 시 확인\n    - 401이 아니면 Support 보호 API 인증 정책을 확인합니다.\n\n    ## 관련 백엔드 코드\n    - Controller: src/main/java/com/skuri/skuri_backend/domain/support/controller/CafeteriaMenuReactionController.java\n- Service: src/main/java/com/skuri/skuri_backend/domain/support/service/CafeteriaMenuReactionService.java\n- 인증 필터: src/main/java/com/skuri/skuri_backend/infra/auth/firebase/FirebaseAuthenticationFilter.java\n- 예외 매핑: src/main/java/com/skuri/skuri_backend/common/exception/GlobalExceptionHandler.java\n- 에러 코드: src/main/java/com/skuri/skuri_backend/common/exception/ErrorCode.java",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reaction\": \"LIKE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "event": [
                 {

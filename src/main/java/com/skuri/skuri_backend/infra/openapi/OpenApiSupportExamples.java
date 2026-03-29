@@ -102,14 +102,15 @@ public final class OpenApiSupportExamples {
                   "2026-02-03": {
                     "rollNoodles": [
                       {
-                        "id": "2026-02-03-rollNoodles-우동",
+                        "id": "2026-W06.rollNoodles.8851f2731beef1f0",
                         "title": "우동",
                         "badges": [],
                         "likeCount": 12,
-                        "dislikeCount": 1
+                        "dislikeCount": 1,
+                        "myReaction": null
                       },
                       {
-                        "id": "2026-02-03-rollNoodles-김밥",
+                        "id": "2026-W06.rollNoodles.881b3d074ed4535d",
                         "title": "김밥",
                         "badges": [
                           {
@@ -118,21 +119,47 @@ public final class OpenApiSupportExamples {
                           }
                         ],
                         "likeCount": 31,
-                        "dislikeCount": 2
+                        "dislikeCount": 2,
+                        "myReaction": "LIKE"
                       }
                     ],
                     "theBab": [
                       {
-                        "id": "2026-02-03-theBab-돈까스",
+                        "id": "2026-W06.theBab.1f529546f2bf7ff3",
                         "title": "돈까스",
                         "badges": [],
                         "likeCount": 18,
-                        "dislikeCount": 4
+                        "dislikeCount": 4,
+                        "myReaction": "DISLIKE"
                       }
                     ],
                     "fryRice": []
                   }
                 }
+              }
+            }
+            """;
+
+    public static final String SUCCESS_CAFETERIA_MENU_REACTION_LIKE = """
+            {
+              "success": true,
+              "data": {
+                "menuId": "2026-W08.rollNoodles.c4973864db4f8815",
+                "myReaction": "LIKE",
+                "likeCount": 13,
+                "dislikeCount": 2
+              }
+            }
+            """;
+
+    public static final String SUCCESS_CAFETERIA_MENU_REACTION_CANCEL = """
+            {
+              "success": true,
+              "data": {
+                "menuId": "2026-W08.rollNoodles.c4973864db4f8815",
+                "myReaction": null,
+                "likeCount": 12,
+                "dislikeCount": 2
               }
             }
             """;
@@ -323,6 +350,9 @@ public final class OpenApiSupportExamples {
 
     public static final String ERROR_CAFETERIA_MENU_NOT_FOUND =
             "{\"success\":false,\"message\":\"학식 메뉴를 찾을 수 없습니다.\",\"errorCode\":\"CAFETERIA_MENU_NOT_FOUND\",\"timestamp\":\"2026-03-07T12:00:00\"}";
+
+    public static final String ERROR_CAFETERIA_MENU_ENTRY_NOT_FOUND =
+            "{\"success\":false,\"message\":\"학식 메뉴 항목을 찾을 수 없습니다.\",\"errorCode\":\"CAFETERIA_MENU_ENTRY_NOT_FOUND\",\"timestamp\":\"2026-03-29T12:00:00\"}";
 
     public static final String ERROR_CAFETERIA_MENU_ALREADY_EXISTS =
             "{\"success\":false,\"message\":\"이미 등록된 주차의 학식 메뉴입니다.\",\"errorCode\":\"CAFETERIA_MENU_ALREADY_EXISTS\",\"timestamp\":\"2026-03-07T12:00:00\"}";

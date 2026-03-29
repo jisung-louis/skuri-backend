@@ -74,7 +74,8 @@ class CafeteriaMenuAdminControllerContractTest {
                 )
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.weekId").value("2026-W08"))
-                .andExpect(jsonPath("$.data.menuEntries['2026-02-16'].rollNoodles[0].likeCount").value(178));
+                .andExpect(jsonPath("$.data.menuEntries['2026-02-16'].rollNoodles[0].likeCount").value(0))
+                .andExpect(jsonPath("$.data.menuEntries['2026-02-16'].rollNoodles[0].myReaction").isEmpty());
     }
 
     @Test
@@ -168,6 +169,26 @@ class CafeteriaMenuAdminControllerContractTest {
     }
 
     @Test
+    void createMenu_카테고리코드형식오류_400() throws Exception {
+        mockToken("admin-token", true);
+        when(cafeteriaMenuService.createMenu(any()))
+                .thenThrow(new BusinessException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "menuEntries.category는 영문, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다."
+                ));
+
+        mockMvc.perform(
+                        post("/v1/admin/cafeteria-menus")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(invalidCategoryCreateRequest())
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("menuEntries.category는 영문, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다."));
+    }
+
+    @Test
     void updateMenu_관리자정상요청_200() throws Exception {
         mockToken("admin-token", true);
         when(cafeteriaMenuService.updateMenu(eq("2026-W08"), any())).thenReturn(menuResponse());
@@ -249,11 +270,12 @@ class CafeteriaMenuAdminControllerContractTest {
                         Map.of(
                                 "rollNoodles", List.of(
                                         new CafeteriaMenuEntryResponse(
-                                                "2026-02-16-rollNoodles-존슨부대찌개",
+                                                "2026-W08.rollNoodles.c4973864db4f8815",
                                                 "존슨부대찌개",
                                                 List.of(new CafeteriaMenuBadgeResponse("TAKEOUT", "테이크아웃")),
-                                                178,
-                                                22
+                                                0,
+                                                0,
+                                                null
                                         )
                                 ),
                                 "theBab", List.of(),
@@ -369,6 +391,26 @@ class CafeteriaMenuAdminControllerContractTest {
                           ],
                           "likeCount": 179,
                           "dislikeCount": 22
+                        }
+                      ]
+                    }
+                  }
+                }
+                """;
+    }
+
+    private String invalidCategoryCreateRequest() {
+        return """
+                {
+                  "weekId": "2026-W08",
+                  "weekStart": "2026-02-16",
+                  "weekEnd": "2026-02-20",
+                  "menuEntries": {
+                    "2026-02-16": {
+                      "special.v1": [
+                        {
+                          "title": "우동",
+                          "badges": []
                         }
                       ]
                     }

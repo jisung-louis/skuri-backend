@@ -3254,7 +3254,9 @@ Authorization:Bearer <firebase_id_token>
 학식 메뉴
 
 `menus`는 기존 호환용 원본 메뉴 문자열 배열이고, `categories`/`menuEntries`는 학식 상세 화면과 Campus home preview용 구조화 필드다.
-이번 계약에는 가격이 포함되지 않으며, `likeCount`/`dislikeCount`와 `badges`는 관리자 입력 메타데이터로 관리한다.
+이번 계약에는 가격이 포함되지 않으며, `badges`는 관리자 입력 메타데이터, `likeCount`/`dislikeCount`는 실제 사용자 반응 집계다.
+`menuEntries[*][*][*].id`는 `weekId + category + title` 기준의 stable weekly identifier이고, `myReaction`은 현재 인증 사용자의 반응 상태다.
+클라이언트는 이 `id`를 opaque 값으로 취급하고 파싱하지 말아야 한다.
 
 **Query Parameters:**
 
@@ -3295,14 +3297,15 @@ Authorization:Bearer <firebase_id_token>
       "2026-02-03": {
         "rollNoodles": [
           {
-            "id": "2026-02-03-rollNoodles-우동",
+            "id": "2026-W06.rollNoodles.8851f2731beef1f0",
             "title": "우동",
             "badges": [],
             "likeCount": 12,
-            "dislikeCount": 1
+            "dislikeCount": 1,
+            "myReaction": null
           },
           {
-            "id": "2026-02-03-rollNoodles-김밥",
+            "id": "2026-W06.rollNoodles.881b3d074ed4535d",
             "title": "김밥",
             "badges": [
               {
@@ -3311,16 +3314,18 @@ Authorization:Bearer <firebase_id_token>
               }
             ],
             "likeCount": 31,
-            "dislikeCount": 2
+            "dislikeCount": 2,
+            "myReaction": "LIKE"
           }
         ],
         "theBab": [
           {
-            "id": "2026-02-03-theBab-돈까스",
+            "id": "2026-W06.theBab.1f529546f2bf7ff3",
             "title": "돈까스",
             "badges": [],
             "likeCount": 18,
-            "dislikeCount": 4
+            "dislikeCount": 4,
+            "myReaction": "DISLIKE"
           }
         ],
         "fryRice": []
@@ -3374,14 +3379,15 @@ Authorization:Bearer <firebase_id_token>
       "2026-02-03": {
         "rollNoodles": [
           {
-            "id": "2026-02-03-rollNoodles-우동",
+            "id": "2026-W06.rollNoodles.8851f2731beef1f0",
             "title": "우동",
             "badges": [],
             "likeCount": 12,
-            "dislikeCount": 1
+            "dislikeCount": 1,
+            "myReaction": null
           },
           {
-            "id": "2026-02-03-rollNoodles-김밥",
+            "id": "2026-W06.rollNoodles.881b3d074ed4535d",
             "title": "김밥",
             "badges": [
               {
@@ -3390,16 +3396,18 @@ Authorization:Bearer <firebase_id_token>
               }
             ],
             "likeCount": 31,
-            "dislikeCount": 2
+            "dislikeCount": 2,
+            "myReaction": "LIKE"
           }
         ],
         "theBab": [
           {
-            "id": "2026-02-03-theBab-돈까스",
+            "id": "2026-W06.theBab.1f529546f2bf7ff3",
             "title": "돈까스",
             "badges": [],
             "likeCount": 18,
-            "dislikeCount": 4
+            "dislikeCount": 4,
+            "myReaction": "DISLIKE"
           }
         ],
         "fryRice": []
@@ -3408,6 +3416,71 @@ Authorization:Bearer <firebase_id_token>
   }
 }
 ```
+
+#### PUT /v1/cafeteria-menu-reactions/{menuId}
+학식 메뉴 반응 저장
+
+한 사용자당 한 주간 메뉴에 하나의 반응만 저장할 수 있다.
+- `LIKE` 저장: 좋아요 등록
+- `DISLIKE` 저장: 싫어요 등록
+- 반대 반응 저장: 기존 반응에서 전환
+- `null` 저장: 기존 반응 취소
+
+`menuId`는 날짜 기반이 아니라 주간 기준 stable weekly identifier다.
+응답에서 받은 값을 그대로 다시 보내는 opaque identifier로 사용하고, 구조를 파싱하지 않는다.
+같은 요청 재시도나 더블탭 상황에서도 주차 단위 직렬화로 500 없이 처리되도록 구현한다.
+
+**Path Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `menuId` | string | 주간 기준 메뉴 ID (예: `2026-W08.rollNoodles.c4973864db4f8815`) |
+
+**Request:**
+```json
+{
+  "reaction": "LIKE"
+}
+```
+
+취소 요청 예시:
+```json
+{
+  "reaction": null
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "menuId": "2026-W08.rollNoodles.c4973864db4f8815",
+    "myReaction": "LIKE",
+    "likeCount": 13,
+    "dislikeCount": 2
+  }
+}
+```
+
+취소 응답 예시:
+```json
+{
+  "success": true,
+  "data": {
+    "menuId": "2026-W08.rollNoodles.c4973864db4f8815",
+    "myReaction": null,
+    "likeCount": 12,
+    "dislikeCount": 2
+  }
+}
+```
+
+가능한 에러:
+- `400 INVALID_REQUEST`: `menuId` 형식이 잘못됨
+- `401 UNAUTHORIZED`: 인증 필요
+- `404 CAFETERIA_MENU_NOT_FOUND`: 해당 주차 메뉴 없음
+- `404 CAFETERIA_MENU_ENTRY_NOT_FOUND`: 해당 주차에 menuId와 일치하는 메뉴 항목이 없음
 
 ### 8.5 캠퍼스 홈 배너
 
@@ -5502,8 +5575,10 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 `menus` 또는 `menuEntries` 중 하나는 반드시 전달해야 한다.
 둘 다 전달하면 각 날짜/카테고리별 메뉴 제목 배열이 정확히 일치해야 하며, 불일치 시 `400 INVALID_REQUEST`를 반환한다.
 단, `menus`에서 비어 있는 카테고리를 생략한 경우는 `menuEntries`의 빈 배열과 동일하게 취급한다.
+카테고리 코드는 학식 메뉴 ID 안정성을 위해 영문, 숫자, 밑줄(`_`), 하이픈(`-`)만 허용하며 점(`.`)은 허용하지 않는다.
 `menuEntries.badges`는 자유 입력 라벨과 optional code를 받으며, code를 생략하면 서버가 label 기반으로 자동 생성한다.
-좋아요/싫어요 카운트는 이번 범위에서 관리자 입력 메타데이터로만 관리한다.
+`menuEntries.likeCount`/`dislikeCount`는 deprecated 입력값으로 남아 있지만 저장 시 무시된다.
+실제 응답 `likeCount`/`dislikeCount`는 사용자 반응 집계가 source of truth다.
 같은 주 안에서 동일한 `category + title`이 여러 날짜에 반복되면 `badges`, `likeCount`, `dislikeCount`는 모두 동일해야 한다. badge 순서도 동일성 비교에 포함된다.
 
 **Request:**
@@ -5522,17 +5597,13 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
               "code": "TAKEOUT",
               "label": "테이크아웃"
             }
-          ],
-          "likeCount": 178,
-          "dislikeCount": 22
+          ]
         }
       ],
       "theBab": [
         {
           "title": "돈까스",
-          "badges": [],
-          "likeCount": 31,
-          "dislikeCount": 4
+          "badges": []
         }
       ],
       "fryRice": []
@@ -5563,6 +5634,16 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
   "success": false,
   "message": "같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다. category=rollNoodles, title=존슨부대찌개, firstDate=2026-02-16, date=2026-02-17",
   "errorCode": "INVALID_REQUEST",
+  "timestamp": "2026-03-29T12:00:00"
+}
+```
+
+카테고리 코드 형식 검증 실패 예시:
+```json
+{
+  "success": false,
+  "message": "menuEntries.category는 영문, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다.",
+  "errorCode": "VALIDATION_ERROR",
   "timestamp": "2026-03-29T12:00:00"
 }
 ```
@@ -5600,7 +5681,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
       "2026-02-16": {
         "rollNoodles": [
           {
-            "id": "2026-02-16-rollNoodles-존슨부대찌개",
+            "id": "2026-W08.rollNoodles.c4973864db4f8815",
             "title": "존슨부대찌개",
             "badges": [
               {
@@ -5608,17 +5689,19 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
                 "label": "테이크아웃"
               }
             ],
-            "likeCount": 178,
-            "dislikeCount": 22
+            "likeCount": 0,
+            "dislikeCount": 0,
+            "myReaction": null
           }
         ],
         "theBab": [
           {
-            "id": "2026-02-16-theBab-돈까스",
+            "id": "2026-W08.theBab.1f529546f2bf7ff3",
             "title": "돈까스",
             "badges": [],
-            "likeCount": 31,
-            "dislikeCount": 4
+            "likeCount": 0,
+            "dislikeCount": 0,
+            "myReaction": null
           }
         ],
         "fryRice": []
@@ -5631,10 +5714,13 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 #### PUT /v1/admin/cafeteria-menus/{weekId}
 학식 메뉴 수정
 
-**Request / Response:** `POST /v1/admin/cafeteria-menus`와 동일한 필드를 사용하며, 성공 시 `200 OK`로 전체 학식 메뉴 객체를 반환한다.
+`POST /v1/admin/cafeteria-menus`와 동일한 요청/응답 계약을 사용한다.
+주차 내 메뉴 집합이 바뀌면 더 이상 존재하지 않는 메뉴의 기존 반응 row는 서버가 정리한다.
 
 #### DELETE /v1/admin/cafeteria-menus/{weekId}
 학식 메뉴 삭제
+
+주차 학식 메뉴를 삭제하면 해당 주차의 사용자 반응 row도 함께 삭제한다.
 
 **Response (200 OK):**
 ```json
@@ -6545,6 +6631,8 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-29: FCM token app version 반영 — `POST /v1/members/me/fcm-tokens`에 optional `appVersion`을 추가하고, `GET /v1/admin/members`의 `currentAppVersion`을 최근 활성 FCM 토큰의 `app_version` 기준으로 제공
 > - 2026-03-29: TaxiParty Admin P1 구현 반영 — 관리자 파티 목록/상세/상태 변경 계약과 관련 404/409 에러코드를 `/v3/api-docs` 기준으로 동기화
 > - 2026-03-05: Support API 보완 — `GET /v1/cafeteria-menus/{weekId}` 명시 추가
+> - 2026-03-29: Support Cafeteria reaction 계약 반영 — 학식 메뉴 응답의 `stable weekly id`, 실제 사용자 반응 집계(`likeCount`/`dislikeCount`), `myReaction`, `PUT /v1/cafeteria-menu-reactions/{menuId}` 및 관리자 count 입력 deprecate 정책을 `/v3/api-docs` 기준으로 동기화
+> - 2026-03-29: Support Cafeteria review fix — 관리자 category key를 identifier-safe 문자셋으로 제한하고, reaction upsert의 주차 단위 직렬화/opaque `menuId` 사용 규칙을 반영
 > - 2026-03-05: Admin Support API 추가 — 문의/신고 운영 조회·처리 (`GET/PATCH /v1/admin/inquiries*`, `GET/PATCH /v1/admin/reports*`)
 > - 2026-03-05: Admin 권한 정책 반영 — `ROLE_ADMIN + @PreAuthorize` 기반 접근 제어와 `ADMIN_REQUIRED` 에러코드 명시, 공개 채팅방 Admin API 검증 규칙 보강
 > - 2026-03-05: Board 계약 동기화 — 댓글 depth 1 제한, 부모 삭제 정책(B: placeholder soft delete), `/v1/members/me/posts|bookmarks` 및 Board 에러코드(`COMMENT_DEPTH_EXCEEDED`, `COMMENT_ALREADY_DELETED`) 반영

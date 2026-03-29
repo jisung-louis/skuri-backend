@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.support.controller;
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.service.CafeteriaMenuService;
+import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiSupportExamples;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+
+import static com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMemberSupport.requireAuthenticatedMember;
 
 @RestController
 @RequestMapping("/v1/cafeteria-menus")
@@ -90,12 +94,17 @@ public class CafeteriaMenuController {
             )
     })
     public ResponseEntity<ApiResponse<CafeteriaMenuResponse>> getCurrentWeekMenu(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Parameter(description = "조회 기준 날짜", example = "2026-02-03")
             @RequestParam(name = "date", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                cafeteriaMenuService.getCurrentWeekMenu(date == null ? LocalDate.now(KOREA_ZONE) : date)
+                cafeteriaMenuService.getCurrentWeekMenu(
+                        requireAuthenticatedMember(authenticatedMember).uid(),
+                        date == null ? LocalDate.now(KOREA_ZONE) : date
+                )
         ));
     }
 
@@ -149,9 +158,13 @@ public class CafeteriaMenuController {
             )
     })
     public ResponseEntity<ApiResponse<CafeteriaMenuResponse>> getMenuByWeekId(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Parameter(description = "조회할 주차 ID", example = "2026-W06")
             @PathVariable String weekId
     ) {
-        return ResponseEntity.ok(ApiResponse.success(cafeteriaMenuService.getMenuByWeekId(weekId)));
+        return ResponseEntity.ok(ApiResponse.success(
+                cafeteriaMenuService.getMenuByWeekId(requireAuthenticatedMember(authenticatedMember).uid(), weekId)
+        ));
     }
 }
