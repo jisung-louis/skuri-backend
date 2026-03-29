@@ -136,7 +136,7 @@ public class CafeteriaMenuService {
             Map<String, Map<String, List<String>>> menus,
             Map<String, Map<String, List<CafeteriaMenuEntryRequest>>> menuEntries
     ) {
-        Map<String, Map<String, List<String>>> normalizedMenus = normalizeMenus(menus);
+        Map<String, Map<String, List<String>>> normalizedMenus = canonicalizeMenus(normalizeMenus(menus));
         Map<String, Map<String, List<CafeteriaMenuEntryMetadata>>> normalizedMenuEntries =
                 normalizeMenuEntries(menuEntries);
 
@@ -148,7 +148,8 @@ public class CafeteriaMenuService {
 
         if (hasMenuEntries) {
             validateWeeklyMenuEntryConsistency(normalizedMenuEntries);
-            Map<String, Map<String, List<String>>> menusFromEntries = extractMenus(normalizedMenuEntries);
+            Map<String, Map<String, List<String>>> menusFromEntries =
+                    canonicalizeMenus(extractMenus(normalizedMenuEntries));
             if (hasMenus && !Objects.equals(normalizedMenus, menusFromEntries)) {
                 throw new BusinessException(ErrorCode.INVALID_REQUEST, "menus와 menuEntries의 메뉴명이 일치하지 않습니다.");
             }
@@ -270,6 +271,22 @@ public class CafeteriaMenuService {
             normalized.add(normalizeRequiredText("menus.title", item));
         }
         return List.copyOf(normalized);
+    }
+
+    private Map<String, Map<String, List<String>>> canonicalizeMenus(
+            Map<String, Map<String, List<String>>> menus
+    ) {
+        Map<String, Map<String, List<String>>> canonical = new LinkedHashMap<>();
+        menus.forEach((date, categories) -> {
+            Map<String, List<String>> filteredCategories = new LinkedHashMap<>();
+            categories.forEach((category, items) -> {
+                if (!items.isEmpty()) {
+                    filteredCategories.put(category, items);
+                }
+            });
+            canonical.put(date, filteredCategories);
+        });
+        return canonical;
     }
 
     private Map<String, Map<String, List<CafeteriaMenuEntryMetadata>>> synthesizeMenuEntries(
