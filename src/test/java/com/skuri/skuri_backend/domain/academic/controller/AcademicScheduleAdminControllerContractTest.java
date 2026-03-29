@@ -5,6 +5,7 @@ import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.academic.dto.request.CreateAcademicScheduleRequest;
 import com.skuri.skuri_backend.domain.academic.dto.request.UpdateAcademicScheduleRequest;
 import com.skuri.skuri_backend.domain.academic.dto.response.AcademicScheduleResponse;
+import com.skuri.skuri_backend.domain.academic.dto.response.AdminBulkAcademicSchedulesResponse;
 import com.skuri.skuri_backend.domain.academic.entity.AcademicScheduleType;
 import com.skuri.skuri_backend.domain.academic.service.AcademicScheduleService;
 import com.skuri.skuri_backend.domain.member.entity.Member;
@@ -111,6 +112,102 @@ class AcademicScheduleAdminControllerContractTest {
     }
 
     @Test
+    void bulkSyncAcademicSchedules_관리자정상요청_200() throws Exception {
+        mockToken("admin-token", true);
+        when(academicScheduleService.bulkSyncSchedules(any()))
+                .thenReturn(new AdminBulkAcademicSchedulesResponse(
+                        LocalDate.of(2026, 3, 1),
+                        LocalDate.of(2027, 2, 28),
+                        12,
+                        37,
+                        5
+                ));
+
+        mockMvc.perform(
+                        put("/v1/admin/academic-schedules/bulk")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(validBulkRequestBody())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.scopeStartDate").value("2026-03-01"))
+                .andExpect(jsonPath("$.data.created").value(12))
+                .andExpect(jsonPath("$.data.updated").value(37))
+                .andExpect(jsonPath("$.data.deleted").value(5));
+    }
+
+    @Test
+    void bulkSyncAcademicSchedules_비관리자요청_403() throws Exception {
+        mockToken("user-token", false);
+
+        mockMvc.perform(
+                        put("/v1/admin/academic-schedules/bulk")
+                                .header(AUTHORIZATION, "Bearer user-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(validBulkRequestBody())
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("ADMIN_REQUIRED"));
+    }
+
+    @Test
+    void bulkSyncAcademicSchedules_잘못된scope_422() throws Exception {
+        mockToken("admin-token", true);
+        when(academicScheduleService.bulkSyncSchedules(any()))
+                .thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "scopeStartDate는 scopeEndDate보다 늦을 수 없습니다."));
+
+        mockMvc.perform(
+                        put("/v1/admin/academic-schedules/bulk")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(validBulkRequestBody())
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("scopeStartDate는 scopeEndDate보다 늦을 수 없습니다."));
+    }
+
+    @Test
+    void bulkSyncAcademicSchedules_자연키중복_422() throws Exception {
+        mockToken("admin-token", true);
+        when(academicScheduleService.bulkSyncSchedules(any()))
+                .thenThrow(new BusinessException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "같은 title/startDate/endDate/type 조합이 요청에 중복되었습니다: 입학식 / 개강|2026-03-03|2026-03-03|SINGLE"
+                ));
+
+        mockMvc.perform(
+                        put("/v1/admin/academic-schedules/bulk")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(validBulkRequestBody())
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("같은 title/startDate/endDate/type 조합이 요청에 중복되었습니다: 입학식 / 개강|2026-03-03|2026-03-03|SINGLE"));
+    }
+
+    @Test
+    void bulkSyncAcademicSchedules_scope밖일정포함_422() throws Exception {
+        mockToken("admin-token", true);
+        when(academicScheduleService.bulkSyncSchedules(any()))
+                .thenThrow(new BusinessException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "모든 일정은 scopeStartDate와 scopeEndDate 범위 안에 있어야 합니다."
+                ));
+
+        mockMvc.perform(
+                        put("/v1/admin/academic-schedules/bulk")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content(validBulkRequestBody())
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("모든 일정은 scopeStartDate와 scopeEndDate 범위 안에 있어야 합니다."));
+    }
+
+    @Test
     void updateAcademicSchedule_없는일정_404() throws Exception {
         mockToken("admin-token", true);
         when(academicScheduleService.updateSchedule(eq("missing"), any(UpdateAcademicScheduleRequest.class)))
@@ -190,6 +287,33 @@ class AcademicScheduleAdminControllerContractTest {
                   "type": "MULTI",
                   "isPrimary": true,
                   "description": "2026학년도 1학기 중간고사"
+                }
+                """;
+    }
+
+    private String validBulkRequestBody() {
+        return """
+                {
+                  "scopeStartDate": "2026-03-01",
+                  "scopeEndDate": "2027-02-28",
+                  "schedules": [
+                    {
+                      "title": "입학식 / 개강",
+                      "startDate": "2026-03-03",
+                      "endDate": "2026-03-03",
+                      "type": "single",
+                      "description": "정상수업",
+                      "isPrimary": true
+                    },
+                    {
+                      "title": "수강신청 변경기간",
+                      "startDate": "2026-03-04",
+                      "endDate": "2026-03-09",
+                      "type": "MULTI",
+                      "description": null,
+                      "isPrimary": true
+                    }
+                  ]
                 }
                 """;
     }

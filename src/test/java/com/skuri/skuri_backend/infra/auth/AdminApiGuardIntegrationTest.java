@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.domain.academic.controller.AcademicScheduleAdminController;
 import com.skuri.skuri_backend.domain.academic.controller.CourseAdminController;
 import com.skuri.skuri_backend.domain.academic.dto.response.AcademicScheduleResponse;
+import com.skuri.skuri_backend.domain.academic.dto.response.AdminBulkAcademicSchedulesResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.AdminBulkCoursesResponse;
 import com.skuri.skuri_backend.domain.academic.entity.AcademicScheduleType;
 import com.skuri.skuri_backend.domain.academic.service.AcademicScheduleService;
@@ -256,6 +257,37 @@ class AdminApiGuardIntegrationTest {
                                 )),
                         status().isCreated(),
                         jsonPath("$.data.id").value("schedule-1")
+                ),
+                endpoint(
+                        "academic schedule bulk sync",
+                        () -> put("/v1/admin/academic-schedules/bulk")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "scopeStartDate": "2026-03-01",
+                                          "scopeEndDate": "2027-02-28",
+                                          "schedules": [
+                                            {
+                                              "title": "입학식 / 개강",
+                                              "startDate": "2026-03-03",
+                                              "endDate": "2026-03-03",
+                                              "type": "single",
+                                              "description": "정상수업",
+                                              "isPrimary": true
+                                            }
+                                          ]
+                                        }
+                                        """),
+                        () -> when(academicScheduleService.bulkSyncSchedules(any()))
+                                .thenReturn(new AdminBulkAcademicSchedulesResponse(
+                                        LocalDate.of(2026, 3, 1),
+                                        LocalDate.of(2027, 2, 28),
+                                        12,
+                                        37,
+                                        5
+                                )),
+                        status().isOk(),
+                        jsonPath("$.data.created").value(12)
                 ),
                 endpoint(
                         "course delete",

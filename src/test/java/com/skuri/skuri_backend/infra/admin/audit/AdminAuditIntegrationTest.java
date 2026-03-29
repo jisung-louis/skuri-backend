@@ -449,6 +449,55 @@ class AdminAuditIntegrationTest {
     }
 
     @Test
+    void 학사일정bulkSync_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        academicScheduleRepository.saveAndFlush(com.skuri.skuri_backend.domain.academic.entity.AcademicSchedule.create(
+                "삭제될 일정",
+                LocalDate.of(2026, 3, 5),
+                LocalDate.of(2026, 3, 5),
+                com.skuri.skuri_backend.domain.academic.entity.AcademicScheduleType.SINGLE,
+                true,
+                null
+        ));
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        put("/v1/admin/academic-schedules/bulk")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "scopeStartDate": "2026-03-01",
+                                          "scopeEndDate": "2027-02-28",
+                                          "schedules": [
+                                            {
+                                              "title": "입학식 / 개강",
+                                              "startDate": "2026-03-03",
+                                              "endDate": "2026-03-03",
+                                              "type": "single",
+                                              "description": "정상수업",
+                                              "isPrimary": true
+                                            }
+                                          ]
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getActorId()).isEqualTo("admin-uid");
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.ACADEMIC_SCHEDULE_BULK_SYNCED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.ACADEMIC_SCHEDULE_SCOPE);
+        assertThat(auditLog.getTargetId()).isEqualTo("2026-03-01:2027-02-28");
+        assertThat(auditLog.getDiffBefore()).isNull();
+        assertThat(auditLog.getDiffAfter().get("scopeStartDate").asText()).isEqualTo("2026-03-01");
+        assertThat(auditLog.getDiffAfter().get("scopeEndDate").asText()).isEqualTo("2027-02-28");
+        assertThat(auditLog.getDiffAfter().get("created").asInt()).isEqualTo(1);
+        assertThat(auditLog.getDiffAfter().get("updated").asInt()).isEqualTo(0);
+        assertThat(auditLog.getDiffAfter().get("deleted").asInt()).isEqualTo(1);
+    }
+
+    @Test
     void 캠퍼스배너생성_감사로그를_남긴다() throws Exception {
         Member admin = saveAdminMember("admin-uid");
         mockAdminToken(admin.getId());
