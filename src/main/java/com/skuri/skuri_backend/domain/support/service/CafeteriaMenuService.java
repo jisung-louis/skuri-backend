@@ -38,6 +38,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CafeteriaMenuService {
 
+    private static final String CATEGORY_CODE_PATTERN = "^[A-Za-z0-9_-]+$";
     private static final Map<String, String> KNOWN_CATEGORY_LABELS = Map.of(
             "rollNoodles", "Roll & Noodles",
             "theBab", "The bab",
@@ -194,7 +195,7 @@ public class CafeteriaMenuService {
             Map<String, List<String>> normalizedRestaurants = new LinkedHashMap<>();
             if (restaurants != null) {
                 restaurants.forEach((restaurant, items) -> normalizedRestaurants.put(
-                        normalizeRequiredText("menus.category", restaurant),
+                        normalizeCategoryCode("menus.category", restaurant),
                         normalizeMenuTitles(items)
                 ));
             }
@@ -215,7 +216,7 @@ public class CafeteriaMenuService {
             Map<String, List<CafeteriaMenuEntryMetadata>> normalizedCategories = new LinkedHashMap<>();
             if (categories != null) {
                 categories.forEach((category, items) -> normalizedCategories.put(
-                        normalizeRequiredText("menuEntries.category", category),
+                        normalizeCategoryCode("menuEntries.category", category),
                         normalizeEntryItems(items)
                 ));
             }
@@ -282,6 +283,17 @@ public class CafeteriaMenuService {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, fieldName + "는 비어 있을 수 없습니다.");
         }
         return value.trim();
+    }
+
+    private String normalizeCategoryCode(String fieldName, String value) {
+        String normalized = normalizeRequiredText(fieldName, value);
+        if (!normalized.matches(CATEGORY_CODE_PATTERN)) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_ERROR,
+                    fieldName + "는 영문, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다."
+            );
+        }
+        return normalized;
     }
 
     private List<String> normalizeMenuTitles(List<String> items) {

@@ -88,7 +88,7 @@ public class CafeteriaMenuReactionService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "menuId 형식이 올바르지 않습니다.");
         }
 
-        CafeteriaMenu cafeteriaMenu = cafeteriaMenuRepository.findById(parts.weekId())
+        CafeteriaMenu cafeteriaMenu = cafeteriaMenuRepository.findByWeekIdForUpdate(parts.weekId())
                 .orElseThrow(CafeteriaMenuNotFoundException::new);
 
         for (String title : collectTitles(cafeteriaMenu, parts.category())) {
