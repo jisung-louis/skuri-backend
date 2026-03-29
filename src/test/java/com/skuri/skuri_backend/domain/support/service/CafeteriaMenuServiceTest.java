@@ -6,10 +6,14 @@ import com.skuri.skuri_backend.domain.support.dto.request.CafeteriaMenuBadgeRequ
 import com.skuri.skuri_backend.domain.support.dto.request.CafeteriaMenuEntryRequest;
 import com.skuri.skuri_backend.domain.support.dto.request.CreateCafeteriaMenuRequest;
 import com.skuri.skuri_backend.domain.support.dto.request.UpdateCafeteriaMenuRequest;
+import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuEntryResponse;
 import com.skuri.skuri_backend.domain.support.dto.response.CafeteriaMenuResponse;
 import com.skuri.skuri_backend.domain.support.entity.CafeteriaMenu;
 import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuBadgeMetadata;
 import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuEntryMetadata;
+import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuIdCodec;
+import com.skuri.skuri_backend.domain.support.model.CafeteriaMenuReactionType;
+import com.skuri.skuri_backend.domain.support.repository.CafeteriaMenuReactionRepository;
 import com.skuri.skuri_backend.domain.support.repository.CafeteriaMenuRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,12 +26,16 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,11 +45,14 @@ class CafeteriaMenuServiceTest {
     @Mock
     private CafeteriaMenuRepository cafeteriaMenuRepository;
 
+    @Mock
+    private CafeteriaMenuReactionRepository cafeteriaMenuReactionRepository;
+
     @InjectMocks
     private CafeteriaMenuService cafeteriaMenuService;
 
     @Test
-    void createMenu_menuEntries만전달하면_menus를역생성한다() {
+    void createMenu_menuEntries만전달하면_menus를역생성하고관리자count는무시한다() {
         when(cafeteriaMenuRepository.existsById("2026-W08")).thenReturn(false);
         when(cafeteriaMenuRepository.save(any(CafeteriaMenu.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -71,10 +82,10 @@ class CafeteriaMenuServiceTest {
                 List.of("존슨부대찌개"),
                 captor.getValue().getMenus().get("2026-02-16").get("rollNoodles")
         );
-        assertEquals(178, captor.getValue().getMenuEntries().get("2026-02-16").get("rollNoodles").get(0).likeCount());
-        assertEquals("테이크아웃", captor.getValue().getMenuEntries().get("2026-02-16").get("rollNoodles").get(0).badges().get(0).code());
+        assertEquals(0, captor.getValue().getMenuEntries().get("2026-02-16").get("rollNoodles").get(0).likeCount());
+        assertEquals("테이크아웃", captor.getValue().getMenuEntries().get("2026-02-16").get("rollNoodles").get(0).badges().get(0).label());
         assertEquals("Roll & Noodles", response.categories().get(0).label());
-        assertEquals(22, response.menuEntries().get("2026-02-16").get("rollNoodles").get(0).dislikeCount());
+        assertEquals(0, response.menuEntries().get("2026-02-16").get("rollNoodles").get(0).dislikeCount());
     }
 
     @Test
@@ -154,8 +165,8 @@ class CafeteriaMenuServiceTest {
                                 List.of(new CafeteriaMenuEntryMetadata(
                                         "존슨부대찌개",
                                         List.of(new CafeteriaMenuBadgeMetadata("TAKEOUT", "테이크아웃")),
-                                        178,
-                                        22
+                                        0,
+                                        0
                                 ))
                         )
                 )
@@ -195,6 +206,49 @@ class CafeteriaMenuServiceTest {
         );
         assertTrue(response.menuEntries().get("2026-02-16").get("theBab").isEmpty());
         assertTrue(response.menuEntries().get("2026-02-16").get("fryRice").isEmpty());
+    }
+
+    @Test
+    void updateMenu_삭제된메뉴의반응은정리한다() {
+        when(cafeteriaMenuRepository.findById("2026-W08")).thenReturn(Optional.of(CafeteriaMenu.create(
+                "2026-W08",
+                LocalDate.of(2026, 2, 16),
+                LocalDate.of(2026, 2, 20),
+                Map.of("2026-02-16", Map.of("rollNoodles", List.of("우동", "김밥"))),
+                Map.of()
+        )));
+
+        cafeteriaMenuService.updateMenu(
+                "2026-W08",
+                new UpdateCafeteriaMenuRequest(
+                        LocalDate.of(2026, 2, 16),
+                        LocalDate.of(2026, 2, 20),
+                        Map.of("2026-02-16", Map.of("rollNoodles", List.of("우동"))),
+                        null
+                )
+        );
+
+        verify(cafeteriaMenuReactionRepository).deleteObsoleteReactions(
+                eq("2026-W08"),
+                eq(Set.of(CafeteriaMenuIdCodec.encode("2026-W08", "rollNoodles", "우동")))
+        );
+    }
+
+    @Test
+    void deleteMenu_주차반응도함께삭제한다() {
+        CafeteriaMenu cafeteriaMenu = CafeteriaMenu.create(
+                "2026-W08",
+                LocalDate.of(2026, 2, 16),
+                LocalDate.of(2026, 2, 20),
+                Map.of("2026-02-16", Map.of("rollNoodles", List.of("우동"))),
+                Map.of()
+        );
+        when(cafeteriaMenuRepository.findById("2026-W08")).thenReturn(Optional.of(cafeteriaMenu));
+
+        cafeteriaMenuService.deleteMenu("2026-W08");
+
+        verify(cafeteriaMenuReactionRepository).deleteByWeekId("2026-W08");
+        verify(cafeteriaMenuRepository).delete(cafeteriaMenu);
     }
 
     @Test
@@ -252,8 +306,8 @@ class CafeteriaMenuServiceTest {
                                         "rollNoodles",
                                         List.of(new CafeteriaMenuEntryRequest(
                                                 "존슨부대찌개",
-                                                List.of(new CafeteriaMenuBadgeRequest("TAKEOUT", "테이크아웃")),
-                                                11,
+                                                List.of(new CafeteriaMenuBadgeRequest("SPICY", "매운맛")),
+                                                10,
                                                 1
                                         ))
                                 )
@@ -285,5 +339,106 @@ class CafeteriaMenuServiceTest {
         assertEquals("우동", response.menuEntries().get("2026-02-16").get("rollNoodles").get(0).title());
         assertEquals(0, response.menuEntries().get("2026-02-16").get("rollNoodles").get(0).likeCount());
         assertTrue(response.menuEntries().get("2026-02-16").get("fryRice").isEmpty());
+    }
+
+    @Test
+    void getMenuByWeekId_실제반응집계와내반응을응답에주입한다() {
+        CafeteriaMenu cafeteriaMenu = CafeteriaMenu.create(
+                "2026-W08",
+                LocalDate.of(2026, 2, 16),
+                LocalDate.of(2026, 2, 20),
+                Map.of("2026-02-16", Map.of("rollNoodles", List.of("존슨부대찌개"))),
+                Map.of(
+                        "2026-02-16",
+                        Map.of(
+                                "rollNoodles",
+                                List.of(new CafeteriaMenuEntryMetadata(
+                                        "존슨부대찌개",
+                                        List.of(new CafeteriaMenuBadgeMetadata("TAKEOUT", "테이크아웃")),
+                                        0,
+                                        0
+                                ))
+                        )
+                )
+        );
+        String menuId = CafeteriaMenuIdCodec.encode("2026-W08", "rollNoodles", "존슨부대찌개");
+
+        when(cafeteriaMenuRepository.findById("2026-W08")).thenReturn(Optional.of(cafeteriaMenu));
+        when(cafeteriaMenuReactionRepository.summarizeCounts("2026-W08", Set.of(menuId)))
+                .thenReturn(List.of(countProjection(menuId, 7, 2)));
+        when(cafeteriaMenuReactionRepository.findSelections("user-1", "2026-W08", Set.of(menuId)))
+                .thenReturn(List.of(selectionProjection(menuId, CafeteriaMenuReactionType.LIKE)));
+
+        CafeteriaMenuResponse response = cafeteriaMenuService.getMenuByWeekId("user-1", "2026-W08");
+
+        CafeteriaMenuEntryResponse entry = response.menuEntries().get("2026-02-16").get("rollNoodles").get(0);
+        assertEquals(menuId, entry.id());
+        assertEquals(7, entry.likeCount());
+        assertEquals(2, entry.dislikeCount());
+        assertEquals(CafeteriaMenuReactionType.LIKE, entry.myReaction());
+    }
+
+    @Test
+    void getMenuByWeekId_memberId가없으면_myReaction은null이다() {
+        CafeteriaMenu cafeteriaMenu = CafeteriaMenu.create(
+                "2026-W08",
+                LocalDate.of(2026, 2, 16),
+                LocalDate.of(2026, 2, 20),
+                Map.of("2026-02-16", Map.of("rollNoodles", List.of("존슨부대찌개"))),
+                Map.of()
+        );
+        String menuId = CafeteriaMenuIdCodec.encode("2026-W08", "rollNoodles", "존슨부대찌개");
+
+        when(cafeteriaMenuRepository.findById("2026-W08")).thenReturn(Optional.of(cafeteriaMenu));
+        when(cafeteriaMenuReactionRepository.summarizeCounts("2026-W08", Set.of(menuId)))
+                .thenReturn(List.of(countProjection(menuId, 3, 1)));
+
+        CafeteriaMenuResponse response = cafeteriaMenuService.getMenuByWeekId(null, "2026-W08");
+
+        CafeteriaMenuEntryResponse entry = response.menuEntries().get("2026-02-16").get("rollNoodles").get(0);
+        assertEquals(3, entry.likeCount());
+        assertEquals(1, entry.dislikeCount());
+        assertNull(entry.myReaction());
+        verify(cafeteriaMenuReactionRepository, never()).findSelections(any(), any(), any());
+    }
+
+    private CafeteriaMenuReactionRepository.CafeteriaMenuReactionCountProjection countProjection(
+            String menuId,
+            long likeCount,
+            long dislikeCount
+    ) {
+        return new CafeteriaMenuReactionRepository.CafeteriaMenuReactionCountProjection() {
+            @Override
+            public String getMenuId() {
+                return menuId;
+            }
+
+            @Override
+            public long getLikeCount() {
+                return likeCount;
+            }
+
+            @Override
+            public long getDislikeCount() {
+                return dislikeCount;
+            }
+        };
+    }
+
+    private CafeteriaMenuReactionRepository.CafeteriaMenuReactionSelectionProjection selectionProjection(
+            String menuId,
+            CafeteriaMenuReactionType reactionType
+    ) {
+        return new CafeteriaMenuReactionRepository.CafeteriaMenuReactionSelectionProjection() {
+            @Override
+            public String getMenuId() {
+                return menuId;
+            }
+
+            @Override
+            public CafeteriaMenuReactionType getReaction() {
+                return reactionType;
+            }
+        };
     }
 }

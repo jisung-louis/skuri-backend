@@ -544,11 +544,12 @@ class AdminApiGuardIntegrationTest {
                                                 Map.of(
                                                         "rollNoodles",
                                                         java.util.List.of(new CafeteriaMenuEntryResponse(
-                                                                "2026-02-16-rollNoodles-우동",
+                                                                "2026-W08.rollNoodles.8851f2731beef1f0",
                                                                 "우동",
                                                                 java.util.List.of(),
                                                                 0,
-                                                                0
+                                                                0,
+                                                                null
                                                         )),
                                                         "theBab",
                                                         java.util.List.of(),

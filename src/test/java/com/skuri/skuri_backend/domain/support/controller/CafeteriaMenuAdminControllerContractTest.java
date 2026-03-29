@@ -74,7 +74,8 @@ class CafeteriaMenuAdminControllerContractTest {
                 )
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.weekId").value("2026-W08"))
-                .andExpect(jsonPath("$.data.menuEntries['2026-02-16'].rollNoodles[0].likeCount").value(178));
+                .andExpect(jsonPath("$.data.menuEntries['2026-02-16'].rollNoodles[0].likeCount").value(0))
+                .andExpect(jsonPath("$.data.menuEntries['2026-02-16'].rollNoodles[0].myReaction").isEmpty());
     }
 
     @Test
@@ -249,11 +250,12 @@ class CafeteriaMenuAdminControllerContractTest {
                         Map.of(
                                 "rollNoodles", List.of(
                                         new CafeteriaMenuEntryResponse(
-                                                "2026-02-16-rollNoodles-존슨부대찌개",
+                                                "2026-W08.rollNoodles.c4973864db4f8815",
                                                 "존슨부대찌개",
                                                 List.of(new CafeteriaMenuBadgeResponse("TAKEOUT", "테이크아웃")),
-                                                178,
-                                                22
+                                                0,
+                                                0,
+                                                null
                                         )
                                 ),
                                 "theBab", List.of(),

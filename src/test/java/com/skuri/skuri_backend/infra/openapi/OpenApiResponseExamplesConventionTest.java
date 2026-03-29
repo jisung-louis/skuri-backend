@@ -25,6 +25,7 @@ import com.skuri.skuri_backend.domain.support.controller.AppVersionController;
 import com.skuri.skuri_backend.domain.support.controller.AppVersionAdminController;
 import com.skuri.skuri_backend.domain.support.controller.CafeteriaMenuAdminController;
 import com.skuri.skuri_backend.domain.support.controller.CafeteriaMenuController;
+import com.skuri.skuri_backend.domain.support.controller.CafeteriaMenuReactionController;
 import com.skuri.skuri_backend.domain.support.controller.InquiryAdminController;
 import com.skuri.skuri_backend.domain.support.controller.InquiryController;
 import com.skuri.skuri_backend.domain.support.controller.ReportAdminController;
@@ -74,6 +75,7 @@ class OpenApiResponseExamplesConventionTest {
             ReportAdminController.class,
             CafeteriaMenuController.class,
             CafeteriaMenuAdminController.class,
+            CafeteriaMenuReactionController.class,
             NotificationController.class,
             FcmTokenController.class,
             NotificationSseController.class,
