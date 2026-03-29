@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -74,10 +75,13 @@ class BoardAdminServiceTest {
 
     @Test
     void updateCommentModeration_VISIBLE에서_HIDDEN으로_변경한다() {
-        Post post = post("post-1", "author-1");
-        ReflectionTestUtils.setField(post, "commentCount", 3);
-        Comment comment = comment("comment-1", post, null, "member-1");
+        Post originalPost = post("post-1", "author-1");
+        ReflectionTestUtils.setField(originalPost, "commentCount", 3);
+        Comment comment = comment("comment-1", originalPost, null, "member-1");
+        Post lockedPost = post("post-1", "author-1");
+        ReflectionTestUtils.setField(lockedPost, "commentCount", 3);
         when(commentRepository.findByIdForAdminUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(postRepository.findByIdForAdminUpdate("post-1")).thenReturn(Optional.of(lockedPost));
 
         BoardModerationResponse response = boardAdminService.updateCommentModeration(
                 "comment-1",
@@ -87,7 +91,9 @@ class BoardAdminServiceTest {
         assertEquals("comment-1", response.id());
         assertEquals("HIDDEN", response.moderationStatus().name());
         assertEquals(true, comment.isHidden());
-        assertEquals(2, post.getCommentCount());
+        assertEquals(2, lockedPost.getCommentCount());
+        assertEquals(3, originalPost.getCommentCount());
+        verify(postRepository).findByIdForAdminUpdate("post-1");
     }
 
     @Test
@@ -96,6 +102,7 @@ class BoardAdminServiceTest {
         Comment comment = comment("comment-1", post, null, "member-1");
         comment.softDelete();
         when(commentRepository.findByIdForAdminUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(postRepository.findByIdForAdminUpdate("post-1")).thenReturn(Optional.of(post));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
