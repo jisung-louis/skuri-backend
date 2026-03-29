@@ -19,7 +19,7 @@
 - notice: 학교 공지/댓글/읽음/북마크/앱 공지
 - academic: 강의/시간표/학사 일정, `GET /v1/timetables/my/semesters`, 직접 입력 강의(`UserTimetableManualCourse`), 공식 강의 `Course.isOnline`, 시간표 응답 `courses[] + slots[]` + `isOnline` 계약. 공식 온라인 강의는 직접 입력 온라인 강의와 같은 의미로 `slots[]`/충돌 검사에서 제외하지만 저장 모델은 분리 유지
 - campus: 캠퍼스 배너 공개/관리자 API
-- support: 문의/신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티)/앱 버전/법적 문서/학식. 학식은 기존 `menus`와 함께 `categories`, `menuEntries`(title, badges, likeCount, dislikeCount)를 제공하며 가격은 계약에서 제외한다. 좋아요/싫어요 수와 보조 태그는 현재 관리자 입력 메타데이터로 관리하고, 같은 주 안의 동일 `category + title`은 날짜가 달라도 동일 메타데이터를 강제한다.
+- support: 문의/신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티)/앱 버전/법적 문서/학식. 학식은 기존 `menus`와 함께 `categories`, `menuEntries`(title, badges, likeCount, dislikeCount)를 제공하며 가격은 계약에서 제외한다. 좋아요/싫어요 수와 보조 태그는 현재 관리자 입력 메타데이터로 관리하고, 같은 주 안의 동일 `category + title`은 날짜가 달라도 동일 메타데이터를 강제한다. `menus` 검증 시 빈 카테고리 생략은 `menuEntries`의 빈 배열과 같은 의미로 본다.
 - notification: 인앱 인박스, FCM, SSE, 이벤트 기반 알림 처리
 
 ## Inquiry Attachment 메모
