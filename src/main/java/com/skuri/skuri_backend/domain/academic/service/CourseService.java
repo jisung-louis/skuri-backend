@@ -88,8 +88,9 @@ public class CourseService {
             String category = normalizeRequired(courseRequest.category(), "category", 50);
             String department = normalizeRequired(courseRequest.department(), "department", 50);
             String professor = normalizeOptional(courseRequest.professor(), "professor", 50);
-            String location = normalizeOptional(courseRequest.location(), "location", 100);
             String note = normalizeOptional(courseRequest.note(), "note", 500);
+            boolean isOnline = Boolean.TRUE.equals(courseRequest.isOnline());
+            String location = normalizeLocation(courseRequest.location(), isOnline);
 
             String courseKey = semester + ":" + code + ":" + division;
             if (!requestedKeys.add(courseKey)) {
@@ -108,6 +109,7 @@ public class CourseService {
                         professor,
                         location,
                         note,
+                        isOnline,
                         semester,
                         department
                 );
@@ -127,6 +129,7 @@ public class CourseService {
                     professor,
                     location,
                     note,
+                    isOnline,
                     department
             );
             applySchedules(existing, courseRequest.schedule());
@@ -178,7 +181,7 @@ public class CourseService {
                 course.getDivision(),
                 course.getName(),
                 course.getCredits(),
-                false,
+                course.isOnline(),
                 course.getProfessor(),
                 course.getDepartment(),
                 course.getGrade(),
@@ -246,13 +249,20 @@ public class CourseService {
         if (request.grade() == null || request.grade() < 1) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "grade는 1 이상이어야 합니다.");
         }
-        if (request.schedule() == null || request.schedule().isEmpty()) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "schedule은 최소 1개 이상이어야 합니다.");
+        boolean isOnline = Boolean.TRUE.equals(request.isOnline());
+        if (isOnline && request.schedule() != null && !request.schedule().isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "온라인 강의는 schedule을 비워야 합니다.");
+        }
+        if (!isOnline && (request.schedule() == null || request.schedule().isEmpty())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "오프라인 강의는 schedule이 최소 1개 이상이어야 합니다.");
         }
     }
 
     private void applySchedules(Course course, List<AdminBulkCourseScheduleRequest> scheduleRequests) {
         course.clearSchedules();
+        if (scheduleRequests == null || scheduleRequests.isEmpty()) {
+            return;
+        }
         for (AdminBulkCourseScheduleRequest scheduleRequest : scheduleRequests) {
             validateSchedule(scheduleRequest);
             course.appendSchedule(scheduleRequest.dayOfWeek(), scheduleRequest.startPeriod(), scheduleRequest.endPeriod());
@@ -301,6 +311,10 @@ public class CourseService {
         }
         validateMaxLength(normalized, fieldName, maxLength);
         return normalized;
+    }
+
+    private String normalizeLocation(String value, boolean isOnline) {
+        return isOnline ? null : normalizeOptional(value, "location", 100);
     }
 
     private void validateMaxLength(String value, String fieldName, int maxLength) {

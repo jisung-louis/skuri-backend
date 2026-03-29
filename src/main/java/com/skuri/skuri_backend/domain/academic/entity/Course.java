@@ -15,6 +15,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,6 +70,10 @@ public class Course extends BaseTimeEntity {
     @Column(length = 500)
     private String note;
 
+    @Column(name = "is_online", nullable = false)
+    @ColumnDefault("false")
+    private boolean online;
+
     @Column(nullable = false, length = 10)
     private String semester;
 
@@ -89,6 +94,7 @@ public class Course extends BaseTimeEntity {
             String professor,
             String location,
             String note,
+            boolean online,
             String semester,
             String department
     ) {
@@ -101,6 +107,7 @@ public class Course extends BaseTimeEntity {
         this.professor = professor;
         this.location = location;
         this.note = note;
+        this.online = online;
         this.semester = semester;
         this.department = department;
     }
@@ -115,10 +122,11 @@ public class Course extends BaseTimeEntity {
             String professor,
             String location,
             String note,
+            boolean online,
             String semester,
             String department
     ) {
-        return new Course(grade, category, code, division, name, credits, professor, location, note, semester, department);
+        return new Course(grade, category, code, division, name, credits, professor, location, note, online, semester, department);
     }
 
     public void update(
@@ -131,6 +139,7 @@ public class Course extends BaseTimeEntity {
             String professor,
             String location,
             String note,
+            boolean online,
             String department
     ) {
         this.grade = grade;
@@ -142,6 +151,7 @@ public class Course extends BaseTimeEntity {
         this.professor = professor;
         this.location = location;
         this.note = note;
+        this.online = online;
         this.department = department;
     }
 
