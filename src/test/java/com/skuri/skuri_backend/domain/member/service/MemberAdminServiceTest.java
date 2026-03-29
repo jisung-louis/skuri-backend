@@ -89,15 +89,16 @@ class MemberAdminServiceTest {
                 "컴퓨터공학과",
                 LocalDateTime.of(2025, 3, 1, 9, 0),
                 LocalDateTime.of(2026, 3, 29, 10, 5),
-                "ios"
+                "ios",
+                "1.4.2"
         );
         when(memberRepository.searchAdminMembers(
                 eq("홍길동"),
                 eq(MemberStatus.ACTIVE),
                 eq(false),
                 eq("컴퓨터공학과"),
-                eq(AdminMemberSortField.LAST_LOGIN_OS),
-                eq(Sort.Direction.ASC),
+                eq(AdminMemberSortField.CURRENT_APP_VERSION),
+                eq(Sort.Direction.DESC),
                 any()
         )).thenReturn(new PageImpl<>(List.of(member)));
 
@@ -106,8 +107,8 @@ class MemberAdminServiceTest {
                 MemberStatus.ACTIVE,
                 false,
                 "컴퓨터공학과",
-                "lastLoginOs",
-                "asc",
+                "currentAppVersion",
+                "desc",
                 0,
                 20
         );
@@ -118,13 +119,14 @@ class MemberAdminServiceTest {
         assertEquals("컴퓨터공학과", content.department());
         assertEquals("홍길동", content.realname());
         assertEquals("ios", content.lastLoginOs());
+        assertEquals("1.4.2", content.currentAppVersion());
         verify(memberRepository).searchAdminMembers(
                 eq("홍길동"),
                 eq(MemberStatus.ACTIVE),
                 eq(false),
                 eq("컴퓨터공학과"),
-                eq(AdminMemberSortField.LAST_LOGIN_OS),
-                eq(Sort.Direction.ASC),
+                eq(AdminMemberSortField.CURRENT_APP_VERSION),
+                eq(Sort.Direction.DESC),
                 argThat(pageable ->
                         pageable.getPageNumber() == 0
                                 && pageable.getPageSize() == 20
@@ -359,7 +361,8 @@ class MemberAdminServiceTest {
             String department,
             LocalDateTime joinedAt,
             LocalDateTime lastLogin,
-            String lastLoginOs
+            String lastLoginOs,
+            String currentAppVersion
     ) {
         return new AdminMemberSummaryProjection(
                 id,
@@ -372,6 +375,7 @@ class MemberAdminServiceTest {
                 joinedAt,
                 lastLogin,
                 lastLoginOs,
+                currentAppVersion,
                 MemberStatus.ACTIVE
         );
     }

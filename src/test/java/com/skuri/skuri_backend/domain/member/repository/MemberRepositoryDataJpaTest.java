@@ -62,9 +62,9 @@ class MemberRepositoryDataJpaTest {
         saveMember("member-none", "토큰없음", "none@sungkyul.ac.kr", "컴퓨터공학과", "20230013",
                 LocalDateTime.of(2025, 3, 13, 9, 0), LocalDateTime.of(2026, 3, 13, 10, 0), false);
 
-        saveFcmToken("member-android", "token-old", "ios", LocalDateTime.of(2026, 3, 20, 10, 0));
-        saveFcmToken("member-android", "token-new", "android", LocalDateTime.of(2026, 3, 21, 10, 0));
-        saveFcmToken("member-ios", "token-ios", "ios", LocalDateTime.of(2026, 3, 22, 10, 0));
+        saveFcmToken("member-android", "token-old", "ios", "1.3.0", LocalDateTime.of(2026, 3, 20, 10, 0));
+        saveFcmToken("member-android", "token-new", "android", "1.4.2", LocalDateTime.of(2026, 3, 21, 10, 0));
+        saveFcmToken("member-ios", "token-ios", "ios", "1.5.0", LocalDateTime.of(2026, 3, 22, 10, 0));
 
         Page<AdminMemberSummaryProjection> result = memberRepository.searchAdminMembers(
                 null,
@@ -84,30 +84,70 @@ class MemberRepositoryDataJpaTest {
                 Arrays.asList("ios", "android", null),
                 result.getContent().stream().map(AdminMemberSummaryProjection::lastLoginOs).toList()
         );
+        assertEquals(
+                Arrays.asList("1.5.0", "1.4.2", null),
+                result.getContent().stream().map(AdminMemberSummaryProjection::currentAppVersion).toList()
+        );
     }
 
     @Test
-    void searchAdminMembers_null값은항상마지막으로정렬한다() {
-        saveMember("member-null", null, "null@sungkyul.ac.kr", "컴퓨터공학과", "20230021",
+    void searchAdminMembers_currentAppVersion정렬을지원한다() {
+        saveMember("member-v142", "앱버전142", "v142@sungkyul.ac.kr", "컴퓨터공학과", "20230021",
                 LocalDateTime.of(2025, 3, 21, 9, 0), LocalDateTime.of(2026, 3, 21, 10, 0), false);
-        saveMember("member-b", "박하나", "b@sungkyul.ac.kr", "컴퓨터공학과", "20230022",
+        saveMember("member-v150", "앱버전150", "v150@sungkyul.ac.kr", "컴퓨터공학과", "20230022",
                 LocalDateTime.of(2025, 3, 22, 9, 0), LocalDateTime.of(2026, 3, 22, 10, 0), false);
-        saveMember("member-a", "김하나", "a@sungkyul.ac.kr", "컴퓨터공학과", "20230023",
+        saveMember("member-v131", "앱버전131", "v131@sungkyul.ac.kr", "컴퓨터공학과", "20230023",
                 LocalDateTime.of(2025, 3, 23, 9, 0), LocalDateTime.of(2026, 3, 23, 10, 0), false);
+
+        saveFcmToken("member-v142", "token-v142", "ios", "1.4.2", LocalDateTime.of(2026, 3, 21, 10, 0));
+        saveFcmToken("member-v150", "token-v150", "android", "1.5.0", LocalDateTime.of(2026, 3, 22, 10, 0));
+        saveFcmToken("member-v131", "token-v131", "ios", "1.3.1", LocalDateTime.of(2026, 3, 23, 10, 0));
 
         Page<AdminMemberSummaryProjection> result = memberRepository.searchAdminMembers(
                 null,
                 null,
                 null,
                 null,
-                AdminMemberSortField.REALNAME,
-                Sort.Direction.ASC,
+                AdminMemberSortField.CURRENT_APP_VERSION,
+                Sort.Direction.DESC,
                 PageRequest.of(0, 10)
         );
 
         assertEquals(
-                List.of("member-a", "member-b", "member-null"),
+                List.of("member-v150", "member-v142", "member-v131"),
                 result.getContent().stream().map(AdminMemberSummaryProjection::id).toList()
+        );
+    }
+
+    @Test
+    void searchAdminMembers_currentAppVersion정렬에서도_null값은항상마지막으로정렬한다() {
+        saveMember("member-null", "앱버전없음", "null@sungkyul.ac.kr", "컴퓨터공학과", "20230031",
+                LocalDateTime.of(2025, 3, 31, 9, 0), LocalDateTime.of(2026, 3, 31, 10, 0), false);
+        saveMember("member-v142", "앱버전142", "v142@sungkyul.ac.kr", "컴퓨터공학과", "20230032",
+                LocalDateTime.of(2025, 3, 30, 9, 0), LocalDateTime.of(2026, 3, 30, 10, 0), false);
+        saveMember("member-v131", "앱버전131", "v131@sungkyul.ac.kr", "컴퓨터공학과", "20230033",
+                LocalDateTime.of(2025, 3, 29, 9, 0), LocalDateTime.of(2026, 3, 29, 10, 0), false);
+
+        saveFcmToken("member-v142", "token-v142-2", "ios", "1.4.2", LocalDateTime.of(2026, 3, 30, 10, 0));
+        saveFcmToken("member-v131", "token-v131-2", "android", "1.3.1", LocalDateTime.of(2026, 3, 29, 10, 0));
+
+        Page<AdminMemberSummaryProjection> result = memberRepository.searchAdminMembers(
+                null,
+                null,
+                null,
+                null,
+                AdminMemberSortField.CURRENT_APP_VERSION,
+                Sort.Direction.DESC,
+                PageRequest.of(0, 10)
+        );
+
+        assertEquals(
+                List.of("member-v142", "member-v131", "member-null"),
+                result.getContent().stream().map(AdminMemberSummaryProjection::id).toList()
+        );
+        assertEquals(
+                Arrays.asList("1.4.2", "1.3.1", null),
+                result.getContent().stream().map(AdminMemberSummaryProjection::currentAppVersion).toList()
         );
     }
 
@@ -156,8 +196,8 @@ class MemberRepositoryDataJpaTest {
         return memberRepository.saveAndFlush(member);
     }
 
-    private void saveFcmToken(String userId, String token, String platform, LocalDateTime lastUsedAt) {
-        FcmToken fcmToken = FcmToken.create(userId, token, platform);
+    private void saveFcmToken(String userId, String token, String platform, String appVersion, LocalDateTime lastUsedAt) {
+        FcmToken fcmToken = FcmToken.create(userId, token, platform, appVersion);
         ReflectionTestUtils.setField(fcmToken, "createdAt", lastUsedAt.minusMinutes(5));
         ReflectionTestUtils.setField(fcmToken, "lastUsedAt", lastUsedAt);
         fcmTokenRepository.saveAndFlush(fcmToken);

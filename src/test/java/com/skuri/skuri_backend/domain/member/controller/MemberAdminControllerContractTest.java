@@ -71,8 +71,8 @@ class MemberAdminControllerContractTest {
                 MemberStatus.ACTIVE,
                 false,
                 "컴퓨터공학과",
-                "lastLoginOs",
-                "ASC",
+                "currentAppVersion",
+                "DESC",
                 0,
                 20
         ))
@@ -93,14 +93,15 @@ class MemberAdminControllerContractTest {
                                 .param("status", "ACTIVE")
                                 .param("isAdmin", "false")
                                 .param("department", "컴퓨터공학과")
-                                .param("sortBy", "lastLoginOs")
-                                .param("sortDirection", "ASC")
+                                .param("sortBy", "currentAppVersion")
+                                .param("sortDirection", "DESC")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value("member-1"))
                 .andExpect(jsonPath("$.data.content[0].isAdmin").value(false))
                 .andExpect(jsonPath("$.data.content[0].realname").value("홍길동"))
                 .andExpect(jsonPath("$.data.content[0].lastLoginOs").value("ios"))
+                .andExpect(jsonPath("$.data.content[0].currentAppVersion").value("1.4.2"))
                 .andExpect(jsonPath("$.data.content[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.data.content[0].bankAccount").doesNotExist());
 
@@ -109,8 +110,8 @@ class MemberAdminControllerContractTest {
                 MemberStatus.ACTIVE,
                 false,
                 "컴퓨터공학과",
-                "lastLoginOs",
-                "ASC",
+                "currentAppVersion",
+                "DESC",
                 0,
                 20
         );
@@ -363,6 +364,7 @@ class MemberAdminControllerContractTest {
                 LocalDateTime.of(2025, 3, 1, 9, 0),
                 LocalDateTime.of(2026, 3, 29, 10, 5),
                 "ios",
+                "1.4.2",
                 MemberStatus.ACTIVE
         );
     }
