@@ -5501,6 +5501,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 `menus` 또는 `menuEntries` 중 하나는 반드시 전달해야 한다.
 둘 다 전달하면 각 날짜/카테고리별 메뉴 제목 배열이 정확히 일치해야 하며, 불일치 시 `400 INVALID_REQUEST`를 반환한다.
+단, `menus`에서 비어 있는 카테고리를 생략한 경우는 `menuEntries`의 빈 배열과 동일하게 취급한다.
 `menuEntries.badges`는 자유 입력 라벨과 optional code를 받으며, code를 생략하면 서버가 label 기반으로 자동 생성한다.
 좋아요/싫어요 카운트는 이번 범위에서 관리자 입력 메타데이터로만 관리한다.
 같은 주 안에서 동일한 `category + title`이 여러 날짜에 반복되면 `badges`, `likeCount`, `dislikeCount`는 모두 동일해야 한다. badge 순서도 동일성 비교에 포함된다.
