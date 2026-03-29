@@ -1,10 +1,7 @@
 package com.skuri.skuri_backend.domain.member.repository;
 
 import com.skuri.skuri_backend.domain.member.entity.Member;
-import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import jakarta.persistence.LockModeType;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -15,26 +12,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, String>, MemberRepositoryCustom {
-
-    @Query("""
-            select m
-            from Member m
-            where (:query is null
-                    or lower(m.email) like lower(concat('%', :query, '%'))
-                    or lower(coalesce(m.nickname, '')) like lower(concat('%', :query, '%'))
-                    or lower(coalesce(m.realname, '')) like lower(concat('%', :query, '%'))
-                    or lower(coalesce(m.studentId, '')) like lower(concat('%', :query, '%')))
-              and (:status is null or m.status = :status)
-              and (:isAdmin is null or m.isAdmin = :isAdmin)
-              and (:department is null or m.department = :department)
-            """)
-    Page<Member> searchAdminMembers(
-            @Param("query") String query,
-            @Param("status") MemberStatus status,
-            @Param("isAdmin") Boolean isAdmin,
-            @Param("department") String department,
-            Pageable pageable
-    );
 
     @Query("""
             select m

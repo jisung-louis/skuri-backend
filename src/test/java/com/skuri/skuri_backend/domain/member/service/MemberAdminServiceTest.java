@@ -12,8 +12,10 @@ import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberAdminRoleRe
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberActivityResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberDetailResponse;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberSummaryResponse;
+import com.skuri.skuri_backend.domain.member.constant.AdminMemberSortField;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
+import com.skuri.skuri_backend.domain.member.repository.AdminMemberSummaryProjection;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.support.entity.Inquiry;
 import com.skuri.skuri_backend.domain.support.entity.InquiryStatus;
@@ -78,13 +80,25 @@ class MemberAdminServiceTest {
 
     @Test
     void getAdminMembers_필터와정렬을반영한페이지를반환한다() {
-        Member member = member("member-1");
-        member.updateProfile("스쿠리 유저", "2023112233", "컴퓨터공학과", null);
+        AdminMemberSummaryProjection member = summaryProjection(
+                "member-1",
+                "홍길동",
+                "user@sungkyul.ac.kr",
+                "스쿠리 유저",
+                "2023112233",
+                "컴퓨터공학과",
+                LocalDateTime.of(2025, 3, 1, 9, 0),
+                LocalDateTime.of(2026, 3, 29, 10, 5),
+                "ios",
+                "1.4.2"
+        );
         when(memberRepository.searchAdminMembers(
                 eq("홍길동"),
                 eq(MemberStatus.ACTIVE),
                 eq(false),
                 eq("컴퓨터공학과"),
+                eq(AdminMemberSortField.CURRENT_APP_VERSION),
+                eq(Sort.Direction.DESC),
                 any()
         )).thenReturn(new PageImpl<>(List.of(member)));
 
@@ -93,6 +107,8 @@ class MemberAdminServiceTest {
                 MemberStatus.ACTIVE,
                 false,
                 "컴퓨터공학과",
+                "currentAppVersion",
+                "desc",
                 0,
                 20
         );
@@ -101,18 +117,45 @@ class MemberAdminServiceTest {
         AdminMemberSummaryResponse content = response.getContent().getFirst();
         assertEquals("member-1", content.id());
         assertEquals("컴퓨터공학과", content.department());
+        assertEquals("홍길동", content.realname());
+        assertEquals("ios", content.lastLoginOs());
+        assertEquals("1.4.2", content.currentAppVersion());
         verify(memberRepository).searchAdminMembers(
                 eq("홍길동"),
                 eq(MemberStatus.ACTIVE),
                 eq(false),
                 eq("컴퓨터공학과"),
+                eq(AdminMemberSortField.CURRENT_APP_VERSION),
+                eq(Sort.Direction.DESC),
                 argThat(pageable ->
                         pageable.getPageNumber() == 0
                                 && pageable.getPageSize() == 20
-                                && pageable.getSort().getOrderFor("joinedAt") != null
-                                && pageable.getSort().getOrderFor("joinedAt").isDescending()
                 )
         );
+    }
+
+    @Test
+    void getAdminMembers_지원하지않는sortBy면_VALIDATION_ERROR() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberAdminService.getAdminMembers(null, null, null, null, "providerDisplayName", null, 0, 20)
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        assertEquals("지원하지 않는 sortBy입니다.", exception.getMessage());
+        verify(memberRepository, never()).searchAdminMembers(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void getAdminMembers_지원하지않는sortDirection이면_VALIDATION_ERROR() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberAdminService.getAdminMembers(null, null, null, null, "joinedAt", "sideways", 0, 20)
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        assertEquals("지원하지 않는 sortDirection입니다.", exception.getMessage());
+        verify(memberRepository, never()).searchAdminMembers(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -297,7 +340,7 @@ class MemberAdminServiceTest {
     void getAdminMembers_지원하지않는학과면_VALIDATION_ERROR() {
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> memberAdminService.getAdminMembers(null, null, null, "없는학과", 0, 20)
+                () -> memberAdminService.getAdminMembers(null, null, null, "없는학과", null, null, 0, 20)
         );
 
         assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
@@ -307,6 +350,34 @@ class MemberAdminServiceTest {
         Member member = Member.create(id, id + "@sungkyul.ac.kr", "홍길동", LocalDateTime.of(2025, 3, 1, 9, 0));
         ReflectionTestUtils.setField(member, "lastLogin", LocalDateTime.of(2026, 3, 29, 10, 5));
         return member;
+    }
+
+    private AdminMemberSummaryProjection summaryProjection(
+            String id,
+            String realname,
+            String email,
+            String nickname,
+            String studentId,
+            String department,
+            LocalDateTime joinedAt,
+            LocalDateTime lastLogin,
+            String lastLoginOs,
+            String currentAppVersion
+    ) {
+        return new AdminMemberSummaryProjection(
+                id,
+                email,
+                nickname,
+                realname,
+                studentId,
+                department,
+                false,
+                joinedAt,
+                lastLogin,
+                lastLoginOs,
+                currentAppVersion,
+                MemberStatus.ACTIVE
+        );
     }
 
     private PostSummaryProjection postSummary(String id, String title, LocalDateTime createdAt) {

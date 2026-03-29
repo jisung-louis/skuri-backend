@@ -542,6 +542,7 @@ erDiagram
         varchar(36) user_id FK "NOT NULL"
         varchar(500) token UK "NOT NULL"
         varchar(10) platform "ios,android"
+        varchar(32) app_version "nullable"
         datetime created_at
         datetime last_used_at
     }
@@ -822,8 +823,13 @@ Taxi history 계약 메모:
 | user_id | VARCHAR(36) | FK, NOT NULL | 소유 회원 ID |
 | token | VARCHAR(500) | UK, NOT NULL | FCM 디바이스 토큰 |
 | platform | VARCHAR(10) | NOT NULL | `ios` 또는 `android` |
+| app_version | VARCHAR(32) | | 토큰이 대표하는 앱 버전 (`null` 허용) |
 | created_at | DATETIME | NOT NULL | 최초 등록 시각 |
 | last_used_at | DATETIME | | 마지막 성공 사용 시각 |
+
+- `app_version`은 디바이스/토큰 메타데이터로 저장하며, 신규 토큰 등록 시 미전송하면 `null`을 허용한다.
+- 같은 토큰 재등록 시 `appVersion`이 `null` 또는 빈 문자열이면 기존 `app_version`을 유지한다.
+- 관리자 회원 목록의 `lastLoginOs`, `currentAppVersion`은 동일한 대표 토큰(`coalesce(last_used_at, created_at)` 최신) 기준으로 계산한다.
 
 **admin_audit_logs 주요 컬럼**
 

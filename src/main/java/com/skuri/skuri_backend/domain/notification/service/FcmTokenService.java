@@ -21,17 +21,20 @@ public class FcmTokenService {
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    public void register(String memberId, String token, String platform) {
+    public void register(String memberId, String token, String platform, String appVersion) {
         String normalizedToken = normalizeToken(token);
         String normalizedPlatform = normalizePlatform(platform);
+        String normalizedAppVersion = normalizeAppVersion(appVersion);
 
         try {
-            transactionTemplate.executeWithoutResult(status -> upsert(memberId, normalizedToken, normalizedPlatform));
+            transactionTemplate.executeWithoutResult(
+                    status -> upsert(memberId, normalizedToken, normalizedPlatform, normalizedAppVersion)
+            );
         } catch (DataIntegrityViolationException e) {
             transactionTemplate.executeWithoutResult(status -> {
                 FcmToken existing = fcmTokenRepository.findByToken(normalizedToken)
                         .orElseThrow(() -> e);
-                existing.registerTo(memberId, normalizedPlatform);
+                existing.registerTo(memberId, normalizedPlatform, normalizedAppVersion);
             });
         }
     }
@@ -79,13 +82,22 @@ public class FcmTokenService {
         return platform == null ? "android" : platform.trim().toLowerCase();
     }
 
-    private void upsert(String memberId, String token, String platform) {
+    private String normalizeAppVersion(String appVersion) {
+        if (appVersion == null) {
+            return null;
+        }
+
+        String normalizedAppVersion = appVersion.trim();
+        return normalizedAppVersion.isEmpty() ? null : normalizedAppVersion;
+    }
+
+    private void upsert(String memberId, String token, String platform, String appVersion) {
         FcmToken existing = fcmTokenRepository.findByToken(token).orElse(null);
         if (existing == null) {
-            fcmTokenRepository.saveAndFlush(FcmToken.create(memberId, token, platform));
+            fcmTokenRepository.saveAndFlush(FcmToken.create(memberId, token, platform, appVersion));
             return;
         }
 
-        existing.registerTo(memberId, platform);
+        existing.registerTo(memberId, platform, appVersion);
     }
 }

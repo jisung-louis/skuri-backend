@@ -120,6 +120,10 @@ Hooks:
   - 탈퇴 시 `members` row는 보존하되 개인정보를 스크럽하고, `linked_accounts`는 전량 삭제
   - 탈퇴한 동일 Firebase UID는 `POST /v1/members`에서 재활성화하지 않고 `409 WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환
   - 관리자 백오피스용 회원 관리 API는 `/v1/admin/members`, `/v1/admin/members/{memberId}`, `/v1/admin/members/{memberId}/activity`, `/v1/admin/members/{memberId}/admin-role`로 제공한다.
+  - 관리자 회원 목록은 `query/status/isAdmin/department` 필터와 `sortBy/sortDirection` 정렬을 지원한다. 정렬 미지정 시 `joinedAt DESC`, null 값은 항상 마지막이다.
+  - 관리자 회원 목록의 이름 컬럼은 `members.realname`을 사용한다.
+  - 관리자 회원 목록의 `lastLoginOs`, `currentAppVersion`은 최근 활성 FCM 토큰(`coalesce(last_used_at, created_at)` 최신)의 `fcm_tokens.platform`, `fcm_tokens.app_version`을 함께 사용한다.
+  - `POST /v1/members/me/fcm-tokens`의 `appVersion`은 optional이며, 신규 토큰 등록 시 미전송하면 `null`로 저장하고 같은 토큰 재등록 시 `null` 또는 빈 문자열이면 기존 값을 유지한다.
   - 관리자 상세 응답은 운영 화면 요구에 맞춰 `bankAccount`, `notificationSetting`, `withdrawnAt`를 포함한다.
   - 활동 요약은 ACTIVE 회원만 제공하며, 현재 저장된 post/comment/party/inquiry/report 데이터를 조합한 read-only 관리자 read model이다. 댓글은 삭제되지 않은 comment이면서 부모 post도 삭제되지 않은 경우만 집계한다. 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`을 반환한다.
   - 활동 요약의 count는 `posts/comments/partiesCreated/partiesJoined/inquiries/reportsSubmitted`를 사용하고, recent list는 도메인별 최신 5건으로 유지한다.

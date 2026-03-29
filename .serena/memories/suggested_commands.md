@@ -37,7 +37,7 @@ DB_URL=jdbc:mysql://localhost:3306/skuri?serverTimezone=Asia/Seoul&characterEnco
 
 ## Admin Member API 작업 검증
 ```bash
-./gradlew test --tests "com.skuri.skuri_backend.domain.member.controller.MemberAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.member.service.MemberAdminServiceTest" --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest" --tests "com.skuri.skuri_backend.infra.admin.audit.AdminAuditIntegrationTest"
+./gradlew test --tests "com.skuri.skuri_backend.domain.member.controller.MemberAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.member.service.MemberAdminServiceTest" --tests "com.skuri.skuri_backend.domain.member.repository.MemberRepositoryDataJpaTest" --tests "com.skuri.skuri_backend.domain.notification.controller.NotificationControllerContractTest" --tests "com.skuri.skuri_backend.domain.notification.service.FcmTokenServiceTest" --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest"
 ./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
 ./gradlew build
 ```

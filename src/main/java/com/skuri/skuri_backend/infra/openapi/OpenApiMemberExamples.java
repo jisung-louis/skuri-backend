@@ -242,6 +242,8 @@ public final class OpenApiMemberExamples {
                     "isAdmin": true,
                     "joinedAt": "2024-03-01T09:00:00",
                     "lastLogin": "2026-03-29T11:20:00",
+                    "lastLoginOs": "android",
+                    "currentAppVersion": "1.4.2",
                     "status": "ACTIVE"
                   },
                   {
@@ -254,6 +256,8 @@ public final class OpenApiMemberExamples {
                     "isAdmin": false,
                     "joinedAt": "2025-09-01T08:30:00",
                     "lastLogin": "2026-03-28T18:00:00",
+                    "lastLoginOs": null,
+                    "currentAppVersion": null,
                     "status": "ACTIVE"
                   }
                 ],
@@ -437,4 +441,8 @@ public final class OpenApiMemberExamples {
             "{\"success\":false,\"message\":\"탈퇴한 회원의 관리자 권한은 변경할 수 없습니다.\",\"errorCode\":\"CONFLICT\",\"timestamp\":\"2026-03-29T12:00:00\"}";
     public static final String ERROR_MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN =
             "{\"success\":false,\"message\":\"탈퇴한 회원의 활동 요약은 조회할 수 없습니다.\",\"errorCode\":\"MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+    public static final String ERROR_ADMIN_MEMBER_INVALID_SORT_BY =
+            "{\"success\":false,\"message\":\"지원하지 않는 sortBy입니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+    public static final String ERROR_ADMIN_MEMBER_INVALID_SORT_DIRECTION =
+            "{\"success\":false,\"message\":\"지원하지 않는 sortDirection입니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-29T12:00:00\"}";
 }

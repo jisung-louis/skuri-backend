@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.domain.board.entity.Comment;
 import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostRepository;
 import com.skuri.skuri_backend.domain.board.repository.PostSummaryProjection;
+import com.skuri.skuri_backend.domain.member.constant.AdminMemberSortField;
 import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberAdminRoleRequest;
 import com.skuri.skuri_backend.domain.member.dto.response.AdminMemberActivityResponse;
@@ -20,6 +21,7 @@ import com.skuri.skuri_backend.domain.member.entity.MemberStatus;
 import com.skuri.skuri_backend.domain.member.entity.NotificationSetting;
 import com.skuri.skuri_backend.domain.member.exception.MemberActivityNotAvailableForWithdrawnException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.member.repository.AdminMemberSummaryProjection;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.exception.SelfAdminRoleChangeNotAllowedException;
 import com.skuri.skuri_backend.domain.support.entity.Inquiry;
@@ -50,7 +52,8 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class MemberAdminService {
 
-    private static final Sort ADMIN_MEMBER_DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "joinedAt");
+    private static final AdminMemberSortField ADMIN_MEMBER_DEFAULT_SORT_FIELD = AdminMemberSortField.JOINED_AT;
+    private static final Sort.Direction ADMIN_MEMBER_DEFAULT_SORT_DIRECTION = Sort.Direction.DESC;
     private static final Pageable ADMIN_MEMBER_ACTIVITY_RECENT_PAGEABLE =
             PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
@@ -67,15 +70,21 @@ public class MemberAdminService {
             MemberStatus status,
             Boolean isAdmin,
             String department,
+            String sortBy,
+            String sortDirection,
             int page,
             int size
     ) {
         Pageable pageable = resolvePageable(page, size);
+        AdminMemberSortField sortField = resolveSortField(sortBy);
+        Sort.Direction resolvedSortDirection = resolveSortDirection(sortDirection);
         Page<AdminMemberSummaryResponse> memberPage = memberRepository.searchAdminMembers(
                         normalizeQuery(query),
                         status,
                         isAdmin,
                         normalizeDepartment(department),
+                        sortField,
+                        resolvedSortDirection,
                         pageable
                 )
                 .map(this::toSummaryResponse);
@@ -158,7 +167,7 @@ public class MemberAdminService {
 
     private Pageable resolvePageable(int page, int size) {
         Pageable validatedPageable = AdminPageRequestPolicy.of(page, size);
-        return PageRequest.of(validatedPageable.getPageNumber(), validatedPageable.getPageSize(), ADMIN_MEMBER_DEFAULT_SORT);
+        return PageRequest.of(validatedPageable.getPageNumber(), validatedPageable.getPageSize());
     }
 
     private String normalizeQuery(String query) {
@@ -179,18 +188,38 @@ public class MemberAdminService {
         return normalizedDepartment;
     }
 
-    private AdminMemberSummaryResponse toSummaryResponse(Member member) {
+    private AdminMemberSortField resolveSortField(String sortBy) {
+        if (!StringUtils.hasText(sortBy)) {
+            return ADMIN_MEMBER_DEFAULT_SORT_FIELD;
+        }
+        return AdminMemberSortField.from(sortBy);
+    }
+
+    private Sort.Direction resolveSortDirection(String sortDirection) {
+        if (!StringUtils.hasText(sortDirection)) {
+            return ADMIN_MEMBER_DEFAULT_SORT_DIRECTION;
+        }
+        try {
+            return Sort.Direction.fromString(sortDirection.trim());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "지원하지 않는 sortDirection입니다.");
+        }
+    }
+
+    private AdminMemberSummaryResponse toSummaryResponse(AdminMemberSummaryProjection member) {
         return new AdminMemberSummaryResponse(
-                member.getId(),
-                member.getEmail(),
-                member.getNickname(),
-                member.getRealname(),
-                member.getStudentId(),
-                member.getDepartment(),
+                member.id(),
+                member.email(),
+                member.nickname(),
+                member.realname(),
+                member.studentId(),
+                member.department(),
                 member.isAdmin(),
-                member.getJoinedAt(),
-                member.getLastLogin(),
-                member.getStatus()
+                member.joinedAt(),
+                member.lastLogin(),
+                member.lastLoginOs(),
+                member.currentAppVersion(),
+                member.status()
         );
     }
 

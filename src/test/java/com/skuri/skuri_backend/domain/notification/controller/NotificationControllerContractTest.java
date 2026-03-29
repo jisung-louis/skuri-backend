@@ -196,7 +196,29 @@ class NotificationControllerContractTest {
     }
 
     @Test
-    void registerFcmToken_정상처리_200() throws Exception {
+    void registerFcmToken_appVersion포함시_정상처리_200() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        post("/v1/members/me/fcm-tokens")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType("application/json")
+                                .content("""
+                                        {
+                                          "token": "dXZlbnQ6ZmNtLXRva2Vu",
+                                          "platform": "ios",
+                                          "appVersion": "1.4.2"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(fcmTokenService).register("firebase-uid", "dXZlbnQ6ZmNtLXRva2Vu", "ios", "1.4.2");
+    }
+
+    @Test
+    void registerFcmToken_appVersion없어도_정상처리_200() throws Exception {
         mockValidToken();
 
         mockMvc.perform(
@@ -213,7 +235,7 @@ class NotificationControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        verify(fcmTokenService).register("firebase-uid", "dXZlbnQ6ZmNtLXRva2Vu", "ios");
+        verify(fcmTokenService).register("firebase-uid", "dXZlbnQ6ZmNtLXRva2Vu", "ios", null);
     }
 
     @Test

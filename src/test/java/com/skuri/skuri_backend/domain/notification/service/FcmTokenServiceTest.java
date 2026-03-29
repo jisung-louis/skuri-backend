@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,18 +45,19 @@ class FcmTokenServiceTest {
     void register_신규토큰이면_정규화후저장한다() {
         when(fcmTokenRepository.findByToken("device-token")).thenReturn(Optional.empty());
 
-        fcmTokenService.register("member-1", " device-token ", "IOS");
+        fcmTokenService.register("member-1", " device-token ", "IOS", " 1.4.2 ");
 
         verify(fcmTokenRepository).saveAndFlush(argThat(token ->
                 "member-1".equals(token.getUserId())
                         && "device-token".equals(token.getToken())
                         && "ios".equals(token.getPlatform())
+                        && "1.4.2".equals(token.getAppVersion())
         ));
     }
 
     @Test
-    void register_중복키충돌이면_재조회후기존토큰을갱신한다() {
-        FcmToken existing = FcmToken.create("member-old", "device-token", "android");
+    void register_중복키충돌이면_재조회후기존토큰과앱버전을갱신한다() {
+        FcmToken existing = FcmToken.create("member-old", "device-token", "android", "1.0.0");
         ReflectionTestUtils.setField(existing, "id", 1L);
 
         when(fcmTokenRepository.findByToken("device-token"))
@@ -63,11 +65,25 @@ class FcmTokenServiceTest {
         when(fcmTokenRepository.saveAndFlush(any(FcmToken.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate token"));
 
-        fcmTokenService.register("member-1", "device-token", "ios");
+        fcmTokenService.register("member-1", "device-token", "ios", "1.4.2");
 
         verify(fcmTokenRepository, times(2)).findByToken("device-token");
         assertEquals("member-1", existing.getUserId());
         assertEquals("ios", existing.getPlatform());
+        assertEquals("1.4.2", existing.getAppVersion());
+    }
+
+    @Test
+    void register_기존토큰재등록시_appVersion이null이면_기존값을유지한다() {
+        FcmToken existing = FcmToken.create("member-1", "device-token", "android", "1.4.2");
+        when(fcmTokenRepository.findByToken("device-token")).thenReturn(Optional.of(existing));
+
+        fcmTokenService.register("member-1", "device-token", "ios", " ");
+
+        assertEquals("member-1", existing.getUserId());
+        assertEquals("ios", existing.getPlatform());
+        assertEquals("1.4.2", existing.getAppVersion());
+        verify(fcmTokenRepository, never()).saveAndFlush(any(FcmToken.class));
     }
 
     @Test

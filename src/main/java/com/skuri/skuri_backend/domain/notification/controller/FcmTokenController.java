@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.domain.notification.service.FcmTokenService;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
+import com.skuri.skuri_backend.infra.openapi.OpenApiNotificationExamples;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -37,7 +38,10 @@ public class FcmTokenController {
     private final FcmTokenService fcmTokenService;
 
     @PostMapping
-    @Operation(summary = "FCM 토큰 등록", description = "현재 사용자의 디바이스 FCM 토큰을 등록하거나 갱신합니다.")
+    @Operation(
+            summary = "FCM 토큰 등록",
+            description = "현재 사용자의 디바이스 FCM 토큰을 등록하거나 갱신합니다. appVersion은 optional이며, 신규 토큰 등록 시 미전송하면 null로 저장되고 기존 토큰 재등록 시 null이면 기존 값을 유지합니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -58,6 +62,15 @@ public class FcmTokenController {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "접근 권한 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_FORBIDDEN)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "422",
                     description = "유효성 검증 실패",
                     content = @Content(
@@ -72,7 +85,13 @@ public class FcmTokenController {
             description = "FCM 토큰 등록 요청",
             content = @Content(
                     schema = @Schema(implementation = RegisterFcmTokenRequest.class),
-                    examples = @ExampleObject(value = "{\"token\":\"dXZlbnQ6ZmNtLXRva2Vu\",\"platform\":\"ios\"}")
+                    examples = {
+                            @ExampleObject(name = "with_app_version", value = OpenApiNotificationExamples.REQUEST_REGISTER_FCM_TOKEN),
+                            @ExampleObject(
+                                    name = "without_app_version",
+                                    value = OpenApiNotificationExamples.REQUEST_REGISTER_FCM_TOKEN_WITHOUT_APP_VERSION
+                            )
+                    }
             )
     )
     public ResponseEntity<ApiResponse<Void>> register(
@@ -83,7 +102,8 @@ public class FcmTokenController {
         fcmTokenService.register(
                 requireAuthenticatedMember(authenticatedMember).uid(),
                 request.token(),
-                request.platform()
+                request.platform(),
+                request.appVersion()
         );
         return ResponseEntity.ok(ApiResponse.success(null));
     }

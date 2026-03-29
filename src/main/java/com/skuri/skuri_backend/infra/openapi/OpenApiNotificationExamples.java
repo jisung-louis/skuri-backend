@@ -71,6 +71,21 @@ public final class OpenApiNotificationExamples {
             }
             """;
 
+    public static final String REQUEST_REGISTER_FCM_TOKEN = """
+            {
+              "token": "dXZlbnQ6ZmNtLXRva2Vu",
+              "platform": "ios",
+              "appVersion": "1.4.2"
+            }
+            """;
+
+    public static final String REQUEST_REGISTER_FCM_TOKEN_WITHOUT_APP_VERSION = """
+            {
+              "token": "dXZlbnQ6ZmNtLXRva2Vu",
+              "platform": "ios"
+            }
+            """;
+
     public static final String ERROR_NOTIFICATION_NOT_FOUND =
             "{\"success\":false,\"message\":\"알림을 찾을 수 없습니다.\",\"errorCode\":\"NOTIFICATION_NOT_FOUND\",\"timestamp\":\"2026-03-08T09:00:00\"}";
 

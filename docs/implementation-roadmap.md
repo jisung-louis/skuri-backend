@@ -842,7 +842,9 @@ SSE 운영 제약:
   - `ADMIN_REQUIRED` 판별은 `/v1/admin/**` 경로 기준 공통 resolver로 정리한다.
   - 감사 로그는 상태 변경 Admin API(`POST`, `PUT`, `PATCH`, `DELETE`)만 저장하고, `GET` 조회는 고빈도/저효용 로그와 개인정보 중복 적재를 피하기 위해 제외한다.
   - Support 운영 목록(`GET /v1/admin/inquiries`, `GET /v1/admin/reports`)은 `PageResponse` + `page=0`/`size=20`/`size<=100` + 고정 정렬 `createdAt,DESC` 규약을 사용한다.
-  - Member 운영 목록(`GET /v1/admin/members`)은 `PageResponse` + `page=0`/`size=20`/`size<=100` + 고정 정렬 `joinedAt,DESC` 규약과 `query/status/isAdmin/department` 필터를 사용한다.
+  - Member 운영 목록(`GET /v1/admin/members`)은 `PageResponse` + `page=0`/`size=20`/`size<=100` + `query/status/isAdmin/department` 필터를 사용한다. 정렬은 `sortBy/sortDirection`으로 확장하되, 기본값은 `joinedAt,DESC`, null 값은 항상 마지막이다.
+  - 운영 목록의 이름 컬럼은 `members.realname`을 사용한다. `lastLoginOs`, `currentAppVersion`은 최근 활성 FCM 토큰의 `fcm_tokens.platform`, `fcm_tokens.app_version`을 대표 토큰 기준으로 함께 사용한다.
+  - `POST /v1/members/me/fcm-tokens`는 optional `appVersion`을 받는다. 신규 토큰 등록 시 미전송하면 `null`로 저장하고, 같은 토큰 재등록 시 `null` 또는 빈 문자열이면 기존 값을 유지한다.
   - Member 활동 요약(`GET /v1/admin/members/{memberId}/activity`)은 ACTIVE 회원만 조회 가능하며, 현재 저장 데이터 기준 count + recent 5건 read model만 제공한다. 댓글 집계/최근 댓글은 삭제되지 않은 부모 게시글 기준으로만 포함하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리한다.
   - Member 관리자 권한 변경(`PATCH /v1/admin/members/{memberId}/admin-role`)은 `members.is_admin` boolean만 갱신하고 감사 로그를 남긴다. 자기 자신의 계정 대상 요청은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 막고, 마지막 관리자 수 계산 같은 추가 정책은 후속 범위로 남긴다.
   - Member admin-role 감사 로그는 최소 snapshot(`id`, `email`, `nickname`, `isAdmin`, `status`)만 저장하며 `bankAccount`, `notificationSetting`는 적재하지 않는다.
