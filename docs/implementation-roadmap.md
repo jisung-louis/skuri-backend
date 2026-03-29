@@ -867,6 +867,9 @@ SSE 운영 제약:
   - Member 운영 목록(`GET /v1/admin/members`)은 `PageResponse` + `page=0`/`size=20`/`size<=100` + `query/status/isAdmin/department` 필터를 사용한다. 정렬은 `sortBy/sortDirection`으로 확장하되, 기본값은 `joinedAt,DESC`, null 값은 항상 마지막이다.
   - 운영 목록의 이름 컬럼은 `members.realname`을 사용한다. `lastLoginOs`, `currentAppVersion`은 최근 활성 FCM 토큰의 `fcm_tokens.platform`, `fcm_tokens.app_version`을 대표 토큰 기준으로 함께 사용한다.
   - `POST /v1/members/me/fcm-tokens`는 optional `appVersion`을 받는다. 신규 토큰 등록 시 미전송하면 `null`로 저장하고, 같은 토큰 재등록 시 `null` 또는 빈 문자열이면 기존 값을 유지한다.
+  - 관리자 대시보드 read API(`GET /v1/admin/dashboard/summary`, `GET /v1/admin/dashboard/activity`, `GET /v1/admin/dashboard/recent-items`)는 현재 저장된 도메인 데이터만 집계하는 read-only 모델이다. 상태 변경, sync 실행, 보정 배치는 포함하지 않는다.
+  - 관리자 대시보드 집계/버킷 기준은 `Asia/Seoul`로 고정한다. `summary.newMembersToday`는 `joinedAt` 기준 오늘 `00:00 ~ generatedAt`, `activity.days`는 `7 | 30`만 허용, `recent-items`는 Inquiry/Report/AppNotice/Party를 `createdAt DESC`로 병합하고 게시된 앱 공지만 포함한다.
+  - `summary.totalMembers`는 `members` 전체 row 기준이다. soft delete tombstone(`WITHDRAWN`)도 count에 포함하며, ACTIVE-only count는 이번 범위에 추가하지 않는다.
   - Member 활동 요약(`GET /v1/admin/members/{memberId}/activity`)은 ACTIVE 회원만 조회 가능하며, 현재 저장 데이터 기준 count + recent 5건 read model만 제공한다. 댓글 집계/최근 댓글은 삭제되지 않은 부모 게시글 기준으로만 포함하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리한다.
   - Member 관리자 권한 변경(`PATCH /v1/admin/members/{memberId}/admin-role`)은 `members.is_admin` boolean만 갱신하고 감사 로그를 남긴다. 자기 자신의 계정 대상 요청은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 막고, 마지막 관리자 수 계산 같은 추가 정책은 후속 범위로 남긴다.
   - Member admin-role 감사 로그는 최소 snapshot(`id`, `email`, `nickname`, `isAdmin`, `status`)만 저장하며 `bankAccount`, `notificationSetting`는 적재하지 않는다.
