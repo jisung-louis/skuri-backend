@@ -147,6 +147,7 @@ public class CafeteriaMenuService {
         }
 
         if (hasMenuEntries) {
+            validateWeeklyMenuEntryConsistency(normalizedMenuEntries);
             Map<String, Map<String, List<String>>> menusFromEntries = extractMenus(normalizedMenuEntries);
             if (hasMenus && !Objects.equals(normalizedMenus, menusFromEntries)) {
                 throw new BusinessException(ErrorCode.INVALID_REQUEST, "menus와 menuEntries의 메뉴명이 일치하지 않습니다.");
@@ -305,6 +306,36 @@ public class CafeteriaMenuService {
             completed.put(date, orderedCategories);
         });
         return completed;
+    }
+
+    private void validateWeeklyMenuEntryConsistency(
+            Map<String, Map<String, List<CafeteriaMenuEntryMetadata>>> menuEntries
+    ) {
+        Map<String, CafeteriaMenuEntryMetadata> weeklyMetadata = new LinkedHashMap<>();
+        Map<String, String> firstSeenDate = new LinkedHashMap<>();
+
+        menuEntries.forEach((date, categories) -> categories.forEach((category, items) -> {
+            for (CafeteriaMenuEntryMetadata item : items) {
+                String key = category + "\u0000" + item.title();
+                CafeteriaMenuEntryMetadata existing = weeklyMetadata.putIfAbsent(key, item);
+                if (existing == null) {
+                    firstSeenDate.put(key, date);
+                    continue;
+                }
+                if (!existing.equals(item)) {
+                    throw new BusinessException(
+                            ErrorCode.INVALID_REQUEST,
+                            "같은 주차에서 동일 카테고리의 동일 메뉴는 날짜별 메타데이터가 동일해야 합니다. "
+                                    + "category=%s, title=%s, firstDate=%s, date=%s".formatted(
+                                    category,
+                                    item.title(),
+                                    firstSeenDate.get(key),
+                                    date
+                            )
+                    );
+                }
+            }
+        }));
     }
 
     private Map<String, Map<String, List<String>>> extractMenus(
