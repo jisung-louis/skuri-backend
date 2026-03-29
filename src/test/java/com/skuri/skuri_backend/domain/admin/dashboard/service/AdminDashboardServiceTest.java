@@ -33,6 +33,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -86,6 +87,28 @@ class AdminDashboardServiceTest {
         verify(memberRepository).countByJoinedAtGreaterThanEqualAndJoinedAtLessThan(
                 LocalDateTime.of(2026, 3, 29, 0, 0),
                 LocalDateTime.of(2026, 3, 29, 18, 0, 0, 1)
+        );
+    }
+
+    @Test
+    void getSummary_자정경계에서도_같은시점기준으로오늘시작을계산한다() {
+        setAdvancingClock(
+                LocalDateTime.of(2026, 3, 29, 23, 59, 59, 999_999_999),
+                LocalDateTime.of(2026, 3, 30, 0, 0)
+        );
+        when(memberRepository.countByJoinedAtGreaterThanEqualAndJoinedAtLessThan(any(), any())).thenReturn(1L);
+        when(memberRepository.count()).thenReturn(4831L);
+        when(memberRepository.countByIsAdminTrue()).thenReturn(4L);
+        when(partyRepository.countByStatus(PartyStatus.OPEN)).thenReturn(17L);
+        when(inquiryRepository.countByStatus(InquiryStatus.PENDING)).thenReturn(9L);
+        when(reportRepository.countByStatus(ReportStatus.PENDING)).thenReturn(3L);
+
+        AdminDashboardSummaryResponse response = adminDashboardService.getSummary();
+
+        assertEquals(LocalDateTime.of(2026, 3, 29, 23, 59, 59, 999_999_999), response.generatedAt());
+        verify(memberRepository).countByJoinedAtGreaterThanEqualAndJoinedAtLessThan(
+                LocalDateTime.of(2026, 3, 29, 0, 0),
+                LocalDateTime.of(2026, 3, 30, 0, 0)
         );
     }
 
@@ -163,6 +186,35 @@ class AdminDashboardServiceTest {
                 adminDashboardService,
                 "clock",
                 Clock.fixed(value.atZone(SEOUL_ZONE).toInstant(), SEOUL_ZONE)
+        );
+    }
+
+    private void setAdvancingClock(LocalDateTime... values) {
+        ReflectionTestUtils.setField(
+                adminDashboardService,
+                "clock",
+                new Clock() {
+                    private int index = 0;
+
+                    @Override
+                    public ZoneId getZone() {
+                        return SEOUL_ZONE;
+                    }
+
+                    @Override
+                    public Clock withZone(ZoneId zone) {
+                        return this;
+                    }
+
+                    @Override
+                    public Instant instant() {
+                        LocalDateTime current = values[Math.min(index, values.length - 1)];
+                        if (index < values.length - 1) {
+                            index++;
+                        }
+                        return current.atZone(SEOUL_ZONE).toInstant();
+                    }
+                }
         );
     }
 

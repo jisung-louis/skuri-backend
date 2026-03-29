@@ -55,7 +55,7 @@ public class AdminDashboardService {
     @Transactional(readOnly = true)
     public AdminDashboardSummaryResponse getSummary() {
         LocalDateTime now = now();
-        LocalDateTime todayStart = today().atStartOfDay();
+        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
 
         return new AdminDashboardSummaryResponse(
                 memberRepository.countByJoinedAtGreaterThanEqualAndJoinedAtLessThan(todayStart, currentEndExclusive(now)),
@@ -191,10 +191,6 @@ public class AdminDashboardService {
         if (limit < 1 || limit > MAX_RECENT_ITEM_LIMIT) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "limit는 1 이상 30 이하여야 합니다.");
         }
-    }
-
-    private LocalDate today() {
-        return LocalDate.now(clock);
     }
 
     private LocalDateTime now() {
