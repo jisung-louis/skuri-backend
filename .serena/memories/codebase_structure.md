@@ -61,11 +61,12 @@
 
 
 ## Admin TaxiParty API 관련 파일
-- `src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyAdminController.java`: 관리자 파티 목록/상세/상태 변경 API와 OpenAPI 어노테이션
-- `src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyAdminService.java`: 관리자 검색/상세/허용 상태 전이 orchestration, audit/OpenAPI 회귀가 기대하는 canonical 동작 정의
-- `src/main/java/com/skuri/skuri_backend/domain/taxiparty/dto/response/AdminPartySummaryResponse.java`, `AdminPartyDetailResponse.java`, `AdminPartyLeaderResponse.java`, `dto/request/UpdateAdminPartyStatusRequest.java`, `constant/AdminPartyStatusAction.java`: 관리자 전용 DTO와 액션 enum
-- `src/main/java/com/skuri/skuri_backend/domain/taxiparty/repository/PartyRepository.java`, `JoinRequestRepository.java`: 관리자 목록 검색 query, 대기 join request count 지원
-- `src/main/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditSnapshotFactory.java`, `AdminAuditActions.java`, `AdminAuditTargetTypes.java`: 파티 상태 변경 admin audit target/action/snapshot 지원
-- `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiTaxiPartySchemas.java`, `OpenApiTaxiPartyExamples.java`, `OpenApiConfig.java`: 관리자 파티 API schema/example/group 반영
-- `src/test/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyAdminControllerContractTest.java`, `service/TaxiPartyAdminServiceTest.java`: 관리자 파티 Contract/Service 테스트
-- `src/test/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditIntegrationTest.java`, `infra/auth/AdminApiGuardIntegrationTest.java`, `infra/openapi/AdminOpenApiConventionTest.java`, `infra/openapi/OpenApiResponseExamplesConventionTest.java`: admin guard/audit/OpenAPI 회귀 검증 확장
+- `src/main/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyAdminController.java`: 관리자 파티 목록/상세/상태 변경 + 멤버 제거 + 시스템 메시지 + pending join request 조회 API와 OpenAPI 어노테이션
+- `src/main/java/com/skuri/skuri_backend/domain/taxiparty/service/TaxiPartyAdminService.java`: 관리자 검색/상세/허용 상태 전이 orchestration, 멤버 제거/시스템 메시지/대기 join request read model 정의
+- `src/main/java/com/skuri/skuri_backend/domain/taxiparty/dto/request/CreateAdminPartySystemMessageRequest.java`, `dto/request/UpdateAdminPartyStatusRequest.java`, `dto/response/AdminPartyJoinRequestResponse.java`, `AdminPartySummaryResponse.java`, `AdminPartyDetailResponse.java`, `AdminPartyLeaderResponse.java`, `constant/AdminPartyStatusAction.java`: 관리자 follow-up DTO와 액션 enum
+- `src/main/java/com/skuri/skuri_backend/domain/chat/service/ChatService.java`, `domain/chat/entity/ChatMessage.java`: 관리자 시스템 메시지 생성(`SYSTEM` + `ADMIN_SYSTEM` source), `senderPhotoUrl=null` 표시 규칙
+- `src/main/java/com/skuri/skuri_backend/domain/taxiparty/repository/PartyRepository.java`, `JoinRequestRepository.java`: 관리자 목록 검색 query, pending join request count + 최신순 pending 목록 지원
+- `src/main/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditSnapshotFactory.java`, `AdminAuditActions.java`, `AdminAuditTargetTypes.java`, `AdminAuditTargetKeyResolver.java`: 파티 상태 변경/멤버 제거/시스템 메시지 admin audit target/action/snapshot 지원
+- `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiTaxiPartySchemas.java`, `OpenApiTaxiPartyExamples.java`, `OpenApiConfig.java`: 관리자 파티 follow-up API schema/example/group 반영
+- `src/test/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyAdminControllerContractTest.java`, `service/TaxiPartyAdminServiceTest.java`: 관리자 파티 follow-up Contract/Service 테스트
+- `src/test/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditIntegrationTest.java`, `infra/auth/AdminApiGuardIntegrationTest.java`, `infra/openapi/AdminOpenApiConventionTest.java`, `infra/openapi/OpenApiResponseExamplesConventionTest.java`, `infra/openapi/OpenApiSuccessSchemaCoverageIntegrationTest.java`: admin guard/audit/OpenAPI 회귀 검증 확장

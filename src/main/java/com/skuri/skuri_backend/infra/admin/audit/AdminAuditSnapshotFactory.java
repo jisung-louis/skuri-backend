@@ -14,6 +14,8 @@ import com.skuri.skuri_backend.domain.campus.dto.response.CampusBannerAdminRespo
 import com.skuri.skuri_backend.domain.campus.entity.CampusBanner;
 import com.skuri.skuri_backend.domain.campus.repository.CampusBannerRepository;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
+import com.skuri.skuri_backend.domain.chat.entity.ChatMessage;
+import com.skuri.skuri_backend.domain.chat.repository.ChatMessageRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
@@ -44,6 +46,7 @@ public class AdminAuditSnapshotFactory {
     private final CourseRepository courseRepository;
     private final AppNoticeRepository appNoticeRepository;
     private final CampusBannerRepository campusBannerRepository;
+    private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final MemberRepository memberRepository;
     private final PartyRepository partyRepository;
@@ -104,6 +107,21 @@ public class AdminAuditSnapshotFactory {
                 .orElse(null);
     }
 
+    public ChatMessageSnapshot chatMessage(String chatMessageId) {
+        return chatMessageRepository.findById(chatMessageId)
+                .map(message -> new ChatMessageSnapshot(
+                        message.getId(),
+                        message.getChatRoomId(),
+                        message.getSenderId(),
+                        message.getSenderName(),
+                        message.getType(),
+                        message.getSource(),
+                        message.getText(),
+                        message.getCreatedAt()
+                ))
+                .orElse(null);
+    }
+
     public AppNoticeResponse appNotice(String appNoticeId) {
         return appNoticeRepository.findById(appNoticeId)
                 .map(this::toAppNoticeResponse)
@@ -151,6 +169,20 @@ public class AdminAuditSnapshotFactory {
     public PartyStatusSnapshot partyStatus(String partyId) {
         return partyRepository.findById(partyId)
                 .map(this::toPartyStatusSnapshot)
+                .orElse(null);
+    }
+
+    public PartyMemberSnapshot partyMember(String partyId, String memberId) {
+        return partyRepository.findDetailById(partyId)
+                .flatMap(party -> party.getMembers().stream()
+                        .filter(member -> member.getMemberId().equals(memberId))
+                        .findFirst()
+                        .map(member -> new PartyMemberSnapshot(
+                                party.getId(),
+                                member.getMemberId(),
+                                party.isLeader(member.getMemberId()),
+                                member.getJoinedAt()
+                        )))
                 .orElse(null);
     }
 
@@ -324,6 +356,18 @@ public class AdminAuditSnapshotFactory {
     ) {
     }
 
+    public record ChatMessageSnapshot(
+            String id,
+            String chatRoomId,
+            String senderId,
+            String senderName,
+            Object type,
+            String source,
+            String text,
+            LocalDateTime createdAt
+    ) {
+    }
+
     public record InquirySnapshot(
             String id,
             String memberId,
@@ -368,6 +412,14 @@ public class AdminAuditSnapshotFactory {
             Object endReason,
             Object settlementStatus,
             LocalDateTime endedAt
+    ) {
+    }
+
+    public record PartyMemberSnapshot(
+            String partyId,
+            String memberId,
+            boolean isLeader,
+            LocalDateTime joinedAt
     ) {
     }
 

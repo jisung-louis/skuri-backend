@@ -21,6 +21,8 @@ public final class AdminAuditActions {
     public static final String REPORT_STATUS_UPDATED = "REPORT_STATUS_UPDATED";
     public static final String MEMBER_ADMIN_ROLE_UPDATED = "MEMBER_ADMIN_ROLE_UPDATED";
     public static final String PARTY_STATUS_UPDATED = "PARTY_STATUS_UPDATED";
+    public static final String PARTY_MEMBER_REMOVED = "PARTY_MEMBER_REMOVED";
+    public static final String PARTY_SYSTEM_MESSAGE_CREATED = "PARTY_SYSTEM_MESSAGE_CREATED";
     public static final String APP_VERSION_UPSERTED = "APP_VERSION_UPSERTED";
     public static final String LEGAL_DOCUMENT_UPSERTED = "LEGAL_DOCUMENT_UPSERTED";
     public static final String LEGAL_DOCUMENT_DELETED = "LEGAL_DOCUMENT_DELETED";

@@ -68,7 +68,7 @@ curl http://127.0.0.1:18081/scalar
 ## Admin TaxiParty API 작업 검증
 ```bash
 ./gradlew test --tests "com.skuri.skuri_backend.domain.taxiparty.controller.PartyAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyAdminServiceTest" --tests "com.skuri.skuri_backend.infra.admin.audit.AdminAuditIntegrationTest" --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest"
-./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
+./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
 ./gradlew build
 ```
 
@@ -80,6 +80,9 @@ DB_URL=$DB_URL DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD FIREBASE_AUTH_U
 curl "http://127.0.0.1:18080/v1/admin/parties?page=0&size=20" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
 curl "http://127.0.0.1:18080/v1/admin/parties/<PARTY_ID>" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
 curl -X PATCH "http://127.0.0.1:18080/v1/admin/parties/<PARTY_ID>/status" -H "Authorization: Bearer <ADMIN_ID_TOKEN>" -H 'Content-Type: application/json' -d '{"action":"CLOSE"}'
+curl -X DELETE "http://127.0.0.1:18080/v1/admin/parties/<PARTY_ID>/members/<MEMBER_ID>" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl -X POST "http://127.0.0.1:18080/v1/admin/parties/<PARTY_ID>/messages/system" -H "Authorization: Bearer <ADMIN_ID_TOKEN>" -H 'Content-Type: application/json' -d '{"message":"관리자 안내 메시지"}'
+curl "http://127.0.0.1:18080/v1/admin/parties/<PARTY_ID>/join-requests" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
 curl http://127.0.0.1:18080/v3/api-docs
 curl http://127.0.0.1:18080/swagger-ui/index.html
 curl http://127.0.0.1:18080/scalar

@@ -54,8 +54,11 @@
 
 
 ## Admin TaxiParty API 메모
-- `taxiparty` 도메인은 관리자 백오피스용 TaxiParty P1 API를 제공한다: `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`.
+- `taxiparty` 도메인은 관리자 백오피스용 TaxiParty API를 제공한다: `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`, `DELETE /v1/admin/parties/{partyId}/members/{memberId}`, `POST /v1/admin/parties/{partyId}/messages/system`, `GET /v1/admin/parties/{partyId}/join-requests`.
 - 관리자 목록은 `page/size/status/departureDate/query` 필터를 지원하고, 기본 정렬은 `departureTime desc, createdAt desc`다. 검색 범위는 출발지/도착지/leader uid/leader nickname이다.
 - 관리자 상세는 목록 필드 외에 `leader`, `members`, `pendingJoinRequestCount`, `settlementStatus`, `settlement`, `chatRoomId`, `createdAt/updatedAt/endedAt`를 제공한다. 현재 도메인에 없는 `gender`, `lastStatusChangedAt`는 억지로 만들지 않는다.
 - 관리자 상태 변경 액션은 현재 상태 머신을 재사용하는 `CLOSE`, `REOPEN`, `CANCEL`, `END`만 허용한다. 임의 상태 점프는 허용하지 않는다.
-- 관리자 status 변경 감사 로그는 `admin_audit_logs`에 최소 snapshot(`id/status/endReason/settlementStatus/endedAt`)만 남기고 멤버 개인정보 diff는 넣지 않는다.
+- 관리자 멤버 제거는 일반 멤버만 허용하고 leader 제거는 `PARTY_LEADER_REMOVAL_NOT_ALLOWED`로 막는다. `ARRIVED`, `ENDED` 상태에서는 멤버 제거를 허용하지 않는다. 부수효과는 기존 `removeMember` 로직(채팅방 membership sync, leave 시스템 메시지, SSE `KICKED`, `PartyMemberKicked` notification event)을 재사용한다.
+- 관리자 시스템 메시지는 party chat room이 있을 때만 생성한다. 내부적으로 `SYSTEM` + `ADMIN_SYSTEM` source를 사용해 leader/member 사칭을 피하고, 응답/표시 기준 `senderName`은 `관리자`, `senderPhotoUrl`은 `null`이다.
+- 관리자 join request 조회는 현재 `PENDING`만 `requestedAt(createdAt) desc` 최신순으로 반환한다. 승인/거절 액션은 아직 제공하지 않는다.
+- 관리자 write audit(status 변경, 멤버 제거, 시스템 메시지)는 `admin_audit_logs`에 최소 snapshot만 남긴다. 파티 상태 변경은 `id/status/endReason/settlementStatus/endedAt`, 멤버 제거는 `partyId/memberId/isLeader/joinedAt`, 시스템 메시지는 `id/chatRoomId/senderId/senderName/type/source/text/createdAt` 기준으로 기록한다.

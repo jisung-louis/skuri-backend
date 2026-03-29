@@ -50,9 +50,12 @@ import com.skuri.skuri_backend.domain.support.service.CafeteriaMenuService;
 import com.skuri.skuri_backend.domain.support.service.InquiryService;
 import com.skuri.skuri_backend.domain.support.service.ReportService;
 import com.skuri.skuri_backend.domain.taxiparty.controller.PartyAdminController;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyJoinRequestResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyAdminService;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
+import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import com.skuri.skuri_backend.infra.auth.config.ApiAccessDeniedHandler;
 import com.skuri.skuri_backend.infra.auth.config.ApiAuthenticationEntryPoint;
 import com.skuri.skuri_backend.infra.auth.config.SecurityConfig;
@@ -497,6 +500,57 @@ class AdminApiGuardIntegrationTest {
                                         .build()),
                         status().isOk(),
                         jsonPath("$.data.content[0].id").value("party-1")
+                ),
+                endpoint(
+                        "party member removal",
+                        () -> delete("/v1/admin/parties/party-1/members/member-1"),
+                        () -> {
+                        },
+                        status().isOk(),
+                        jsonPath("$.data").doesNotExist()
+                ),
+                endpoint(
+                        "party system message create",
+                        () -> post("/v1/admin/parties/party-1/messages/system")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "message": "관리자 안내 메시지"
+                                        }
+                                        """),
+                        () -> when(taxiPartyAdminService.createPartySystemMessage("admin-uid", "party-1", "관리자 안내 메시지"))
+                                .thenReturn(new ChatMessageResponse(
+                                        "message-1",
+                                        "party:party-1",
+                                        "admin-uid",
+                                        "관리자",
+                                        null,
+                                        ChatMessageType.SYSTEM,
+                                        "관리자 안내 메시지",
+                                        null,
+                                        null,
+                                        null,
+                                        LocalDateTime.of(2026, 3, 29, 12, 10)
+                                )),
+                        status().isOk(),
+                        jsonPath("$.data.id").value("message-1")
+                ),
+                endpoint(
+                        "party join requests",
+                        () -> get("/v1/admin/parties/party-1/join-requests"),
+                        () -> when(taxiPartyAdminService.getPartyJoinRequests("party-1"))
+                                .thenReturn(java.util.List.of(new AdminPartyJoinRequestResponse(
+                                        "request-1",
+                                        "member-1",
+                                        "김철수",
+                                        "김철수",
+                                        null,
+                                        "컴퓨터공학과",
+                                        "20230001",
+                                        LocalDateTime.of(2026, 3, 29, 12, 0)
+                                ))),
+                        status().isOk(),
+                        jsonPath("$.data[0].requestId").value("request-1")
                 )
         );
     }

@@ -31,6 +31,7 @@ public class ChatMessage extends BaseTimeEntity {
 
     public static final String SOURCE_MEMBER_JOIN = "MEMBER_JOIN";
     public static final String SOURCE_MEMBER_LEAVE = "MEMBER_LEAVE";
+    public static final String SOURCE_ADMIN_SYSTEM = "ADMIN_SYSTEM";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

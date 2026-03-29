@@ -4,14 +4,17 @@ import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
 import com.skuri.skuri_backend.domain.member.entity.Member;
+import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import com.skuri.skuri_backend.domain.taxiparty.constant.AdminPartyStatusAction;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyDetailResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyLeaderResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyJoinRequestResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.MemberSettlementResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyLocationResponse;
@@ -19,6 +22,7 @@ import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyMemberResponse
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.PartyStatusResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementAccountResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.SettlementSummaryResponse;
+import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequest;
 import com.skuri.skuri_backend.domain.taxiparty.entity.JoinRequestStatus;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.MemberSettlement;
@@ -143,6 +147,63 @@ public class TaxiPartyAdminService {
         return new PartyStatusResponse(party.getId(), party.getStatus(), party.getEndReason());
     }
 
+    @Transactional
+    public void removePartyMember(String adminActorId, String partyId, String memberId) {
+        Party party = findPartyDetailOrThrow(partyId);
+        Member member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+
+        if (party.getStatus() == PartyStatus.ARRIVED) {
+            throw new BusinessException(ErrorCode.CANNOT_KICK_IN_ARRIVED);
+        }
+        if (party.getStatus() == PartyStatus.ENDED) {
+            throw new BusinessException(ErrorCode.PARTY_ENDED);
+        }
+        if (party.isLeader(memberId)) {
+            throw new BusinessException(ErrorCode.PARTY_LEADER_REMOVAL_NOT_ALLOWED);
+        }
+        if (!party.isMember(memberId)) {
+            throw new BusinessException(ErrorCode.PARTY_MEMBER_NOT_FOUND);
+        }
+
+        List<String> recipientsBeforeRemoval = party.getMemberIds();
+        String removedMemberName = resolveDisplayName(member);
+        party.removeMember(memberId);
+        savePartyWithLockHandling(party);
+        chatService.syncPartyChatRoomMembers(party);
+        chatService.createPartyMemberLeaveSystemMessage(
+                party,
+                adminActorId,
+                toMemberLeaveSystemMessage(removedMemberName)
+        );
+        partySseService.publishPartyMemberLeft(party, memberId, "KICKED", recipientsBeforeRemoval);
+        eventPublisher.publish(new NotificationDomainEvent.PartyMemberKicked(party.getId(), memberId));
+    }
+
+    @Transactional
+    public ChatMessageResponse createPartySystemMessage(String adminActorId, String partyId, String message) {
+        Party party = findPartyDetailOrThrow(partyId);
+        return chatService.createPartyAdminSystemMessage(party, adminActorId, message);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminPartyJoinRequestResponse> getPartyJoinRequests(String partyId) {
+        findPartyDetailOrThrow(partyId);
+        List<JoinRequest> joinRequests = joinRequestRepository.findByParty_IdAndStatusOrderByCreatedAtDesc(
+                partyId,
+                JoinRequestStatus.PENDING
+        );
+        Map<String, Member> requesterMap = getMemberMap(joinRequests.stream()
+                .map(JoinRequest::getRequesterId)
+                .toList());
+
+        return joinRequests.stream()
+                .map(joinRequest -> toAdminPartyJoinRequestResponse(
+                        joinRequest,
+                        requesterMap.get(joinRequest.getRequesterId())
+                ))
+                .toList();
+    }
+
     private Pageable resolvePageable(int page, int size) {
         Pageable validated = AdminPageRequestPolicy.of(page, size);
         return PageRequest.of(validated.getPageNumber(), validated.getPageSize(), ADMIN_PARTY_DEFAULT_SORT);
@@ -179,6 +240,11 @@ public class TaxiPartyAdminService {
                 .collect(LinkedHashMap::new, (map, member) -> map.put(member.getId(), member), Map::putAll);
     }
 
+    private Party findPartyDetailOrThrow(String partyId) {
+        return partyRepository.findDetailById(partyId)
+                .orElseThrow(PartyNotFoundException::new);
+    }
+
     private AdminPartySummaryResponse toAdminPartySummaryResponse(Party party, Map<String, Member> leaderMap) {
         Member leader = leaderMap.get(party.getLeaderId());
         return new AdminPartySummaryResponse(
@@ -191,6 +257,19 @@ public class TaxiPartyAdminService {
                 party.getCurrentMembers(),
                 party.getMaxMembers(),
                 party.getCreatedAt()
+        );
+    }
+
+    private AdminPartyJoinRequestResponse toAdminPartyJoinRequestResponse(JoinRequest joinRequest, Member requester) {
+        return new AdminPartyJoinRequestResponse(
+                joinRequest.getId(),
+                joinRequest.getRequesterId(),
+                requester != null ? requester.getNickname() : null,
+                requester != null ? requester.getRealname() : null,
+                requester != null ? requester.getPhotoUrl() : null,
+                requester != null ? requester.getDepartment() : null,
+                requester != null ? requester.getStudentId() : null,
+                joinRequest.getCreatedAt()
         );
     }
 
@@ -252,6 +331,20 @@ public class TaxiPartyAdminService {
 
     private String routeSummary(Party party) {
         return party.getDeparture().getName() + " -> " + party.getDestination().getName();
+    }
+
+    private String resolveDisplayName(Member member) {
+        if (member != null && StringUtils.hasText(member.getNickname())) {
+            return member.getNickname();
+        }
+        return null;
+    }
+
+    private String toMemberLeaveSystemMessage(String displayName) {
+        if (StringUtils.hasText(displayName)) {
+            return displayName + "님이 나갔어요.";
+        }
+        return "멤버가 나갔어요.";
     }
 
     private PartyLocationResponse toLocationResponse(Location location) {

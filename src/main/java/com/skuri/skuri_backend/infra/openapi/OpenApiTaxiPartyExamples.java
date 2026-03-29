@@ -422,6 +422,57 @@ public final class OpenApiTaxiPartyExamples {
             }
             """;
 
+    public static final String SUCCESS_ADMIN_PARTY_MEMBER_REMOVAL = """
+            {
+              "success": true,
+              "data": null
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_PARTY_SYSTEM_MESSAGE = """
+            {
+              "success": true,
+              "data": {
+                "id": "msg-admin-system-1",
+                "chatRoomId": "party:party-20260304-001",
+                "senderId": "admin-uid",
+                "senderName": "관리자",
+                "senderPhotoUrl": null,
+                "type": "SYSTEM",
+                "text": "관리자 안내 메시지",
+                "createdAt": "2026-03-29T12:10:00"
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_PARTY_JOIN_REQUEST_LIST = """
+            {
+              "success": true,
+              "data": [
+                {
+                  "requestId": "request-2",
+                  "memberId": "member-2",
+                  "nickname": "김철수",
+                  "realname": "김철수",
+                  "photoUrl": "https://cdn.skuri.app/profiles/member-2.png",
+                  "department": "컴퓨터공학과",
+                  "studentId": "20230001",
+                  "requestedAt": "2026-03-29T12:05:00"
+                },
+                {
+                  "requestId": "request-1",
+                  "memberId": "member-1",
+                  "nickname": "이영희",
+                  "realname": "이영희",
+                  "photoUrl": null,
+                  "department": "미디어소프트웨어학과",
+                  "studentId": "20230002",
+                  "requestedAt": "2026-03-29T12:00:00"
+                }
+              ]
+            }
+            """;
+
     public static final String SUCCESS_JOIN_REQUEST_CREATE = """
             {
               "success": true,
@@ -681,6 +732,15 @@ public final class OpenApiTaxiPartyExamples {
     public static final String ERROR_CANNOT_KICK_IN_ARRIVED =
             "{\"success\":false,\"message\":\"ARRIVED 상태에서는 멤버를 강퇴할 수 없습니다.\",\"errorCode\":\"CANNOT_KICK_IN_ARRIVED\",\"timestamp\":\"2026-03-04T12:00:00\"}";
 
+    public static final String ERROR_MEMBER_NOT_FOUND =
+            "{\"success\":false,\"message\":\"회원을 찾을 수 없습니다.\",\"errorCode\":\"MEMBER_NOT_FOUND\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+
+    public static final String ERROR_PARTY_MEMBER_NOT_FOUND =
+            "{\"success\":false,\"message\":\"파티 멤버를 찾을 수 없습니다.\",\"errorCode\":\"PARTY_MEMBER_NOT_FOUND\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+
+    public static final String ERROR_PARTY_LEADER_REMOVAL_NOT_ALLOWED =
+            "{\"success\":false,\"message\":\"리더는 관리자 멤버 제거 API로 제거할 수 없습니다.\",\"errorCode\":\"PARTY_LEADER_REMOVAL_NOT_ALLOWED\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+
     public static final String ERROR_LEADER_CANNOT_LEAVE =
             "{\"success\":false,\"message\":\"리더는 파티에서 나갈 수 없습니다.\",\"errorCode\":\"LEADER_CANNOT_LEAVE\",\"timestamp\":\"2026-03-04T12:00:00\"}";
 
@@ -704,6 +764,12 @@ public final class OpenApiTaxiPartyExamples {
 
     public static final String ERROR_VALIDATION_PARTY_UPDATE_REQUIRED_FIELD =
             "{\"success\":false,\"message\":\"departureTime 또는 detail 중 최소 하나는 입력해야 합니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-04T12:00:00\"}";
+
+    public static final String ERROR_VALIDATION_ADMIN_PARTY_SYSTEM_MESSAGE_BLANK =
+            "{\"success\":false,\"message\":\"message: message는 필수입니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-29T12:00:00\"}";
+
+    public static final String ERROR_VALIDATION_ADMIN_PARTY_SYSTEM_MESSAGE_TOO_LONG =
+            "{\"success\":false,\"message\":\"message: message는 500자 이하여야 합니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-29T12:00:00\"}";
 
     public static final String ERROR_FORBIDDEN_ONLY_REQUESTER_CAN_CANCEL_JOIN_REQUEST =
             "{\"success\":false,\"message\":\"요청자 본인만 취소할 수 있습니다.\",\"errorCode\":\"FORBIDDEN\",\"timestamp\":\"2026-03-04T12:00:00\"}";
