@@ -124,6 +124,10 @@ Hooks:
   - 관리자 회원 목록의 이름 컬럼은 `members.realname`을 사용한다.
   - 관리자 회원 목록의 `lastLoginOs`, `currentAppVersion`은 최근 활성 FCM 토큰(`coalesce(last_used_at, created_at)` 최신)의 `fcm_tokens.platform`, `fcm_tokens.app_version`을 함께 사용한다.
   - `POST /v1/members/me/fcm-tokens`의 `appVersion`은 optional이며, 신규 토큰 등록 시 미전송하면 `null`로 저장하고 같은 토큰 재등록 시 `null` 또는 빈 문자열이면 기존 값을 유지한다.
+  - 관리자 대시보드 read-model API는 `/v1/admin/dashboard/summary`, `/v1/admin/dashboard/activity`, `/v1/admin/dashboard/recent-items`로 제공한다.
+  - 관리자 대시보드 집계는 모두 `Asia/Seoul` 기준이며, `summary.newMembersToday`는 `members.joinedAt` 기준 오늘 `00:00 ~ generatedAt`, `activity`는 `7 | 30`일 버킷만 지원한다.
+  - `summary.totalMembers`는 `members` 전체 row 수를 사용한다. soft delete tombstone(`WITHDRAWN`)도 포함하며, ACTIVE 전용 카운트는 이번 read model 범위에 포함하지 않는다.
+  - `recent-items`는 현재 저장된 Inquiry/Report/AppNotice/Party만 source로 사용하고, 게시된 앱 공지(`publishedAt <= now`)만 포함한다. 학교 공지 sync 이력이나 별도 운영 action은 대시보드 계약에 포함하지 않는다.
   - 관리자 상세 응답은 운영 화면 요구에 맞춰 `bankAccount`, `notificationSetting`, `withdrawnAt`를 포함한다.
   - 활동 요약은 ACTIVE 회원만 제공하며, 현재 저장된 post/comment/party/inquiry/report 데이터를 조합한 read-only 관리자 read model이다. 댓글은 삭제되지 않은 comment이면서 부모 post도 삭제되지 않은 경우만 집계한다. 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`을 반환한다.
   - 활동 요약의 count는 `posts/comments/partiesCreated/partiesJoined/inquiries/reportsSubmitted`를 사용하고, recent list는 도메인별 최신 5건으로 유지한다.

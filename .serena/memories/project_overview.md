@@ -70,3 +70,10 @@
 - 허용 전이는 게시글/댓글 모두 `VISIBLE <-> HIDDEN`, `VISIBLE/HIDDEN -> DELETED`이고, `DELETED`는 복구하지 않는다. pin/고정 정책과 신고 연계 뷰는 후속 범위다.
 - public board는 관리자 moderation을 반영한다. `HIDDEN` 게시글은 public 목록/상세/내 게시글/북마크에서 제외되고, `HIDDEN` 댓글은 thread 구조 유지를 위해 placeholder로 마스킹된다.
 - 관리자 write audit은 `admin_audit_logs`에 최소 snapshot만 남긴다. 게시글은 `id/authorId/category/anonymous/hidden/deleted`, 댓글은 `id/postId/authorId/parentId/anonymous/hidden/deleted` 기준으로 기록한다.
+
+
+## Admin Dashboard API 메모
+- 관리자 대시보드 read-model API는 `GET /v1/admin/dashboard/summary`, `GET /v1/admin/dashboard/activity`, `GET /v1/admin/dashboard/recent-items`를 제공한다.
+- 모든 집계와 일자 버킷 기준은 `Asia/Seoul`이다. `summary.newMembersToday`는 `members.joinedAt` 기준 오늘 `00:00 ~ generatedAt`, `activity.days`는 `7 | 30`만 허용한다.
+- `summary.totalMembers`는 `members` 전체 row 기준이다. soft delete tombstone(`WITHDRAWN`)도 포함하며, ACTIVE-only count는 현재 계약에 포함하지 않는다.
+- `recent-items` source는 Inquiry/Report/AppNotice/Party만 사용하고, AppNotice는 `publishedAt <= now`인 게시 공지만 포함한다. 학교 공지 sync 이력이나 운영 action API는 이 read model 범위에 포함하지 않는다.

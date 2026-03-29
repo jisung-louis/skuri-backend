@@ -7,11 +7,19 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, String>, MemberRepositoryCustom {
+
+    long countByIsAdminTrue();
+
+    long countByJoinedAtGreaterThanEqualAndJoinedAtLessThan(
+            LocalDateTime start,
+            LocalDateTime endExclusive
+    );
 
     @Query("""
             select m

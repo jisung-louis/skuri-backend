@@ -16,6 +16,13 @@ import java.util.List;
 
 public interface PartyRepository extends JpaRepository<Party, String> {
 
+    long countByStatus(PartyStatus status);
+
+    long countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            LocalDateTime start,
+            LocalDateTime endExclusive
+    );
+
     @Query("""
             select p from Party p
             where (:status is null or p.status = :status)

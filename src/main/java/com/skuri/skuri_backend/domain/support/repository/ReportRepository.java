@@ -9,9 +9,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+
 public interface ReportRepository extends JpaRepository<Report, String> {
 
     boolean existsByReporterIdAndTargetTypeAndTargetId(String reporterId, ReportTargetType targetType, String targetId);
+
+    long countByStatus(ReportStatus status);
+
+    long countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            LocalDateTime start,
+            LocalDateTime endExclusive
+    );
 
     Page<Report> findByReporterId(String reporterId, Pageable pageable);
 

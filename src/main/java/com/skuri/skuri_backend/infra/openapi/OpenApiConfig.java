@@ -51,6 +51,14 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi dashboardApi() {
+        return GroupedOpenApi.builder()
+                .group("dashboard")
+                .pathsToMatch("/v1/admin/dashboard/**")
+                .build();
+    }
+
+    @Bean
     public GroupedOpenApi supportApi() {
         return GroupedOpenApi.builder()
                 .group("support")

@@ -8,6 +8,9 @@ import com.skuri.skuri_backend.domain.academic.dto.response.AdminBulkCoursesResp
 import com.skuri.skuri_backend.domain.academic.entity.AcademicScheduleType;
 import com.skuri.skuri_backend.domain.academic.service.AcademicScheduleService;
 import com.skuri.skuri_backend.domain.academic.service.CourseService;
+import com.skuri.skuri_backend.domain.admin.dashboard.controller.AdminDashboardController;
+import com.skuri.skuri_backend.domain.admin.dashboard.dto.response.AdminDashboardSummaryResponse;
+import com.skuri.skuri_backend.domain.admin.dashboard.service.AdminDashboardService;
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeAdminController;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeCreateResponse;
 import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
@@ -102,6 +105,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = {
         AcademicScheduleAdminController.class,
         CourseAdminController.class,
+        AdminDashboardController.class,
         ChatAdminRoomController.class,
         BoardAdminController.class,
         NoticeAdminController.class,
@@ -131,6 +135,9 @@ class AdminApiGuardIntegrationTest {
 
     @MockitoBean
     private CourseService courseService;
+
+    @MockitoBean
+    private AdminDashboardService adminDashboardService;
 
     @MockitoBean
     private ChatAdminService chatAdminService;
@@ -205,6 +212,22 @@ class AdminApiGuardIntegrationTest {
 
     private Stream<org.junit.jupiter.params.provider.Arguments> adminEndpoints() {
         return Stream.of(
+                endpoint(
+                        "dashboard summary",
+                        () -> get("/v1/admin/dashboard/summary"),
+                        () -> when(adminDashboardService.getSummary())
+                                .thenReturn(new AdminDashboardSummaryResponse(
+                                        12,
+                                        4831,
+                                        4,
+                                        17,
+                                        9,
+                                        3,
+                                        LocalDateTime.of(2026, 3, 29, 18, 0)
+                                )),
+                        status().isOk(),
+                        jsonPath("$.data.totalMembers").value(4831)
+                ),
                 endpoint(
                         "academic schedule create",
                         () -> post("/v1/admin/academic-schedules")

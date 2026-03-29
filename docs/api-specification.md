@@ -6095,7 +6095,166 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
-### 12.13 에러 코드
+### 12.13 관리자 대시보드
+
+#### GET /v1/admin/dashboard/summary
+대시보드 KPI 요약 조회
+
+- 목적: `/dashboard` 상단 KPI 카드 일괄 조회
+- read-only 관리자 조회 API이며, 상태 변경이나 보정 로직을 포함하지 않는다.
+- 모든 집계와 `generatedAt`은 `Asia/Seoul` 기준으로 계산한다.
+- 집계 정의:
+  - `newMembersToday`: `members.joinedAt` 기준 오늘 `00:00`부터 응답 생성 시각까지 가입 회원 수
+  - `totalMembers`: `members` 전체 row 수 (`ACTIVE`, `WITHDRAWN` tombstone row 포함)
+  - `adminCount`: `members.isAdmin = true` 회원 수
+  - `openPartyCount`: 현재 `PartyStatus.OPEN` 파티 수
+  - `pendingInquiryCount`: 현재 `InquiryStatus.PENDING` 문의 수
+  - `pendingReportCount`: 현재 `ReportStatus.PENDING` 신고 수
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "newMembersToday": 12,
+    "totalMembers": 4831,
+    "adminCount": 4,
+    "openPartyCount": 17,
+    "pendingInquiryCount": 9,
+    "pendingReportCount": 3,
+    "generatedAt": "2026-03-29T18:00:00"
+  }
+}
+```
+
+#### GET /v1/admin/dashboard/activity
+대시보드 활동 추이 조회
+
+- 목적: `/dashboard` 최근 활동 그래프용 read model 조회
+- `days`는 `7`, `30`만 허용하며 기본값은 `7`이다. 다른 값은 `422 VALIDATION_ERROR`를 반환한다.
+- 일자 버킷은 `Asia/Seoul` 기준이며, 응답 `series`는 오래된 날짜부터 오늘까지 오름차순으로 정렬한다.
+- 오늘 버킷은 `00:00 ~ 응답 생성 시각`, 과거 날짜 버킷은 각 일자의 `00:00 ~ 24:00` 전체 구간을 사용한다.
+- 지표 정의:
+  - `newMembers`: `members.joinedAt` 기준 해당 일 가입 회원 수
+  - `inquiriesCreated`: `inquiries.createdAt` 기준 해당 일 생성 문의 수
+  - `reportsCreated`: `reports.createdAt` 기준 해당 일 생성 신고 수
+  - `partiesCreated`: `parties.createdAt` 기준 해당 일 생성 파티 수
+
+**Query Parameters:**
+
+| 이름 | 타입 | 기본값 | 설명 |
+|---|---|---|---|
+| `days` | int | `7` | 조회 일수 (`7`, `30`만 허용) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "days": 7,
+    "timezone": "Asia/Seoul",
+    "series": [
+      {
+        "date": "2026-03-23",
+        "newMembers": 4,
+        "inquiriesCreated": 2,
+        "reportsCreated": 1,
+        "partiesCreated": 6
+      },
+      {
+        "date": "2026-03-24",
+        "newMembers": 7,
+        "inquiriesCreated": 1,
+        "reportsCreated": 0,
+        "partiesCreated": 3
+      }
+    ]
+  }
+}
+```
+
+**Response (422 Unprocessable Entity - invalid days):**
+```json
+{
+  "success": false,
+  "message": "days는 7 또는 30만 허용합니다.",
+  "errorCode": "VALIDATION_ERROR",
+  "timestamp": "2026-03-29T18:00:00"
+}
+```
+
+#### GET /v1/admin/dashboard/recent-items
+대시보드 최근 운영 항목 조회
+
+- 목적: `/dashboard` 하단 최근 운영 항목 통합 피드 조회
+- `limit` 기본값은 `10`, 허용 범위는 `1..30`이다. 범위를 벗어나면 `422 VALIDATION_ERROR`를 반환한다.
+- source는 `Inquiry`, `Report`, `AppNotice`, `Party` 현재 저장 데이터만 사용한다.
+- `AppNotice`는 `publishedAt <= 응답 생성 시각`인 게시 공지만 포함한다. 학교 공지 sync 이력/academic notice 운영 이력은 이번 계약에 포함하지 않는다.
+- 각 source에서 최신 항목을 읽은 뒤 `createdAt DESC`로 다시 병합 정렬하고 최종 `limit`을 적용한다.
+- 아이템 구성 규칙:
+  - `INQUIRY`: `title = subject`, `subtitle = "{status} · {userId}"`
+  - `REPORT`: `title = targetType 라벨(게시글/댓글/회원/채팅 메시지/채팅방/택시 파티 신고)`, `subtitle = "{status} · {targetType}"`
+  - `APP_NOTICE`: `title = title`, `subtitle = priority`, `status = "PUBLISHED"`
+  - `PARTY`: `title = "{departure.name} -> {destination.name}"`, `subtitle = "{status} · {leaderId}"`
+
+**Query Parameters:**
+
+| 이름 | 타입 | 기본값 | 설명 |
+|---|---|---|---|
+| `limit` | int | `10` | 통합 피드 최대 항목 수 (`1..30`) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "type": "INQUIRY",
+      "id": "inquiry-1",
+      "title": "계정 문의",
+      "subtitle": "PENDING · member-1",
+      "status": "PENDING",
+      "createdAt": "2026-03-29T17:00:00"
+    },
+    {
+      "type": "REPORT",
+      "id": "report-1",
+      "title": "게시글 신고",
+      "subtitle": "PENDING · POST",
+      "status": "PENDING",
+      "createdAt": "2026-03-29T16:50:00"
+    },
+    {
+      "type": "APP_NOTICE",
+      "id": "notice-1",
+      "title": "긴급 점검 안내",
+      "subtitle": "HIGH",
+      "status": "PUBLISHED",
+      "createdAt": "2026-03-29T16:30:00"
+    },
+    {
+      "type": "PARTY",
+      "id": "party-1",
+      "title": "성결대학교 -> 안양역",
+      "subtitle": "OPEN · leader-1",
+      "status": "OPEN",
+      "createdAt": "2026-03-29T16:10:00"
+    }
+  ]
+}
+```
+
+**Response (422 Unprocessable Entity - invalid limit):**
+```json
+{
+  "success": false,
+  "message": "limit는 1 이상 30 이하여야 합니다.",
+  "errorCode": "VALIDATION_ERROR",
+  "timestamp": "2026-03-29T18:00:00"
+}
+```
+
+### 12.14 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
 |----------|------|------|
@@ -6114,6 +6273,9 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 ---
 
 > 변경 이력
+> - 2026-03-29: Admin Dashboard API 계약 추가
+>   - `GET /v1/admin/dashboard/summary`, `GET /v1/admin/dashboard/activity`, `GET /v1/admin/dashboard/recent-items`를 추가
+>   - `Asia/Seoul` 일자 버킷, `totalMembers` 전체 row 기준, 게시된 앱 공지 source만 recent feed에 포함하는 규칙을 명시
 > - 2026-03-29: TaxiParty Admin P1 계약 추가
 >   - `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`를 추가
 >   - 관리자 상태 변경 액션을 `CLOSE | REOPEN | CANCEL | END`로 고정하고, 기존 state machine만 재사용하도록 명시
@@ -6157,6 +6319,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Chat 계약 동기화 — `lastMessage.createdAt`/`accountData` 필드로 통일, 비공개 채팅방 접근 정책(REST/WS) 및 STOMP 에러 포맷(`/user/queue/errors`) 명시
 > - 2026-03-05: Chat 명세 보완 — 채팅방 요약 `lastMessage.senderName` 예시 추가, STOMP 메시지 `NON_NULL` 직렬화 정책 명시
 > - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, source of truth를 `members.photo_url`로 고정하고 `null` 직렬화 정책을 명시
+> - 2026-03-29: Admin Dashboard API 추가 — 관리자 대시보드 KPI/활동 추이/최근 운영 항목 read-model 계약과 `Asia/Seoul` 일자 버킷, 게시 공지 source, `totalMembers` 전체 row 집계 기준을 `/v3/api-docs` 기준으로 동기화
 > - 2026-03-29: Admin Member Activity API 추가 — `GET /v1/admin/members/{memberId}/activity`를 ACTIVE 회원 + 현재 저장 데이터 기준 read model로 추가하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리
 > - 2026-03-29: Admin Member API review fix — `PATCH /v1/admin/members/{memberId}/admin-role`에 self role change 금지(`400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`)를 추가하고, admin-role 감사 로그 snapshot을 최소 필드만 저장하도록 조정. 관리자 상세 응답의 `bankAccount`/`notificationSetting` 계약은 유지
 > - 2026-03-29: Admin Member List contract 확장 — `GET /v1/admin/members`에 `sortBy/sortDirection` 기반 컬럼 정렬과 `lastLoginOs`(`fcm_tokens.platform`)를 추가하고, 이름 컬럼은 `realname` 기준으로 고정

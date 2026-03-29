@@ -81,3 +81,13 @@
 - `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiBoardExamples.java`, `OpenApiBoardSchemas.java`, `OpenApiConfig.java`: board admin API example/wrapper schema/group 반영
 - `src/test/java/com/skuri/skuri_backend/domain/board/controller/BoardAdminControllerContractTest.java`, `service/BoardAdminServiceTest.java`: 관리자 board Contract/Service 테스트
 - `src/test/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditIntegrationTest.java`, `infra/auth/AdminApiGuardIntegrationTest.java`, `infra/openapi/AdminOpenApiConventionTest.java`, `infra/openapi/OpenApiResponseExamplesConventionTest.java`: admin board guard/audit/OpenAPI 회귀 검증
+
+
+## Admin Dashboard API 관련 파일
+- `src/main/java/com/skuri/skuri_backend/domain/admin/dashboard/controller/AdminDashboardController.java`: 관리자 대시보드 summary/activity/recent-items API와 OpenAPI 어노테이션
+- `src/main/java/com/skuri/skuri_backend/domain/admin/dashboard/service/AdminDashboardService.java`: KPI 집계, Seoul 버킷 activity 시계열, recent-items 병합 정렬 read model
+- `src/main/java/com/skuri/skuri_backend/domain/admin/dashboard/dto/response/AdminDashboardSummaryResponse.java`, `AdminDashboardActivityResponse.java`, `AdminDashboardRecentItemResponse.java`, `AdminDashboardRecentItemType.java`: 관리자 대시보드 응답 DTO
+- `src/main/java/com/skuri/skuri_backend/domain/app/repository/AppNoticeRepository.java`, `domain/member/repository/MemberRepository.java`, `domain/support/repository/InquiryRepository.java`, `ReportRepository.java`, `domain/taxiparty/repository/PartyRepository.java`: dashboard 집계/최근 항목 조회용 count/query 메서드
+- `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiDashboardExamples.java`, `OpenApiDashboardSchemas.java`, `OpenApiConfig.java`: dashboard OpenAPI schema/example/group 반영
+- `src/test/java/com/skuri/skuri_backend/domain/admin/dashboard/controller/AdminDashboardControllerContractTest.java`, `service/AdminDashboardServiceTest.java`: dashboard Contract/Service 테스트
+- `src/test/java/com/skuri/skuri_backend/infra/auth/AdminApiGuardIntegrationTest.java`, `infra/openapi/AdminOpenApiConventionTest.java`, `OpenApiResponseExamplesConventionTest.java`: dashboard admin guard/OpenAPI 회귀 확장
