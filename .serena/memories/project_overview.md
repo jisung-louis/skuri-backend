@@ -62,3 +62,11 @@
 - 관리자 시스템 메시지는 party chat room이 있을 때만 생성한다. 내부적으로 `SYSTEM` + `ADMIN_SYSTEM` source를 사용해 leader/member 사칭을 피하고, 응답/표시 기준 `senderName`은 `관리자`, `senderPhotoUrl`은 `null`이다.
 - 관리자 join request 조회는 현재 `PENDING`만 `requestedAt(createdAt) desc` 최신순으로 반환한다. 승인/거절 액션은 아직 제공하지 않는다.
 - 관리자 write audit(status 변경, 멤버 제거, 시스템 메시지)는 `admin_audit_logs`에 최소 snapshot만 남긴다. 파티 상태 변경은 `id/status/endReason/settlementStatus/endedAt`, 멤버 제거는 `partyId/memberId/isLeader/joinedAt`, 시스템 메시지는 `id/chatRoomId/senderId/senderName/type/source/text/createdAt` 기준으로 기록한다.
+
+## Admin Board API 메모
+- `board` 도메인은 관리자 백오피스용 moderation API를 제공한다: `GET /v1/admin/posts`, `GET /v1/admin/posts/{postId}`, `PATCH /v1/admin/posts/{postId}/moderation`, `GET /v1/admin/comments`, `PATCH /v1/admin/comments/{commentId}/moderation`.
+- 관리자 목록은 게시글/댓글 모두 `page/size`와 검색 필터를 지원하고 기본 정렬은 `createdAt desc`다. 게시글 필터는 `query/category/moderationStatus/authorId`, 댓글 필터는 `postId/query/moderationStatus/authorId`를 사용한다.
+- moderation 상태는 `VISIBLE`, `HIDDEN`, `DELETED`만 지원한다. `HIDDEN`은 `isHidden=true`, `DELETED`는 기존 soft delete를 재사용한다.
+- 허용 전이는 게시글/댓글 모두 `VISIBLE <-> HIDDEN`, `VISIBLE/HIDDEN -> DELETED`이고, `DELETED`는 복구하지 않는다. pin/고정 정책과 신고 연계 뷰는 후속 범위다.
+- public board는 관리자 moderation을 반영한다. `HIDDEN` 게시글은 public 목록/상세/내 게시글/북마크에서 제외되고, `HIDDEN` 댓글은 thread 구조 유지를 위해 placeholder로 마스킹된다.
+- 관리자 write audit은 `admin_audit_logs`에 최소 snapshot만 남긴다. 게시글은 `id/authorId/category/anonymous/hidden/deleted`, 댓글은 `id/postId/authorId/parentId/anonymous/hidden/deleted` 기준으로 기록한다.

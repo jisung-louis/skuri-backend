@@ -5,6 +5,11 @@ import com.skuri.skuri_backend.domain.academic.entity.Course;
 import com.skuri.skuri_backend.domain.academic.repository.AcademicScheduleRepository;
 import com.skuri.skuri_backend.domain.academic.repository.CourseRepository;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBanner;
+import com.skuri.skuri_backend.domain.board.entity.Comment;
+import com.skuri.skuri_backend.domain.board.entity.Post;
+import com.skuri.skuri_backend.domain.board.entity.PostCategory;
+import com.skuri.skuri_backend.domain.board.repository.CommentRepository;
+import com.skuri.skuri_backend.domain.board.repository.PostRepository;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionTarget;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionType;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBannerPaletteKey;
@@ -81,6 +86,12 @@ class AdminAuditIntegrationTest {
     private CampusBannerRepository campusBannerRepository;
 
     @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
+
+    @Autowired
     private AcademicScheduleRepository academicScheduleRepository;
 
     @Autowired
@@ -113,6 +124,8 @@ class AdminAuditIntegrationTest {
         inquiryRepository.deleteAll();
         academicScheduleRepository.deleteAll();
         campusBannerRepository.deleteAll();
+        commentRepository.deleteAll();
+        postRepository.deleteAll();
         memberRepository.deleteAll();
         reset(adminAuditSnapshotFactory);
     }
@@ -312,6 +325,95 @@ class AdminAuditIntegrationTest {
         assertThat(auditLog.getDiffAfter().get("senderName").asText()).isEqualTo("관리자");
         assertThat(auditLog.getDiffAfter().get("source").asText()).isEqualTo("ADMIN_SYSTEM");
         assertThat(auditLog.getDiffAfter().get("text").asText()).isEqualTo("관리자 안내 메시지");
+    }
+
+    @Test
+    void 게시글moderation변경_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        saveMember("member-1", false);
+        Post post = postRepository.saveAndFlush(Post.create(
+                "관리 대상 게시글",
+                "운영 검토가 필요한 본문",
+                "member-1",
+                "스쿠리유저",
+                null,
+                false,
+                PostCategory.GENERAL
+        ));
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        patch("/v1/admin/posts/{postId}/moderation", post.getId())
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "status": "HIDDEN"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.POST_MODERATION_UPDATED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.POST);
+        assertThat(auditLog.getTargetId()).isEqualTo(post.getId());
+        assertThat(auditLog.getDiffBefore().get("hidden").asBoolean()).isFalse();
+        assertThat(auditLog.getDiffBefore().get("deleted").asBoolean()).isFalse();
+        assertThat(auditLog.getDiffAfter().get("hidden").asBoolean()).isTrue();
+        assertThat(auditLog.getDiffAfter().get("deleted").asBoolean()).isFalse();
+        assertThat(auditLog.getDiffAfter().path("content").isMissingNode()).isTrue();
+    }
+
+    @Test
+    void 댓글moderation변경_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        saveMember("member-1", false);
+        Post post = postRepository.saveAndFlush(Post.create(
+                "관리 대상 게시글",
+                "운영 검토가 필요한 본문",
+                "member-1",
+                "스쿠리유저",
+                null,
+                false,
+                PostCategory.GENERAL
+        ));
+        Comment comment = commentRepository.saveAndFlush(Comment.create(
+                post,
+                "문제되는 댓글",
+                "member-1",
+                "스쿠리유저",
+                null,
+                false,
+                null,
+                null,
+                null
+        ));
+        ReflectionTestUtils.setField(post, "commentCount", 1);
+        postRepository.saveAndFlush(post);
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        patch("/v1/admin/comments/{commentId}/moderation", comment.getId())
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "status": "DELETED"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.COMMENT_MODERATION_UPDATED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.COMMENT);
+        assertThat(auditLog.getTargetId()).isEqualTo(comment.getId());
+        assertThat(auditLog.getDiffBefore().get("deleted").asBoolean()).isFalse();
+        assertThat(auditLog.getDiffBefore().get("hidden").asBoolean()).isFalse();
+        assertThat(auditLog.getDiffAfter().get("deleted").asBoolean()).isTrue();
+        assertThat(auditLog.getDiffAfter().get("postId").asText()).isEqualTo(post.getId());
+        assertThat(auditLog.getDiffAfter().path("content").isMissingNode()).isTrue();
     }
 
     @Test

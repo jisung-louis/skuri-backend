@@ -385,12 +385,12 @@ Hooks:
     - id, title, content, authorId, authorName, authorProfileImage
     - isAnonymous, anonId, category
     - viewCount, likeCount, commentCount, bookmarkCount
-    - isPinned, isDeleted, images[], createdAt, updatedAt
+    - isPinned, isHidden, isDeleted, images[], createdAt, updatedAt
   - Comment
     - id, postId, content, authorId, authorName, authorProfileImage
     - isAnonymous, anonId (= "{postId}:{userId}", 글 단위 익명 식별자)
     - anonymousOrder (서버 계산, 아래 규칙 참조)
-    - parentId (self-reference), likeCount, isDeleted
+    - parentId (self-reference), likeCount, isHidden, isDeleted
     - depth 제한 없음 (무제한 self-reference)
     - 조회 응답은 flat list + `parentId` + `depth` + `likeCount` + `isLiked`
     - 부모 삭제 정책(B): 부모는 placeholder("삭제된 댓글입니다")로 soft delete, 자식은 유지
@@ -429,6 +429,23 @@ Hooks:
   - 게시글/댓글 본문은 보존
   - `authorId`, `authorName`, `authorProfileImage`는 탈퇴 사용자 익명화 값으로 치환
   - 탈퇴 회원의 좋아요/북마크 기록은 삭제하고 `likeCount`, `bookmarkCount`를 보정
+
+관리자 moderation 정책:
+  - 관리자 전용 API:
+    - `GET /v1/admin/posts`
+    - `GET /v1/admin/posts/{postId}`
+    - `PATCH /v1/admin/posts/{postId}/moderation`
+    - `GET /v1/admin/comments`
+    - `PATCH /v1/admin/comments/{commentId}/moderation`
+  - moderation 상태는 `VISIBLE`, `HIDDEN`, `DELETED`
+  - 기존 soft delete를 유지하고 `isHidden` visibility 필드만 최소 확장해 상태를 표현한다.
+    - `VISIBLE`: `isHidden=false`, `isDeleted=false`
+    - `HIDDEN`: `isHidden=true`, `isDeleted=false`
+    - `DELETED`: 기존 soft delete (`isDeleted=true`)
+  - 게시글 public 조회는 `HIDDEN`, `DELETED`를 모두 제외한다.
+  - 댓글 public 조회는 `DELETED`와 동일하게 thread 구조를 유지해야 하므로, `HIDDEN` 댓글도 placeholder로 마스킹한다.
+  - `commentCount`는 public active comment 기준이므로 `VISIBLE -> HIDDEN/DELETED` 시 감소하고 `HIDDEN -> VISIBLE` 시 증가한다.
+  - `DELETED`는 복구하지 않고, `HIDDEN <-> VISIBLE`만 허용한다. 같은 상태 재요청이나 `DELETED -> *`는 `409`로 차단한다.
 ```
 
 ### 3.5 Notice (공지사항)

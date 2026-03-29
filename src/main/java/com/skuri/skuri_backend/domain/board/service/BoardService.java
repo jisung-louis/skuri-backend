@@ -613,10 +613,10 @@ public class BoardService {
             int depth,
             boolean isLiked
     ) {
-        boolean deleted = comment.isDeleted();
+        boolean masked = comment.isDeleted() || comment.isHidden();
         AuthorView authorView = resolveAuthorView(
                 comment.isAnonymous(),
-                deleted,
+                masked,
                 comment.getAuthorId(),
                 comment.getAuthorName(),
                 comment.getAuthorProfileImage(),
@@ -627,17 +627,17 @@ public class BoardService {
                 comment.getId(),
                 comment.hasParent() ? comment.getParent().getId() : null,
                 depth,
-                comment.getContent(),
+                masked && comment.isHidden() ? Comment.HIDDEN_PLACEHOLDER : comment.getContent(),
                 authorView.authorId,
                 authorView.authorName,
                 authorView.authorProfileImage,
-                !deleted && comment.isAnonymous(),
-                deleted ? null : comment.getAnonymousOrder(),
-                !deleted && comment.isAuthor(memberId),
-                !deleted && comment.isAuthor(postAuthorId),
+                !masked && comment.isAnonymous(),
+                masked ? null : comment.getAnonymousOrder(),
+                !masked && comment.isAuthor(memberId),
+                !masked && comment.isAuthor(postAuthorId),
                 comment.getLikeCount(),
-                !deleted && isLiked,
-                deleted,
+                !masked && isLiked,
+                masked,
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
         );
@@ -696,7 +696,7 @@ public class BoardService {
     }
 
     private Post findActivePostOrThrow(String postId) {
-        return postRepository.findByIdAndDeletedFalse(postId)
+        return postRepository.findByIdAndDeletedFalseAndHiddenFalse(postId)
                 .orElseThrow(PostNotFoundException::new);
     }
 

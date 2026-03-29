@@ -205,6 +205,7 @@ erDiagram
         int comment_count "DEFAULT 0"
         int bookmark_count "DEFAULT 0"
         boolean is_pinned "DEFAULT false"
+        boolean is_hidden "DEFAULT false"
         boolean is_deleted "DEFAULT false"
         datetime last_comment_at
         datetime created_at
@@ -235,6 +236,7 @@ erDiagram
         int anonymous_order "익명1, 익명2..."
         varchar(36) parent_id FK "무제한 self-reference"
         int like_count "DEFAULT 0"
+        boolean is_hidden "DEFAULT false"
         boolean is_deleted "DEFAULT false"
         datetime created_at
         datetime updated_at

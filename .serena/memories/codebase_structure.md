@@ -70,3 +70,14 @@
 - `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiTaxiPartySchemas.java`, `OpenApiTaxiPartyExamples.java`, `OpenApiConfig.java`: 관리자 파티 follow-up API schema/example/group 반영
 - `src/test/java/com/skuri/skuri_backend/domain/taxiparty/controller/PartyAdminControllerContractTest.java`, `service/TaxiPartyAdminServiceTest.java`: 관리자 파티 follow-up Contract/Service 테스트
 - `src/test/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditIntegrationTest.java`, `infra/auth/AdminApiGuardIntegrationTest.java`, `infra/openapi/AdminOpenApiConventionTest.java`, `infra/openapi/OpenApiResponseExamplesConventionTest.java`, `infra/openapi/OpenApiSuccessSchemaCoverageIntegrationTest.java`: admin guard/audit/OpenAPI 회귀 검증 확장
+
+## Admin Board API 관련 파일
+- `src/main/java/com/skuri/skuri_backend/domain/board/controller/BoardAdminController.java`: 관리자 게시글/댓글 목록·상세·moderation API와 OpenAPI, `@AdminApiAccess`, `@AdminAudit` 선언
+- `src/main/java/com/skuri/skuri_backend/domain/board/service/BoardAdminService.java`: 관리자 검색/상세/게시글·댓글 moderation 전이 orchestration, 기본 정렬 `createdAt DESC`
+- `src/main/java/com/skuri/skuri_backend/domain/board/constant/BoardModerationStatus.java`, `dto/request/UpdateBoardModerationRequest.java`, `dto/response/AdminPostSummaryResponse.java`, `AdminPostDetailResponse.java`, `AdminCommentSummaryResponse.java`, `BoardModerationResponse.java`: 관리자 moderation enum/요청/응답 DTO
+- `src/main/java/com/skuri/skuri_backend/domain/board/repository/PostRepository.java`, `CommentRepository.java`, `AdminPostSummaryProjection.java`, `AdminCommentSummaryProjection.java`: 관리자 목록 query, public hidden filter, admin update lock/read model 지원
+- `src/main/java/com/skuri/skuri_backend/domain/board/entity/Post.java`, `Comment.java`: `isHidden` 플래그, 관리자 hide/unhide, soft delete 재사용 정책
+- `src/main/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditActions.java`, `AdminAuditTargetTypes.java`, `AdminAuditSnapshotFactory.java`: 게시글/댓글 moderation 감사 로그 action/target/minimal snapshot 지원
+- `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiBoardExamples.java`, `OpenApiBoardSchemas.java`, `OpenApiConfig.java`: board admin API example/wrapper schema/group 반영
+- `src/test/java/com/skuri/skuri_backend/domain/board/controller/BoardAdminControllerContractTest.java`, `service/BoardAdminServiceTest.java`: 관리자 board Contract/Service 테스트
+- `src/test/java/com/skuri/skuri_backend/infra/admin/audit/AdminAuditIntegrationTest.java`, `infra/auth/AdminApiGuardIntegrationTest.java`, `infra/openapi/AdminOpenApiConventionTest.java`, `infra/openapi/OpenApiResponseExamplesConventionTest.java`: admin board guard/audit/OpenAPI 회귀 검증

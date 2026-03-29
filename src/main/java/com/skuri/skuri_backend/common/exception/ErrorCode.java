@@ -90,6 +90,16 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT_NOT_FOUND", "댓글을 찾을 수 없습니다."),
     NOT_POST_AUTHOR(HttpStatus.FORBIDDEN, "NOT_POST_AUTHOR", "게시글 작성자만 수정/삭제할 수 있습니다."),
     NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "NOT_COMMENT_AUTHOR", "댓글 작성자만 수정/삭제할 수 있습니다."),
+    INVALID_POST_MODERATION_STATUS_TRANSITION(
+            HttpStatus.CONFLICT,
+            "INVALID_POST_MODERATION_STATUS_TRANSITION",
+            "허용되지 않는 게시글 moderation 상태 전이입니다."
+    ),
+    INVALID_COMMENT_MODERATION_STATUS_TRANSITION(
+            HttpStatus.CONFLICT,
+            "INVALID_COMMENT_MODERATION_STATUS_TRANSITION",
+            "허용되지 않는 댓글 moderation 상태 전이입니다."
+    ),
 
     // 공지(Notice/AppNotice) 도메인 에러.
     // 공지, 앱 공지, 공지 댓글 등 공지성 콘텐츠 관리에서 발생하는 오류를 정의한다.

@@ -87,3 +87,25 @@ curl http://127.0.0.1:18080/v3/api-docs
 curl http://127.0.0.1:18080/swagger-ui/index.html
 curl http://127.0.0.1:18080/scalar
 ```
+
+## Admin Board API 작업 검증
+```bash
+./gradlew test --tests "com.skuri.skuri_backend.domain.board.controller.BoardAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.board.service.BoardAdminServiceTest" --tests "com.skuri.skuri_backend.infra.admin.audit.AdminAuditIntegrationTest" --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest"
+./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
+./gradlew build
+```
+
+## Admin Board 수동 검증
+```bash
+source .env
+firebase emulators:start --only auth --project "$FIREBASE_PROJECT_ID"
+DB_URL=$DB_URL DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD FIREBASE_AUTH_USE_EMULATOR=true FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS_PATH= GOOGLE_APPLICATION_CREDENTIALS= SPRING_PROFILES_ACTIVE=local-emulator SERVER_PORT=18082 ./gradlew bootRun
+curl "http://127.0.0.1:18082/v1/admin/posts?page=0&size=20" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl "http://127.0.0.1:18082/v1/admin/posts/<POST_ID>" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl -X PATCH "http://127.0.0.1:18082/v1/admin/posts/<POST_ID>/moderation" -H "Authorization: Bearer <ADMIN_ID_TOKEN>" -H 'Content-Type: application/json' -d '{"status":"HIDDEN"}'
+curl "http://127.0.0.1:18082/v1/admin/comments?page=0&size=20" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl -X PATCH "http://127.0.0.1:18082/v1/admin/comments/<COMMENT_ID>/moderation" -H "Authorization: Bearer <ADMIN_ID_TOKEN>" -H 'Content-Type: application/json' -d '{"status":"DELETED"}'
+curl http://127.0.0.1:18082/v3/api-docs
+curl http://127.0.0.1:18082/swagger-ui/index.html
+curl http://127.0.0.1:18082/scalar
+```

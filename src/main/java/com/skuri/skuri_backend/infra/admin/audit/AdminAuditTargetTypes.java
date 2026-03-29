@@ -5,6 +5,8 @@ public final class AdminAuditTargetTypes {
     public static final String ACADEMIC_SCHEDULE = "ACADEMIC_SCHEDULE";
     public static final String COURSE_SEMESTER = "COURSE_SEMESTER";
     public static final String CHAT_ROOM = "CHAT_ROOM";
+    public static final String POST = "POST";
+    public static final String COMMENT = "COMMENT";
     public static final String NOTICE_SYNC = "NOTICE_SYNC";
     public static final String APP_NOTICE = "APP_NOTICE";
     public static final String CAMPUS_BANNER = "CAMPUS_BANNER";
