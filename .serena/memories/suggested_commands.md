@@ -138,3 +138,22 @@ curl http://127.0.0.1:18083/v3/api-docs
 curl http://127.0.0.1:18083/swagger-ui/index.html
 curl http://127.0.0.1:18083/scalar
 ```
+
+
+## Admin AcademicSchedule Bulk Sync 작업 검증
+```bash
+./gradlew test --tests "com.skuri.skuri_backend.domain.academic.controller.AcademicScheduleAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.academic.service.AcademicScheduleServiceDataJpaTest" --tests "com.skuri.skuri_backend.infra.auth.AdminApiGuardIntegrationTest" --tests "com.skuri.skuri_backend.infra.admin.audit.AdminAuditIntegrationTest"
+./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
+./gradlew build
+```
+
+## Admin AcademicSchedule Bulk Sync 수동 검증
+```bash
+source .env
+firebase emulators:start --only auth --project "$FIREBASE_PROJECT_ID"
+DB_URL=$DB_URL DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD FIREBASE_AUTH_USE_EMULATOR=true FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS_PATH= GOOGLE_APPLICATION_CREDENTIALS= SPRING_PROFILES_ACTIVE=local-emulator SERVER_PORT=18081 ./gradlew bootRun
+curl -X PUT "http://127.0.0.1:18081/v1/admin/academic-schedules/bulk" -H "Authorization: Bearer <ADMIN_ID_TOKEN>" -H 'Content-Type: application/json' --data @bulk-academic-schedules.json
+curl http://127.0.0.1:18081/v3/api-docs
+curl http://127.0.0.1:18081/swagger-ui/index.html
+curl http://127.0.0.1:18081/scalar
+```

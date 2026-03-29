@@ -235,6 +235,19 @@ public final class OpenApiAcademicExamples {
             }
             """;
 
+    public static final String SUCCESS_ADMIN_ACADEMIC_SCHEDULE_BULK_SYNC = """
+            {
+              "success": true,
+              "data": {
+                "scopeStartDate": "2026-03-01",
+                "scopeEndDate": "2027-02-28",
+                "created": 12,
+                "updated": 37,
+                "deleted": 5
+              }
+            }
+            """;
+
     public static final String SUCCESS_ADMIN_COURSE_BULK = """
             {
               "success": true,
@@ -276,4 +289,13 @@ public final class OpenApiAcademicExamples {
 
     public static final String ERROR_ACADEMIC_SCHEDULE_NOT_FOUND =
             "{\"success\":false,\"message\":\"학사 일정을 찾을 수 없습니다.\",\"errorCode\":\"ACADEMIC_SCHEDULE_NOT_FOUND\",\"timestamp\":\"2026-03-07T14:00:00\"}";
+
+    public static final String ERROR_ADMIN_ACADEMIC_SCHEDULE_BULK_SCOPE_INVALID =
+            "{\"success\":false,\"message\":\"scopeStartDate는 scopeEndDate보다 늦을 수 없습니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-29T10:00:00\"}";
+
+    public static final String ERROR_ADMIN_ACADEMIC_SCHEDULE_BULK_DUPLICATE =
+            "{\"success\":false,\"message\":\"같은 title/startDate/endDate/type 조합이 요청에 중복되었습니다: 입학식 / 개강|2026-03-03|2026-03-03|SINGLE\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-29T10:00:00\"}";
+
+    public static final String ERROR_ADMIN_ACADEMIC_SCHEDULE_BULK_OUT_OF_SCOPE =
+            "{\"success\":false,\"message\":\"모든 일정은 scopeStartDate와 scopeEndDate 범위 안에 있어야 합니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-03-29T10:00:00\"}";
 }

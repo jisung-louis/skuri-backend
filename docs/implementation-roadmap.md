@@ -573,6 +573,7 @@ SSE 운영 제약:
 | `GET` | `/v1/academic-schedules` | 학사 일정 목록 |
 | `POST` | `/v1/admin/academic-schedules` | 학사 일정 추가 (관리자) |
 | `PUT` | `/v1/admin/academic-schedules/{scheduleId}` | 학사 일정 수정 (관리자) |
+| `PUT` | `/v1/admin/academic-schedules/bulk` | 학사 일정 범위 bulk sync (관리자) |
 | `DELETE` | `/v1/admin/academic-schedules/{scheduleId}` | 학사 일정 삭제 (관리자) |
 | `POST` | `/v1/admin/courses/bulk` | 학기 강의 일괄 등록 (관리자) |
 | `DELETE` | `/v1/admin/courses` | 학기 강의 전체 삭제 (관리자) |
@@ -587,15 +588,18 @@ SSE 운영 제약:
   - [x] 같은 시간표 내 동일 강의 중복 추가 차단
   - [x] 오프라인 강의만 같은 요일/교시 겹침 시간 충돌 차단
   - [x] 온라인 직접 입력 강의는 슬롯 없이 저장
-  - [x] 온라인 공식 강의도 슬롯 없이 저장되고 충돌 검사에서 제외
+- [x] 온라인 공식 강의도 슬롯 없이 저장되고 충돌 검사에서 제외
 - [x] 학사 일정 조회 동작
-- [x] 관리자 학사 일정 CRUD 동작
+- [x] 관리자 학사 일정 CRUD + bulk sync 동작
 - [x] 관리자 학기 강의 bulk 업서트/전체 삭제 동작
 - [x] OpenAPI (`/v3/api-docs`, Swagger UI, Scalar) 반영
 - [x] Phase 6 Postman 수동 검증 컬렉션(`etc/postman_collection.json > 06. Academic`) 반영
 
 구현 계약 메모:
 - 강의 bulk 등록 계약은 `credits` + 강의 단위 `location`으로 통일한다.
+- 학사 일정 bulk sync는 `scopeStartDate ~ scopeEndDate` 범위 안에 완전히 포함되는 기존 일정만 대상으로 한다.
+- 학사 일정 bulk sync의 자연키는 `title + startDate + endDate + type` 이며, 변경 가능 필드는 `description`, `isPrimary`다.
+- 학사 일정 bulk sync는 legacy Firebase 스크립트 호환을 위해 `type: single | multi | SINGLE | MULTI`를 모두 허용한다.
 - 관리자 강의 bulk 등록은 `isOnline`을 지원하며, `null`이면 `false`로 처리한다.
 - `isOnline=true`인 공식 강의는 `schedule=[]` 또는 `null`만 허용하고, `location`은 입력되어도 서버에서 `null`로 정규화한다.
 - 시간표 조회/추가/삭제는 동일한 시간표 응답(`courses[] + slots[]`)을 반환한다.

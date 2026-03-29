@@ -91,3 +91,11 @@
 - `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiDashboardExamples.java`, `OpenApiDashboardSchemas.java`, `OpenApiConfig.java`: dashboard OpenAPI schema/example/group 반영
 - `src/test/java/com/skuri/skuri_backend/domain/admin/dashboard/controller/AdminDashboardControllerContractTest.java`, `service/AdminDashboardServiceTest.java`: dashboard Contract/Service 테스트
 - `src/test/java/com/skuri/skuri_backend/infra/auth/AdminApiGuardIntegrationTest.java`, `infra/openapi/AdminOpenApiConventionTest.java`, `OpenApiResponseExamplesConventionTest.java`: dashboard admin guard/OpenAPI 회귀 확장
+
+
+## Admin AcademicSchedule Bulk Sync 관련 파일
+- `src/main/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminController.java`: 단건 CRUD에 더해 `PUT /v1/admin/academic-schedules/bulk` 계약과 OpenAPI example/audit 선언을 포함한다.
+- `src/main/java/com/skuri/skuri_backend/domain/academic/service/AcademicScheduleService.java`: 단건 정규화 규칙을 재사용하면서 bulk sync 자연키 매칭, 범위 검증, lowercase type 정규화, created/updated/deleted count 계산을 담당한다.
+- `src/main/java/com/skuri/skuri_backend/domain/academic/dto/request/AdminBulkAcademicSchedulesRequest.java`, `AdminBulkAcademicScheduleItemRequest.java`, `dto/response/AdminBulkAcademicSchedulesResponse.java`: bulk sync request/response DTO.
+- `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiAcademicExamples.java`, `OpenApiAcademicSchemas.java`: bulk sync success/validation examples와 wrapper schema.
+- `src/test/java/com/skuri/skuri_backend/domain/academic/controller/AcademicScheduleAdminControllerContractTest.java`, `service/AcademicScheduleServiceDataJpaTest.java`, `infra/admin/audit/AdminAuditIntegrationTest.java`, `infra/auth/AdminApiGuardIntegrationTest.java`: bulk sync Contract/Service/Audit/Admin guard 회귀 검증.

@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.infra.admin.audit;
 public final class AdminAuditTargetTypes {
 
     public static final String ACADEMIC_SCHEDULE = "ACADEMIC_SCHEDULE";
+    public static final String ACADEMIC_SCHEDULE_SCOPE = "ACADEMIC_SCHEDULE_SCOPE";
     public static final String COURSE_SEMESTER = "COURSE_SEMESTER";
     public static final String CHAT_ROOM = "CHAT_ROOM";
     public static final String POST = "POST";

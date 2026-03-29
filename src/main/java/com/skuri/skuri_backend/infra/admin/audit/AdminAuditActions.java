@@ -5,6 +5,7 @@ public final class AdminAuditActions {
     public static final String ACADEMIC_SCHEDULE_CREATED = "ACADEMIC_SCHEDULE_CREATED";
     public static final String ACADEMIC_SCHEDULE_UPDATED = "ACADEMIC_SCHEDULE_UPDATED";
     public static final String ACADEMIC_SCHEDULE_DELETED = "ACADEMIC_SCHEDULE_DELETED";
+    public static final String ACADEMIC_SCHEDULE_BULK_SYNCED = "ACADEMIC_SCHEDULE_BULK_SYNCED";
     public static final String COURSE_SEMESTER_BULK_UPSERTED = "COURSE_SEMESTER_BULK_UPSERTED";
     public static final String COURSE_SEMESTER_DELETED = "COURSE_SEMESTER_DELETED";
     public static final String CHAT_ROOM_CREATED = "CHAT_ROOM_CREATED";

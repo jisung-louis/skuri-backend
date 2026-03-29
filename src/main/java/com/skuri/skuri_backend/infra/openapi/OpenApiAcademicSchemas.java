@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.infra.openapi;
 
 import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.AcademicScheduleResponse;
+import com.skuri.skuri_backend.domain.academic.dto.response.AdminBulkAcademicSchedulesResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.AdminBulkCoursesResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.CourseSummaryResponse;
 import com.skuri.skuri_backend.domain.academic.dto.response.TimetableSemesterOptionResponse;
@@ -52,6 +53,21 @@ public final class OpenApiAcademicSchemas {
             boolean success,
             @Schema(description = "성공 시 응답 데이터", nullable = true)
             AcademicScheduleResponse data,
+            @Schema(description = "에러 메시지", nullable = true)
+            String message,
+            @Schema(description = "에러 코드", nullable = true)
+            String errorCode,
+            @Schema(description = "에러 발생 시각", nullable = true)
+            LocalDateTime timestamp
+    ) {
+    }
+
+    @Schema(name = "AcademicBulkAcademicSchedulesApiResponse", description = "공통 API 응답 포맷")
+    public record AdminBulkAcademicSchedulesApiResponse(
+            @Schema(description = "요청 성공 여부")
+            boolean success,
+            @Schema(description = "성공 시 응답 데이터", nullable = true)
+            AdminBulkAcademicSchedulesResponse data,
             @Schema(description = "에러 메시지", nullable = true)
             String message,
             @Schema(description = "에러 코드", nullable = true)
