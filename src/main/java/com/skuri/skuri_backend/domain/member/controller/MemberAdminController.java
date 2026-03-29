@@ -50,7 +50,10 @@ public class MemberAdminController {
     private final MemberAdminService memberAdminService;
 
     @GetMapping
-    @Operation(summary = "회원 목록 조회(관리자)", description = "검색/필터/페이지네이션으로 회원 목록을 조회합니다.")
+    @Operation(
+            summary = "회원 목록 조회(관리자)",
+            description = "검색/필터/페이지네이션으로 회원 목록을 조회합니다. 이름 컬럼은 members.realname을 사용하고, OS 컬럼은 최근 활성 FCM 토큰 플랫폼으로 계산합니다. 정렬 시 null 값은 항상 마지막에 배치됩니다."
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -94,7 +97,14 @@ public class MemberAdminController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "validation_error", value = OpenApiCommonExamples.ERROR_VALIDATION)
+                            examples = {
+                                    @ExampleObject(name = "validation_error", value = OpenApiCommonExamples.ERROR_VALIDATION),
+                                    @ExampleObject(name = "invalid_sort_by", value = OpenApiMemberExamples.ERROR_ADMIN_MEMBER_INVALID_SORT_BY),
+                                    @ExampleObject(
+                                            name = "invalid_sort_direction",
+                                            value = OpenApiMemberExamples.ERROR_ADMIN_MEMBER_INVALID_SORT_DIRECTION
+                                    )
+                            }
                     )
             )
     })
@@ -107,13 +117,26 @@ public class MemberAdminController {
             @RequestParam(name = "isAdmin", required = false) Boolean isAdmin,
             @Parameter(description = "학과 필터", example = "컴퓨터공학과")
             @RequestParam(name = "department", required = false) String department,
+            @Parameter(
+                    description = "정렬 필드. 이름 컬럼은 realname, OS 컬럼은 lastLoginOs를 사용합니다.",
+                    schema = @Schema(
+                            allowableValues = {"id", "realname", "email", "nickname", "department", "studentId", "joinedAt", "lastLogin", "lastLoginOs"},
+                            defaultValue = "joinedAt"
+                    )
+            )
+            @RequestParam(name = "sortBy", required = false) String sortBy,
+            @Parameter(
+                    description = "정렬 방향",
+                    schema = @Schema(allowableValues = {"ASC", "DESC"}, defaultValue = "DESC")
+            )
+            @RequestParam(name = "sortDirection", required = false) String sortDirection,
             @Parameter(description = "페이지 번호", example = "0")
             @RequestParam(name = "page", defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(name = "size", defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                memberAdminService.getAdminMembers(query, status, isAdmin, department, page, size)
+                memberAdminService.getAdminMembers(query, status, isAdmin, department, sortBy, sortDirection, page, size)
         ));
     }
 

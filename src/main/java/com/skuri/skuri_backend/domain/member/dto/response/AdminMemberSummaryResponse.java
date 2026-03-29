@@ -13,7 +13,7 @@ public record AdminMemberSummaryResponse(
         String email,
         @Schema(description = "앱 내 닉네임", example = "스쿠리 유저", nullable = true)
         String nickname,
-        @Schema(description = "실명", example = "홍길동", nullable = true)
+        @Schema(description = "이름 컬럼에 사용하는 실명(members.realname)", example = "홍길동", nullable = true)
         String realname,
         @Schema(description = "학번", example = "2023112233", nullable = true)
         String studentId,
@@ -25,6 +25,8 @@ public record AdminMemberSummaryResponse(
         LocalDateTime joinedAt,
         @Schema(description = "마지막 로그인 시각", example = "2026-03-04T10:00:00", nullable = true)
         LocalDateTime lastLogin,
+        @Schema(description = "최근 활성 FCM 토큰 플랫폼(OS 컬럼)", example = "ios", nullable = true)
+        String lastLoginOs,
         @Schema(description = "회원 상태", example = "ACTIVE")
         MemberStatus status
 ) {
