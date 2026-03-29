@@ -228,8 +228,9 @@ Hooks:
   - `OPEN`, `CLOSED` 상태에서만 수정 가능
   - `CLOSED` 상태에서 수정해도 상태 자동 변경 없음 (`reopen`으로만 모집 재개)
 
-관리자 운영 API(P1):
+관리자 운영 API:
   - `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`
+  - `DELETE /v1/admin/parties/{partyId}/members/{memberId}`, `POST /v1/admin/parties/{partyId}/messages/system`, `GET /v1/admin/parties/{partyId}/join-requests`
   - 관리자 상태 변경 액션은 `CLOSE | REOPEN | CANCEL | END` 4개만 제공한다.
   - 관리자라도 기존 상태 머신을 우회하지 않는다.
     - `CLOSE`: `OPEN`에서만 가능
@@ -239,6 +240,15 @@ Hooks:
   - 상태 변경 후 파티 채팅방 시스템 메시지/SSE/Notification event는 기존 public service와 동일한 규칙을 재사용한다.
   - 관리자 audit snapshot은 최소 상태 필드(`id`, `status`, `endReason`, `settlementStatus`, `endedAt`)만 저장한다.
   - 운영 응답에서는 현재 도메인에 없는 `gender`, `lastStatusChangedAt` 같은 파생 필드를 억지로 만들지 않는다.
+  - 관리자 멤버 제거는 기존 `party.removeMember(...)` + 채팅방 membership sync + leave 시스템 메시지 + SSE `KICKED` + `PartyMemberKicked` notification event를 재사용한다.
+    - leader 제거는 `PARTY_LEADER_REMOVAL_NOT_ALLOWED`로 차단한다.
+    - `ARRIVED`, `ENDED` 상태에서는 멤버 제거를 허용하지 않는다.
+  - 관리자 시스템 메시지는 party chat room이 있을 때만 생성되며, 서버 내부적으로 `SYSTEM` + `ADMIN_SYSTEM` source를 사용해 leader/member 사칭을 피한다.
+    - 응답/표시 기준 `senderName`은 `관리자`, `senderPhotoUrl`은 `null`이다.
+  - 관리자 join request 조회는 현재 `PENDING` 상태만 대상으로 하며, `requestedAt(createdAt) DESC` 최신순 정렬을 사용한다.
+  - write admin audit(`멤버 제거`, `시스템 메시지`)는 최소 snapshot만 저장한다.
+    - party member: `partyId`, `memberId`, `isLeader`, `joinedAt`
+    - chat message: `id`, `chatRoomId`, `senderId`, `senderName`, `type`, `source`, `text`, `createdAt`
 
 파티 자동 종료 정책 (@Scheduled):
   - 실행 주기: 4시간마다
@@ -1449,3 +1459,4 @@ public enum MessageDirection {
 > - 2026-03-25: Notice 북마크 구현 반영 — `NoticeBookmark` 저장 모델, 내 북마크 공지 목록 naming parity(`rssPreview`, `postedAt`), withdrawal cleanup 정책 추가
 > - 2026-03-29: Member Admin API review fix — self role change 금지와 admin-role 감사 로그 최소 snapshot 정책을 Member 도메인 설명에 반영하고, 관리자 상세 응답의 `bankAccount` 유지 계약을 명시
 > - 2026-03-29: TaxiParty Admin P1 반영 — 관리자 파티 목록/상세/상태 변경 API와 검색 기준, 상태 전이 재사용 정책, 최소 감사 snapshot 범위를 TaxiParty 도메인 설명에 반영
+> - 2026-03-29: TaxiParty Admin follow-up 반영 — 관리자 멤버 제거/시스템 메시지/pending join request 조회와 leader 제거 금지, 관리자 시스템 메시지 sender semantics, pending 최신순 조회 규칙을 반영

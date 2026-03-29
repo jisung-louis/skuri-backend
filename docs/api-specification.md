@@ -5770,6 +5770,126 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
+#### DELETE /v1/admin/parties/{partyId}/members/{memberId}
+택시 파티 멤버 제거 (관리자)
+
+관리자가 특정 파티에서 일반 참여자를 강제로 제거하는 API다.
+
+정책 메모:
+
+- leader는 이 API로 제거할 수 없다. (`PARTY_LEADER_REMOVAL_NOT_ALLOWED`)
+- `ARRIVED`, `ENDED` 상태에서는 멤버 제거를 허용하지 않는다.
+- 부수효과는 기존 public 강퇴 로직과 동일하게 처리한다.
+  - `Party.removeMember(...)`
+  - party chat room membership sync
+  - leave 시스템 메시지 생성
+  - SSE `KICKED` 이벤트
+  - `PartyMemberKicked` notification event
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
+**Response (409 Conflict, leader 제거 시도 예시):**
+```json
+{
+  "success": false,
+  "message": "리더는 관리자 멤버 제거 API로 제거할 수 없습니다.",
+  "errorCode": "PARTY_LEADER_REMOVAL_NOT_ALLOWED",
+  "timestamp": "2026-03-29T12:10:00"
+}
+```
+
+#### POST /v1/admin/parties/{partyId}/messages/system
+택시 파티 시스템 메시지 전송 (관리자)
+
+관리자가 특정 파티 채팅방에 운영 안내 메시지를 보내는 API다.
+
+**Request:**
+```json
+{
+  "message": "관리자 안내 메시지"
+}
+```
+
+정책 메모:
+
+- `message`는 공백만 허용하지 않으며 최대 500자다.
+- party chat room이 있어야 하며, 없으면 `CHAT_ROOM_NOT_FOUND`를 반환한다.
+- 메시지는 party member/leader를 사칭하지 않는다.
+  - 서버 내부 저장은 `SYSTEM` 타입 + `ADMIN_SYSTEM` source를 사용한다.
+  - 응답/표시 기준 `senderName`은 `관리자`, `senderPhotoUrl`은 `null`이다.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "chat-message-1",
+    "chatRoomId": "party:party-20260304-001",
+    "senderId": "admin-uid-1",
+    "senderName": "관리자",
+    "senderPhotoUrl": null,
+    "type": "SYSTEM",
+    "text": "관리자 안내 메시지",
+    "createdAt": "2026-03-29T12:15:00"
+  }
+}
+```
+
+**Response (422 Unprocessable Content, 공백 메시지 예시):**
+```json
+{
+  "success": false,
+  "message": "message: message는 필수입니다.",
+  "errorCode": "VALIDATION_ERROR",
+  "timestamp": "2026-03-29T12:16:00"
+}
+```
+
+#### GET /v1/admin/parties/{partyId}/join-requests
+택시 파티 pending join request 목록 조회 (관리자)
+
+관리자가 특정 파티의 현재 대기 중인 동승 요청을 조회하는 API다.
+
+정렬 규칙:
+
+- 현재 `PENDING` 상태만 반환한다.
+- 기본 정렬은 `requestedAt(createdAt) DESC`다.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "requestId": "join-request-2",
+      "memberId": "member-3",
+      "nickname": "김철수",
+      "realname": "김철수",
+      "photoUrl": "https://cdn.skuri.app/profiles/user-3.png",
+      "department": "컴퓨터공학과",
+      "studentId": "20201234",
+      "requestedAt": "2026-03-29T12:20:00"
+    },
+    {
+      "requestId": "join-request-1",
+      "memberId": "member-2",
+      "nickname": "이영희",
+      "realname": "이영희",
+      "photoUrl": null,
+      "department": "미디어소프트웨어학과",
+      "studentId": "20211234",
+      "requestedAt": "2026-03-29T12:10:00"
+    }
+  ]
+}
+```
+
 ### 12.13 에러 코드
 
 | 에러 코드 | HTTP | 설명 |
@@ -5777,9 +5897,13 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 | `ADMIN_REQUIRED` | 403 | 관리자 권한 필요 |
 | `CAMPUS_BANNER_NOT_FOUND` | 404 | 존재하지 않는 캠퍼스 홈 배너 |
 | `PARTY_NOT_FOUND` | 404 | 존재하지 않는 파티 |
+| `PARTY_MEMBER_NOT_FOUND` | 404 | 해당 파티의 멤버가 아님 |
+| `CHAT_ROOM_NOT_FOUND` | 404 | 연결된 채팅방을 찾을 수 없음 |
 | `INVALID_PARTY_STATE_TRANSITION` | 409 | 허용되지 않은 파티 상태 전이 |
 | `PARTY_NOT_CANCELABLE` | 409 | 현재 상태에서는 파티 취소 불가 |
 | `PARTY_ENDED` | 409 | 이미 종료된 파티 |
+| `CANNOT_KICK_IN_ARRIVED` | 409 | `ARRIVED` 상태에서는 멤버 제거 불가 |
+| `PARTY_LEADER_REMOVAL_NOT_ALLOWED` | 409 | leader 제거 금지 |
 | `PARTY_CONCURRENT_MODIFICATION` | 409 | 파티 상태 변경 중 동시성 충돌 |
 
 ---
@@ -5789,6 +5913,10 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 >   - `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`를 추가
 >   - 관리자 상태 변경 액션을 `CLOSE | REOPEN | CANCEL | END`로 고정하고, 기존 state machine만 재사용하도록 명시
 >   - Admin Party 응답에서 현재 도메인에 없는 `gender`, `lastStatusChangedAt`는 제외한다고 명시
+> - 2026-03-29: TaxiParty Admin follow-up 계약 추가
+>   - `DELETE /v1/admin/parties/{partyId}/members/{memberId}`, `POST /v1/admin/parties/{partyId}/messages/system`, `GET /v1/admin/parties/{partyId}/join-requests`를 추가
+>   - leader 제거 금지, 관리자 시스템 메시지의 `senderName=관리자`/`senderPhotoUrl=null`, pending join request 최신순 조회를 문서화
+>   - 관련 운영 에러코드(`PARTY_MEMBER_NOT_FOUND`, `CHAT_ROOM_NOT_FOUND`, `CANNOT_KICK_IN_ARRIVED`, `PARTY_LEADER_REMOVAL_NOT_ALLOWED`)를 동기화
 > - 2026-03-29: Support 신고 대상 확장
 >   - `Report.targetType`에 `CHAT_MESSAGE`, `CHAT_ROOM`, `TAXI_PARTY` 추가
 >   - `POST /v1/reports`를 채팅 메시지/일반 채팅방/택시파티 신고까지 확장
