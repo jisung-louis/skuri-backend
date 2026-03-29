@@ -11,6 +11,10 @@ import com.skuri.skuri_backend.domain.academic.service.CourseService;
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeAdminController;
 import com.skuri.skuri_backend.domain.app.dto.response.AppNoticeCreateResponse;
 import com.skuri.skuri_backend.domain.app.service.AppNoticeService;
+import com.skuri.skuri_backend.domain.board.controller.BoardAdminController;
+import com.skuri.skuri_backend.domain.board.dto.response.AdminPostSummaryResponse;
+import com.skuri.skuri_backend.domain.board.entity.PostCategory;
+import com.skuri.skuri_backend.domain.board.service.BoardAdminService;
 import com.skuri.skuri_backend.domain.campus.controller.CampusBannerAdminController;
 import com.skuri.skuri_backend.domain.campus.dto.response.CampusBannerAdminResponse;
 import com.skuri.skuri_backend.domain.campus.entity.CampusBannerActionTarget;
@@ -99,6 +103,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AcademicScheduleAdminController.class,
         CourseAdminController.class,
         ChatAdminRoomController.class,
+        BoardAdminController.class,
         NoticeAdminController.class,
         AppNoticeAdminController.class,
         CampusBannerAdminController.class,
@@ -129,6 +134,9 @@ class AdminApiGuardIntegrationTest {
 
     @MockitoBean
     private ChatAdminService chatAdminService;
+
+    @MockitoBean
+    private BoardAdminService boardAdminService;
 
     @MockitoBean
     private NoticeSyncService noticeSyncService;
@@ -248,6 +256,36 @@ class AdminApiGuardIntegrationTest {
                                 .thenReturn(new AdminCreateChatRoomResponse("room-1", "운영 채팅방", ChatRoomType.CUSTOM)),
                         status().isCreated(),
                         jsonPath("$.data.id").value("room-1")
+                ),
+                endpoint(
+                        "board posts list",
+                        () -> get("/v1/admin/posts"),
+                        () -> when(boardAdminService.getAdminPosts(null, null, null, null, 0, 20))
+                                .thenReturn(PageResponse.<AdminPostSummaryResponse>builder()
+                                        .content(java.util.List.of(new AdminPostSummaryResponse(
+                                                "post-1",
+                                                PostCategory.GENERAL,
+                                                "관리 대상 게시글",
+                                                "member-1",
+                                                "스쿠리유저",
+                                                "홍길동",
+                                                false,
+                                                5,
+                                                10,
+                                                LocalDateTime.of(2026, 3, 29, 12, 0),
+                                                LocalDateTime.of(2026, 3, 29, 12, 30),
+                                                com.skuri.skuri_backend.domain.board.constant.BoardModerationStatus.VISIBLE,
+                                                "https://example.com/post-1-thumb.jpg"
+                                        )))
+                                        .page(0)
+                                        .size(20)
+                                        .totalElements(1)
+                                        .totalPages(1)
+                                        .hasNext(false)
+                                        .hasPrevious(false)
+                                        .build()),
+                        status().isOk(),
+                        jsonPath("$.data.content[0].id").value("post-1")
                 ),
                 endpoint(
                         "notice sync",

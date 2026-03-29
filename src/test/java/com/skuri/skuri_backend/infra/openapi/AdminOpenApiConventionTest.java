@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.infra.openapi;
 import com.skuri.skuri_backend.domain.academic.controller.AcademicScheduleAdminController;
 import com.skuri.skuri_backend.domain.academic.controller.CourseAdminController;
 import com.skuri.skuri_backend.domain.app.controller.AppNoticeAdminController;
+import com.skuri.skuri_backend.domain.board.controller.BoardAdminController;
 import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
 import com.skuri.skuri_backend.domain.member.controller.MemberAdminController;
 import com.skuri.skuri_backend.domain.notice.controller.NoticeAdminController;
@@ -29,6 +30,7 @@ class AdminOpenApiConventionTest {
             AcademicScheduleAdminController.class,
             CourseAdminController.class,
             ChatAdminRoomController.class,
+            BoardAdminController.class,
             MemberAdminController.class,
             NoticeAdminController.class,
             AppNoticeAdminController.class,

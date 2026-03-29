@@ -219,7 +219,7 @@ class BoardServiceTest {
         Comment grandChild = comment("comment-3", post, child, "member-3", false, null);
         parent.softDelete();
 
-        when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
+        when(postRepository.findByIdAndDeletedFalseAndHiddenFalse("post-1")).thenReturn(Optional.of(post));
         when(commentRepository.findByPostIdOrderByCreatedAtAsc("post-1")).thenReturn(List.of(parent, child, grandChild));
 
         List<CommentResponse> responses = boardService.getComments("member-3", "post-1");
@@ -244,7 +244,7 @@ class BoardServiceTest {
         ReflectionTestUtils.setField(likedComment, "likeCount", 3);
         ReflectionTestUtils.setField(unlikedComment, "likeCount", 1);
 
-        when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
+        when(postRepository.findByIdAndDeletedFalseAndHiddenFalse("post-1")).thenReturn(Optional.of(post));
         when(commentRepository.findByPostIdOrderByCreatedAtAsc("post-1")).thenReturn(List.of(likedComment, unlikedComment));
         when(commentLikeRepository.findLikedCommentIds("member-1", List.of("comment-1", "comment-2")))
                 .thenReturn(List.of("comment-1"));
@@ -505,7 +505,7 @@ class BoardServiceTest {
     @Test
     void updatePost_작성자위반이면_예외() {
         Post post = post("post-1", "author-1");
-        when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
+        when(postRepository.findByIdAndDeletedFalseAndHiddenFalse("post-1")).thenReturn(Optional.of(post));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -523,14 +523,14 @@ class BoardServiceTest {
         );
 
         assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
-        verify(postRepository, never()).findByIdAndDeletedFalse("post-1");
+        verify(postRepository, never()).findByIdAndDeletedFalseAndHiddenFalse("post-1");
     }
 
     @Test
     void updatePost_익명여부와이미지를전체교체한다() {
         Post post = post("post-1", "author-1");
         post.appendImage("https://example.com/old.jpg", null, 400, 300, 1000, "image/jpeg", 0);
-        when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
+        when(postRepository.findByIdAndDeletedFalseAndHiddenFalse("post-1")).thenReturn(Optional.of(post));
         when(postInteractionRepository.existsById_UserIdAndId_PostIdAndLikedTrue("author-1", "post-1")).thenReturn(false);
         when(postInteractionRepository.existsById_UserIdAndId_PostIdAndBookmarkedTrue("author-1", "post-1")).thenReturn(false);
 
@@ -576,13 +576,13 @@ class BoardServiceTest {
         );
 
         assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
-        verify(postRepository, never()).findByIdAndDeletedFalse("post-1");
+        verify(postRepository, never()).findByIdAndDeletedFalseAndHiddenFalse("post-1");
     }
 
     @Test
     void deletePost_작성자이면_softDelete() {
         Post post = post("post-1", "author-1");
-        when(postRepository.findByIdAndDeletedFalse("post-1")).thenReturn(Optional.of(post));
+        when(postRepository.findByIdAndDeletedFalseAndHiddenFalse("post-1")).thenReturn(Optional.of(post));
 
         boardService.deletePost("author-1", "post-1");
 

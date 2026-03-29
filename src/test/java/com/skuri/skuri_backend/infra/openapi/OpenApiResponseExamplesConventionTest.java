@@ -6,6 +6,7 @@ import com.skuri.skuri_backend.domain.app.controller.MemberAppNoticeController;
 import com.skuri.skuri_backend.domain.academic.controller.AcademicScheduleAdminController;
 import com.skuri.skuri_backend.domain.academic.controller.CourseAdminController;
 import com.skuri.skuri_backend.domain.board.controller.CommentController;
+import com.skuri.skuri_backend.domain.board.controller.BoardAdminController;
 import com.skuri.skuri_backend.domain.board.controller.MemberBoardController;
 import com.skuri.skuri_backend.domain.board.controller.PostController;
 import com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomController;
@@ -57,6 +58,7 @@ class OpenApiResponseExamplesConventionTest {
             NoticeCommentController.class,
             NoticeAdminController.class,
             MemberNoticeController.class,
+            BoardAdminController.class,
             PostController.class,
             CommentController.class,
             MemberBoardController.class,
