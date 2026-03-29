@@ -523,6 +523,17 @@ erDiagram
         datetime updated_at
     }
 
+    cafeteria_menu_reactions {
+        varchar(36) member_id PK "회원 ID"
+        varchar(255) menu_id PK "stable weekly menu ID"
+        varchar(20) week_id "NOT NULL"
+        varchar(100) category "NOT NULL"
+        varchar(255) title "NOT NULL"
+        enum reaction "LIKE,DISLIKE"
+        datetime created_at
+        datetime updated_at
+    }
+
 ```
 
 ### 1.4 Infra (Notification)
@@ -796,6 +807,7 @@ Taxi history 계약 메모:
 | `app_versions` | 앱 버전 | 2 (ios, android) |
 | `legal_documents` | 법적 문서 | ~2 |
 | `cafeteria_menus` | 학식 메뉴 | ~52/년 |
+| `cafeteria_menu_reactions` | 학식 메뉴 사용자 반응 | ~50,000/년 |
 
 ### 2.9 Notification 인프라
 
