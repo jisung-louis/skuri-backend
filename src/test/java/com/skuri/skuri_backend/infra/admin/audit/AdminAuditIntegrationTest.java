@@ -240,6 +240,81 @@ class AdminAuditIntegrationTest {
     }
 
     @Test
+    void 파티멤버제거_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        saveMember("leader-uid", false);
+        saveMember("member-uid", false);
+        Party party = partyRepository.saveAndFlush(Party.create(
+                "leader-uid",
+                Location.of("성결대학교", 37.382742, 126.928031),
+                Location.of("안양역", 37.401000, 126.922000),
+                LocalDateTime.of(2026, 3, 29, 18, 30),
+                4,
+                java.util.List.of("빠른출발"),
+                "정문 앞 택시승강장 집합"
+        ));
+        party.addMember("member-uid");
+        partyRepository.saveAndFlush(party);
+        chatRoomRepository.saveAndFlush(ChatRoom.createPartyRoom(party.getId()));
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        delete("/v1/admin/parties/{partyId}/members/{memberId}", party.getId(), "member-uid")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isOk());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.PARTY_MEMBER_REMOVED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.PARTY_MEMBER);
+        assertThat(auditLog.getTargetId()).isEqualTo("member-uid");
+        assertThat(auditLog.getDiffBefore().get("partyId").asText()).isEqualTo(party.getId());
+        assertThat(auditLog.getDiffBefore().get("memberId").asText()).isEqualTo("member-uid");
+        assertThat(auditLog.getDiffBefore().get("isLeader").asBoolean()).isFalse();
+        assertThat(auditLog.getDiffAfter()).isNull();
+    }
+
+    @Test
+    void 파티관리자시스템메시지생성_감사로그를_남긴다() throws Exception {
+        Member admin = saveAdminMember("admin-uid");
+        saveMember("leader-uid", false);
+        Party party = partyRepository.saveAndFlush(Party.create(
+                "leader-uid",
+                Location.of("성결대학교", 37.382742, 126.928031),
+                Location.of("안양역", 37.401000, 126.922000),
+                LocalDateTime.of(2026, 3, 29, 18, 30),
+                4,
+                java.util.List.of("빠른출발"),
+                "정문 앞 택시승강장 집합"
+        ));
+        chatRoomRepository.saveAndFlush(ChatRoom.createPartyRoom(party.getId()));
+        mockAdminToken(admin.getId());
+
+        mockMvc.perform(
+                        post("/v1/admin/parties/{partyId}/messages/system", party.getId())
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "message": "관리자 안내 메시지"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk());
+
+        AdminAuditLog auditLog = latestAuditLog();
+        assertThat(auditLog.getAction()).isEqualTo(AdminAuditActions.PARTY_SYSTEM_MESSAGE_CREATED);
+        assertThat(auditLog.getTargetType()).isEqualTo(AdminAuditTargetTypes.CHAT_MESSAGE);
+        assertThat(auditLog.getTargetId()).isNotBlank();
+        assertThat(auditLog.getDiffBefore()).isNull();
+        assertThat(auditLog.getDiffAfter().get("chatRoomId").asText()).isEqualTo("party:" + party.getId());
+        assertThat(auditLog.getDiffAfter().get("senderId").asText()).isEqualTo("admin-uid");
+        assertThat(auditLog.getDiffAfter().get("senderName").asText()).isEqualTo("관리자");
+        assertThat(auditLog.getDiffAfter().get("source").asText()).isEqualTo("ADMIN_SYSTEM");
+        assertThat(auditLog.getDiffAfter().get("text").asText()).isEqualTo("관리자 안내 메시지");
+    }
+
+    @Test
     void 학사일정생성_감사로그를_남긴다() throws Exception {
         Member admin = saveAdminMember("admin-uid");
         mockAdminToken(admin.getId());

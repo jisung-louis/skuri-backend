@@ -3,9 +3,12 @@ package com.skuri.skuri_backend.domain.taxiparty.controller;
 import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
+import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.taxiparty.constant.AdminPartyStatusAction;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyDetailResponse;
+import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyJoinRequestResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartyLeaderResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.AdminPartySummaryResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.response.MemberSettlementResponse;
@@ -36,12 +39,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -185,6 +191,126 @@ class PartyAdminControllerContractTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("INVALID_PARTY_STATE_TRANSITION"))
                 .andExpect(jsonPath("$.message").value("ARRIVED 상태에서만 강제 종료할 수 있습니다."));
+    }
+
+    @Test
+    void removePartyMember_정상요청_200() throws Exception {
+        mockToken("admin-token", true);
+
+        mockMvc.perform(
+                        delete("/v1/admin/parties/party-1/members/member-1")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        verify(taxiPartyAdminService).removePartyMember("admin-uid", "party-1", "member-1");
+    }
+
+    @Test
+    void removePartyMember_리더제거시도면_409() throws Exception {
+        mockToken("admin-token", true);
+        doThrow(new BusinessException(ErrorCode.PARTY_LEADER_REMOVAL_NOT_ALLOWED))
+                .when(taxiPartyAdminService)
+                .removePartyMember("admin-uid", "party-1", "leader-1");
+
+        mockMvc.perform(
+                        delete("/v1/admin/parties/party-1/members/leader-1")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("PARTY_LEADER_REMOVAL_NOT_ALLOWED"));
+    }
+
+    @Test
+    void createPartySystemMessage_정상요청_200() throws Exception {
+        mockToken("admin-token", true);
+        when(taxiPartyAdminService.createPartySystemMessage("admin-uid", "party-1", "관리자 안내 메시지"))
+                .thenReturn(new ChatMessageResponse(
+                        "message-1",
+                        "party:party-1",
+                        "admin-uid",
+                        "관리자",
+                        null,
+                        ChatMessageType.SYSTEM,
+                        "관리자 안내 메시지",
+                        null,
+                        null,
+                        null,
+                        LocalDateTime.of(2026, 3, 29, 12, 10)
+                ));
+
+        mockMvc.perform(
+                        post("/v1/admin/parties/party-1/messages/system")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "message": "관리자 안내 메시지"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("message-1"))
+                .andExpect(jsonPath("$.data.senderName").value("관리자"))
+                .andExpect(jsonPath("$.data.text").value("관리자 안내 메시지"))
+                .andExpect(jsonPath("$.data.senderPhotoUrl").isEmpty());
+    }
+
+    @Test
+    void createPartySystemMessage_공백메시지면_422() throws Exception {
+        mockToken("admin-token", true);
+
+        mockMvc.perform(
+                        post("/v1/admin/parties/party-1/messages/system")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "message": "   "
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("message: message는 필수입니다."));
+    }
+
+    @Test
+    void getAdminPartyJoinRequests_정상요청_200() throws Exception {
+        mockToken("admin-token", true);
+        when(taxiPartyAdminService.getPartyJoinRequests("party-1")).thenReturn(List.of(
+                new AdminPartyJoinRequestResponse(
+                        "request-2",
+                        "member-2",
+                        "김철수",
+                        "김철수",
+                        "https://cdn.skuri.app/profiles/member-2.png",
+                        "컴퓨터공학과",
+                        "20230001",
+                        LocalDateTime.of(2026, 3, 29, 12, 5)
+                ),
+                new AdminPartyJoinRequestResponse(
+                        "request-1",
+                        "member-1",
+                        "이영희",
+                        "이영희",
+                        null,
+                        "미디어소프트웨어학과",
+                        "20230002",
+                        LocalDateTime.of(2026, 3, 29, 12, 0)
+                )
+        ));
+
+        mockMvc.perform(
+                        get("/v1/admin/parties/party-1/join-requests")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].requestId").value("request-2"))
+                .andExpect(jsonPath("$.data[0].memberId").value("member-2"))
+                .andExpect(jsonPath("$.data[1].requestId").value("request-1"));
     }
 
     private AdminPartyDetailResponse adminPartyDetailResponse() {
