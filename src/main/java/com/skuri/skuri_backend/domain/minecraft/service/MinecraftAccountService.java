@@ -12,6 +12,7 @@ import com.skuri.skuri_backend.domain.minecraft.entity.MinecraftAccountRole;
 import com.skuri.skuri_backend.domain.minecraft.entity.MinecraftEdition;
 import com.skuri.skuri_backend.domain.minecraft.repository.MinecraftAccountRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,16 +75,21 @@ public class MinecraftAccountService {
             throw new BusinessException(ErrorCode.MINECRAFT_ACCOUNT_DUPLICATED);
         }
 
-        MinecraftAccount saved = minecraftAccountRepository.save(MinecraftAccount.create(
-                memberId,
-                request.accountRole() == MinecraftAccountRole.FRIEND ? selfAccount.getId() : null,
-                request.accountRole(),
-                request.edition(),
-                resolved.gameName(),
-                resolved.storedName(),
-                resolved.normalizedKey(),
-                resolved.avatarUuid()
-        ));
+        MinecraftAccount saved;
+        try {
+            saved = minecraftAccountRepository.saveAndFlush(MinecraftAccount.create(
+                    memberId,
+                    request.accountRole() == MinecraftAccountRole.FRIEND ? selfAccount.getId() : null,
+                    request.accountRole(),
+                    request.edition(),
+                    resolved.gameName(),
+                    resolved.storedName(),
+                    resolved.normalizedKey(),
+                    resolved.avatarUuid()
+            ));
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.MINECRAFT_ACCOUNT_DUPLICATED);
+        }
 
         minecraftBridgeOutboxService.publishWhitelistUpsert(saved);
         return toResponse(saved, selfAccount == null ? Map.of() : Map.of(selfAccount.getId(), selfAccount));

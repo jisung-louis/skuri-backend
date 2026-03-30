@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, String> {
 
@@ -53,6 +54,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, String
     long countByChatRoomIdAndCreatedAtAfter(String chatRoomId, LocalDateTime createdAt);
 
     long deleteByChatRoomId(String chatRoomId);
+
+    Optional<ChatMessage> findBySourceEventId(String sourceEventId);
 
     java.util.Optional<ChatMessage> findTopByChatRoomIdAndTypeOrderByCreatedAtDescMessageOrderDescIdDesc(
             String chatRoomId,

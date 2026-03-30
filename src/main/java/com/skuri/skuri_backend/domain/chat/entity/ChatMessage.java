@@ -23,7 +23,8 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "chat_messages",
         indexes = {
-                @Index(name = "idx_chat_messages_room_cursor", columnList = "chat_room_id, created_at, message_order, id")
+                @Index(name = "idx_chat_messages_room_cursor", columnList = "chat_room_id, created_at, message_order, id"),
+                @Index(name = "uk_chat_messages_source_event_id", columnList = "source_event_id", unique = true)
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -75,6 +76,9 @@ public class ChatMessage extends BaseTimeEntity {
 
     @Column(name = "minecraft_uuid", length = 50)
     private String minecraftUuid;
+
+    @Column(name = "source_event_id", unique = true, length = 36)
+    private String sourceEventId;
 
     private ChatMessage(
             String chatRoomId,
@@ -146,6 +150,10 @@ public class ChatMessage extends BaseTimeEntity {
         this.direction = direction;
         this.minecraftUuid = minecraftUuid;
         this.source = SOURCE_MINECRAFT;
+    }
+
+    public void markSourceEventId(String sourceEventId) {
+        this.sourceEventId = sourceEventId;
     }
 
     public boolean hasSource(String source) {

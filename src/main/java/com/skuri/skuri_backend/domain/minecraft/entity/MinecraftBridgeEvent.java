@@ -5,6 +5,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
@@ -22,6 +24,7 @@ import java.util.UUID;
         name = "minecraft_bridge_events",
         indexes = {
                 @Index(name = "uk_minecraft_bridge_events_event_id", columnList = "event_id", unique = true),
+                @Index(name = "idx_minecraft_bridge_events_replay", columnList = "created_at, id"),
                 @Index(name = "idx_minecraft_bridge_events_expires", columnList = "expires_at")
         }
 )
@@ -29,8 +32,8 @@ import java.util.UUID;
 public class MinecraftBridgeEvent extends BaseTimeEntity {
 
     @Id
-    @Column(length = 36)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "event_id", nullable = false, unique = true, length = 36)
     private String eventId;
@@ -47,7 +50,6 @@ public class MinecraftBridgeEvent extends BaseTimeEntity {
     private Instant expiresAt;
 
     private MinecraftBridgeEvent(MinecraftBridgeEventType eventType, String payload, Instant expiresAt) {
-        this.id = UUID.randomUUID().toString();
         this.eventId = UUID.randomUUID().toString();
         this.eventType = eventType;
         this.payload = payload;

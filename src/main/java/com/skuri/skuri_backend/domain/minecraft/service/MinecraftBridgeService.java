@@ -12,6 +12,7 @@ import com.skuri.skuri_backend.domain.minecraft.entity.MinecraftAccount;
 import com.skuri.skuri_backend.domain.minecraft.entity.MinecraftOnlinePlayer;
 import com.skuri.skuri_backend.domain.minecraft.entity.MinecraftServerState;
 import com.skuri.skuri_backend.domain.minecraft.repository.MinecraftAccountRepository;
+import com.skuri.skuri_backend.domain.minecraft.repository.MinecraftInboundEventRepository;
 import com.skuri.skuri_backend.domain.minecraft.repository.MinecraftOnlinePlayerRepository;
 import com.skuri.skuri_backend.domain.minecraft.repository.MinecraftServerStateRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,12 +35,17 @@ public class MinecraftBridgeService {
     private final MinecraftServerStateRepository minecraftServerStateRepository;
     private final MinecraftOnlinePlayerRepository minecraftOnlinePlayerRepository;
     private final MinecraftAccountRepository minecraftAccountRepository;
+    private final MinecraftInboundEventRepository minecraftInboundEventRepository;
     private final MinecraftPublicSseService minecraftPublicSseService;
     private final MinecraftReadService minecraftReadService;
     private final ChatService chatService;
 
     @Transactional
     public void handleIncomingChatMessage(MinecraftInternalChatMessageRequest request) {
+        if (minecraftInboundEventRepository.claimEvent(request.eventId()) == 0) {
+            return;
+        }
+
         String normalizedKey = minecraftIdentityService.normalizeAccountKey(
                 request.edition(),
                 request.senderName(),
@@ -55,15 +61,17 @@ public class MinecraftBridgeService {
                 ? ChatMessageDirection.MC_TO_APP
                 : ChatMessageDirection.SYSTEM;
 
-        chatService.createMinecraftInboundMessage(
+        String messageId = chatService.createMinecraftInboundMessage(
                 minecraftIdentityService.toSyntheticSenderId(normalizedKey, request.senderName(), request.edition()),
                 request.senderName(),
                 senderPhotoUrl,
                 request.text(),
                 messageType,
                 direction,
-                normalizedKey
-        );
+                normalizedKey,
+                request.eventId()
+        ).id();
+        minecraftInboundEventRepository.markProcessed(request.eventId(), messageId);
     }
 
     @Transactional

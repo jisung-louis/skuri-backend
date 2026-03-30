@@ -39,6 +39,7 @@ import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -356,8 +357,16 @@ public class ChatService {
             String text,
             ChatMessageType type,
             ChatMessageDirection direction,
-            String minecraftUuid
+            String minecraftUuid,
+            String sourceEventId
     ) {
+        if (StringUtils.hasText(sourceEventId)) {
+            ChatMessage duplicatedMessage = chatMessageRepository.findBySourceEventId(sourceEventId).orElse(null);
+            if (duplicatedMessage != null) {
+                return toMessageResponse(duplicatedMessage, senderPhotoUrl);
+            }
+        }
+
         ChatRoom room = findRoomOrThrow(minecraftBridgeProperties.normalizedRoomId());
         return saveAndPublishMessage(
                 room,
@@ -370,7 +379,8 @@ public class ChatService {
                 null,
                 ChatMessage.SOURCE_MINECRAFT,
                 direction,
-                minecraftUuid
+                minecraftUuid,
+                sourceEventId
         );
     }
 
@@ -723,6 +733,7 @@ public class ChatService {
                 arrivalData,
                 source,
                 null,
+                null,
                 null
         );
     }
@@ -738,7 +749,8 @@ public class ChatService {
             ChatArrivalData arrivalData,
             String source,
             ChatMessageDirection direction,
-            String minecraftUuid
+            String minecraftUuid,
+            String sourceEventId
     ) {
         String chatRoomId = room.getId();
         ChatMessage message = ChatMessage.create(
@@ -758,7 +770,24 @@ public class ChatService {
         if (StringUtils.hasText(minecraftUuid)) {
             message.markMinecraftUuid(minecraftUuid);
         }
-        ChatMessage saved = chatMessageRepository.save(message);
+        if (StringUtils.hasText(sourceEventId)) {
+            message.markSourceEventId(sourceEventId);
+        }
+
+        ChatMessage saved;
+        try {
+            saved = StringUtils.hasText(sourceEventId)
+                    ? chatMessageRepository.saveAndFlush(message)
+                    : chatMessageRepository.save(message);
+        } catch (DataIntegrityViolationException e) {
+            if (StringUtils.hasText(sourceEventId)) {
+                ChatMessage duplicatedMessage = chatMessageRepository.findBySourceEventId(sourceEventId).orElse(null);
+                if (duplicatedMessage != null) {
+                    return toMessageResponse(duplicatedMessage, senderPhotoUrl);
+                }
+            }
+            throw e;
+        }
 
         room.applyNewMessage(saved);
         chatRoomRepository.save(room);

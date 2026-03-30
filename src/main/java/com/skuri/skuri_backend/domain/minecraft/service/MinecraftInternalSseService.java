@@ -65,20 +65,12 @@ public class MinecraftInternalSseService {
         }
 
         MinecraftBridgeEvent anchor = minecraftBridgeEventRepository.findByEventId(lastEventId).orElse(null);
-        if (anchor == null || anchor.getCreatedAt() == null) {
+        if (anchor == null || anchor.getCreatedAt() == null || anchor.getId() == null) {
             return false;
         }
 
-        boolean found = false;
         for (MinecraftBridgeEvent event : minecraftBridgeEventRepository
-                .findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(anchor.getCreatedAt())) {
-            if (!found) {
-                if (!event.getEventId().equals(lastEventId)) {
-                    continue;
-                }
-                found = true;
-                continue;
-            }
+                .findReplayEventsAfter(anchor.getCreatedAt(), anchor.getId())) {
             sendToOne(emitterId, event.getEventId(), event.getEventType().name(), event.getPayload());
         }
         return true;
