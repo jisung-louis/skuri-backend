@@ -15,7 +15,7 @@
 - `domain/campus`: 캠퍼스 배너 공개/관리자 API
 - `domain/support`: 문의, 신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티), 앱 버전, 법적 문서, 학식; 학식은 `CafeteriaMenu.menu_entries` JSON 컬럼과 구조화 응답 `categories`, `menuEntries`를 함께 사용한다. `CafeteriaMenuService`가 저장 시 같은 주의 동일 `category + title` 메타데이터 일관성을 검증하고, `menus` 비교 시 빈 카테고리 생략을 `menuEntries` 빈 배열과 동치로 정규화한다. 실제 사용자 반응은 `CafeteriaMenuReaction`, `CafeteriaMenuReactionRepository`, `CafeteriaMenuReactionService`, `CafeteriaMenuReactionController`가 담당하며, stable weekly menu id(`weekId + category + title` 기반)와 `cafeteria_menu_reactions` 집계를 조회 응답 `likeCount`/`dislikeCount`/`myReaction`에 주입한다. 관리자 요청의 `likeCount`/`dislikeCount`는 deprecated 입력으로만 허용하고 저장 시 무시한다. `ReportService`가 board/chat/taxiparty 저장소를 조회해 `targetAuthorId`를 해석한다.
 - `domain/notification`: 인앱 알림, unread count, SSE snapshot
-- `domain/minecraft`: 마인크래프트 계정/서버 상태/온라인 플레이어/bridge event, public API(`/v1/minecraft/**`, `/v1/members/me/minecraft-accounts/**`, `/v1/sse/minecraft`)와 plugin internal API(`/internal/minecraft/**`) 및 SSE fan-out
+- `domain/minecraft`: 마인크래프트 계정/서버 상태/온라인 플레이어/bridge event, inbound event registry(`minecraft_inbound_events`), public API(`/v1/minecraft/**`, `/v1/members/me/minecraft-accounts/**`, `/v1/sse/minecraft`)와 plugin internal API(`/internal/minecraft/**`) 및 SSE fan-out/replay tie-breaker
 - `infra/auth`: Firebase 인증 필터, Admin guard, Security 설정, Minecraft internal secret filter
 - `infra/admin`: admin audit, admin list 공통 인프라
 - `infra/openapi`: OpenAPI 그룹/예시/wrapper schema
