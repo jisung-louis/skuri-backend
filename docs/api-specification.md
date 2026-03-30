@@ -1,6 +1,6 @@
 # Spring 백엔드 API 명세
 
-> 최종 수정일: 2026-03-29
+> 최종 수정일: 2026-03-30
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -19,6 +19,7 @@
 10. [SSE (Server-Sent Events)](#10-sse-server-sent-events)
 11. [Image API](#11-image-api)
 12. [Admin API](#12-admin-api)
+13. [Minecraft API](#13-minecraft-api)
 
 ---
 
@@ -62,9 +63,10 @@ Authorization: Bearer <firebase_id_token>
 
 ### 1.3 공통 Response 형식
 
-> 공통 응답은 `ApiResponse`의 `@JsonInclude(Include.NON_NULL)` 정책을 사용합니다.  
-> 즉, `null` 값 필드는 직렬화 시 생략될 수 있습니다.  
+> 공통 응답은 `ApiResponse`의 `@JsonInclude(Include.NON_NULL)` 정책을 사용합니다.
+> 즉, `null` 값 필드는 직렬화 시 생략될 수 있습니다.
 > 예외적으로 채팅 메시지 payload의 `senderPhotoUrl`은 값이 없어도 `null`로 명시적으로 포함합니다.
+> `senderPhotoUrl`의 source of truth는 "앱 사용자 메시지 = members.photo_url, Minecraft origin 메시지 = Minotar URL" 규칙을 따릅니다.
 
 **성공 응답:**
 ```json
@@ -1462,8 +1464,9 @@ FCM 토큰 삭제
 
 - `joined=true`인 경우에만 조회할 수 있습니다.
 - 공개 채팅방이라도 미참여 상태면 `403 NOT_CHAT_ROOM_MEMBER`
-- 각 메시지는 `senderPhotoUrl`을 포함하며, 값은 `members.photo_url`만 사용합니다.
-- `members.photo_url`이 비어 있으면 `senderPhotoUrl`은 명시적 `null`입니다.
+- 각 메시지는 `senderPhotoUrl`을 포함합니다.
+- 앱 사용자 메시지는 `members.photo_url`을 사용하고, 값이 없으면 명시적 `null`입니다.
+- Minecraft origin 메시지는 `minecraftUuid` 기준 Minotar URL을 사용합니다. Bedrock은 Steve UUID fallback을 사용합니다.
 - `linked_accounts.photo_url` fallback은 사용하지 않습니다.
 
 **Query Parameters:**
@@ -1636,7 +1639,7 @@ Authorization:Bearer <firebase_id_token>
 
 - `IMAGE` 메시지의 `imageUrl`은 `POST /v1/images`의 `CHAT_IMAGE` 업로드 결과 URL을 그대로 사용합니다.
 - 실시간 수신 payload와 `GET /v1/chat-rooms/{chatRoomId}/messages`의 `messages[]` item shape는 동일합니다.
-- 일반 채팅 메시지의 `senderPhotoUrl`도 `members.photo_url`만 사용하며, 사진이 없으면 `null`입니다.
+- 일반 채팅 메시지의 `senderPhotoUrl`은 앱 사용자 메시지는 `members.photo_url`, Minecraft origin 메시지는 Minotar URL을 사용합니다.
 
 **채팅방 목록 요약 이벤트 포맷 (서버 → 클라이언트):**
 ```json
@@ -1672,7 +1675,7 @@ Authorization:Bearer <firebase_id_token>
 - `SYSTEM` 메시지 예: 동승 승인, 모집 마감, 모집 재개, 멤버 나가기
 - 파티 채팅 `CHAT_MESSAGE` push payload의 canonical 식별자는 항상 `chatRoomId`이며, 파티 채팅이라고 해서 별도 `partyId`를 추가하지 않습니다.
 - 파티 채팅 실시간 수신 payload와 `GET /v1/chat-rooms/{chatRoomId}/messages`의 `messages[]` item shape는 동일합니다.
-- 파티 채팅 메시지의 `senderPhotoUrl`도 `members.photo_url`만 사용하며, 사진이 없으면 `null`입니다.
+- 파티 채팅 메시지의 `senderPhotoUrl`은 `members.photo_url`을 사용하며, 사진이 없으면 `null`입니다.
 
 **전송 포맷:**
 ```json
@@ -6640,7 +6643,236 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ---
 
+## 13. Minecraft API
+
+> 구현 계획 문서: [minecraft-spring-migration-plan.md](./minecraft-spring-migration-plan.md)
+>
+> 본 섹션은 "마인크래프트 RTDB 연동을 Spring 도메인으로 이관"하기 위한 목표 계약이다. 실제 구현 PR에서는 `/v3/api-docs`를 최종 기준으로 동기화한다.
+
+### 13.1 핵심 원칙
+
+- 마인크래프트 채팅방 canonical room id는 `public:game:minecraft`다.
+- 앱의 마인크래프트 채팅은 기존 Chat API + STOMP를 그대로 사용한다.
+- 마인크래프트 상세 정보(서버 상태/플레이어 목록/계정 등록)는 별도 `Minecraft API`로 제공한다.
+- 플러그인은 `/internal/minecraft/**`로 접속하며 `X-Skuri-Minecraft-Secret` 헤더 인증이 필요하다.
+- 마인크래프트 origin 메시지의 `senderPhotoUrl`은 Minotar URL을 사용한다.
+- 마인크래프트방 `SYSTEM` 메시지는 GAME room 예외 정책으로 push/inbox 대상에 포함한다.
+
+### 13.2 Public API
+
+#### `GET /v1/minecraft/overview`
+
+서버 상태 카드와 마인크래프트 채팅방 진입 정보를 조회한다.
+
+**인증:** 필요
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "chatRoomId": "public:game:minecraft",
+    "online": true,
+    "currentPlayers": 12,
+    "maxPlayers": 50,
+    "version": "1.21.1",
+    "serverAddress": "mc.skuri.app",
+    "mapUrl": "https://map.skuri.app",
+    "lastHeartbeatAt": "2026-03-30T13:20:00Z"
+  }
+}
+```
+
+#### `GET /v1/minecraft/players`
+
+화이트리스트 플레이어 목록과 현재 온라인 상태를 조회한다.
+
+**인증:** 필요
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "accountId": "account-uuid",
+      "ownerMemberId": "member-1",
+      "accountRole": "SELF",
+      "edition": "JAVA",
+      "gameName": "skuriPlayer",
+      "avatarUuid": "8667ba71b85a4004af54457a9734eed7",
+      "online": true,
+      "lastSeenAt": "2026-03-30T13:18:00Z"
+    }
+  ]
+}
+```
+
+#### `GET /v1/members/me/minecraft-accounts`
+
+내가 등록한 본인/친구 마인크래프트 계정 목록을 조회한다.
+
+**인증:** 필요
+
+#### `POST /v1/members/me/minecraft-accounts`
+
+마인크래프트 계정을 등록한다.
+
+**인증:** 필요
+
+**Request:**
+
+```json
+{
+  "edition": "JAVA",
+  "accountRole": "SELF",
+  "gameName": "skuriPlayer"
+}
+```
+
+**정책:**
+
+- 회원당 총 4개까지만 등록 가능
+- 본인 계정은 1개만 허용
+- 친구 계정은 최대 3개
+- Java는 Mojang lookup 기반 UUID 검증
+- Bedrock은 기존 이름 정규화 규칙을 유지
+
+#### `DELETE /v1/members/me/minecraft-accounts/{accountId}`
+
+마인크래프트 계정을 삭제한다.
+
+**인증:** 필요
+
+**정책:**
+
+- friend 계정이 달린 parent 자기 계정은 삭제할 수 없다.
+- 삭제 성공 시 whitelist remove event를 발행한다.
+
+### 13.3 Public SSE
+
+#### `GET /v1/sse/minecraft`
+
+마인크래프트 상세 화면용 실시간 상태 스트림.
+
+**인증:** 필요
+
+**Content-Type:** `text/event-stream`
+
+이벤트 종류:
+
+- `SERVER_STATE_SNAPSHOT`
+- `SERVER_STATE_UPDATED`
+- `PLAYERS_SNAPSHOT`
+- `PLAYER_UPSERT`
+- `PLAYER_REMOVE`
+- `HEARTBEAT`
+
+**예시 (`SERVER_STATE_UPDATED`):**
+
+```text
+event: SERVER_STATE_UPDATED
+data: {"online":true,"currentPlayers":12,"maxPlayers":50,"version":"1.21.1","lastHeartbeatAt":"2026-03-30T13:20:00Z"}
+```
+
+### 13.4 Internal Plugin API
+
+#### 공통 인증
+
+모든 `/internal/minecraft/**` 요청은 아래 헤더가 필요하다.
+
+```http
+X-Skuri-Minecraft-Secret: <shared-secret>
+```
+
+이 값은 플러그인과 Spring 서버만 아는 공유 비밀값이며, 사용자 인증 토큰과 별도다.
+
+#### `POST /internal/minecraft/chat/messages`
+
+플러그인이 마인크래프트 채팅/시스템 메시지를 서버로 전달한다.
+
+**Request:**
+
+```json
+{
+  "eventId": "9fa37c63-2c5a-4d1d-8a28-55b72750e79d",
+  "eventType": "CHAT",
+  "systemType": null,
+  "senderName": "skuriPlayer",
+  "minecraftUuid": "8667ba71b85a4004af54457a9734eed7",
+  "edition": "JAVA",
+  "text": "안녕하세요!",
+  "occurredAt": "2026-03-30T13:20:00Z"
+}
+```
+
+`eventType`:
+
+- `CHAT`
+- `SYSTEM`
+
+`systemType`:
+
+- `JOIN`
+- `LEAVE`
+- `DEATH`
+- `SPECIAL`
+- `STARTUP`
+- `SHUTDOWN`
+
+#### `PUT /internal/minecraft/server-state`
+
+플러그인이 서버 heartbeat와 상태 정보를 upsert한다.
+
+#### `PUT /internal/minecraft/online-players`
+
+플러그인이 현재 온라인 플레이어 스냅샷을 upsert한다.
+
+#### `GET /internal/minecraft/stream`
+
+플러그인용 outbound SSE.
+
+**추가 헤더:**
+
+```http
+Last-Event-ID: <optional>
+```
+
+이벤트 종류:
+
+- `CHAT_FROM_APP`
+- `WHITELIST_SNAPSHOT`
+- `WHITELIST_UPSERT`
+- `WHITELIST_REMOVE`
+- `HEARTBEAT`
+
+**예시 (`CHAT_FROM_APP`):**
+
+```text
+event: CHAT_FROM_APP
+id: 8c6a60c5-cc35-4e52-9afc-1a6d1fbcdb0d
+data: {"messageId":"dfd5b4b1-54ea-4fa1-92d9-b61a931d0d56","chatRoomId":"public:game:minecraft","senderName":"홍길동","type":"IMAGE","text":"홍길동님이 사진을 보냈습니다."}
+```
+
+### 13.5 Minecraft 전용 에러 코드 초안
+
+| 에러 코드 | HTTP | 설명 |
+|----------|------|------|
+| `MINECRAFT_ACCOUNT_LIMIT_EXCEEDED` | 409 | 등록 가능한 마인크래프트 계정 개수 초과 |
+| `MINECRAFT_SELF_ACCOUNT_ALREADY_EXISTS` | 409 | 본인 계정은 1개만 등록 가능 |
+| `MINECRAFT_FRIEND_ACCOUNT_LIMIT_EXCEEDED` | 409 | 친구 계정은 최대 3개까지만 등록 가능 |
+| `MINECRAFT_PARENT_ACCOUNT_REQUIRED` | 409 | friend 계정 등록에는 parent 자기 계정이 필요 |
+| `MINECRAFT_PARENT_ACCOUNT_DELETE_NOT_ALLOWED` | 409 | friend 계정이 연결된 parent 계정은 삭제 불가 |
+| `MINECRAFT_ACCOUNT_DUPLICATED` | 409 | 이미 등록된 마인크래프트 계정 |
+| `MINECRAFT_SECRET_INVALID` | 403 | 플러그인 shared secret 불일치 |
+| `MINECRAFT_SERVER_UNAVAILABLE` | 503 | 마인크래프트 서버 상태 미수신 또는 연결 불가 |
+
+---
+
 > 변경 이력
+> - 2026-03-30: Minecraft API 초안 추가 — `GET /v1/minecraft/overview`, `GET /v1/minecraft/players`, `GET/POST/DELETE /v1/members/me/minecraft-accounts*`, `GET /v1/sse/minecraft`, `/internal/minecraft/**` 및 shared secret 정책을 문서화
 > - 2026-03-29: Admin Dashboard API 계약 추가
 >   - `GET /v1/admin/dashboard/summary`, `GET /v1/admin/dashboard/activity`, `GET /v1/admin/dashboard/recent-items`를 추가
 >   - `Asia/Seoul` 일자 버킷, `totalMembers` 전체 row 기준, 게시된 앱 공지 source만 recent feed에 포함하는 규칙을 명시
@@ -6673,6 +6905,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 - [도메인 분석](./domain-analysis.md)
 - [역할 정의](./role-definition.md)
 - [ERD](./erd.md)
+- [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md)
 - [Firestore 데이터 구조](../firestore-data-structure.md)
 
 ---
@@ -6686,7 +6919,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 > - 2026-03-05: Phase 3 구현 반영 — 채팅 커서 페이지네이션(`cursorCreatedAt`,`cursorId`) 명시, `lastReadAt` 단조 증가/미읽음 경계(`createdAt > lastReadAt`) 확정, STOMP 경로를 `/app/chat/{chatRoomId}`·`/topic/chat/{chatRoomId}`로 동기화
 > - 2026-03-05: Chat 계약 동기화 — `lastMessage.createdAt`/`accountData` 필드로 통일, 비공개 채팅방 접근 정책(REST/WS) 및 STOMP 에러 포맷(`/user/queue/errors`) 명시
 > - 2026-03-05: Chat 명세 보완 — 채팅방 요약 `lastMessage.senderName` 예시 추가, STOMP 메시지 `NON_NULL` 직렬화 정책 명시
-> - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, source of truth를 `members.photo_url`로 고정하고 `null` 직렬화 정책을 명시
+> - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, 기본 source of truth를 `members.photo_url`로 두고 `null` 직렬화 정책을 명시
 > - 2026-03-29: Admin Dashboard API 추가 — 관리자 대시보드 KPI/활동 추이/최근 운영 항목 read-model 계약과 `Asia/Seoul` 일자 버킷, 게시 공지 source, `totalMembers` 전체 row 집계 기준을 `/v3/api-docs` 기준으로 동기화
 > - 2026-03-29: Admin Member Activity API 추가 — `GET /v1/admin/members/{memberId}/activity`를 ACTIVE 회원 + 현재 저장 데이터 기준 read model로 추가하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리
 > - 2026-03-29: Admin Member API review fix — `PATCH /v1/admin/members/{memberId}/admin-role`에 self role change 금지(`400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`)를 추가하고, admin-role 감사 로그 snapshot을 최소 필드만 저장하도록 조정. 관리자 상세 응답의 `bankAccount`/`notificationSetting` 계약은 유지
