@@ -5,6 +5,7 @@
 - Service가 비즈니스 규칙, 상태 전이, 권한 판단을 담당한다.
 - 부가효과(알림, SSE fan-out, push)는 핵심 트랜잭션과 분리한다.
 - SSE subscribe 메서드는 long-lived request 수명을 트랜잭션/JPA 세션 수명과 섞지 않는다. 초기 snapshot은 전용 read-only 서비스에서 DTO payload로 계산한 뒤 emitter를 생성/등록/전송한다.
+- 마인크래프트 bridge는 앱용 STOMP와 분리된 전용 internal HTTP + SSE 채널로 유지한다. 플러그인 인증은 `X-Skuri-Minecraft-Secret` 헤더 기반이고, source of truth는 Firebase RTDB가 아니라 Spring/MySQL이다.
 - 상태 변경 후 알림 발행은 `AfterCommitApplicationEventPublisher`로 after-commit semantics를 보장한다.
 - 회원 탈퇴는 hard delete 대신 tombstone(`status=WITHDRAWN`, `withdrawnAt`) + 개인정보 스크럽을 기본으로 한다.
 - 탈퇴로 인한 외부 후처리(Firebase 삭제, SSE 연결 종료)는 핵심 트랜잭션 안에서 직접 처리하지 않고 after-commit 리스너로 분리한다.

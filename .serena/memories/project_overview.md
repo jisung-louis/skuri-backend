@@ -15,6 +15,7 @@
 - member: 회원, 프로필, 알림 설정, FCM 토큰, 탈퇴/재가입 정책
 - taxiparty: 파티 생성/참여/정산/상태 전이, SSE, 택시 history/summary, 홈 목록 요약 `PartySummaryResponse.participantSummaries`로 현재 멤버 `id/photoUrl/nickname/isLeader`를 함께 제공
 - chat: 공개 채팅방/파티 채팅방, SYSTEM/ARRIVED/END 서버 메시지, 공개방 seed, 메시지 payload `senderPhotoUrl`은 `members.photo_url`만 사용
+- minecraft: `public:game:minecraft` 공개 채팅방, plugin 전용 internal bridge(`/internal/minecraft/**` + SSE), 앱/플러그인 간 양방향 채팅, 서버 상태, 온라인 플레이어 스냅샷, 화이트리스트/JE·BE 검증 정책을 Spring이 source of truth로 관리
 - board: 게시글/댓글/좋아요/북마크, 이미지 썸네일 규칙
 - notice: 학교 공지/댓글/읽음/북마크/앱 공지
 - academic: 강의/시간표/학사 일정, `GET /v1/timetables/my/semesters`, 직접 입력 강의(`UserTimetableManualCourse`), 공식 강의 `Course.isOnline`, 시간표 응답 `courses[] + slots[]` + `isOnline` 계약. 공식 온라인 강의는 직접 입력 온라인 강의와 같은 의미로 `slots[]`/충돌 검사에서 제외하지만 저장 모델은 분리 유지

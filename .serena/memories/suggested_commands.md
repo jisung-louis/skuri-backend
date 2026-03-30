@@ -20,6 +20,13 @@
 ./gradlew build
 ```
 
+## Minecraft bridge 작업 검증
+```bash
+./gradlew test --tests "com.skuri.skuri_backend.domain.minecraft.controller.*" --tests "com.skuri.skuri_backend.domain.minecraft.service.MinecraftAccountServiceDataJpaTest"
+./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest"
+./gradlew build
+```
+
 ## 자주 쓰는 테스트
 ```bash
 ./gradlew test

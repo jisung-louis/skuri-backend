@@ -17,7 +17,8 @@
 8-7. Academic 계약을 바꿨다면 공식 강의 `isOnline` 값이 `/v1/courses`와 `/v1/timetables/my`에 실제로 반영되는지, 공식 온라인 강의가 `courses[]`에는 보이지만 `slots[]`에는 없고 충돌 검사에서도 제외되는지, `POST /v1/admin/courses/bulk`에서 `isOnline=true + schedule=[]` 성공 / `isOnline=true + schedule 존재` 422 / `isOnline` 생략 하위호환을 함께 확인한다. backend 문서와 `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`, `/Users/jisung/SKTaxi/docs/spring-migration/domain-analysis.md`, `/Users/jisung/SKTaxi/docs/spring-migration/implementation-roadmap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/README.md` 동기화를 확인한다.
 9. 회원 라이프사이클 변경이면 탈퇴 후 접근 차단, 동일 UID 재가입 차단, 연관 도메인 정합성 회귀 확인
 10. SSE/Auth long-lived 경로를 건드렸다면 subscribe 메서드가 트랜잭션을 오래 유지하지 않는지, `spring.jpa.open-in-view=false`가 공통 설정에 유지되는지, Firebase auth async 재디스패치에서 member 조회가 재실행되지 않는지 확인
-11. Serena Memory 동기화 확인
+11. 마인크래프트 bridge를 건드렸다면 `/internal/minecraft/**`, `/v1/minecraft/**`, `/v1/members/me/minecraft-accounts/**`, `/v1/sse/minecraft`의 200/4xx 계약, Minotar avatar 규칙, plugin outbound SSE 이벤트(`CHAT_FROM_APP`, `WHITELIST_SNAPSHOT`, `WHITELIST_UPSERT`, `WHITELIST_REMOVE`, `HEARTBEAT`)와 문서 동기화를 확인한다.
+12. Serena Memory 동기화 확인
 12. Admin 공통 변경이면 대표 Admin API에 대해 `401` / `403 ADMIN_REQUIRED` / 관리자 성공 시나리오를 확인한다.
 13. 상태 변경 Admin API를 건드렸다면 `admin_audit_logs` row 생성과 `actor/target/diff` snapshot을 확인하고, `target_id`가 raw 입력이 아닌 canonical 키로 저장되는지 함께 확인한다.
 14. Support Admin 목록 규약을 바꿨다면 `page/size` validation, `PageResponse`, 고정 정렬 문서 동기화를 함께 확인한다.
