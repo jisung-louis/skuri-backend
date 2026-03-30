@@ -22,8 +22,12 @@ import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.minecraft.config.MinecraftBridgeProperties;
+import com.skuri.skuri_backend.domain.minecraft.service.MinecraftAvatarService;
+import com.skuri.skuri_backend.domain.minecraft.service.MinecraftBridgeOutboxService;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -51,6 +55,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,8 +87,22 @@ class ChatServiceTest {
     @Mock
     private AfterCommitApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private MinecraftAvatarService minecraftAvatarService;
+
+    @Mock
+    private MinecraftBridgeOutboxService minecraftBridgeOutboxService;
+
+    @Mock
+    private MinecraftBridgeProperties minecraftBridgeProperties;
+
     @InjectMocks
     private ChatService chatService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(minecraftBridgeProperties.normalizedRoomId()).thenReturn("public:game:minecraft");
+    }
 
     @Test
     void getChatRooms_다른학과공개방은_목록에서숨긴다() {

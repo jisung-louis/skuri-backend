@@ -38,7 +38,10 @@ class OpenApiSuccessSchemaCoverageIntegrationTest {
             new OperationKey("delete", "/v1/admin/academic-schedules/{scheduleId}"),
             new OperationKey("delete", "/v1/admin/parties/{partyId}/members/{memberId}"),
             new OperationKey("delete", "/v1/parties/{id}/members/{memberId}"),
-            new OperationKey("delete", "/v1/parties/{id}/members/me")
+            new OperationKey("delete", "/v1/parties/{id}/members/me"),
+            new OperationKey("post", "/internal/minecraft/chat/messages"),
+            new OperationKey("put", "/internal/minecraft/server-state"),
+            new OperationKey("put", "/internal/minecraft/online-players")
     );
 
     @Autowired
