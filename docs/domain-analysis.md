@@ -1,6 +1,6 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-29
+> 최종 수정일: 2026-03-30
 > 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
 
 본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
@@ -43,7 +43,7 @@
 | 항목 | 결정 | 근거 |
 |------|------|------|
 | 파티 채팅 | TaxiParty 도메인에서 규칙 관리, Chat 엔진 사용 | 계좌 공유, 도착/정산 메시지 등 파티 고유 규칙 존재 |
-| Minecraft 연동 | 별도 도메인 분리 안함 | 확장 계획 없음 |
+| Minecraft 연동 | `Minecraft` 도메인 + `Chat` 연계 | 플러그인/화이트리스트/서버 상태/검증을 Spring으로 이관 |
 | Settlement(정산) | Party 내부에 임베디드 | 실제 결제/송금 API 연동 계획 없음 |
 | Notification | 인프라 계층으로 유지 | 자체 비즈니스 규칙 없음, 이벤트 결과 전달용 |
 
@@ -51,17 +51,18 @@
 
 ## 2. 도메인 목록
 
-### 2.1 최종 도메인 (7개 + 인프라)
+### 2.1 최종 도메인 (8개 + 인프라)
 
 | # | 도메인 | 유형 | 핵심 책임 | 주요 엔티티 |
 |---|--------|------|----------|------------|
 | 1 | **Member** | Core | 회원 프로필, 계정 정보, 알림 설정 | Member, NotificationSetting, LinkedAccount, BankAccount |
 | 2 | **TaxiParty** | Core | 택시 동승 모집, 요청 처리, 정산, 파티 채팅 규칙 | Party, JoinRequest, Settlement, PartyMessage |
 | 3 | **Chat** | Supporting | 공개 채팅방 관리, 메시지 교환 (채팅 엔진) | ChatRoom, ChatMessage, ChatRoomMember |
-| 4 | **Board** | Supporting | 게시글 CRUD, 댓글, 좋아요/북마크 | Post, Comment, PostInteraction |
-| 5 | **Notice** | Supporting | 학교 공지 크롤링/조회, 앱 공지 | Notice, NoticeComment, AppNotice, NoticeReadStatus, AppNoticeReadStatus |
-| 6 | **Academic** | Generic | 강의 정보, 시간표, 학사 일정 | Course, UserTimetable, AcademicSchedule |
-| 7 | **Support** | Generic | 문의/신고 접수, 앱 버전, 법적 문서, 학식 메뉴 | Inquiry, Report, AppVersion, LegalDocument, CafeteriaMenu |
+| 4 | **Minecraft** | Supporting | 마인크래프트 계정/화이트리스트, 서버 상태, 플러그인 bridge | MinecraftAccount, MinecraftServerState, MinecraftOnlinePlayer, MinecraftBridgeEvent |
+| 5 | **Board** | Supporting | 게시글 CRUD, 댓글, 좋아요/북마크 | Post, Comment, PostInteraction |
+| 6 | **Notice** | Supporting | 학교 공지 크롤링/조회, 앱 공지 | Notice, NoticeComment, AppNotice, NoticeReadStatus, AppNoticeReadStatus |
+| 7 | **Academic** | Generic | 강의 정보, 시간표, 학사 일정 | Course, UserTimetable, AcademicSchedule |
+| 8 | **Support** | Generic | 문의/신고 접수, 앱 버전, 법적 문서, 학식 메뉴 | Inquiry, Report, AppVersion, LegalDocument, CafeteriaMenu |
 | - | **Notification** | Infra | 도메인 이벤트 기반 알림 인박스 | UserNotification |
 
 ### 2.2 도메인 유형 정의
@@ -352,12 +353,17 @@ Hooks:
   - 공개방 create/join은 가입 완료된 active member만 가능하며, 미가입 UID는 `MEMBER_NOT_FOUND`
   - 커스텀 공개방 생성자는 자동으로 joined 상태가 되며, join 시 초기 unread는 0으로 시작한다
   - 공개방 참여/나가기와 파티 채팅 멤버 입장/퇴장은 실제 `SYSTEM` chat message를 저장하고 `/topic/chat/{chatRoomId}`로 브로드캐스트한다
-  - REST/STOMP `ChatMessageResponse`는 `senderPhotoUrl`(nullable)을 포함하고, 값은 `members.photo_url`만 사용한다. `linked_accounts.photo_url` fallback은 사용하지 않는다.
+  - REST/STOMP `ChatMessageResponse`는 `senderPhotoUrl`(nullable)을 포함한다.
+    - 앱 사용자 메시지: `members.photo_url`
+    - Minecraft origin 메시지: Minotar URL (`minecraftUuid` 기준)
+    - 시스템 메시지: `null`
+  - `linked_accounts.photo_url` fallback은 사용하지 않는다.
   - 멤버 입장 직후 생성된 join `SYSTEM` 메시지는 해당 신규 멤버의 `lastReadAt`을 서버가 최신 메시지 시각으로 맞춰 unread가 0으로 유지되게 한다
   - 회원 프로필 학과 변경 시 기존 학과방 membership은 자동 제거하고, 새 학과방은 자동 참여시키지 않는다
   - 채팅방 목록 실시간: `/user/queue/chat-rooms` 사용자 전용 요약 채널 1개 구독
   - 채팅방 상세 실시간: `/topic/chat/{chatRoomId}` 방 단위 구독
   - 채팅방 메시지 전송: `/app/chat/{chatRoomId}`
+  - 마인크래프트 canonical 공개방은 `public:game:minecraft`로 고정하고, 앱/플러그인 양방향 메시지는 별도 `minecraft` 도메인 bridge가 fan-out 한다.
   - STOMP 에러 수신: `/user/queue/errors` (`errorCode/message/timestamp`)
   - WS 인가: CONNECT 인증 후에도 SEND/SUBSCRIBE 시 채팅방 멤버십을 서버에서 추가 검증
   - 미읽음 계산: `message.createdAt > lastReadAt` 기준 (동일 시각은 읽음)
@@ -368,7 +374,64 @@ Hooks:
   - 과거 `chat_messages.senderName`은 Phase 10에서 일괄 수정하지 않고 이력 보존을 우선
 ```
 
-### 3.4 Board (게시판)
+### 3.4 Minecraft (마인크래프트)
+
+```
+책임: 마인크래프트 계정 등록/화이트리스트, 서버 상태, 온라인 플레이어, 플러그인 bridge 관리
+
+현재 구조 근거:
+  - Paper 플러그인: Firebase RTDB `mc_chat/messages`, `serverStatus`, `whitelist/*`
+  - 앱: Minecraft 상세 화면의 RTDB/Mock repository 의존
+  - Cloud Functions: RTDB -> Firestore 공개 채팅방 메시지 동기화
+
+목표 구조:
+  - 공개 채팅방 canonical id는 `public:game:minecraft`
+  - 앱 채팅은 기존 Chat REST + STOMP를 그대로 사용
+  - 앱의 서버 상태/플레이어 목록/계정 등록은 `minecraft` 도메인 public API + SSE 사용
+  - 플러그인은 `minecraft` 도메인의 internal HTTP + SSE bridge에 연결
+
+Public API:
+  - `GET /v1/minecraft/overview`
+  - `GET /v1/minecraft/players`
+  - `GET /v1/members/me/minecraft-accounts`
+  - `POST /v1/members/me/minecraft-accounts`
+  - `DELETE /v1/members/me/minecraft-accounts/{accountId}`
+  - `GET /v1/sse/minecraft`
+
+Internal API:
+  - `POST /internal/minecraft/chat/messages`
+  - `PUT /internal/minecraft/server-state`
+  - `PUT /internal/minecraft/online-players`
+  - `GET /internal/minecraft/stream`
+
+엔티티/Read model:
+  - MinecraftAccount
+    - ownerMemberId, parentAccountId, accountRole(SELF/FRIEND)
+    - edition(JAVA/BEDROCK), gameName, normalizedKey, avatarUuid
+    - lastSeenAt
+  - MinecraftServerState
+    - serverKey, online, currentPlayers, maxPlayers
+    - version, serverAddress, mapUrl, lastHeartbeatAt
+  - MinecraftOnlinePlayer
+    - serverKey, normalizedKey, edition, playerName
+    - avatarUuid, minecraftAccountId, verified, joinedAt
+  - MinecraftBridgeEvent
+    - eventId, eventType, payload, expiresAt
+
+비즈니스 규칙:
+  - 회원당 총 4개 계정까지 등록 가능
+  - 본인 계정은 1개만 허용
+  - 친구 계정은 최대 3개
+  - 친구 계정이 있으면 parent 자기 계정 삭제 금지
+  - Java는 Mojang lookup 기반 UUID 검증, Bedrock은 기존 name normalization 규칙 유지
+  - 화이트리스트 enabled on/off는 서버 설정값으로만 관리하고 앱/관리자 실시간 토글은 제공하지 않음
+  - 앱 -> 마인크래프트는 `TEXT` 그대로 전달, `IMAGE`는 placeholder text로 변환
+  - 마인크래프트 -> 앱 senderName은 무조건 Minecraft 닉네임 사용
+  - Minecraft origin `senderPhotoUrl`은 Minotar URL을 사용하고, Bedrock은 Steve UUID fallback을 사용
+  - 마인크래프트방 `SYSTEM` 메시지는 공개방 일반 membership 메시지와 달리 push/inbox 대상에 포함
+```
+
+### 3.5 Board (게시판)
 
 ```
 책임: 커뮤니티 게시글 및 상호작용 관리
@@ -452,7 +515,7 @@ Hooks:
   - `DELETED`는 복구하지 않고, `HIDDEN <-> VISIBLE`만 허용한다. 같은 상태 재요청이나 `DELETED -> *`는 `409`로 차단한다.
 ```
 
-### 3.5 Notice (공지사항)
+### 3.6 Notice (공지사항)
 
 ```
 책임: 학교 공지 수집 및 앱 공지 관리
@@ -554,7 +617,7 @@ Hooks:
   입찰구매정보, 사회봉사센터, 장애학생지원센터, 생활관, 비교과
 ```
 
-### 3.6 Academic (학사 정보)
+### 3.7 Academic (학사 정보)
 
 ```
 책임: 강의/시간표/학사일정 정보 제공
@@ -620,7 +683,7 @@ Hooks:
   - `user_timetables`는 탈퇴 회원 기준으로 전량 삭제
 ```
 
-### 3.7 Support (지원/운영)
+### 3.8 Support (지원/운영)
 
 ```
 책임: 문의/신고 접수, 앱 버전 관리, 법적 문서 관리, 학식 메뉴
@@ -995,6 +1058,16 @@ com.skuri.skuri_backend
 
 > `chat`, `board`, `notice`, `academic`, `support`, `notification` 패키지는
 > 로드맵 Phase 2 이후 순차 구현 시 같은 `domain/*`, `infra/*` 규칙으로 확장한다.
+>
+> Phase 13에서는 아래 패키지를 추가한다.
+>
+> - `domain/minecraft`
+>   - `controller`: public API, internal bridge API, public SSE, internal SSE
+>   - `dto/request`, `dto/response`
+>   - `entity`
+>   - `exception`
+>   - `repository`
+>   - `service`
 
 ---
 
@@ -1382,6 +1455,7 @@ public class ChatMessage extends BaseTimeEntity {
     @Column(nullable = false)
     private String chatRoomId;
 
+    // 앱 사용자는 member id, Minecraft origin 메시지는 synthetic sender key 사용
     @Column(nullable = false)
     private String senderId;
 
@@ -1420,7 +1494,100 @@ public enum MessageDirection {
 }
 ```
 
-### 7.4 TaxiParty ↔ Chat 협력 구조
+### 7.4 Minecraft 도메인
+
+```java
+@Entity
+@Table(name = "minecraft_accounts")
+public class MinecraftAccount extends BaseTimeEntity {
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+
+    @Column(nullable = false)
+    private String ownerMemberId;
+
+    private String parentAccountId;
+
+    @Enumerated(EnumType.STRING)
+    private MinecraftAccountRole accountRole; // SELF, FRIEND
+
+    @Enumerated(EnumType.STRING)
+    private MinecraftEdition edition; // JAVA, BEDROCK
+
+    @Column(nullable = false)
+    private String gameName;
+
+    @Column(nullable = false, unique = true)
+    private String normalizedKey; // uuid(without hyphen) or be:{normalized_name}
+
+    @Column(nullable = false)
+    private String avatarUuid;
+
+    private LocalDateTime lastSeenAt;
+}
+
+@Entity
+@Table(name = "minecraft_server_state")
+public class MinecraftServerState {
+    @Id
+    private String serverKey; // skuri
+
+    private boolean online;
+    private int currentPlayers;
+    private int maxPlayers;
+    private String version;
+    private String serverAddress;
+    private String mapUrl;
+    private LocalDateTime lastHeartbeatAt;
+}
+
+@Entity
+@Table(name = "minecraft_online_players")
+public class MinecraftOnlinePlayer extends BaseTimeEntity {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String serverKey;
+    private String normalizedKey;
+
+    @Enumerated(EnumType.STRING)
+    private MinecraftEdition edition;
+
+    private String playerName;
+    private String avatarUuid;
+    private String minecraftAccountId;
+    private boolean verified;
+    private LocalDateTime joinedAt;
+}
+
+@Entity
+@Table(name = "minecraft_bridge_events")
+public class MinecraftBridgeEvent extends BaseTimeEntity {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String eventId;
+
+    @Column(nullable = false)
+    private String eventType;
+
+    @Column(nullable = false, columnDefinition = "json")
+    private String payload;
+
+    private LocalDateTime expiresAt;
+}
+```
+
+- `minecraft_inbound_events`는 plugin -> backend 채팅/시스템 메시지의 `eventId`를 claim하고 `chat_message_id`를 기록해 at-least-once 재시도 중복을 차단한다.
+- 앱 공개 API는 계정/서버 상태/플레이어 목록 조회와 계정 등록/삭제를 담당한다.
+- 플러그인 internal API는 채팅/시스템 메시지/서버 상태/온라인 플레이어 스냅샷을 수신한다.
+- 플러그인 internal SSE는 앱 -> 마인크래프트 메시지와 whitelist snapshot/delta를 전달한다.
+- 앱 채팅은 기존 Chat 도메인 STOMP를 재사용하되, `public:game:minecraft` room만 Minecraft bridge와 연결한다.
+- plugin -> backend 메시지는 `eventId` 기반 idempotent 저장을 전제로 한다.
+- bridge outbox는 `Last-Event-ID` 기반 replay를 지원하며, 같은 `createdAt` 충돌 시 `minecraft_bridge_events.id`를 tie-breaker로 사용해 whitelist/app message 유실을 막는다.
+
+### 7.5 TaxiParty ↔ Chat 협력 구조
 
 - 파티 생성 시 `ChatService.createPartyChatRoom`이 `party:{partyId}` 비공개 채팅방을 생성/동기화한다.
 - 클라이언트 직접 전송 가능 타입은 `TEXT`, `IMAGE`, `ACCOUNT`만 허용한다.
@@ -1443,10 +1610,11 @@ public enum MessageDirection {
 | 1 | **Member** | 필수 | 모든 도메인의 기반, Auth와 함께 | 중 |
 | 2 | **TaxiParty** | 필수 | 앱의 핵심 비즈니스 | 상 |
 | 3 | **Chat** | 필수 | TaxiParty와 연동, WebSocket | 상 |
-| 4 | **Notice** | 높음 | 스케줄러(RSS) 포함, 독립적 | 중 |
-| 5 | **Board** | 중간 | 비교적 단순한 CRUD | 중 |
-| 6 | **Academic** | 낮음 | 읽기 위주, 낮은 복잡도 | 하 |
-| 7 | **Support** | 낮음 | 관리 기능, 마지막 | 하 |
+| 4 | **Minecraft** | 높음 | 기존 RTDB/Cloud Functions/플러그인을 Spring으로 흡수해야 함 | 상 |
+| 5 | **Notice** | 높음 | 스케줄러(RSS) 포함, 독립적 | 중 |
+| 6 | **Board** | 중간 | 비교적 단순한 CRUD | 중 |
+| 7 | **Academic** | 낮음 | 읽기 위주, 낮은 복잡도 | 하 |
+| 8 | **Support** | 낮음 | 관리 기능, 마지막 | 하 |
 
 ### 8.2 마이그레이션 체크리스트
 
@@ -1465,6 +1633,7 @@ public enum MessageDirection {
   - [x] Chat 도메인 구현 (WebSocket)
   - [x] 도메인 이벤트 + Notification 인프라
   - [x] FCM 푸시 연동
+  - [ ] Minecraft 도메인 구현 (public/internal API + bridge)
 
 - [x] **Phase 3: 부가 기능**
   - [x] Notice 도메인 + RSS 크롤러
@@ -1484,10 +1653,12 @@ public enum MessageDirection {
 - [Firestore 데이터 구조](../firestore-data-structure.md)
 - [백엔드 스펙](../SKTaxi-backend-spec.md)
 - [역할 정의](./role-definition.md)
+- [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md)
 
 ---
 
 > **문서 이력**
+> - 2026-03-30: Minecraft 도메인 분석 추가 — 별도 도메인 분리 결정, public/internal API, whitelist/서버 상태/bridge outbox 설계를 반영
 > - 2026-02-03: 초안 작성 (도메인 분석 완료)
 > - 2026-03-05: Board 도메인 구현 반영 — 댓글 depth 1 제한, 부모 placeholder soft delete 정책(B), 내 게시글/북마크 조회 책임 추가
 > - 2026-03-07: Board/Notice 공통 Comment 정책 구현 반영 — 무제한 depth, flat list 응답, 댓글 알림 설정 분리

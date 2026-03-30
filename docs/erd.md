@@ -1,6 +1,6 @@
 # Spring 백엔드 ERD (Entity Relationship Diagram)
 
-> 최종 수정일: 2026-03-29
+> 최종 수정일: 2026-03-30
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 
 ---
@@ -148,7 +148,7 @@ erDiagram
         int member_count "DEFAULT 0"
         int message_count "DEFAULT 0"
         varchar(500) last_message_text
-        varchar(36) last_message_sender_id
+        varchar(36) last_message_sender_id "member id or synthetic mc sender key"
         varchar(50) last_message_sender_name
         enum last_message_type "TEXT,IMAGE,SYSTEM,ACCOUNT,ARRIVED,END"
         datetime last_message_timestamp
@@ -167,7 +167,7 @@ erDiagram
     chat_messages {
         varchar(36) id PK "UUID"
         varchar(100) chat_room_id FK "NOT NULL"
-        varchar(36) sender_id FK "NOT NULL"
+        varchar(36) sender_id "NOT NULL, member id or synthetic mc sender key"
         varchar(50) sender_name
         text text
         enum type "TEXT,IMAGE,SYSTEM,ACCOUNT,ARRIVED,END"
@@ -176,6 +176,7 @@ erDiagram
         enum direction "MC_TO_APP,APP_TO_MC,SYSTEM"
         varchar(20) source "minecraft,app"
         varchar(50) minecraft_uuid
+        varchar(36) source_event_id UK "nullable, MC inbound dedupe key"
         datetime created_at
     }
 
@@ -183,6 +184,68 @@ erDiagram
     chat_rooms ||--o{ chat_messages : "contains"
     members ||--o{ chat_room_members : "joins"
     members ||--o{ chat_messages : "sends"
+
+    %% ===== MINECRAFT 도메인 =====
+    minecraft_accounts {
+        varchar(36) id PK "UUID"
+        varchar(36) owner_member_id FK "NOT NULL"
+        varchar(36) parent_account_id FK "nullable"
+        enum account_role "SELF,FRIEND"
+        enum edition "JAVA,BEDROCK"
+        varchar(50) game_name "NOT NULL"
+        varchar(100) normalized_key UK "uuid or be:{normalized_name}"
+        varchar(32) avatar_uuid "NOT NULL"
+        datetime last_seen_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    minecraft_server_state {
+        varchar(20) server_key PK "skuri"
+        boolean online
+        int current_players
+        int max_players
+        varchar(50) version
+        varchar(255) server_address
+        varchar(500) map_url
+        datetime last_heartbeat_at
+        datetime updated_at
+    }
+
+    minecraft_online_players {
+        bigint id PK "AUTO_INCREMENT"
+        varchar(20) server_key FK "NOT NULL"
+        varchar(100) normalized_key "NOT NULL"
+        enum edition "JAVA,BEDROCK"
+        varchar(50) player_name "NOT NULL"
+        varchar(32) avatar_uuid "NOT NULL"
+        varchar(36) minecraft_account_id FK "nullable"
+        boolean verified "DEFAULT false"
+        datetime joined_at
+        datetime updated_at
+    }
+
+    minecraft_bridge_events {
+        bigint id PK "AUTO_INCREMENT"
+        varchar(36) event_id UK "SSE replay id"
+        varchar(50) event_type
+        json payload
+        datetime expires_at
+        datetime created_at
+    }
+
+    minecraft_inbound_events {
+        varchar(36) event_id PK "플러그인 inbound event id"
+        varchar(36) chat_message_id FK "nullable"
+        datetime created_at
+        datetime updated_at
+    }
+
+    members ||--o{ minecraft_accounts : "owns"
+    minecraft_accounts ||--o{ minecraft_accounts : "parent-child"
+    minecraft_accounts ||--o{ minecraft_online_players : "matches"
+    minecraft_server_state ||--o{ minecraft_online_players : "contains"
+    minecraft_inbound_events ||--o| chat_messages : "maps"
 ```
 
 ### 1.2 Supporting 도메인 (Board, Notice, Campus)
@@ -726,7 +789,7 @@ Taxi history 계약 메모:
 |------|------|---------|------|
 | id | VARCHAR(36) | PK | UUID |
 | chat_room_id | VARCHAR(100) | FK, NOT NULL | 채팅방 ID |
-| sender_id | VARCHAR(36) | FK, NOT NULL | 발신자 ID |
+| sender_id | VARCHAR(36) | NOT NULL | member id 또는 synthetic mc sender key |
 | sender_name | VARCHAR(50) | | 발신자 이름 |
 | text | TEXT | | 메시지 내용 |
 | type | ENUM | NOT NULL | TEXT, IMAGE, SYSTEM, ACCOUNT, ARRIVED, END |
@@ -735,9 +798,70 @@ Taxi history 계약 메모:
 | direction | ENUM | | MC_TO_APP, APP_TO_MC, SYSTEM |
 | source | VARCHAR(20) | | minecraft, app |
 | minecraft_uuid | VARCHAR(50) | | MC UUID |
+| source_event_id | VARCHAR(36) | UK, NULL | 마인크래프트 inbound dedupe/event mapping key |
 | created_at | DATETIME | NOT NULL | 생성일 |
 
-### 2.4 Board 도메인
+### 2.4 Minecraft 도메인
+
+| 테이블 | 설명 | 예상 레코드 수 |
+|--------|------|---------------|
+| `minecraft_accounts` | 앱 사용자의 마인크래프트 계정/화이트리스트 source of truth | ~50,000 |
+| `minecraft_server_state` | 서버 상태 단일 read model | 1 |
+| `minecraft_online_players` | 현재 접속자 스냅샷 | ~100 |
+| `minecraft_bridge_events` | 플러그인 SSE replay용 outbox | ~10,000/일 |
+| `minecraft_inbound_events` | 플러그인 inbound message idempotency registry | ~10,000/일 |
+
+**minecraft_accounts 테이블 상세:**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| id | VARCHAR(36) | PK | UUID |
+| owner_member_id | VARCHAR(36) | FK, NOT NULL | 소유 회원 ID |
+| parent_account_id | VARCHAR(36) | FK | friend 계정의 parent 자기 계정 |
+| account_role | ENUM | NOT NULL | SELF, FRIEND |
+| edition | ENUM | NOT NULL | JAVA, BEDROCK |
+| game_name | VARCHAR(50) | NOT NULL | 사용자 표시용 닉네임 |
+| normalized_key | VARCHAR(100) | UK, NOT NULL | Java UUID 또는 `be:{normalized_name}` |
+| avatar_uuid | VARCHAR(32) | NOT NULL | Minotar avatar용 UUID |
+| last_seen_at | DATETIME | | 마지막 접속 시각 |
+| created_at | DATETIME | NOT NULL | 생성일 |
+| updated_at | DATETIME | NOT NULL | 수정일 |
+
+**minecraft_server_state 테이블 상세:**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| server_key | VARCHAR(20) | PK | 고정값 `skuri` |
+| online | BOOLEAN | NOT NULL | 현재 온라인 여부 |
+| current_players | INT | NOT NULL | 현재 접속 인원 |
+| max_players | INT | NOT NULL | 최대 인원 |
+| version | VARCHAR(50) | | 서버 버전 |
+| server_address | VARCHAR(255) | | 접속 주소 |
+| map_url | VARCHAR(500) | | Dynmap/웹맵 URL |
+| last_heartbeat_at | DATETIME | | 플러그인 마지막 heartbeat 수신 시각 |
+| updated_at | DATETIME | NOT NULL | 수정일 |
+
+**minecraft_bridge_events 테이블 상세:**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| id | BIGINT | PK, AUTO_INCREMENT | replay 정렬 tie-breaker |
+| event_id | VARCHAR(36) | UK, NOT NULL | SSE `id` |
+| event_type | VARCHAR(50) | NOT NULL | `CHAT_FROM_APP`, `WHITELIST_*`, `HEARTBEAT` |
+| payload | JSON | NOT NULL | 플러그인 전달 payload |
+| expires_at | DATETIME | | replay 보존 만료 시각 |
+| created_at | DATETIME | NOT NULL | 생성일 |
+
+**minecraft_inbound_events 테이블 상세:**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| event_id | VARCHAR(36) | PK, NOT NULL | 플러그인 inbound `eventId` |
+| chat_message_id | VARCHAR(36) | FK, NULL | 실제 저장된 `chat_messages.id` |
+| created_at | DATETIME | NOT NULL | 생성일 |
+| updated_at | DATETIME | NOT NULL | 수정일 |
+
+### 2.5 Board 도메인
 
 | 테이블 | 설명 | 예상 레코드 수 |
 |--------|------|---------------|
@@ -746,7 +870,7 @@ Taxi history 계약 메모:
 | `comments` | 댓글 | ~50,000/년 |
 | `post_interactions` | 좋아요/북마크 | ~100,000/년 |
 
-### 2.5 Notice 도메인
+### 2.6 Notice 도메인
 
 | 테이블 | 설명 | 예상 레코드 수 |
 |--------|------|---------------|
@@ -759,7 +883,7 @@ Taxi history 계약 메모:
 | `app_notice_read_status` | 앱 공지 읽음 상태 | ~500,000 |
 | `legal_documents` | 이용약관/개인정보 처리방침 | ~2 |
 
-### 2.6 Campus 도메인
+### 2.7 Campus 도메인
 
 | 테이블 | 설명 | 예상 레코드 수 |
 |--------|------|---------------|
@@ -787,7 +911,7 @@ Taxi history 계약 메모:
 | created_at | DATETIME | NOT NULL | 생성 시각 |
 | updated_at | DATETIME | NOT NULL | 수정 시각 |
 
-### 2.7 Academic 도메인
+### 2.8 Academic 도메인
 
 | 테이블 | 설명 | 예상 레코드 수 |
 |--------|------|---------------|
@@ -798,7 +922,7 @@ Taxi history 계약 메모:
 | `user_timetable_manual_courses` | 시간표 직접 입력 강의 | ~5,000/학기 |
 | `academic_schedules` | 학사 일정 | ~100/년 |
 
-### 2.8 Support 도메인
+### 2.9 Support 도메인
 
 | 테이블 | 설명 | 예상 레코드 수 |
 |--------|------|---------------|
@@ -809,7 +933,7 @@ Taxi history 계약 메모:
 | `cafeteria_menus` | 학식 메뉴 | ~52/년 |
 | `cafeteria_menu_reactions` | 학식 메뉴 사용자 반응 | ~50,000/년 |
 
-### 2.9 Notification 인프라
+### 2.10 Notification 인프라
 
 | 테이블 | 설명 | 예상 레코드 수 |
 |--------|------|---------------|
@@ -1028,7 +1152,29 @@ CREATE INDEX idx_chat_messages_room_created ON chat_messages(chat_room_id, creat
 CREATE INDEX idx_chat_messages_sender ON chat_messages(sender_id);
 ```
 
-### 4.4 Board 도메인
+### 4.4 Minecraft 도메인
+
+```sql
+-- minecraft_accounts
+CREATE INDEX idx_minecraft_accounts_owner ON minecraft_accounts(owner_member_id);
+CREATE INDEX idx_minecraft_accounts_parent ON minecraft_accounts(parent_account_id);
+CREATE UNIQUE INDEX uk_minecraft_accounts_normalized_key ON minecraft_accounts(normalized_key);
+
+-- minecraft_online_players
+CREATE INDEX idx_minecraft_online_players_server ON minecraft_online_players(server_key);
+CREATE INDEX idx_minecraft_online_players_normalized_key ON minecraft_online_players(normalized_key);
+CREATE INDEX idx_minecraft_online_players_verified ON minecraft_online_players(verified);
+
+-- minecraft_bridge_events
+CREATE UNIQUE INDEX uk_minecraft_bridge_events_event_id ON minecraft_bridge_events(event_id);
+CREATE INDEX idx_minecraft_bridge_events_replay ON minecraft_bridge_events(created_at, id);
+CREATE INDEX idx_minecraft_bridge_events_expires ON minecraft_bridge_events(expires_at);
+
+-- minecraft_inbound_events
+CREATE INDEX idx_minecraft_inbound_events_chat_message ON minecraft_inbound_events(chat_message_id);
+```
+
+### 4.5 Board 도메인
 
 ```sql
 -- posts
@@ -1054,7 +1200,7 @@ CREATE INDEX idx_post_interactions_user_liked ON post_interactions(user_id, is_l
 CREATE INDEX idx_post_interactions_user_bookmarked ON post_interactions(user_id, is_bookmarked);
 ```
 
-### 4.5 Notice 도메인
+### 4.6 Notice 도메인
 
 ```sql
 -- notices
@@ -1083,7 +1229,7 @@ CREATE INDEX idx_notice_likes_user ON notice_likes(user_id);
 CREATE INDEX idx_notice_bookmarks_user ON notice_bookmarks(user_id);
 ```
 
-### 4.6 Campus 도메인
+### 4.7 Campus 도메인
 
 ```sql
 -- campus_banners
@@ -1092,7 +1238,7 @@ CREATE INDEX idx_campus_banners_active_display ON campus_banners(is_active, disp
 CREATE INDEX idx_campus_banners_display_window ON campus_banners(display_start_at, display_end_at);
 ```
 
-### 4.7 Academic 도메인
+### 4.8 Academic 도메인
 
 ```sql
 -- courses
@@ -1115,14 +1261,14 @@ CREATE INDEX idx_academic_schedules_date ON academic_schedules(start_date, end_d
 CREATE INDEX idx_academic_schedules_primary ON academic_schedules(is_primary);
 ```
 
-### 4.8 Support 도메인
+### 4.9 Support 도메인
 
 ```sql
 -- reports
 CREATE UNIQUE INDEX uk_reports_reporter_target ON reports(reporter_id, target_type, target_id);
 ```
 
-### 4.9 Notification 인프라
+### 4.10 Notification 인프라
 
 ```sql
 -- user_notifications
@@ -1145,11 +1291,13 @@ CREATE INDEX idx_audit_logs_timestamp ON admin_audit_logs(timestamp DESC);
 ## 참고
 
 - [도메인 분석](./domain-analysis.md)
+- [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md)
 - [Firestore 데이터 구조](../firestore-data-structure.md)
 
 ---
 
 > **문서 이력**
+> - 2026-03-30: Minecraft 도메인 테이블 추가 — `minecraft_accounts`, `minecraft_server_state`, `minecraft_online_players`, `minecraft_bridge_events`와 관련 인덱스, chat sender key/Minotar 전제를 반영
 > - 2026-02-03: 초안 작성
 > - 2026-03-05: Board 댓글 정책 동기화 — `comments.parent_id` 관계를 부모 보존 정책(B)에 맞게 정정(`ON DELETE SET NULL`), depth 1 제약/placeholder soft delete 설명 반영
 > - 2026-03-07: Board/Notice 댓글 정책 구현 반영 — 무제한 self-reference, 댓글 알림 설정 컬럼(`comment_notifications`, `bookmarked_post_comment_notifications`) 반영

@@ -6,6 +6,7 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @DataJpaTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class NoticeBookmarkRepositoryDataJpaTest {
 
     @Autowired

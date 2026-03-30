@@ -58,6 +58,14 @@ chat:
   websocket:
     allowed-origin-patterns: ${CHAT_WS_ALLOWED_ORIGIN_PATTERNS:}
 
+minecraft:
+  bridge:
+    shared-secret: ${MINECRAFT_BRIDGE_SHARED_SECRET:}
+    room-id: ${MINECRAFT_BRIDGE_ROOM_ID:public:game:minecraft}
+    server-key: ${MINECRAFT_BRIDGE_SERVER_KEY:skuri}
+    default-avatar-uuid: ${MINECRAFT_BRIDGE_DEFAULT_AVATAR_UUID:8667ba71b85a4004af54457a9734eed7}
+    replay-ttl-seconds: ${MINECRAFT_BRIDGE_REPLAY_TTL_SECONDS:86400}
+
 management:
   endpoints:
     web:

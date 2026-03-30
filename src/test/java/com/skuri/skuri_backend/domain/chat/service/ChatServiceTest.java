@@ -22,8 +22,12 @@ import com.skuri.skuri_backend.domain.chat.repository.ChatRoomMemberRepository;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.minecraft.config.MinecraftBridgeProperties;
+import com.skuri.skuri_backend.domain.minecraft.service.MinecraftAvatarService;
+import com.skuri.skuri_backend.domain.minecraft.service.MinecraftBridgeOutboxService;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Location;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -51,6 +55,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,8 +87,22 @@ class ChatServiceTest {
     @Mock
     private AfterCommitApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private MinecraftAvatarService minecraftAvatarService;
+
+    @Mock
+    private MinecraftBridgeOutboxService minecraftBridgeOutboxService;
+
+    @Mock
+    private MinecraftBridgeProperties minecraftBridgeProperties;
+
     @InjectMocks
     private ChatService chatService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(minecraftBridgeProperties.normalizedRoomId()).thenReturn("public:game:minecraft");
+    }
 
     @Test
     void getChatRooms_다른학과공개방은_목록에서숨긴다() {
@@ -165,6 +184,43 @@ class ChatServiceTest {
         assertEquals(2, response.messages().size());
         assertEquals("https://cdn.skuri.app/uploads/profiles/sender-1.jpg", response.messages().get(0).senderPhotoUrl());
         assertNull(response.messages().get(1).senderPhotoUrl());
+    }
+
+    @Test
+    void createMinecraftInboundMessage_같은SourceEventId면_기존메시지를재사용한다() {
+        ChatMessage existingMessage = ChatMessage.create(
+                "public:game:minecraft",
+                "mc-sender",
+                "skuriPlayer",
+                10L,
+                "안녕하세요!",
+                ChatMessageType.TEXT,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(existingMessage, "id", "message-1");
+        ReflectionTestUtils.setField(existingMessage, "createdAt", LocalDateTime.of(2026, 3, 30, 13, 20));
+        existingMessage.markSource(ChatMessage.SOURCE_MINECRAFT);
+        existingMessage.markMinecraftUuid("8667ba71b85a4004af54457a9734eed7");
+        existingMessage.markSourceEventId("event-1");
+
+        when(chatMessageRepository.findBySourceEventId("event-1")).thenReturn(Optional.of(existingMessage));
+
+        ChatMessageResponse response = chatService.createMinecraftInboundMessage(
+                "mc-sender",
+                "skuriPlayer",
+                "https://minotar.net/avatar/8667ba71b85a4004af54457a9734eed7/64",
+                "안녕하세요!",
+                ChatMessageType.TEXT,
+                null,
+                "8667ba71b85a4004af54457a9734eed7",
+                "event-1"
+        );
+
+        assertEquals("message-1", response.id());
+        verify(chatRoomRepository, times(0)).findById(anyString());
+        verify(chatMessageRepository, times(0)).save(any(ChatMessage.class));
+        verify(chatMessageRepository, times(0)).saveAndFlush(any(ChatMessage.class));
     }
 
     @Test

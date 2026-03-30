@@ -54,6 +54,7 @@
 - StorageRepository: 이미지 저장 추상화
   - 기본 provider: LOCAL 파일 시스템
   - 선택 provider: FIREBASE
+- 마인크래프트 연동: RTDB 기반 구성을 Spring 백엔드 중심 구조로 전환하는 계획을 별도 문서로 관리
 
 백엔드 패키지 구조는 도메인 중심이다.
 
@@ -103,8 +104,16 @@
 
 - 공개 채팅방 목록/상세/참여/나가기 지원
 - 공개 채팅방 참여/나가기와 파티 채팅 멤버 입장/퇴장은 실제 `SYSTEM` chat message로 저장되고 STOMP topic으로 브로드캐스트됨
-- 공개 채팅/파티 채팅 메시지 payload는 `senderName`과 함께 `senderPhotoUrl`을 내려주며, 값은 항상 `members.photo_url`만 사용하고 없으면 `null`
+- 공개 채팅/파티 채팅 메시지 payload는 `senderName`과 함께 `senderPhotoUrl`을 내려준다.
+- 일반 앱 메시지는 `members.photo_url`을 사용하고, 마인크래프트 origin 메시지는 Minotar URL을 사용한다.
 - 공개 채팅과 택시 파티 채팅은 같은 채팅 도메인을 공유하되 계약은 분리되어 있음
+
+#### 마인크래프트
+
+- 공개 게임방 canonical id는 `public:game:minecraft`다.
+- 마인크래프트 채팅은 일반 공개 채팅방으로 저장하되, 플러그인은 Spring internal API + SSE bridge로 연결한다.
+- 서버 상태, 온라인 플레이어 목록, 화이트리스트, JE/BE 검증 규칙은 별도 `minecraft` 도메인으로 이관한다.
+- 자세한 계획은 [minecraft-spring-migration-plan.md](/Users/jisung/skuri-backend/docs/minecraft-spring-migration-plan.md) 기준으로 본다.
 
 #### 공지/게시판
 
@@ -134,7 +143,7 @@
 - 파티 채팅/공개 채팅: `CHAT_MESSAGE`
 - 동승 요청: `JOIN_REQUEST_CREATED`, `JOIN_REQUEST_ACCEPTED` 등
 
-파티 상태 변화는 채팅 푸시가 아니라 `PARTY_*` 알림이 책임진다. 일반 채팅 메시지만 `CHAT_MESSAGE` 푸시를 사용하고, 채팅방 멤버 입장/퇴장 `SYSTEM` 메시지는 히스토리/실시간 표시만 하고 push는 보내지 않는다.
+파티 상태 변화는 채팅 푸시가 아니라 `PARTY_*` 알림이 책임진다. 일반 채팅 메시지만 `CHAT_MESSAGE` 푸시를 사용하고, 일반 공개 채팅/파티 채팅의 멤버 입장/퇴장 `SYSTEM` 메시지는 히스토리/실시간 표시만 하고 push는 보내지 않는다. 단, 마인크래프트방 시스템 메시지는 별도 정책 문서에 따라 push 대상에 포함한다.
 
 세부 계약은 [api-specification.md](/Users/jisung/skuri-backend/docs/api-specification.md) 를 기준으로 본다.
 
@@ -168,6 +177,7 @@
 - [domain-analysis.md](/Users/jisung/skuri-backend/docs/domain-analysis.md)
 - [implementation-roadmap.md](/Users/jisung/skuri-backend/docs/implementation-roadmap.md)
 - [erd.md](/Users/jisung/skuri-backend/docs/erd.md)
+- [minecraft-spring-migration-plan.md](/Users/jisung/skuri-backend/docs/minecraft-spring-migration-plan.md)
 - [tech-strategy.md](/Users/jisung/skuri-backend/docs/tech-strategy.md)
 
 프론트 레포의 [docs/spring-migration](/Users/jisung/SKTaxi/docs/spring-migration) 폴더에는 위 핵심 문서들의 동기화 복제본을 유지한다.

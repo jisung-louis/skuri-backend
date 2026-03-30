@@ -20,6 +20,7 @@ import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomSummaryResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatAccountData;
 import com.skuri.skuri_backend.domain.chat.entity.ChatArrivalData;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessage;
+import com.skuri.skuri_backend.domain.chat.entity.ChatMessageDirection;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomMember;
@@ -31,10 +32,14 @@ import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.exception.MemberNotFoundException;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
+import com.skuri.skuri_backend.domain.minecraft.config.MinecraftBridgeProperties;
+import com.skuri.skuri_backend.domain.minecraft.service.MinecraftAvatarService;
+import com.skuri.skuri_backend.domain.minecraft.service.MinecraftBridgeOutboxService;
 import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import com.skuri.skuri_backend.domain.taxiparty.entity.Party;
 import com.skuri.skuri_backend.domain.taxiparty.entity.PartyStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -72,6 +77,9 @@ public class ChatService {
     private final ChatMessageOrderGenerator chatMessageOrderGenerator;
     private final SimpMessagingTemplate messagingTemplate;
     private final AfterCommitApplicationEventPublisher eventPublisher;
+    private final MinecraftAvatarService minecraftAvatarService;
+    private final MinecraftBridgeOutboxService minecraftBridgeOutboxService;
+    private final MinecraftBridgeProperties minecraftBridgeProperties;
 
     @Transactional
     public void createPartyChatRoom(Party party) {
@@ -338,6 +346,41 @@ public class ChatService {
                 null,
                 null,
                 ChatMessage.SOURCE_ADMIN_SYSTEM
+        );
+    }
+
+    @Transactional
+    public ChatMessageResponse createMinecraftInboundMessage(
+            String senderId,
+            String senderName,
+            String senderPhotoUrl,
+            String text,
+            ChatMessageType type,
+            ChatMessageDirection direction,
+            String minecraftUuid,
+            String sourceEventId
+    ) {
+        if (StringUtils.hasText(sourceEventId)) {
+            ChatMessage duplicatedMessage = chatMessageRepository.findBySourceEventId(sourceEventId).orElse(null);
+            if (duplicatedMessage != null) {
+                return toMessageResponse(duplicatedMessage, senderPhotoUrl);
+            }
+        }
+
+        ChatRoom room = findRoomOrThrow(minecraftBridgeProperties.normalizedRoomId());
+        return saveAndPublishMessage(
+                room,
+                senderId,
+                senderName,
+                senderPhotoUrl,
+                text,
+                type,
+                null,
+                null,
+                ChatMessage.SOURCE_MINECRAFT,
+                direction,
+                minecraftUuid,
+                sourceEventId
         );
     }
 
@@ -645,19 +688,27 @@ public class ChatService {
 
     private Map<String, String> resolveSenderPhotoUrls(List<ChatMessage> messages) {
         List<String> senderIds = messages.stream()
+                .filter(message -> !message.isMinecraftOrigin())
                 .map(ChatMessage::getSenderId)
                 .filter(StringUtils::hasText)
                 .distinct()
                 .toList();
-        if (senderIds.isEmpty()) {
-            return Map.of();
-        }
-        return memberRepository.findAllById(senderIds).stream()
+        Map<String, String> photoUrls = senderIds.isEmpty()
+                ? new java.util.LinkedHashMap<>()
+                : memberRepository.findAllById(senderIds).stream()
                 .collect(
                         java.util.LinkedHashMap::new,
-                        (photoUrls, member) -> photoUrls.put(member.getId(), member.getPhotoUrl()),
+                        (resolvedPhotoUrls, member) -> resolvedPhotoUrls.put(member.getId(), member.getPhotoUrl()),
                         Map::putAll
                 );
+
+        for (ChatMessage message : messages) {
+            if (!message.isMinecraftOrigin() || !StringUtils.hasText(message.getMinecraftUuid())) {
+                continue;
+            }
+            photoUrls.put(message.getSenderId(), minecraftAvatarService.resolveAvatarUrl(message.getMinecraftUuid()));
+        }
+        return photoUrls;
     }
 
     private ChatMessageResponse saveAndPublishMessage(
@@ -671,6 +722,36 @@ public class ChatService {
             ChatArrivalData arrivalData,
             String source
     ) {
+        return saveAndPublishMessage(
+                room,
+                senderId,
+                senderName,
+                senderPhotoUrl,
+                text,
+                type,
+                accountData,
+                arrivalData,
+                source,
+                null,
+                null,
+                null
+        );
+    }
+
+    private ChatMessageResponse saveAndPublishMessage(
+            ChatRoom room,
+            String senderId,
+            String senderName,
+            String senderPhotoUrl,
+            String text,
+            ChatMessageType type,
+            ChatAccountData accountData,
+            ChatArrivalData arrivalData,
+            String source,
+            ChatMessageDirection direction,
+            String minecraftUuid,
+            String sourceEventId
+    ) {
         String chatRoomId = room.getId();
         ChatMessage message = ChatMessage.create(
                 chatRoomId,
@@ -683,7 +764,30 @@ public class ChatService {
                 arrivalData
         );
         message.markSource(source);
-        ChatMessage saved = chatMessageRepository.save(message);
+        if (direction != null) {
+            message.markDirection(direction);
+        }
+        if (StringUtils.hasText(minecraftUuid)) {
+            message.markMinecraftUuid(minecraftUuid);
+        }
+        if (StringUtils.hasText(sourceEventId)) {
+            message.markSourceEventId(sourceEventId);
+        }
+
+        ChatMessage saved;
+        try {
+            saved = StringUtils.hasText(sourceEventId)
+                    ? chatMessageRepository.saveAndFlush(message)
+                    : chatMessageRepository.save(message);
+        } catch (DataIntegrityViolationException e) {
+            if (StringUtils.hasText(sourceEventId)) {
+                ChatMessage duplicatedMessage = chatMessageRepository.findBySourceEventId(sourceEventId).orElse(null);
+                if (duplicatedMessage != null) {
+                    return toMessageResponse(duplicatedMessage, senderPhotoUrl);
+                }
+            }
+            throw e;
+        }
 
         room.applyNewMessage(saved);
         chatRoomRepository.save(room);
@@ -694,6 +798,9 @@ public class ChatService {
             publishChatRoomSummaryEvent(room);
         });
         eventPublisher.publish(new NotificationDomainEvent.ChatMessageCreated(chatRoomId, saved.getId()));
+        if (minecraftBridgeProperties.normalizedRoomId().equals(chatRoomId) && !saved.isMinecraftOrigin()) {
+            minecraftBridgeOutboxService.publishChatFromApp(saved);
+        }
 
         return response;
     }
