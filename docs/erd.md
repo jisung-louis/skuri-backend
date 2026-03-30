@@ -176,6 +176,7 @@ erDiagram
         enum direction "MC_TO_APP,APP_TO_MC,SYSTEM"
         varchar(20) source "minecraft,app"
         varchar(50) minecraft_uuid
+        varchar(36) source_event_id UK "nullable, MC inbound dedupe key"
         datetime created_at
     }
 
@@ -225,7 +226,7 @@ erDiagram
     }
 
     minecraft_bridge_events {
-        varchar(36) id PK "UUID"
+        bigint id PK "AUTO_INCREMENT"
         varchar(36) event_id UK "SSE replay id"
         varchar(50) event_type
         json payload
@@ -233,10 +234,18 @@ erDiagram
         datetime created_at
     }
 
+    minecraft_inbound_events {
+        varchar(36) event_id PK "플러그인 inbound event id"
+        varchar(36) chat_message_id FK "nullable"
+        datetime created_at
+        datetime updated_at
+    }
+
     members ||--o{ minecraft_accounts : "owns"
     minecraft_accounts ||--o{ minecraft_accounts : "parent-child"
     minecraft_accounts ||--o{ minecraft_online_players : "matches"
     minecraft_server_state ||--o{ minecraft_online_players : "contains"
+    minecraft_inbound_events ||--o| chat_messages : "maps"
 ```
 
 ### 1.2 Supporting 도메인 (Board, Notice, Campus)
@@ -789,6 +798,7 @@ Taxi history 계약 메모:
 | direction | ENUM | | MC_TO_APP, APP_TO_MC, SYSTEM |
 | source | VARCHAR(20) | | minecraft, app |
 | minecraft_uuid | VARCHAR(50) | | MC UUID |
+| source_event_id | VARCHAR(36) | UK, NULL | 마인크래프트 inbound dedupe/event mapping key |
 | created_at | DATETIME | NOT NULL | 생성일 |
 
 ### 2.4 Minecraft 도메인
@@ -799,6 +809,7 @@ Taxi history 계약 메모:
 | `minecraft_server_state` | 서버 상태 단일 read model | 1 |
 | `minecraft_online_players` | 현재 접속자 스냅샷 | ~100 |
 | `minecraft_bridge_events` | 플러그인 SSE replay용 outbox | ~10,000/일 |
+| `minecraft_inbound_events` | 플러그인 inbound message idempotency registry | ~10,000/일 |
 
 **minecraft_accounts 테이블 상세:**
 
@@ -834,12 +845,21 @@ Taxi history 계약 메모:
 
 | 컬럼 | 타입 | 제약조건 | 설명 |
 |------|------|---------|------|
-| id | VARCHAR(36) | PK | UUID |
-| event_id | VARCHAR(36) | UK, NOT NULL | SSE `id` 및 replay 기준 키 |
+| id | BIGINT | PK, AUTO_INCREMENT | replay 정렬 tie-breaker |
+| event_id | VARCHAR(36) | UK, NOT NULL | SSE `id` |
 | event_type | VARCHAR(50) | NOT NULL | `CHAT_FROM_APP`, `WHITELIST_*`, `HEARTBEAT` |
 | payload | JSON | NOT NULL | 플러그인 전달 payload |
 | expires_at | DATETIME | | replay 보존 만료 시각 |
 | created_at | DATETIME | NOT NULL | 생성일 |
+
+**minecraft_inbound_events 테이블 상세:**
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+|------|------|---------|------|
+| event_id | VARCHAR(36) | PK, NOT NULL | 플러그인 inbound `eventId` |
+| chat_message_id | VARCHAR(36) | FK, NULL | 실제 저장된 `chat_messages.id` |
+| created_at | DATETIME | NOT NULL | 생성일 |
+| updated_at | DATETIME | NOT NULL | 수정일 |
 
 ### 2.5 Board 도메인
 
@@ -1147,8 +1167,11 @@ CREATE INDEX idx_minecraft_online_players_verified ON minecraft_online_players(v
 
 -- minecraft_bridge_events
 CREATE UNIQUE INDEX uk_minecraft_bridge_events_event_id ON minecraft_bridge_events(event_id);
-CREATE INDEX idx_minecraft_bridge_events_created ON minecraft_bridge_events(created_at);
+CREATE INDEX idx_minecraft_bridge_events_replay ON minecraft_bridge_events(created_at, id);
 CREATE INDEX idx_minecraft_bridge_events_expires ON minecraft_bridge_events(expires_at);
+
+-- minecraft_inbound_events
+CREATE INDEX idx_minecraft_inbound_events_chat_message ON minecraft_inbound_events(chat_message_id);
 ```
 
 ### 4.5 Board 도메인

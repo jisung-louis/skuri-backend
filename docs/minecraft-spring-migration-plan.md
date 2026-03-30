@@ -226,12 +226,23 @@ flowchart LR
 
 주요 필드:
 
-- `id`
+- `id` (`BIGINT AUTO_INCREMENT`, replay tie-breaker)
 - `event_id`
 - `event_type`
 - `payload` (JSON)
 - `created_at`
 - `expires_at`
+
+#### `minecraft_inbound_events`
+
+플러그인 -> backend 채팅/시스템 메시지의 `eventId`를 claim하고, 실제 저장된 `chat_messages.id`를 연결하는 idempotency registry.
+
+주요 필드:
+
+- `event_id`
+- `chat_message_id`
+- `created_at`
+- `updated_at`
 
 운영 원칙:
 
@@ -367,7 +378,8 @@ flowchart LR
 정책:
 
 - `eventId`는 플러그인이 생성하는 UUID다.
-- `CHAT`은 `chat_messages.id`로 그대로 저장해 재시도 시 idempotent하게 처리한다.
+- `eventId`는 `minecraft_inbound_events`와 `chat_messages.source_event_id`에 연결해 재시도 시 idempotent하게 처리한다.
+- outbound replay는 `minecraft_bridge_events.created_at`만으로 순서를 판단하지 않고, `AUTO_INCREMENT id`를 tie-breaker로 사용한다.
 - `SYSTEM`일 경우 `systemType`을 함께 보낸다.
 
 `systemType` 후보:

@@ -1563,8 +1563,8 @@ public class MinecraftOnlinePlayer extends BaseTimeEntity {
 @Entity
 @Table(name = "minecraft_bridge_events")
 public class MinecraftBridgeEvent extends BaseTimeEntity {
-    @Id @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false, unique = true)
     private String eventId;
@@ -1579,12 +1579,13 @@ public class MinecraftBridgeEvent extends BaseTimeEntity {
 }
 ```
 
+- `minecraft_inbound_events`는 plugin -> backend 채팅/시스템 메시지의 `eventId`를 claim하고 `chat_message_id`를 기록해 at-least-once 재시도 중복을 차단한다.
 - 앱 공개 API는 계정/서버 상태/플레이어 목록 조회와 계정 등록/삭제를 담당한다.
 - 플러그인 internal API는 채팅/시스템 메시지/서버 상태/온라인 플레이어 스냅샷을 수신한다.
 - 플러그인 internal SSE는 앱 -> 마인크래프트 메시지와 whitelist snapshot/delta를 전달한다.
 - 앱 채팅은 기존 Chat 도메인 STOMP를 재사용하되, `public:game:minecraft` room만 Minecraft bridge와 연결한다.
 - plugin -> backend 메시지는 `eventId` 기반 idempotent 저장을 전제로 한다.
-- bridge outbox는 `Last-Event-ID` 기반 replay를 지원해 SSE 재연결 시 whitelist/app message를 복구한다.
+- bridge outbox는 `Last-Event-ID` 기반 replay를 지원하며, 같은 `createdAt` 충돌 시 `minecraft_bridge_events.id`를 tie-breaker로 사용해 whitelist/app message 유실을 막는다.
 
 ### 7.5 TaxiParty ↔ Chat 협력 구조
 
