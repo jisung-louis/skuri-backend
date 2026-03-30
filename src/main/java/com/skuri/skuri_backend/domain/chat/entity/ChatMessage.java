@@ -32,6 +32,7 @@ public class ChatMessage extends BaseTimeEntity {
     public static final String SOURCE_MEMBER_JOIN = "MEMBER_JOIN";
     public static final String SOURCE_MEMBER_LEAVE = "MEMBER_LEAVE";
     public static final String SOURCE_ADMIN_SYSTEM = "ADMIN_SYSTEM";
+    public static final String SOURCE_MINECRAFT = "minecraft";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -133,8 +134,26 @@ public class ChatMessage extends BaseTimeEntity {
         this.source = source;
     }
 
+    public void markDirection(ChatMessageDirection direction) {
+        this.direction = direction;
+    }
+
+    public void markMinecraftUuid(String minecraftUuid) {
+        this.minecraftUuid = minecraftUuid;
+    }
+
+    public void markMinecraftOrigin(ChatMessageDirection direction, String minecraftUuid) {
+        this.direction = direction;
+        this.minecraftUuid = minecraftUuid;
+        this.source = SOURCE_MINECRAFT;
+    }
+
     public boolean hasSource(String source) {
         return this.source != null && this.source.equals(source);
+    }
+
+    public boolean isMinecraftOrigin() {
+        return hasSource(SOURCE_MINECRAFT);
     }
 
     public void updateArrivalData(ChatArrivalData arrivalData) {

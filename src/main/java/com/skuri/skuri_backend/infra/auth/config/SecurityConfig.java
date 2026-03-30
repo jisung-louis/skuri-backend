@@ -1,5 +1,7 @@
 package com.skuri.skuri_backend.infra.auth.config;
 
+import com.skuri.skuri_backend.domain.minecraft.config.MinecraftBridgeProperties;
+import com.skuri.skuri_backend.domain.minecraft.config.MinecraftInternalSecretFilter;
 import com.skuri.skuri_backend.infra.auth.firebase.FirebaseAuthenticationFilter;
 import com.skuri.skuri_backend.infra.storage.MediaStorageProperties;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +29,12 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties(MediaStorageProperties.class)
+@EnableConfigurationProperties({MediaStorageProperties.class, MinecraftBridgeProperties.class})
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final FirebaseAuthenticationFilter firebaseAuthenticationFilter;
+    private final MinecraftInternalSecretFilter minecraftInternalSecretFilter;
     private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
     private final ApiAccessDeniedHandler apiAccessDeniedHandler;
     private final MediaStorageProperties mediaStorageProperties;
@@ -73,12 +76,14 @@ public class SecurityConfig {
                                 "/scalar/**"
                         ).permitAll();
                     }
+                    authorize.requestMatchers("/internal/minecraft/**").permitAll();
                     authorize.anyRequest().authenticated();
                 })
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(apiAuthenticationEntryPoint)
                         .accessDeniedHandler(apiAccessDeniedHandler)
                 )
+                .addFilterBefore(minecraftInternalSecretFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(firebaseAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .cors(Customizer.withDefaults());
 

@@ -84,6 +84,49 @@ public enum ErrorCode {
     ALREADY_CHAT_ROOM_MEMBER(HttpStatus.CONFLICT, "ALREADY_CHAT_ROOM_MEMBER", "이미 채팅방에 참여 중입니다."),
     STOMP_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "STOMP_AUTH_FAILED", "WebSocket 인증에 실패했습니다."),
 
+    // 마인크래프트(Minecraft) 도메인 에러.
+    // 마인크래프트 계정 등록, 화이트리스트 브리지 인증, 서버 상태 조회에서 발생하는 오류를 다룬다.
+    MINECRAFT_ACCOUNT_LIMIT_EXCEEDED(
+            HttpStatus.CONFLICT,
+            "MINECRAFT_ACCOUNT_LIMIT_EXCEEDED",
+            "등록 가능한 마인크래프트 계정 수를 초과했습니다."
+    ),
+    MINECRAFT_SELF_ACCOUNT_ALREADY_EXISTS(
+            HttpStatus.CONFLICT,
+            "MINECRAFT_SELF_ACCOUNT_ALREADY_EXISTS",
+            "본인 마인크래프트 계정은 1개만 등록할 수 있습니다."
+    ),
+    MINECRAFT_FRIEND_ACCOUNT_LIMIT_EXCEEDED(
+            HttpStatus.CONFLICT,
+            "MINECRAFT_FRIEND_ACCOUNT_LIMIT_EXCEEDED",
+            "친구 마인크래프트 계정은 최대 3개까지만 등록할 수 있습니다."
+    ),
+    MINECRAFT_PARENT_ACCOUNT_REQUIRED(
+            HttpStatus.CONFLICT,
+            "MINECRAFT_PARENT_ACCOUNT_REQUIRED",
+            "친구 계정을 등록하려면 본인 계정을 먼저 등록해야 합니다."
+    ),
+    MINECRAFT_PARENT_ACCOUNT_DELETE_NOT_ALLOWED(
+            HttpStatus.CONFLICT,
+            "MINECRAFT_PARENT_ACCOUNT_DELETE_NOT_ALLOWED",
+            "친구 계정이 연결된 본인 계정은 삭제할 수 없습니다."
+    ),
+    MINECRAFT_ACCOUNT_DUPLICATED(
+            HttpStatus.CONFLICT,
+            "MINECRAFT_ACCOUNT_DUPLICATED",
+            "이미 등록된 마인크래프트 계정입니다."
+    ),
+    MINECRAFT_SECRET_INVALID(
+            HttpStatus.FORBIDDEN,
+            "MINECRAFT_SECRET_INVALID",
+            "마인크래프트 플러그인 shared secret이 올바르지 않습니다."
+    ),
+    MINECRAFT_SERVER_UNAVAILABLE(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "MINECRAFT_SERVER_UNAVAILABLE",
+            "마인크래프트 서버 상태를 아직 확인할 수 없습니다."
+    ),
+
     // 게시판(Board) 도메인 에러.
     // 게시글/댓글 존재 여부와 작성자 권한 검증에 사용되는 오류 코드다.
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "POST_NOT_FOUND", "게시글을 찾을 수 없습니다."),

@@ -180,4 +180,17 @@ public class OpenApiConfig {
                 )
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi minecraftApi() {
+        return GroupedOpenApi.builder()
+                .group("minecraft")
+                .pathsToMatch(
+                        "/v1/minecraft/**",
+                        "/v1/members/me/minecraft-accounts/**",
+                        "/v1/sse/minecraft",
+                        "/internal/minecraft/**"
+                )
+                .build();
+    }
 }
