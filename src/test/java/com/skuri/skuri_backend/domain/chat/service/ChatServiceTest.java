@@ -187,6 +187,43 @@ class ChatServiceTest {
     }
 
     @Test
+    void createMinecraftInboundMessage_같은SourceEventId면_기존메시지를재사용한다() {
+        ChatMessage existingMessage = ChatMessage.create(
+                "public:game:minecraft",
+                "mc-sender",
+                "skuriPlayer",
+                10L,
+                "안녕하세요!",
+                ChatMessageType.TEXT,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(existingMessage, "id", "message-1");
+        ReflectionTestUtils.setField(existingMessage, "createdAt", LocalDateTime.of(2026, 3, 30, 13, 20));
+        existingMessage.markSource(ChatMessage.SOURCE_MINECRAFT);
+        existingMessage.markMinecraftUuid("8667ba71b85a4004af54457a9734eed7");
+        existingMessage.markSourceEventId("event-1");
+
+        when(chatMessageRepository.findBySourceEventId("event-1")).thenReturn(Optional.of(existingMessage));
+
+        ChatMessageResponse response = chatService.createMinecraftInboundMessage(
+                "mc-sender",
+                "skuriPlayer",
+                "https://minotar.net/avatar/8667ba71b85a4004af54457a9734eed7/64",
+                "안녕하세요!",
+                ChatMessageType.TEXT,
+                null,
+                "8667ba71b85a4004af54457a9734eed7",
+                "event-1"
+        );
+
+        assertEquals("message-1", response.id());
+        verify(chatRoomRepository, times(0)).findById(anyString());
+        verify(chatMessageRepository, times(0)).save(any(ChatMessage.class));
+        verify(chatMessageRepository, times(0)).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
     void createChatRoom_생성자는_즉시참여상태가된다() {
         AtomicReference<ChatRoomMember> savedMemberRef = new AtomicReference<>();
         when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(activeMember("member-1", "컴퓨터공학과")));
