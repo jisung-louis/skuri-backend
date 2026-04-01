@@ -1,8 +1,9 @@
 # 백엔드 역할 정의서 v1.0
 (Firebase Serverless → Spring Migration)
 
-> 최종 수정일: 2026-03-30
-> 관련 문서: [도메인 분석](./domain-analysis.md) | [API 명세](./api-specification.md) | [구현 로드맵](./implementation-roadmap.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md) | [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md)
+> 최종 수정일: 2026-04-01
+> 관련 문서: [도메인 분석](./domain-analysis.md) | [API 명세](./api-specification.md) | [구현 로드맵](./implementation-roadmap.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
+> 참고: AS-IS 섹션은 migration kickoff 시점의 legacy Firebase 구조를 설명한다. 마인크래프트 상세 설계/이력은 백엔드 레포 `docs/minecraft-spring-migration-plan.md`를 본다.
 
 ## 1. 문서 목적
 

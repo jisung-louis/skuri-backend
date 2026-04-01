@@ -1291,8 +1291,8 @@ CREATE INDEX idx_audit_logs_timestamp ON admin_audit_logs(timestamp DESC);
 ## 참고
 
 - [도메인 분석](./domain-analysis.md)
-- [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md)
-- [Firestore 데이터 구조](../firestore-data-structure.md)
+- 마인크래프트 상세 설계/이력: 백엔드 레포 `docs/minecraft-spring-migration-plan.md`
+- 레거시 Firestore 데이터 구조: 프론트 레포 `docs/references/legacy/firestore-data-structure.md`
 
 ---
 

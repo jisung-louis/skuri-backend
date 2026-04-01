@@ -229,7 +229,8 @@
 
 ## 참고 문서
 
-- `docs/project-overview.md`
+- 프론트 레포 프로젝트 개요: `docs/project/project-overview.md`
+- 백엔드 레포 프로젝트 개요: `docs/project-overview.md`
 - `docs/implementation-roadmap.md`
 - `docs/api-specification.md`
 - `docs/domain-analysis.md`
