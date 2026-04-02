@@ -30,6 +30,16 @@ public class MigrationReportWriter {
             List<MigrationReject> rejects,
             Path reportRootDirectory
     ) {
+        return write(planName, summary, rejects, reportRootDirectory, Map.of());
+    }
+
+    public Path write(
+            String planName,
+            MigrationSummary summary,
+            List<MigrationReject> rejects,
+            Path reportRootDirectory,
+            Map<String, ?> additionalArtifacts
+    ) {
         try {
             Files.createDirectories(reportRootDirectory);
             Path reportDirectory = reportRootDirectory.resolve(directoryName(planName, summary.startedAt()));
@@ -48,6 +58,10 @@ public class MigrationReportWriter {
                                     "generatedAt", LocalDateTime.now()
                             )
                     );
+            for (Map.Entry<String, ?> artifactEntry : additionalArtifacts.entrySet()) {
+                objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValue(reportDirectory.resolve(artifactEntry.getKey()).toFile(), artifactEntry.getValue());
+            }
             return reportDirectory;
         } catch (IOException e) {
             log.error("마이그레이션 리포트 기록에 실패했습니다. plan={}", planName, e);

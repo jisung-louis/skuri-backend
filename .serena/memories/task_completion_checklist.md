@@ -68,3 +68,4 @@
 35. 학사 일정 bulk sync 문서화 작업이면 backend 문서뿐 아니라 `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/README.md`, `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`, `/Users/jisung/SKTaxi/docs/spring-migration/domain-analysis.md`, `/Users/jisung/SKTaxi/docs/spring-migration/implementation-roadmap.md`를 같은 작업에서 동기화한다.
 36. 학사 일정 bulk sync OpenAPI를 건드렸다면 `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar`에서 200/401/403/422 example이 분리 노출되는지, 자연키/범위/type normalize 설명이 계약 문서와 동일한지 확인한다.
 37. 마이그레이션 러너를 건드렸다면 dry-run과 apply의 핵심 분기, report 파일 생성, 기존 row 보존 규칙(예: notice count 보존), 실행 명령 문서화를 함께 확인한다.
+38. cutover migration 러너를 건드렸다면 `member-rejects.json`, `timetable-rejects.json`, `minecraft-rejects.json`, `course-matches.json`, `timetable-skips.json` 생성과 unknown user/live MySQL 미관리 학기 timetable discard 정책, live MySQL `courses` lookup 매칭 규칙을 함께 확인한다.

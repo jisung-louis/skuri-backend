@@ -44,6 +44,7 @@
 - 상태 변경 이후 알림/외부 후처리는 after-commit semantics를 따른다.
 - Admin API는 `@AdminApiAccess`, `ADMIN_REQUIRED`, `admin_audit_logs` 기반 정책을 사용한다.
 - 별도 1회성 데이터 이관은 `infra/migration` 아래의 스프링 배치 러너로 수행한다. 평소 app 서버는 영향 없이 유지하고, `migration.enabled=true`와 `spring.main.web-application-type=none` 설정으로만 실행 후 종료한다.
+- 이관 러너는 `plan=NOTICES`(공지)와 `plan=CUTOVER`(회원/시간표/마인크래프트 컷오버)를 지원한다. 운영에서는 app 컨테이너와 분리된 1회성 실행을 기본으로 하고, 필요하면 `NOTICE_SYNC_SCHEDULER_ENABLED=false`로 공지 스케줄러를 잠시 끈 뒤 dry-run/apply를 순차 실행한다.
 
 ## Admin Member API 메모
 - `member` 도메인은 관리자 백오피스 회원 관리 API를 제공한다: `GET /v1/admin/members`, `GET /v1/admin/members/{memberId}`, `GET /v1/admin/members/{memberId}/activity`, `PATCH /v1/admin/members/{memberId}/admin-role`.
