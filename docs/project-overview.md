@@ -57,6 +57,7 @@
   - 기본 provider: LOCAL 파일 시스템
   - 선택 provider: FIREBASE
 - 마인크래프트 연동: public/internal API, public SSE, bridge outbox까지 Spring 백엔드 기준으로 구현
+- 1회성 Firebase -> MySQL 데이터 이관은 `infra/migration` 아래의 스프링 배치 러너로 수행하며, 운영 app 컨테이너와 분리해 `migration.enabled=true` + `spring.main.web-application-type=none` 설정으로 한 번 실행 후 종료한다.
 
 백엔드 패키지 구조는 도메인 중심이다.
 
@@ -67,6 +68,7 @@
 - [domain/board](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/domain/board): 커뮤니티 게시판
 - [domain/notification](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/domain/notification): 인앱 알림 + 푸시
 - [infra](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/infra): auth, storage, openapi, admin 지원
+- [infra/migration](/Users/jisung/skuri-backend/src/main/java/com/skuri/skuri_backend/infra/migration): Firestore/RTDB export를 읽어 MySQL로 적재하는 1회성 notice/cutover migration 러너
 
 ---
 

@@ -1,6 +1,6 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-04-01
+> 최종 수정일: 2026-04-02
 > 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
 > 보조 참고: 채팅 Firestore → MySQL 이관 참고는 백엔드 레포 `docs/chat-firestore-to-mysql-migration-reference.md`, 마인크래프트 상세 설계/이력은 백엔드 레포 `docs/minecraft-spring-migration-plan.md`
 
@@ -23,6 +23,8 @@
 - `docs/` 아래의 공유 계약 문서(`api-specification.md`, `domain-analysis.md`, `erd.md`, `implementation-roadmap.md`, `role-definition.md`)는 백엔드 레포 최신본을 기준으로 유지하고, 프론트 레포 대응 문서에도 즉시 동일 내용으로 동기화한다.
 - 채팅 Firestore → MySQL 이관 참고사항은 백엔드 레포 `docs/chat-firestore-to-mysql-migration-reference.md`에 누적 관리한다.
 - 데이터 마이그레이션 관련 신규 발견사항(컬렉션 구조, ID 매핑, seed 충돌 가능성, 요약 필드 재계산 규칙 등)이 생기면 위 참고 문서를 먼저 갱신하고, 필요 시 `api-specification.md`, `domain-analysis.md`, `erd.md`에도 함께 반영한다.
+- Firebase/RTDB export -> MySQL 적재는 `infra/migration`의 스프링 1회성 배치 러너로 수행한다. 공지 이관은 `plan=NOTICES`, 사용자/시간표/마인크래프트 컷오버는 `plan=CUTOVER`를 사용하며, 둘 다 운영 app 컨테이너와 분리된 별도 실행을 기본으로 한다.
+- 운영에서 migration을 실행할 때는 `migration.enabled=true`, `spring.main.web-application-type=none`을 사용해 웹 서버를 띄우지 않고 종료형 배치로 돌린다. 공지 스케줄러와 충돌 가능성이 있는 시간대에는 `NOTICE_SYNC_SCHEDULER_ENABLED=false`로 잠시 비활성화한 뒤 dry-run/apply를 순차 실행한다.
 - 프론트/백엔드 구현 에이전트의 최종 보고에는 “상대 레포의 동일 문서를 바로 동기화하라”는 문구를 반드시 포함한다.
 
 ## 1.2 완료 작업: OpenAPI Show Schema 전수 보강
