@@ -1,7 +1,8 @@
 # SKURI 백엔드 구현 로드맵
 
-> 최종 수정일: 2026-03-30
-> 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md) | [채팅 Firestore → MySQL 마이그레이션 참고](./chat-firestore-to-mysql-migration-reference.md) | [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md)
+> 최종 수정일: 2026-04-01
+> 관련 문서: [도메인 분석](./domain-analysis.md) | [ERD](./erd.md) | [API 명세](./api-specification.md) | [기술 전략](./tech-strategy.md) | [역할 정의](./role-definition.md) | [Member 탈퇴 정책](./member-withdrawal-policy.md)
+> 보조 참고: 채팅 Firestore → MySQL 이관 참고는 백엔드 레포 `docs/chat-firestore-to-mysql-migration-reference.md`, 마인크래프트 상세 설계/이력은 백엔드 레포 `docs/minecraft-spring-migration-plan.md`
 
 ---
 
@@ -13,14 +14,14 @@
 | Java | 21 |
 | 빌드 도구 | Gradle |
 | 현재 의존성 | JPA, Web MVC, Validation, Security, Firebase Admin, Springdoc OpenAPI(Swagger UI/Scalar), Thumbnailator, TwelveMonkeys WebP, Lombok, MySQL Connector |
-| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영), Phase 8 완료 (Notification 인프라), Phase 9 완료 (인프라/배포 기준 정리), Phase 10 완료 (Member 탈퇴/계정 라이프사이클), Phase 11 완료 (운영 공통 인프라 / Admin 공통), Phase 12 완료 (이미지/미디어 업로드 인프라 1차), Phase 13 설계 완료 (마인크래프트 Spring 전환 계획 수립) |
+| 구현 상태 | Phase 0 완료 (공통 기반 구축), Phase 1 완료, Phase 2 완료 (TaxiParty + SSE 반영), Phase 3 완료 (Chat + WebSocket 반영), Phase 4 완료 (Board 반영), Phase 5 완료 (Notice + AppNotice + 공통 Comment 정책 반영), Phase 6 완료 (Academic + 시간표/학사일정/관리자 강의 bulk 반영), Phase 7 완료 (Support + 문의/신고/앱 버전/학식 운영 API 반영), Phase 8 완료 (Notification 인프라), Phase 9 완료 (인프라/배포 기준 정리), Phase 10 완료 (Member 탈퇴/계정 라이프사이클), Phase 11 완료 (운영 공통 인프라 / Admin 공통), Phase 12 완료 (이미지/미디어 업로드 인프라 1차), Phase 13 완료 (마인크래프트 public/internal API + public SSE + bridge outbox + 앱 연동 반영) |
 
 ---
 
 ## 1.1 문서 동기화 및 데이터 마이그레이션 운영 규칙
 
 - `docs/` 아래의 공유 계약 문서(`api-specification.md`, `domain-analysis.md`, `erd.md`, `implementation-roadmap.md`, `role-definition.md`)는 백엔드 레포 최신본을 기준으로 유지하고, 프론트 레포 대응 문서에도 즉시 동일 내용으로 동기화한다.
-- 채팅 Firestore → MySQL 이관 참고사항은 [chat-firestore-to-mysql-migration-reference.md](./chat-firestore-to-mysql-migration-reference.md)에 누적 관리한다.
+- 채팅 Firestore → MySQL 이관 참고사항은 백엔드 레포 `docs/chat-firestore-to-mysql-migration-reference.md`에 누적 관리한다.
 - 데이터 마이그레이션 관련 신규 발견사항(컬렉션 구조, ID 매핑, seed 충돌 가능성, 요약 필드 재계산 규칙 등)이 생기면 위 참고 문서를 먼저 갱신하고, 필요 시 `api-specification.md`, `domain-analysis.md`, `erd.md`에도 함께 반영한다.
 - 프론트/백엔드 구현 에이전트의 최종 보고에는 “상대 레포의 동일 문서를 바로 동기화하라”는 문구를 반드시 포함한다.
 
@@ -939,8 +940,8 @@ SSE 운영 제약:
 
 ### Phase 13: 마인크래프트 Spring 전환
 
-> Firebase RTDB 기반 마인크래프트 플러그인 연동을 Spring 중심 구조로 이관한다.
-> 상세 설계는 [minecraft-spring-migration-plan.md](./minecraft-spring-migration-plan.md)를 기준으로 본다.
+> Firebase RTDB 기반 마인크래프트 플러그인 연동을 Spring 중심 구조로 이관한 범위와 운영 기준을 정리한다.
+> 상세 설계/이력은 백엔드 레포 `docs/minecraft-spring-migration-plan.md`를 기준으로 본다.
 
 #### 13-1. 목표
 
@@ -990,15 +991,15 @@ SSE 운영 제약:
 - PR 3: 앱 Minecraft repository/화면 전환
 - PR 4: Firebase Minecraft 코드 제거 및 컷오버 정리
 
-#### 13-5. 백엔드 완료 기준
+#### 13-5. 구현 반영 상태
 
-- [ ] `/v1/minecraft/**`, `/v1/members/me/minecraft-accounts/**`, `/v1/sse/minecraft` 계약이 `/v3/api-docs` 기준으로 문서화됨
-- [ ] `/internal/minecraft/**` secret 인증과 SSE 예시가 OpenAPI에 반영됨
-- [ ] 마인크래프트 채팅이 `public:game:minecraft` room에 저장되고 앱 STOMP로 브로드캐스트됨
-- [ ] 앱 `IMAGE` 메시지가 플러그인 outbound 시 placeholder text로 변환됨
-- [ ] GAME room 시스템 메시지가 Notification 인프라를 통해 push/inbox 대상으로 처리됨
-- [ ] 계정 등록 개수 제한, parent 삭제 금지, JE/BE 중복 방지 규칙 Service 테스트가 추가됨
-- [ ] overview/accounts/internal auth Contract 테스트가 추가됨
+- [x] `/v1/minecraft/**`, `/v1/members/me/minecraft-accounts/**`, `/v1/sse/minecraft` 계약이 `/v3/api-docs` 기준으로 문서화됨
+- [x] `/internal/minecraft/**` secret 인증과 SSE 예시가 OpenAPI에 반영됨
+- [x] 마인크래프트 채팅이 `public:game:minecraft` room에 저장되고 앱 STOMP로 브로드캐스트됨
+- [x] 앱 `IMAGE` 메시지가 플러그인 outbound 시 placeholder text로 변환됨
+- [x] GAME room 시스템 메시지가 Notification 인프라를 통해 push/inbox 정책과 함께 처리됨
+- [x] 계정 등록 개수 제한, parent 삭제 금지, JE/BE 중복 방지 규칙 Service 테스트가 추가됨
+- [x] overview/accounts/internal auth Contract 테스트가 추가됨
 
 #### 13-6. 비고
 
@@ -1069,11 +1070,12 @@ Phase 1/3/8 ── 연동 ──→ Phase 13 (마인크래프트 Spring 전환)
 - [API 명세](./api-specification.md) — 전체 API 상세 스펙
 - [기술 전략](./tech-strategy.md) — 기술 선택 근거 및 포트폴리오 전략
 - [역할 정의](./role-definition.md) — Spring 백엔드의 책임 범위
-- [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md) — 앱/플러그인/백엔드 통합 전환 상세 설계
+- 백엔드 레포 `docs/minecraft-spring-migration-plan.md` — 앱/플러그인/백엔드 통합 전환 상세 설계
 
 ---
 
 > **문서 이력**
+> - 2026-04-01: Phase 13 구현 반영 완료 상태로 갱신 — 마인크래프트 public/internal API, public SSE, bridge outbox, IMAGE placeholder, notification policy, 테스트/문서 완료 기준을 체크 상태로 동기화
 > - 2026-03-30: Phase 13 마인크래프트 Spring 전환 계획 추가 — public/internal API, SSE bridge, whitelist/검증 이관 범위, PR 분리 기준, 완료 기준을 문서화
 > - 2026-02-26: 초안 작성
 > - 2026-03-05: Admin API를 도메인 Phase(3/5/6/7)에 배치, Phase 11(운영 공통 Admin 인프라) 추가, Phase 4/6/7/8 API 경로·메서드 동기화

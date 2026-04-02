@@ -28,7 +28,7 @@
 
 - API/Push/SSE 계약: `docs/api-specification.md`
 - 정책/책임: `docs/domain-analysis.md`
-- 제품/운영 관점: `docs/project-overview.md`
+- 제품/운영 관점: 프론트 레포 `docs/project/project-overview.md`, 백엔드 레포 `docs/project-overview.md`
 - 구현 근거:
   - `src/main/java/com/skuri/skuri_backend/infra/notification/FirebasePushPayloadMapper.java`
   - `src/main/java/com/skuri/skuri_backend/domain/notification/model/PushPresentationProfile.java`

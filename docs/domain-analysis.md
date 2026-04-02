@@ -1,9 +1,9 @@
 # Spring 백엔드 도메인 분석
 
-> 최종 수정일: 2026-03-30
-> 분석 기준: Firestore 컬렉션, Cloud Functions 트리거, Context/Hook 구조
+> 최종 수정일: 2026-04-01
+> 분석 기준: 레거시 Firestore/Cloud Functions 구조 + 현재 RN repository/transport 구조 + 현재 Spring 구현
 
-본 문서는 현재 Firebase 기반 SKURI Taxi 앱을 Spring Boot + MySQL 백엔드로 마이그레이션하기 위한 **도메인 분석 결과**입니다.
+본 문서는 SKURI Taxi의 레거시 Firebase 구조와 현재 Spring Boot + MySQL 구현을 함께 대조해 정리한 **도메인 분석 결과**입니다.
 
 ---
 
@@ -32,11 +32,10 @@
 
 | 소스 | 분석 항목 |
 |------|----------|
-| `docs/firestore-data-structure.md` | Firestore 컬렉션 구조 (6개 섹션, 20+ 컬렉션) |
-| `functions/src/index.ts` | Cloud Functions 트리거 (15+ 함수) |
-| `src/hooks/` | Firestore 구독 훅 (50+ 훅) |
-| `src/contexts/` | 전역 상태 관리 (AuthContext, JoinRequestContext 등) |
-| `src/types/` | TypeScript 타입 정의 |
+| 프론트 레포 `docs/references/legacy/firestore-data-structure.md` | 레거시 Firestore 컬렉션 구조 |
+| 프론트 레포 `docs/references/legacy/scripts/` | 레거시 운영 스크립트/이벤트 처리 참고 |
+| 프론트 레포 `src/features`, `src/shared`, `src/di` | 현재 RN repository/query/transport 구조 |
+| 백엔드 레포 `src/main/java/com/skuri/skuri_backend/domain` | 현재 Spring 도메인 구현 |
 
 ### 1.3 설계 결정 사항
 
@@ -1650,10 +1649,10 @@ public class MinecraftBridgeEvent extends BaseTimeEntity {
 
 ## 참고 문서
 
-- [Firestore 데이터 구조](../firestore-data-structure.md)
-- [백엔드 스펙](../SKTaxi-backend-spec.md)
+- 레거시 Firestore 데이터 구조: 프론트 레포 `docs/references/legacy/firestore-data-structure.md`
+- 현재 API 계약: `api-specification.md`
 - [역할 정의](./role-definition.md)
-- [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md)
+- 마인크래프트 상세 설계/이력: 백엔드 레포 `docs/minecraft-spring-migration-plan.md`
 
 ---
 

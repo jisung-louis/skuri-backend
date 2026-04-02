@@ -6645,7 +6645,7 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 
 ## 13. Minecraft API
 
-> 구현 계획 문서: [minecraft-spring-migration-plan.md](./minecraft-spring-migration-plan.md)
+> 구현 계획/이력 문서: 백엔드 레포 `docs/minecraft-spring-migration-plan.md`
 >
 > 본 섹션은 "마인크래프트 RTDB 연동을 Spring 도메인으로 이관"하기 위한 목표 계약이다. 실제 구현 PR에서는 `/v3/api-docs`를 최종 기준으로 동기화한다.
 
@@ -6905,8 +6905,8 @@ data: {"messageId":"dfd5b4b1-54ea-4fa1-92d9-b61a931d0d56","chatRoomId":"public:g
 - [도메인 분석](./domain-analysis.md)
 - [역할 정의](./role-definition.md)
 - [ERD](./erd.md)
-- [마인크래프트 Spring 전환 계획](./minecraft-spring-migration-plan.md)
-- [Firestore 데이터 구조](../firestore-data-structure.md)
+- 마인크래프트 상세 설계/이력: 백엔드 레포 `docs/minecraft-spring-migration-plan.md`
+- 레거시 Firestore 데이터 구조: 프론트 레포 `docs/references/legacy/firestore-data-structure.md`
 
 ---
 
