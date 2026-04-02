@@ -25,6 +25,7 @@
 - 데이터 마이그레이션 관련 신규 발견사항(컬렉션 구조, ID 매핑, seed 충돌 가능성, 요약 필드 재계산 규칙 등)이 생기면 위 참고 문서를 먼저 갱신하고, 필요 시 `api-specification.md`, `domain-analysis.md`, `erd.md`에도 함께 반영한다.
 - Firebase/RTDB export -> MySQL 적재는 `infra/migration`의 스프링 1회성 배치 러너로 수행한다. 공지 이관은 `plan=NOTICES`, 사용자/시간표/마인크래프트 컷오버는 `plan=CUTOVER`를 사용하며, 둘 다 운영 app 컨테이너와 분리된 별도 실행을 기본으로 한다.
 - 운영에서 migration을 실행할 때는 `migration.enabled=true`, `spring.main.web-application-type=none`을 사용해 웹 서버를 띄우지 않고 종료형 배치로 돌린다. 공지 스케줄러와 충돌 가능성이 있는 시간대에는 `NOTICE_SYNC_SCHEDULER_ENABLED=false`로 잠시 비활성화한 뒤 dry-run/apply를 순차 실행한다.
+- cutover 시간표 이관은 live MySQL `courses`에 존재하는 학기만 관리 대상으로 본다. live MySQL에 없는 학기(예: 새 DB에서 관리하지 않는 이전 학기)와 users export에 없는 `userId`의 시간표는 적재하지 않고 `timetable-skips.json`으로만 남긴다.
 - 프론트/백엔드 구현 에이전트의 최종 보고에는 “상대 레포의 동일 문서를 바로 동기화하라”는 문구를 반드시 포함한다.
 
 ## 1.2 완료 작업: OpenAPI Show Schema 전수 보강
