@@ -65,3 +65,9 @@ list_of_api_calls_old.txt
 
 ## SQL
 etc/skurisqltest.sql
+
+
+### TEMPORARY
+## FOR MIGRATION
+data-to-migration/*.json
+data-to-migration/reports/

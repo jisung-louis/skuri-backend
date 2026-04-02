@@ -1,0 +1,9 @@
+package com.skuri.skuri_backend.infra.migration;
+
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@EnableConfigurationProperties(MigrationProperties.class)
+public class MigrationConfig {
+}
