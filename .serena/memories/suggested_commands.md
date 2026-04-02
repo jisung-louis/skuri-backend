@@ -38,6 +38,7 @@
 ## Migration 러너 검증
 ```bash
 ./gradlew compileJava test --tests "*NoticeMigrationJobDataJpaTest" --tests "*NoticeSyncServiceTest"
+./gradlew test --tests "*CutoverMigrationJobDataJpaTest"
 SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --args='--migration.enabled=true --migration.plan=notices --migration.mode=dry-run --migration.notice-file=/Users/jisung/skuri-backend/data-to-migration/notices-export.json --migration.report-dir=/Users/jisung/skuri-backend/data-to-migration/reports --spring.main.web-application-type=none --spring.task.scheduling.enabled=false'
 ```
 
