@@ -78,17 +78,8 @@ public class TimetableMigrationJob {
         Map<String, CourseExportData> sourceCoursesById = courseExports.stream()
                 .collect(Collectors.toMap(CourseExportItem::id, CourseExportItem::data, (left, right) -> left, LinkedHashMap::new));
         List<TimetableExportItem> timetableExports = readTimetables(timetablesFile);
-
-        Set<String> referencedCourseIds = timetableExports.stream()
-                .flatMap(item -> {
-                    if (item.data() == null || item.data().courses() == null) {
-                        return List.<String>of().stream();
-                    }
-                    return item.data().courses().stream();
-                })
-                .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<String> referencedSemesters = timetableExports.stream()
-                .map(item -> item.data().semester())
+                .map(item -> item.data() == null ? null : trimToNull(item.data().semester()))
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
@@ -96,6 +87,19 @@ public class TimetableMigrationJob {
                 .flatMap(semester -> courseRepository.findAllBySemesterWithSchedules(semester).stream())
                 .map(LiveCourseCandidate::from)
                 .toList();
+        Set<String> managedSemesters = liveCourses.stream()
+                .map(LiveCourseCandidate::semester)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> referencedCourseIds = timetableExports.stream()
+                .filter(item -> item.data() != null)
+                .filter(item -> managedSemesters.contains(trimToNull(item.data().semester())))
+                .flatMap(item -> {
+                    if (item.data().courses() == null) {
+                        return List.<String>of().stream();
+                    }
+                    return item.data().courses().stream();
+                })
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         Map<String, CourseMatchResult> courseMatchResults = resolveCourses(referencedCourseIds, sourceCoursesById, liveCourses);
         List<CourseMatchReportRow> courseMatchReportRows = courseMatchResults.values().stream()
@@ -104,6 +108,7 @@ public class TimetableMigrationJob {
                 .toList();
 
         List<MigrationReject> rejects = new ArrayList<>();
+        List<TimetableSkipReportRow> skips = new ArrayList<>();
         List<TimetableRow> timetableRows = new ArrayList<>();
         List<TimetableCourseRow> courseRows = new ArrayList<>();
 
@@ -121,11 +126,23 @@ public class TimetableMigrationJob {
                 rejects.add(new MigrationReject(item.id(), "timetable 필수 값(id/userId/semester)이 비어 있습니다.", Map.of("domain", "timetable")));
                 continue;
             }
-            if (!knownUserIds.contains(userId)) {
-                rejects.add(new MigrationReject(
+            if (!managedSemesters.contains(semester)) {
+                skips.add(new TimetableSkipReportRow(
                         timetableId,
-                        "users export에 없는 userId를 참조합니다. 컷오프 정책에 따라 버립니다.",
-                        Map.of("domain", "timetable", "userId", userId, "semester", semester)
+                        userId,
+                        semester,
+                        "UNMANAGED_SEMESTER",
+                        "live MySQL courses에 없는 semester라서 버렸습니다."
+                ));
+                continue;
+            }
+            if (!knownUserIds.contains(userId)) {
+                skips.add(new TimetableSkipReportRow(
+                        timetableId,
+                        userId,
+                        semester,
+                        "UNKNOWN_USER",
+                        "users export에 없는 userId를 참조해서 버렸습니다."
                 ));
                 continue;
             }
@@ -191,10 +208,16 @@ public class TimetableMigrationJob {
                         "timetables_scanned", (long) timetableExports.size(),
                         "timetables_inserted", insertedCount,
                         "timetables_updated", existingCount,
-                        "timetable_courses_inserted", (long) courseRows.size()
+                        "timetable_courses_inserted", (long) courseRows.size(),
+                        "timetables_skipped", (long) skips.size(),
+                        "timetables_skipped_unknown_user", countSkipsByReason(skips, "UNKNOWN_USER"),
+                        "timetables_skipped_unmanaged_semester", countSkipsByReason(skips, "UNMANAGED_SEMESTER")
                 ),
                 List.copyOf(rejects),
-                Map.of("course-matches.json", courseMatchReportRows)
+                Map.of(
+                        "course-matches.json", courseMatchReportRows,
+                        "timetable-skips.json", skips
+                )
         );
     }
 
@@ -401,6 +424,12 @@ public class TimetableMigrationJob {
         return value == null ? null : Timestamp.valueOf(value);
     }
 
+    private long countSkipsByReason(List<TimetableSkipReportRow> skips, String reasonCode) {
+        return skips.stream()
+                .filter(skip -> reasonCode.equals(skip.reasonCode()))
+                .count();
+    }
+
     private final class TimetableCourseInsertSetter implements BatchPreparedStatementSetter {
         private final List<TimetableCourseRow> rows;
 
@@ -433,6 +462,15 @@ public class TimetableMigrationJob {
     private record TimetableCourseRow(
             String timetableId,
             String courseId
+    ) {
+    }
+
+    private record TimetableSkipReportRow(
+            String timetableId,
+            String userId,
+            String semester,
+            String reasonCode,
+            String reason
     ) {
     }
 
