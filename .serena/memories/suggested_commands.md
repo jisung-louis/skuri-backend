@@ -35,6 +35,12 @@
 ./gradlew test --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest"
 ```
 
+## Migration 러너 검증
+```bash
+./gradlew compileJava test --tests "*NoticeMigrationJobDataJpaTest" --tests "*NoticeSyncServiceTest"
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --args='--migration.enabled=true --migration.plan=notices --migration.mode=dry-run --migration.notice-file=/Users/jisung/skuri-backend/data-to-migration/notices-export.json --migration.report-dir=/Users/jisung/skuri-backend/data-to-migration/reports --spring.main.web-application-type=none --spring.task.scheduling.enabled=false'
+```
+
 ## Academic 온라인 강의 검증
 ```bash
 JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home ./gradlew test --tests "com.skuri.skuri_backend.domain.academic.controller.CourseControllerContractTest" --tests "com.skuri.skuri_backend.domain.academic.controller.CourseAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.academic.controller.TimetableControllerContractTest" --tests "com.skuri.skuri_backend.domain.academic.service.CourseServiceTest" --tests "com.skuri.skuri_backend.domain.academic.service.CourseServiceDataJpaTest" --tests "com.skuri.skuri_backend.domain.academic.service.TimetableServiceTest" --tests "com.skuri.skuri_backend.domain.academic.repository.CourseRepositoryDataJpaTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"

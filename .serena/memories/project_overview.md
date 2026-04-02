@@ -43,6 +43,7 @@
 - OpenAPI는 로컬에서 노출하고 `prod`에서는 기본 비노출이다.
 - 상태 변경 이후 알림/외부 후처리는 after-commit semantics를 따른다.
 - Admin API는 `@AdminApiAccess`, `ADMIN_REQUIRED`, `admin_audit_logs` 기반 정책을 사용한다.
+- 별도 1회성 데이터 이관은 `infra/migration` 아래의 스프링 배치 러너로 수행한다. 평소 app 서버는 영향 없이 유지하고, `migration.enabled=true`와 `spring.main.web-application-type=none` 설정으로만 실행 후 종료한다.
 
 ## Admin Member API 메모
 - `member` 도메인은 관리자 백오피스 회원 관리 API를 제공한다: `GET /v1/admin/members`, `GET /v1/admin/members/{memberId}`, `GET /v1/admin/members/{memberId}/activity`, `PATCH /v1/admin/members/{memberId}/admin-role`.
@@ -52,7 +53,6 @@
 - 관리자 활동 요약은 ACTIVE 회원만 제공하며, 현재 저장된 post/comment/party/inquiry/report 데이터 기준 count + domain별 recent 5건 read model을 반환한다. 댓글은 삭제되지 않은 comment이면서 부모 post도 삭제되지 않은 경우만 포함하고, 탈퇴 회원은 `409 MEMBER_ACTIVITY_NOT_AVAILABLE_FOR_WITHDRAWN`으로 비제공 처리한다.
 - 관리자 권한 변경은 기존 `members.is_admin` boolean만 갱신하며, 탈퇴 회원은 `409 CONFLICT`, 자기 자신의 권한 변경은 `400 SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED`로 차단한다. 마지막 관리자 수 계산 정책은 후속 결정 전까지 추가하지 않는다.
 - 관리자 상세 응답은 `bankAccount`, `notificationSetting`을 유지하지만 admin-role 감사 snapshot은 `id/email/nickname/isAdmin/status` 최소 필드만 저장한다.
-
 
 ## Admin TaxiParty API 메모
 - `taxiparty` 도메인은 관리자 백오피스용 TaxiParty API를 제공한다: `GET /v1/admin/parties`, `GET /v1/admin/parties/{partyId}`, `PATCH /v1/admin/parties/{partyId}/status`, `DELETE /v1/admin/parties/{partyId}/members/{memberId}`, `POST /v1/admin/parties/{partyId}/messages/system`, `GET /v1/admin/parties/{partyId}/join-requests`.
@@ -72,13 +72,11 @@
 - public board는 관리자 moderation을 반영한다. `HIDDEN` 게시글은 public 목록/상세/내 게시글/북마크에서 제외되고, `HIDDEN` 댓글은 thread 구조 유지를 위해 placeholder로 마스킹된다.
 - 관리자 write audit은 `admin_audit_logs`에 최소 snapshot만 남긴다. 게시글은 `id/authorId/category/anonymous/hidden/deleted`, 댓글은 `id/postId/authorId/parentId/anonymous/hidden/deleted` 기준으로 기록한다.
 
-
 ## Admin Dashboard API 메모
 - 관리자 대시보드 read-model API는 `GET /v1/admin/dashboard/summary`, `GET /v1/admin/dashboard/activity`, `GET /v1/admin/dashboard/recent-items`를 제공한다.
 - 모든 집계와 일자 버킷 기준은 `Asia/Seoul`이다. `summary.newMembersToday`는 `members.joinedAt` 기준 오늘 `00:00 ~ generatedAt`, `activity.days`는 `7 | 30`만 허용한다.
 - `summary.totalMembers`는 `members` 전체 row 기준이다. soft delete tombstone(`WITHDRAWN`)도 포함하며, ACTIVE-only count는 현재 계약에 포함하지 않는다.
 - `recent-items` source는 Inquiry/Report/AppNotice/Party만 사용하고, AppNotice는 `publishedAt <= now`인 게시 공지만 포함한다. 학교 공지 sync 이력이나 운영 action API는 이 read model 범위에 포함하지 않는다.
-
 
 ## Admin AcademicSchedule API 메모
 - `academic` 도메인은 기존 단건 CRUD(`POST /v1/admin/academic-schedules`, `PUT /v1/admin/academic-schedules/{scheduleId}`, `DELETE /v1/admin/academic-schedules/{scheduleId}`)를 유지하면서 `PUT /v1/admin/academic-schedules/bulk` 범위 bulk sync API를 추가했다.

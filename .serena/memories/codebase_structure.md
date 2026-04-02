@@ -41,6 +41,11 @@
 - `src/main/java/com/skuri/skuri_backend/common/seed/entity/SeedMigration.java`, `.../repository/SeedMigrationRepository.java`: seed 적용 이력 기록용 marker 저장소
 - `src/main/java/com/skuri/skuri_backend/infra/openapi/OpenApiLegalSchemas.java`, `OpenApiLegalExamples.java`: legal document API용 OpenAPI schema/example 정의
 
+## Migration 관련 파일
+- `src/main/java/com/skuri/skuri_backend/infra/migration`: 1회성 데이터 이관 공통 인프라 (`MigrationRunner`, `MigrationProperties`, 리포트/JSON/Timestamp 유틸)
+- `src/main/java/com/skuri/skuri_backend/infra/migration/notice/NoticeMigrationJob.java`: Firestore notices JSON -> MySQL notices upsert 러너. 기존 공지 row는 카운터를 보존하고, 신규 공지는 source view/like count를 반영한다.
+- `src/test/java/com/skuri/skuri_backend/infra/migration/notice/NoticeMigrationJobDataJpaTest.java`: notice migration apply/dry-run 검증
+
 ## 테스트 포인트
 - `src/test/java/com/skuri/skuri_backend/domain/support/controller/LegalDocumentControllerContractTest.java`
 - `src/test/java/com/skuri/skuri_backend/domain/support/controller/LegalDocumentAdminControllerContractTest.java`
