@@ -253,7 +253,18 @@ class CutoverMigrationJobDataJpaTest {
     }
 
     @Test
-    void dryRun_알수없는_userId_시간표는_reject로남기고_DB를변경하지않는다() throws Exception {
+    void dryRun_알수없는_userId_시간표는_skip하고_DB를변경하지않는다() throws Exception {
+        insertLiveCourse(
+                "course-live-unknown-user",
+                "2026-1",
+                "21747",
+                "001",
+                "자료구조",
+                "컴퓨터공학과",
+                "기념관101",
+                2,
+                3
+        );
         Path usersFile = tempDir.resolve("users-empty.json");
         Files.writeString(usersFile, "[]");
         Path timetablesFile = tempDir.resolve("timetables-unknown-user.json");
@@ -283,9 +294,75 @@ class CutoverMigrationJobDataJpaTest {
                 new MigrationRunOptions(MigrationMode.DRY_RUN, 100, false, tempDir.resolve("dry-run-reports"), LocalDateTime.of(2026, 4, 3, 1, 30))
         );
 
-        assertEquals(1, result.rejects().size());
+        assertEquals(0, result.rejects().size());
         assertEquals(0, jdbcTemplate.queryForObject("select count(*) from user_timetables", Integer.class));
-        assertTrue(Files.exists(result.reportDirectory().resolve("timetable-rejects.json")));
+        assertTrue(Files.exists(result.reportDirectory().resolve("timetable-skips.json")));
+        assertTrue(Files.readString(result.reportDirectory().resolve("timetable-skips.json")).contains("UNKNOWN_USER"));
+    }
+
+    @Test
+    void dryRun_liveMySQL에없는_학기_시간표는_skip하고_DB를변경하지않는다() throws Exception {
+        Path usersFile = tempDir.resolve("users-one.json");
+        Files.writeString(usersFile, """
+                [
+                  {
+                    "id": "member-1",
+                    "data": {
+                      "uid": "member-1",
+                      "email": "member1@sungkyul.ac.kr",
+                      "displayName": "앱닉네임"
+                    }
+                  }
+                ]
+                """);
+        Path timetablesFile = tempDir.resolve("timetables-unmanaged-semester.json");
+        Files.writeString(timetablesFile, """
+                [
+                  {
+                    "id": "old-semester-timetable",
+                    "data": {
+                      "userId": "member-1",
+                      "semester": "2025-2",
+                      "createdAt": {"_seconds": 1775000000, "_nanoseconds": 0},
+                      "courses": ["firestore-course-legacy"]
+                    }
+                  }
+                ]
+                """);
+        Path coursesFile = tempDir.resolve("courses-legacy.json");
+        Files.writeString(coursesFile, """
+                [
+                  {
+                    "id": "firestore-course-legacy",
+                    "data": {
+                      "semester": "2025-2",
+                      "code": "21466",
+                      "division": "001",
+                      "name": "국제인권법",
+                      "department": "문화선교학과",
+                      "location": "기315",
+                      "schedule": [
+                        {"dayOfWeek": 3, "startPeriod": 4, "endPeriod": 6}
+                      ]
+                    }
+                  }
+                ]
+                """);
+        Path minecraftFile = tempDir.resolve("minecraft-empty-2.json");
+        Files.writeString(minecraftFile, "{\"players\":{},\"BEPlayers\":{}}");
+
+        MigrationExecutionResult result = cutoverMigrationJob.execute(
+                usersFile,
+                coursesFile,
+                timetablesFile,
+                minecraftFile,
+                new MigrationRunOptions(MigrationMode.DRY_RUN, 100, false, tempDir.resolve("dry-run-unmanaged-reports"), LocalDateTime.of(2026, 4, 3, 2, 0))
+        );
+
+        assertEquals(0, result.rejects().size());
+        assertEquals(0, jdbcTemplate.queryForObject("select count(*) from user_timetables", Integer.class));
+        assertTrue(Files.exists(result.reportDirectory().resolve("timetable-skips.json")));
+        assertTrue(Files.readString(result.reportDirectory().resolve("timetable-skips.json")).contains("UNMANAGED_SEMESTER"));
     }
 
     private void insertLiveCourse(
