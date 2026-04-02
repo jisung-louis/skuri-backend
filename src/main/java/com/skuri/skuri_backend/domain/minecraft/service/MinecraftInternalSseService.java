@@ -83,9 +83,7 @@ public class MinecraftInternalSseService {
         }
 
         try {
-            Object body = payload instanceof String stringPayload
-                    ? objectMapper.readTree(stringPayload)
-                    : payload;
+            Object body = deserializePayload(payload);
             SseEmitter.SseEventBuilder event = SseEmitter.event()
                     .name(eventName)
                     .reconnectTime(SSE_RETRY_MILLIS)
@@ -98,6 +96,13 @@ public class MinecraftInternalSseService {
             subscribers.remove(emitterId);
             log.debug("Minecraft internal SSE 전송 실패로 구독 해제: endpoint={}, emitterId={}, event={}", ENDPOINT, emitterId, eventName);
         }
+    }
+
+    Object deserializePayload(Object payload) throws IOException {
+        if (!(payload instanceof String stringPayload)) {
+            return payload;
+        }
+        return objectMapper.readValue(stringPayload, Object.class);
     }
 
     private void registerLifecycle(String emitterId, SseEmitter emitter) {
