@@ -44,7 +44,7 @@
 ## Migration 관련 파일
 - `src/main/java/com/skuri/skuri_backend/infra/migration`: 1회성 데이터 이관 공통 인프라 (`MigrationRunner`, `MigrationProperties`, 리포트/JSON/Timestamp 유틸)
 - `src/main/java/com/skuri/skuri_backend/infra/migration/notice/NoticeMigrationJob.java`: Firestore notices JSON -> MySQL notices upsert 러너. 기존 공지 row는 카운터를 보존하고, 신규 공지는 source view/like count를 반영한다.
-- `src/main/java/com/skuri/skuri_backend/infra/migration/cutover`: 회원/linked account/FCM token/시간표/마인크래프트 계정을 함께 적재하는 cutover 러너. live MySQL `courses` lookup과 reject report(`member/timetable/minecraft-rejects.json`, `course-matches.json`)를 생성한다.
+- `src/main/java/com/skuri/skuri_backend/infra/migration/cutover`: 회원/linked account/FCM token/시간표/마인크래프트 계정을 함께 적재하는 cutover 러너. live MySQL `courses` lookup과 reject report(`member/timetable/minecraft-rejects.json`, `course-matches.json`), skip report(`timetable-skips.json`)를 생성한다.
 - `src/test/java/com/skuri/skuri_backend/infra/migration/notice/NoticeMigrationJobDataJpaTest.java`: notice migration apply/dry-run 검증
 - `src/test/java/com/skuri/skuri_backend/infra/migration/cutover/CutoverMigrationJobDataJpaTest.java`: cutover migration apply/dry-run 검증
 

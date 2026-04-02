@@ -49,7 +49,7 @@
 - CD의 admin REST CORS smoke check는 `CD_SMOKE_CORS_ORIGIN`을 우선 사용하고, 비어 있으면 `API_ALLOWED_ORIGIN_PATTERNS`의 첫 번째 exact origin을 재사용한다.
 - CD workflow는 `production-deploy` concurrency 그룹으로 최신 run만 유지하고 이전 run은 자동 취소한다.
 - Firebase/RTDB 원본 이관은 외부 스크립트 대신 `infra/migration`의 스프링 1회성 배치 러너로 구현한다. 운영 앱과 분리해 `migration.enabled=true`, `spring.main.web-application-type=none`으로 별도 실행하고, 도메인 서비스 부가효과를 타지 않도록 `JdbcTemplate` 중심으로 적재한다.
-- cutover migration은 `users`를 source of truth로 보고, users export에 없는 timetable은 reject/skip 한다. 마인크래프트 계정은 `users[].minecraftAccount.accounts[]`를 canonical source로 사용하고 RTDB whitelist export는 검증/보강용으로만 사용한다.
+- cutover migration은 `users`를 source of truth로 보고, users export에 없는 timetable과 live MySQL `courses`에 없는 학기의 timetable은 적재하지 않고 `timetable-skips.json`에 남긴다. 마인크래프트 계정은 `users[].minecraftAccount.accounts[]`를 canonical source로 사용하고 RTDB whitelist export는 검증/보강용으로만 사용한다.
 - 관리자 회원 목록 API는 Support Admin 목록 규약과 동일하게 `AdminPageRequestPolicy`를 사용하고 필터는 `query/status/isAdmin/department`를 유지한다. 정렬은 `sortBy/sortDirection`으로 확장하되 기본값은 `joinedAt,DESC`, null 값은 항상 마지막이다. 이름 컬럼은 `members.realname`을 사용하고, `lastLoginOs`, `currentAppVersion`은 최근 활성 FCM 대표 토큰의 `fcm_tokens.platform`, `fcm_tokens.app_version`을 함께 사용한다.
 - `POST /v1/members/me/fcm-tokens`의 `appVersion`은 optional이다. 신규 토큰 등록 시 미전송하면 `null`로 저장하고, 같은 token 재등록 시 `null` 또는 빈 문자열이면 기존 값을 유지한다.
 - 관리자 회원 검색의 `department` 입력은 `DepartmentCatalog.normalize`로 정규화하고, 지원하지 않는 값은 `VALIDATION_ERROR`로 처리한다.
