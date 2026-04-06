@@ -12,7 +12,7 @@
 - OpenAPI: springdoc Swagger UI + Scalar
 
 ## 도메인 구조
-- member: 회원, 프로필, 알림 설정, FCM 토큰, 탈퇴/재가입 정책. `PATCH /v1/members/me`는 partial update semantics를 유지해 `photoUrl: null`을 no-op로 해석하고, 명시적 삭제는 `DELETE /v1/members/me/photo`로 처리한다. 현재 `members.photo_url`이 내부 `PROFILE_IMAGE` 업로드 URL이면 commit 이후 storage의 원본/썸네일 정리를 best-effort로 수행한다.
+- member: 회원, 프로필, 알림 설정, FCM 토큰, 탈퇴/재가입 정책. `PATCH /v1/members/me`는 partial update semantics를 유지해 `photoUrl: null`을 no-op로 해석하고, 내부 storage URL은 현재 값 그대로이거나 본인이 업로드한 member-scoped `PROFILE_IMAGE` URL일 때만 허용한다. 명시적 삭제는 `DELETE /v1/members/me/photo`로 처리하며, storage cleanup은 본인 소유로 검증된 `profiles/{memberId}/...` 경로에만 after-commit/best-effort로 수행한다. legacy unscoped 내부 URL은 DB만 null 처리한다.
 - taxiparty: 파티 생성/참여/정산/상태 전이, SSE, 택시 history/summary, 홈 목록 요약 `PartySummaryResponse.participantSummaries`로 현재 멤버 `id/photoUrl/nickname/isLeader`를 함께 제공
 - chat: 공개 채팅방/파티 채팅방, SYSTEM/ARRIVED/END 서버 메시지, 공개방 seed, 메시지 payload `senderPhotoUrl`은 `members.photo_url`만 사용
 - minecraft: `public:game:minecraft` 공개 채팅방, plugin 전용 internal bridge(`/internal/minecraft/**` + SSE), 앱/플러그인 간 양방향 채팅, 서버 상태, 온라인 플레이어 스냅샷, 화이트리스트/JE·BE 검증 정책을 Spring이 source of truth로 관리하며, plugin inbound `eventId` idempotency와 outbox replay tie-breaker(`minecraft_bridge_events.id`)를 서버가 보장
