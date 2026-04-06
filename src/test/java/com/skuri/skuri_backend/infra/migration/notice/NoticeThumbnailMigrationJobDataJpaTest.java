@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
@@ -104,6 +105,30 @@ class NoticeThumbnailMigrationJobDataJpaTest {
         assertTrue(Files.exists(result.reportDirectory().resolve("summary.json")));
         assertEquals(null, thumbnailOf("dry-run-1"));
         assertEquals("https://example.com/legacy-thumb.jpg", thumbnailOf("dry-run-2"));
+    }
+
+    @Test
+    void apply_긴dataUrl과_blobUrl은_null처리되어_backfill이실패하지않는다() throws Exception {
+        String hugeDataUrl = "data:image/png;base64," + "A".repeat(70_000);
+
+        insertNotice("invalid-src-1", "<img src=\"" + hugeDataUrl + "\" />", "https://example.com/legacy-thumb.jpg");
+        insertNotice("invalid-src-2", "<img src=\"blob:https://example.com/550e8400-e29b-41d4-a716-446655440000\" />", "https://example.com/blob-thumb.jpg");
+        insertNotice("invalid-src-3", "<img src=\"" + "https://example.com/" + "a".repeat(70_000) + ".jpg\" />", "https://example.com/long-thumb.jpg");
+
+        Path reportRoot = tempDir.resolve("invalid-src-reports");
+        MigrationExecutionResult result = noticeThumbnailMigrationJob.execute(
+                new MigrationRunOptions(MigrationMode.APPLY, 2, true, reportRoot, LocalDateTime.of(2026, 4, 6, 12, 0))
+        );
+
+        assertEquals(Map.of(
+                "scanned", 3L,
+                "updated", 3L,
+                "no_image", 3L,
+                "failed", 0L
+        ), result.summary().counters());
+        assertNull(thumbnailOf("invalid-src-1"));
+        assertNull(thumbnailOf("invalid-src-2"));
+        assertNull(thumbnailOf("invalid-src-3"));
     }
 
     private String thumbnailOf(String noticeId) {
