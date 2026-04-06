@@ -90,3 +90,9 @@
 - bulk API의 `type` 하위호환 정규화(`single|multi` -> enum 대문자)는 `PUT /v1/admin/academic-schedules/bulk`에만 적용하고 기존 단건 CRUD 계약은 그대로 유지한다.
 - bulk sync 검증 실패(잘못된 scope, scope 밖 일정, 요청 내부 자연키 중복)는 새 CONFLICT 코드를 만들지 않고 기존 `VALIDATION_ERROR` + 422 흐름으로 처리한다.
 - 관리자 학사 일정 bulk write 감사는 row별 전체 before/after diff보다 summary snapshot(`scopeStartDate`, `scopeEndDate`, `created`, `updated`, `deleted`)을 우선한다.
+
+
+- 관리자 Chat read API는 새 도메인 모델을 만들지 않고 기존 `ChatService`/`ChatMessageRepository`/party-chat canonical id(`party:{partyId}`)를 재사용한다.
+- 관리자 공개 채팅방 read 응답은 기존 DTO를 재사용할 수 있지만, 관리자 개인 상태 필드는 계약상 고정값(`joined=false`, `unreadCount=0`, `isMuted=false`, `lastReadAt=null`)으로 명시하고 OpenAPI/문서와 같이 유지한다.
+- 관리자 read-only API(`GET /v1/admin/chat-rooms*`, `GET /v1/admin/parties/{partyId}/messages`)에는 `@AdminAudit`를 붙이지 않는다.
+- 관리자 공개 채팅방 조회는 user API visibility 규칙을 그대로 재사용하지 않는다. `DEPARTMENT`도 관리자에게는 전체 공개방으로 노출하고, PARTY 메시지는 `/v1/admin/parties/{partyId}/messages`로 분리한다.

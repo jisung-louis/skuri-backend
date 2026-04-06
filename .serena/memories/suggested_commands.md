@@ -171,3 +171,24 @@ curl http://127.0.0.1:18081/v3/api-docs
 curl http://127.0.0.1:18081/swagger-ui/index.html
 curl http://127.0.0.1:18081/scalar
 ```
+
+
+## Admin Chat Read API 작업 검증
+```bash
+./gradlew test --tests "com.skuri.skuri_backend.domain.chat.controller.ChatAdminRoomControllerContractTest" --tests "com.skuri.skuri_backend.domain.chat.service.ChatServiceTest" --tests "com.skuri.skuri_backend.domain.chat.service.ChatAdminServiceTest" --tests "com.skuri.skuri_backend.domain.taxiparty.controller.PartyAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.taxiparty.service.TaxiPartyAdminServiceTest" --tests "com.skuri.skuri_backend.infra.openapi.AdminOpenApiConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiResponseExamplesConventionTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiUiAvailabilityIntegrationTest"
+./gradlew build
+```
+
+## Admin Chat Read API 수동 검증
+```bash
+source .env
+firebase emulators:start --only auth --project "$FIREBASE_PROJECT_ID"
+DB_URL=$DB_URL DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID FIREBASE_CREDENTIALS_PATH= GOOGLE_APPLICATION_CREDENTIALS= SPRING_PROFILES_ACTIVE=local-emulator SERVER_PORT=18080 ./gradlew bootRun
+curl "http://127.0.0.1:18080/v1/admin/chat-rooms?type=DEPARTMENT" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl "http://127.0.0.1:18080/v1/admin/chat-rooms/<CHAT_ROOM_ID>" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl "http://127.0.0.1:18080/v1/admin/chat-rooms/<CHAT_ROOM_ID>/messages?size=2" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl "http://127.0.0.1:18080/v1/admin/parties/<PARTY_ID>/messages?size=2" -H "Authorization: Bearer <ADMIN_ID_TOKEN>"
+curl http://127.0.0.1:18080/v3/api-docs
+curl http://127.0.0.1:18080/swagger-ui/index.html
+curl http://127.0.0.1:18080/scalar
+```
