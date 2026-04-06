@@ -592,8 +592,9 @@ Hooks:
   - `summary`는 추후 AI가 생성한 공지 요약을 저장하기 위한 예약 필드다. 현재 공개 API에는 노출하지 않는다.
   - `bodyHtml`은 상세 페이지 `.view-con`에서 수집한 HTML 원문이며, RN 앱이 웹 구조를 최대한 유지해 렌더링할 수 있도록 그대로 저장한다.
   - `bodyText`는 `bodyHtml`에서 태그를 제거하고 줄바꿈/표 셀 구분을 정규화한 내부 텍스트다.
-  - `thumbnailUrl`은 상세 크롤링 성공 시 `bodyHtml`의 첫 번째 `img[src]`를 추출해 저장한다. 이미지가 없으면 `null`로 저장하고, 상세를 refresh하지 않으면 기존 값을 유지한다.
-  - 기존 row의 `thumbnailUrl`은 네트워크 재크롤링 없이 DB `bodyHtml`만 읽는 `NOTICE_THUMBNAILS` backfill plan으로 보정한다.
+  - `thumbnailUrl`은 `TEXT` 타입 `thumbnail_url` 컬럼에 저장하며, 상세 크롤링 성공 시 `bodyHtml`의 첫 번째 `img[src]`를 추출해 저장한다.
+  - `img[src]`가 비어 있거나 `data:` / `blob:` / 과도하게 긴 값이면 `thumbnailUrl`은 `null`로 저장한다. 상세를 refresh하지 않으면 기존 값을 유지한다.
+  - 기존 row의 `thumbnailUrl`은 네트워크 재크롤링 없이 DB `bodyHtml`만 읽는 `NOTICE_THUMBNAILS` backfill plan으로 보정하고, 저장 부적절한 `src`는 `null`로 정리한다.
   - 성결대학교 사이트의 TLS 체인 이슈로 인해, 현재 Spring 구현은 공지 RSS/상세 크롤링 경로에서만 TLS 인증서 검증을 비활성화한다.
   - 개별 공지 저장 실패는 전체 동기화를 중단하지 않고 `failed`로 집계한 뒤 다음 공지 처리를 계속한다.
   - 상세 재크롤링 조건:

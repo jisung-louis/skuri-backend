@@ -343,7 +343,7 @@ erDiagram
         datetime detail_checked_at
         longtext body_text "HTML 정규화 plain text"
         longtext body_html "크롤링된 HTML"
-        varchar(1000) thumbnail_url "bodyHtml 첫 이미지 URL cache, nullable"
+        text thumbnail_url "bodyHtml 첫 이미지 URL cache, nullable"
         json attachments "첨부파일 목록"
         int view_count "DEFAULT 0"
         int like_count "DEFAULT 0"
