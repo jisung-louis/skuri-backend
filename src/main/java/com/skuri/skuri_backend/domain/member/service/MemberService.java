@@ -87,6 +87,7 @@ public class MemberService {
         if (request.department() != null && StringUtils.hasText(request.department()) && normalizedDepartment == null) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "지원하지 않는 department입니다.");
         }
+        profileImageStorageService.validateProfilePhotoReference(memberId, member.getPhotoUrl(), request.photoUrl());
         member.updateProfile(
                 request.nickname(),
                 request.studentId(),
@@ -104,7 +105,7 @@ public class MemberService {
         Member member = getMemberOrThrow(memberId);
         String previousPhotoUrl = member.getPhotoUrl();
         member.removeProfilePhoto();
-        cleanupProfilePhotoAfterCommit(previousPhotoUrl);
+        cleanupProfilePhotoAfterCommit(memberId, previousPhotoUrl);
     }
 
     @Transactional
@@ -189,12 +190,12 @@ public class MemberService {
         return value.trim();
     }
 
-    private void cleanupProfilePhotoAfterCommit(String photoUrl) {
+    private void cleanupProfilePhotoAfterCommit(String memberId, String photoUrl) {
         if (!StringUtils.hasText(photoUrl)) {
             return;
         }
 
-        Runnable cleanupTask = () -> profileImageStorageService.deleteManagedProfileImage(photoUrl);
+        Runnable cleanupTask = () -> profileImageStorageService.deleteOwnedManagedProfileImage(memberId, photoUrl);
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override

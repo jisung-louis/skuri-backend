@@ -1,5 +1,7 @@
 package com.skuri.skuri_backend.domain.image.service;
 
+import com.skuri.skuri_backend.common.exception.BusinessException;
+import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.image.dto.request.ImageUploadContext;
 import com.skuri.skuri_backend.domain.image.storage.StorageRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,21 +21,49 @@ public class ProfileImageStorageService {
     private static final String PROFILE_DIRECTORY_PREFIX = ImageUploadContext.PROFILE_IMAGE.directoryName() + "/";
     private static final String THUMB_SUFFIX = "_thumb";
     private static final List<String> THUMBNAIL_EXTENSIONS = List.of("jpg", "png", "webp");
+    private static final String PROFILE_IMAGE_OWNERSHIP_MESSAGE =
+            "photoUrl은 본인이 업로드한 PROFILE_IMAGE URL만 사용할 수 있습니다.";
 
     private final StorageRepository storageRepository;
 
-    public void deleteManagedProfileImage(String photoUrl) {
+    public void validateProfilePhotoReference(String memberId, String currentPhotoUrl, String requestedPhotoUrl) {
+        if (!StringUtils.hasText(requestedPhotoUrl)) {
+            return;
+        }
+        if (requestedPhotoUrl.equals(currentPhotoUrl)) {
+            return;
+        }
+
+        storageRepository.resolveRelativePath(requestedPhotoUrl)
+                .ifPresent(relativePath -> {
+                    if (!isOwnedManagedProfileImagePath(memberId, relativePath)) {
+                        throw new BusinessException(ErrorCode.VALIDATION_ERROR, PROFILE_IMAGE_OWNERSHIP_MESSAGE);
+                    }
+                });
+    }
+
+    public void deleteOwnedManagedProfileImage(String memberId, String photoUrl) {
         if (!StringUtils.hasText(photoUrl)) {
             return;
         }
 
         storageRepository.resolveRelativePath(photoUrl)
-                .filter(this::isManagedProfileImagePath)
+                .filter(relativePath -> isOwnedManagedProfileImagePath(memberId, relativePath))
                 .ifPresent(relativePath -> buildDeletionCandidates(relativePath).forEach(this::deleteQuietly));
     }
 
     private boolean isManagedProfileImagePath(String relativePath) {
         return StringUtils.hasText(relativePath) && relativePath.replace('\\', '/').startsWith(PROFILE_DIRECTORY_PREFIX);
+    }
+
+    private boolean isOwnedManagedProfileImagePath(String memberId, String relativePath) {
+        if (!StringUtils.hasText(memberId) || !isManagedProfileImagePath(relativePath)) {
+            return false;
+        }
+
+        String normalizedPath = relativePath.replace('\\', '/');
+        String ownedPrefix = PROFILE_DIRECTORY_PREFIX + memberId.trim() + "/";
+        return normalizedPath.startsWith(ownedPrefix) && normalizedPath.split("/").length >= 6;
     }
 
     private Set<String> buildDeletionCandidates(String relativePath) {

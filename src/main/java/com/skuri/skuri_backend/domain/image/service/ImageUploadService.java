@@ -8,6 +8,7 @@ import com.skuri.skuri_backend.domain.image.storage.StorageRepository;
 import lombok.RequiredArgsConstructor;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -32,7 +33,7 @@ public class ImageUploadService {
     private final StorageRepository storageRepository;
     private final ImageUploadProperties imageUploadProperties;
 
-    public ImageUploadResponse upload(boolean admin, ImageUploadContext context, MultipartFile file) {
+    public ImageUploadResponse upload(String memberId, boolean admin, ImageUploadContext context, MultipartFile file) {
         validateAccess(context, admin);
         validateFile(file);
         validateSize(file.getSize());
@@ -43,7 +44,7 @@ public class ImageUploadService {
 
         ThumbnailImage thumbnailImage = createThumbnail(detectedImage);
         String fileKey = UUID.randomUUID().toString();
-        String basePath = buildBasePath(context);
+        String basePath = buildBasePath(context, memberId);
         String originalPath = basePath + "/" + fileKey + "." + detectedImage.format().extension();
         String thumbnailPath = basePath + "/" + fileKey + "_thumb." + thumbnailImage.format().extension();
 
@@ -167,8 +168,20 @@ public class ImageUploadService {
         }
     }
 
-    private String buildBasePath(ImageUploadContext context) {
+    private String buildBasePath(ImageUploadContext context, String memberId) {
         LocalDate today = LocalDate.now();
+        if (context == ImageUploadContext.PROFILE_IMAGE) {
+            if (!StringUtils.hasText(memberId)) {
+                throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            }
+            return "%s/%s/%04d/%02d/%02d".formatted(
+                    context.directoryName(),
+                    memberId.trim(),
+                    today.getYear(),
+                    today.getMonthValue(),
+                    today.getDayOfMonth()
+            );
+        }
         return "%s/%04d/%02d/%02d".formatted(
                 context.directoryName(),
                 today.getYear(),
