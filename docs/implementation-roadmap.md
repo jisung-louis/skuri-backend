@@ -382,8 +382,12 @@ SSE 운영 제약:
 | WebSocket | `SUBSCRIBE /user/queue/chat-rooms` | 내 채팅방 목록 요약 실시간 수신 |
 | WebSocket | `SUBSCRIBE /topic/chat/{chatRoomId}` | 채팅방 상세 메시지 실시간 수신 |
 | WebSocket | `SEND /app/chat/{chatRoomId}` | 채팅방 메시지 전송 |
+| `GET` | `/v1/admin/chat-rooms` | 공개 채팅방 전체 목록 조회 (관리자, public non-party) |
+| `GET` | `/v1/admin/chat-rooms/{id}` | 공개 채팅방 상세 조회 (관리자, public non-party) |
+| `GET` | `/v1/admin/chat-rooms/{id}/messages` | 공개 채팅방 메시지 조회 (관리자, membership 불필요) |
 | `POST` | `/v1/admin/chat-rooms` | 공개 채팅방 생성 (관리자) |
 | `DELETE` | `/v1/admin/chat-rooms/{chatRoomId}` | 공개 채팅방 삭제 (관리자) |
+| `GET` | `/v1/admin/parties/{partyId}/messages` | 파티 채팅 메시지 조회 (관리자, membership 불필요) |
 
 #### 3-4. 완료 기준
 
@@ -395,7 +399,9 @@ SSE 운영 제약:
 - [x] 파티 채팅 특수 메시지 (계좌, 도착, 종료) 동작
 - [x] 공개 일반 채팅방의 joined/not joined 목록/상세 정책 및 join/leave/create REST 계약 동작
 - [x] 공개방 seed/backfill과 학과 변경 membership 제거 정책 동작
-- [x] 관리자 공개 채팅방 API (`POST/DELETE /v1/admin/chat-rooms`) + `ADMIN_REQUIRED` 권한 정책 동작
+- [x] 관리자 공개 채팅방 조회 API (`GET /v1/admin/chat-rooms`, `GET /v1/admin/chat-rooms/{chatRoomId}`, `GET /v1/admin/chat-rooms/{chatRoomId}/messages`)가 join 여부와 무관하게 public non-party room을 조회
+- [x] 관리자 파티 채팅 조회 API (`GET /v1/admin/parties/{partyId}/messages`)가 party membership 없이 cursor pagination 계약을 재사용
+- [x] 관리자 공개 채팅방 쓰기 API (`POST/DELETE /v1/admin/chat-rooms`) + `ADMIN_REQUIRED` 권한 정책 동작
 
 ---
 
@@ -1078,6 +1084,7 @@ Phase 1/3/8 ── 연동 ──→ Phase 13 (마인크래프트 Spring 전환)
 ---
 
 > **문서 이력**
+> - 2026-04-06: Admin Chat read API 구현 반영 — 공개 채팅방 관리자 목록/상세/메시지 조회와 관리자 파티 메시지 조회를 Phase 3/Phase 2 운영 API 및 완료 기준에 추가
 > - 2026-04-01: Phase 13 구현 반영 완료 상태로 갱신 — 마인크래프트 public/internal API, public SSE, bridge outbox, IMAGE placeholder, notification policy, 테스트/문서 완료 기준을 체크 상태로 동기화
 > - 2026-03-30: Phase 13 마인크래프트 Spring 전환 계획 추가 — public/internal API, SSE bridge, whitelist/검증 이관 범위, PR 분리 기준, 완료 기준을 문서화
 > - 2026-02-26: 초안 작성
