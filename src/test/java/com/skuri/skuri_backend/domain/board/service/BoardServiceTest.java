@@ -374,13 +374,41 @@ class BoardServiceTest {
     }
 
     @Test
+    void updateComment_숨김게시글에서도_실명에서익명으로전환할수있다() {
+        Post post = post("post-1", "author-1");
+        post.hide();
+        Comment comment = comment("comment-1", post, null, "member-1", false, null);
+
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(postRepository.findByIdAndDeletedFalseForUpdate("post-1")).thenReturn(Optional.of(post));
+        when(commentRepository.findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("post-1", "member-1"))
+                .thenReturn(Optional.empty());
+        when(commentRepository.findMaxAnonymousOrderByPostId("post-1")).thenReturn(0);
+        when(commentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(false);
+
+        CommentResponse response = boardService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateCommentRequest("수정된 댓글", true)
+        );
+
+        assertTrue(comment.isAnonymous());
+        assertEquals(1, comment.getAnonymousOrder());
+        assertEquals(AnonymousCommentIdGenerator.generate("post-1", "member-1"), comment.getAnonId());
+        assertTrue(response.isAnonymous());
+        assertEquals(1, response.anonymousOrder());
+        verify(postRepository).findByIdAndDeletedFalseForUpdate("post-1");
+        verify(postRepository, never()).findActiveByIdForUpdate("post-1");
+    }
+
+    @Test
     void updateComment_실명에서익명으로전환하면_기존순번을재사용한다() {
         Post post = post("post-1", "author-1");
         Comment comment = comment("comment-1", post, null, "member-1", false, null);
         Comment existingAnonymous = comment("comment-2", post, null, "member-1", true, 2);
 
         when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
-        when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
+        when(postRepository.findByIdAndDeletedFalseForUpdate("post-1")).thenReturn(Optional.of(post));
         when(commentRepository.findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("post-1", "member-1"))
                 .thenReturn(Optional.of(existingAnonymous));
         when(commentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(false);
@@ -404,7 +432,7 @@ class BoardServiceTest {
         Comment comment = comment("comment-1", post, null, "member-1", false, null);
 
         when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
-        when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
+        when(postRepository.findByIdAndDeletedFalseForUpdate("post-1")).thenReturn(Optional.of(post));
         when(commentRepository.findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("post-1", "member-1"))
                 .thenReturn(Optional.empty());
         when(commentRepository.findMaxAnonymousOrderByPostId("post-1")).thenReturn(3);
