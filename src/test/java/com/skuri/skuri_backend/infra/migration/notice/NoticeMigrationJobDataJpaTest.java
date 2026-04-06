@@ -95,7 +95,7 @@ class NoticeMigrationJobDataJpaTest {
                       "department": "학생처",
                       "source": "RSS",
                       "contentHash": "legacy-new-hash",
-                      "contentDetail": "<p>신규 본문</p>",
+                      "contentDetail": "<p>신규 본문</p><img src=\\"https://example.com/thumb.jpg\\" />",
                       "contentAttachments": [
                         {
                           "name": "file.pdf",
@@ -140,12 +140,13 @@ class NoticeMigrationJobDataJpaTest {
         assertEquals(14, ((Number) existing.get("bookmark_count")).intValue());
 
         Map<String, Object> created = jdbcTemplate.queryForMap(
-                "select title, rss_fingerprint, body_text, view_count, like_count, attachments from notices where id = ?",
+                "select title, rss_fingerprint, body_text, thumbnail_url, view_count, like_count, attachments from notices where id = ?",
                 "new-notice"
         );
         assertEquals("신규 공지 제목", created.get("title"));
         assertEquals("legacy-new-hash", created.get("rss_fingerprint"));
         assertEquals("신규 본문", created.get("body_text"));
+        assertEquals("https://example.com/thumb.jpg", created.get("thumbnail_url"));
         assertEquals(7, ((Number) created.get("view_count")).intValue());
         assertEquals(5, ((Number) created.get("like_count")).intValue());
         assertEquals("file.pdf", noticeRepository.findById("new-notice").orElseThrow().getAttachments().getFirst().name());
@@ -201,11 +202,11 @@ class NoticeMigrationJobDataJpaTest {
         entityManager.createNativeQuery("""
                 insert into notices (
                     id, title, rss_preview, summary, link, posted_at, category, department, author, source,
-                    rss_fingerprint, detail_hash, content_hash, detail_checked_at, body_text, body_html, attachments,
+                    rss_fingerprint, detail_hash, content_hash, detail_checked_at, body_text, body_html, thumbnail_url, attachments,
                     view_count, like_count, comment_count, bookmark_count, created_at, updated_at
                 ) values (
                     :id, :title, :rssPreview, :summary, :link, :postedAt, :category, :department, :author, :source,
-                    :rssFingerprint, :detailHash, :contentHash, :detailCheckedAt, :bodyText, :bodyHtml, :attachments,
+                    :rssFingerprint, :detailHash, :contentHash, :detailCheckedAt, :bodyText, :bodyHtml, :thumbnailUrl, :attachments,
                     :viewCount, :likeCount, :commentCount, :bookmarkCount, :createdAt, :updatedAt
                 )
                 """)
@@ -225,6 +226,7 @@ class NoticeMigrationJobDataJpaTest {
                 .setParameter("detailCheckedAt", LocalDateTime.of(2026, 3, 1, 12, 0))
                 .setParameter("bodyText", "기존 본문")
                 .setParameter("bodyHtml", "<p>기존 본문</p>")
+                .setParameter("thumbnailUrl", null)
                 .setParameter("attachments", "[]")
                 .setParameter("viewCount", 11)
                 .setParameter("likeCount", 12)

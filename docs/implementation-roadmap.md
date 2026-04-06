@@ -491,7 +491,8 @@ SSE 운영 제약:
 | contentHash | 링크를 제외한 실제 내용 + 상세 본문/첨부 기반 SHA1 해시로 dedup |
 | detail 재검증 | 신규/메타 변경/`detailHash` 없음/24시간 초과 시 재크롤링 |
 | 공지 ID | `Base64(link).replace(/=+$/, '').slice(0, 120)` — 링크 기반 안정 ID |
-| 저장 구조 | `rssPreview`(RSS 미리보기), `bodyHtml`(원문 HTML), `bodyText`(정규화 text), `summary`(향후 AI 요약 예약) |
+| 저장 구조 | `rssPreview`(RSS 미리보기), `bodyHtml`(원문 HTML), `bodyText`(정규화 text), `thumbnailUrl`(목록용 첫 이미지 URL 캐시), `summary`(향후 AI 요약 예약) |
+| 목록 조회 최적화 | `/v1/notices`는 목록 전용 projection으로 필요한 컬럼만 select하고, `thumbnailUrl` 저장 컬럼을 그대로 사용한다. 목록 경로에서는 `bodyHtml/bodyText/attachments`를 select하지 않는다. |
 | 공지 댓글 수정 정책 | `PATCH /v1/notice-comments/{id}`는 `content`만 수정 가능하고 익명 여부는 유지 |
 | 공지 댓글 좋아요 | `notice_comment_likes` 저장 + `notice_comments.likeCount` 동기화, 목록/생성/수정 응답에 `isLiked` 합성 |
 | 공지 북마크 저장 모델 | `NoticeLike`와 분리된 `notice_bookmarks` 테이블, 등록/취소는 idempotent |
@@ -553,6 +554,7 @@ SSE 운영 제약:
 
 - `summary` 컬럼은 추후 AI가 생성한 공지 요약 저장용으로 예약한다.
 - `bodyText`는 `bodyHtml`을 정규화한 plain text로 저장하고, 추후 chunking/embedding의 원본으로 사용한다.
+- `thumbnailUrl`은 상세 HTML의 첫 번째 `img[src]`를 sync 시점에 추출해 저장하고, 기존 row는 `migration.plan=NOTICE_THUMBNAILS` backfill로 보정한다.
 - `contentHash`가 변하면 기존 AI 요약/임베딩은 재생성 대상으로 간주한다.
 - 공지 챗봇(RAG)은 `title`, `category`, `postedAt`, `link`를 citation 메타데이터로 사용한다.
 - `bodyHtml`은 RN 앱의 웹형 렌더링 요구 때문에 유지한다. AI/RAG는 `bodyText`를 기준으로 처리한다.

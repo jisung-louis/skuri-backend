@@ -10,7 +10,7 @@
 - `domain/taxiparty`: 파티 상태 전이, 정산 snapshot, taxi history/summary, 목록/SSE 요약 DTO가 `participantSummaries`로 현재 멤버 프로필 사진(`members.photo_url`)과 리더 여부를 함께 노출
 - `domain/chat`: 공개/파티 채팅, SYSTEM 메시지, 읽음 처리, 공개방 seed, `ChatService`가 REST/STOMP `ChatMessageResponse.senderPhotoUrl`을 `members.photo_url`로 매핑
 - `domain/board`: 게시글/댓글/좋아요/북마크, 이미지 연결
-- `domain/notice`: 학교 공지, 공지 댓글, 북마크, 앱 공지
+- `domain/notice`: 학교 공지, 공지 댓글, 북마크, 앱 공지. `Notice.thumbnailUrl` 저장 컬럼과 `NoticeSummaryProjection` 기반 `/v1/notices` 목록 경량화가 들어가 있으며, 목록 경로는 `bodyHtml/bodyText/attachments`를 select하지 않는다.
 - `domain/academic`: 강의, 시간표, 학사 일정, 시간표 학기 목록/직접 입력 강의/온라인 강의 `isOnline` 계약; 공식 강의 `Course`도 `isOnline`을 가지며 bulk 업로드(`AdminBulkCourseRequest`)에서 온라인 강의를 받을 수 있다. `TimetableService`는 공식 온라인 강의와 직접 입력 온라인 강의를 모두 `slots[]`/충돌 검사에서 제외하고, `CourseService`는 온라인 공식 강의를 `schedule=[]`, `location=null`로 정규화한다.
 - `domain/campus`: 캠퍼스 배너 공개/관리자 API
 - `domain/support`: 문의, 신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티), 앱 버전, 법적 문서, 학식; 학식은 `CafeteriaMenu.menu_entries` JSON 컬럼과 구조화 응답 `categories`, `menuEntries`를 함께 사용한다. `CafeteriaMenuService`가 저장 시 같은 주의 동일 `category + title` 메타데이터 일관성을 검증하고, `menus` 비교 시 빈 카테고리 생략을 `menuEntries` 빈 배열과 동치로 정규화한다. 실제 사용자 반응은 `CafeteriaMenuReaction`, `CafeteriaMenuReactionRepository`, `CafeteriaMenuReactionService`, `CafeteriaMenuReactionController`가 담당하며, stable weekly menu id(`weekId + category + title` 기반)와 `cafeteria_menu_reactions` 집계를 조회 응답 `likeCount`/`dislikeCount`/`myReaction`에 주입한다. 관리자 요청의 `likeCount`/`dislikeCount`는 deprecated 입력으로만 허용하고 저장 시 무시한다. `ReportService`가 board/chat/taxiparty 저장소를 조회해 `targetAuthorId`를 해석한다.
@@ -43,7 +43,8 @@
 
 ## Migration 관련 파일
 - `src/main/java/com/skuri/skuri_backend/infra/migration`: 1회성 데이터 이관 공통 인프라 (`MigrationRunner`, `MigrationProperties`, 리포트/JSON/Timestamp 유틸)
-- `src/main/java/com/skuri/skuri_backend/infra/migration/notice/NoticeMigrationJob.java`: Firestore notices JSON -> MySQL notices upsert 러너. 기존 공지 row는 카운터를 보존하고, 신규 공지는 source view/like count를 반영한다.
+- `src/main/java/com/skuri/skuri_backend/infra/migration/notice/NoticeMigrationJob.java`: Firestore notices JSON -> MySQL notices upsert 러너. 기존 공지 row는 카운터를 보존하고, 신규/갱신 row의 `thumbnail_url`은 `body_html` 첫 이미지 기준으로 함께 적재한다.
+- `src/main/java/com/skuri/skuri_backend/infra/migration/notice/NoticeThumbnailMigrationJob.java`: 기존 notices row를 keyset(`id > lastId`) batch로 스캔해 `thumbnail_url`을 backfill하는 러너. dry-run/apply, `scanned/updated/no_image/failed` 집계를 지원한다.
 - `src/main/java/com/skuri/skuri_backend/infra/migration/cutover`: 회원/linked account/FCM token/시간표/마인크래프트 계정을 함께 적재하는 cutover 러너. live MySQL `courses` lookup과 reject report(`member/timetable/minecraft-rejects.json`, `course-matches.json`), skip report(`timetable-skips.json`)를 생성한다.
 - `src/test/java/com/skuri/skuri_backend/infra/migration/notice/NoticeMigrationJobDataJpaTest.java`: notice migration apply/dry-run 검증
 - `src/test/java/com/skuri/skuri_backend/infra/migration/cutover/CutoverMigrationJobDataJpaTest.java`: cutover migration apply/dry-run 검증

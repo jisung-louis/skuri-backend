@@ -1,6 +1,7 @@
 package com.skuri.skuri_backend.infra.migration;
 
 import com.skuri.skuri_backend.infra.migration.notice.NoticeMigrationJob;
+import com.skuri.skuri_backend.infra.migration.notice.NoticeThumbnailMigrationJob;
 import com.skuri.skuri_backend.infra.migration.cutover.CutoverMigrationJob;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -21,17 +22,20 @@ public class MigrationRunner implements ApplicationRunner {
 
     private final MigrationProperties migrationProperties;
     private final NoticeMigrationJob noticeMigrationJob;
+    private final NoticeThumbnailMigrationJob noticeThumbnailMigrationJob;
     private final CutoverMigrationJob cutoverMigrationJob;
     private final ConfigurableApplicationContext applicationContext;
 
     public MigrationRunner(
             MigrationProperties migrationProperties,
             NoticeMigrationJob noticeMigrationJob,
+            NoticeThumbnailMigrationJob noticeThumbnailMigrationJob,
             CutoverMigrationJob cutoverMigrationJob,
             ConfigurableApplicationContext applicationContext
     ) {
         this.migrationProperties = migrationProperties;
         this.noticeMigrationJob = noticeMigrationJob;
+        this.noticeThumbnailMigrationJob = noticeThumbnailMigrationJob;
         this.cutoverMigrationJob = cutoverMigrationJob;
         this.applicationContext = applicationContext;
     }
@@ -48,6 +52,7 @@ public class MigrationRunner implements ApplicationRunner {
 
         MigrationExecutionResult result = switch (migrationProperties.getPlan()) {
             case NOTICES -> noticeMigrationJob.execute(requireReadableFile(migrationProperties.getNoticeFile(), "migration.notice-file"), options);
+            case NOTICE_THUMBNAILS -> noticeThumbnailMigrationJob.execute(options);
             case CUTOVER -> cutoverMigrationJob.execute(
                     requireReadableFile(migrationProperties.getUsersFile(), "migration.users-file"),
                     requireReadableFile(migrationProperties.getCoursesFile(), "migration.courses-file"),

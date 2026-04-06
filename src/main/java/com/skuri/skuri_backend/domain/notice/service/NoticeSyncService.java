@@ -96,6 +96,7 @@ public class NoticeSyncService {
             String detailHash = existing == null ? null : existing.getDetailHash();
             bodyText = existing == null ? "" : existing.getBodyText();
             bodyHtml = existing == null ? "" : existing.getBodyHtml();
+            String thumbnailUrl = existing == null ? null : existing.getThumbnailUrl();
             List<NoticeAttachment> attachments = existing == null ? List.of() : existing.getAttachments();
 
             if (shouldCrawlDetail) {
@@ -103,6 +104,7 @@ public class NoticeSyncService {
                 if (detail.successful()) {
                     bodyText = detail.text();
                     bodyHtml = detail.html();
+                    thumbnailUrl = NoticeThumbnailExtractor.extract(detail.html());
                     attachments = detail.attachments();
                     detailHash = NoticeHashUtils.detailHash(bodyHtml, attachments);
                     detailRefreshed = true;
@@ -140,6 +142,7 @@ public class NoticeSyncService {
                         detailRefreshed ? syncedAt : null,
                         bodyText,
                         bodyHtml,
+                        thumbnailUrl,
                         attachments
                 ));
                 eventPublisher.publish(new NotificationDomainEvent.NoticeCreated(saved.getId()));
@@ -163,6 +166,7 @@ public class NoticeSyncService {
                             detailRefreshed ? syncedAt : existing.getDetailCheckedAt(),
                             bodyText,
                             bodyHtml,
+                            thumbnailUrl,
                             attachments
                     );
                     noticeRepository.save(existing);
@@ -187,6 +191,7 @@ public class NoticeSyncService {
                     detailRefreshed ? syncedAt : existing.getDetailCheckedAt(),
                     bodyText,
                     bodyHtml,
+                    thumbnailUrl,
                     attachments
             );
             noticeRepository.save(existing);

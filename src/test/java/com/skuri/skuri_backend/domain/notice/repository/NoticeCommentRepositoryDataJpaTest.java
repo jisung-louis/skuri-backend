@@ -67,6 +67,7 @@ class NoticeCommentRepositoryDataJpaTest {
                 LocalDateTime.of(2026, 3, 25, 12, 0),
                 "본문 " + id,
                 "<p>본문 " + id + "</p>",
+                null,
                 List.of()
         );
     }

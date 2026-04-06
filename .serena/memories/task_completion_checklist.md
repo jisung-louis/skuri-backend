@@ -67,7 +67,8 @@
 34. 학사 일정 bulk sync를 건드렸다면 동일 payload 재호출 시 `created=0, updated=0, deleted=0` idempotency가 유지되는지, 일부 항목 제거 시 `deleted` count가 증가하는지, 자연키 동일 항목의 `description/isPrimary`만 update 되는지 확인한다.
 35. 학사 일정 bulk sync 문서화 작업이면 backend 문서뿐 아니라 `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/README.md`, `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`, `/Users/jisung/SKTaxi/docs/spring-migration/domain-analysis.md`, `/Users/jisung/SKTaxi/docs/spring-migration/implementation-roadmap.md`를 같은 작업에서 동기화한다.
 36. 학사 일정 bulk sync OpenAPI를 건드렸다면 `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar`에서 200/401/403/422 example이 분리 노출되는지, 자연키/범위/type normalize 설명이 계약 문서와 동일한지 확인한다.
-37. 마이그레이션 러너를 건드렸다면 dry-run과 apply의 핵심 분기, report 파일 생성, 기존 row 보존 규칙(예: notice count 보존), 실행 명령 문서화를 함께 확인한다.
+37. 마이그레이션 러너를 건드렸다면 dry-run과 apply의 핵심 분기, report 파일 생성, 기존 row 보존 규칙(예: notice count 보존), 실행 명령 문서화를 함께 확인한다. Notice 썸네일 작업이면 `NOTICE_THUMBNAILS` plan의 keyset batch, `scanned/updated/no_image/failed` 집계, 네트워크 재크롤링 금지, 동일 실행 재호출 시 idempotent 동작을 같이 확인한다.
+38. Notice 목록 경로를 건드렸다면 `/v1/notices`가 저장된 `thumbnail_url`만 사용하고, 목록 query에서 `body_html/body_text/attachments`를 select하지 않는 구조인지 테스트/리뷰로 확인한다.
 38. cutover migration 러너를 건드렸다면 `member-rejects.json`, `timetable-rejects.json`, `minecraft-rejects.json`, `course-matches.json`, `timetable-skips.json` 생성과 unknown user/live MySQL 미관리 학기 timetable discard 정책, live MySQL `courses` lookup 매칭 규칙을 함께 확인한다.
 
 39. 관리자 Chat read API를 건드렸다면 `GET /v1/admin/chat-rooms`, `GET /v1/admin/chat-rooms/{chatRoomId}`, `GET /v1/admin/chat-rooms/{chatRoomId}/messages`, `GET /v1/admin/parties/{partyId}/messages`의 관리자 성공/비관리자 `403`/존재하지 않는 room|party `404`/cursor validation `422`를 Contract 테스트로 확인한다.

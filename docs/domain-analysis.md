@@ -547,7 +547,7 @@ Hooks:
     - rssFingerprint (레거시 링크/날짜 기반 변경 감지용)
     - detailHash (상세 HTML/첨부 변경 감지용)
     - contentHash (실제 내용 기반 dedup용)
-    - bodyText (plain text), bodyHtml (HTML), attachments[]
+    - bodyText (plain text), bodyHtml (HTML), thumbnailUrl (첫 이미지 URL cache), attachments[]
     - detailCheckedAt (상세 재검증 시각)
     - viewCount, likeCount, commentCount, bookmarkCount
   - NoticeComment
@@ -580,6 +580,7 @@ Hooks:
   - 목록 item은 공개 Notice API와 naming parity를 유지하기 위해 `rssPreview`, `postedAt`를 그대로 사용
   - 북마크 등록/취소는 `NoticeLike`와 별도 저장 모델을 사용하며 idempotent 하게 처리
   - 공개 Notice 목록/상세는 `bookmarkCount`와 현재 사용자 기준 `isBookmarked`를 함께 반환
+  - 공개 Notice 목록은 projection query로 필요한 컬럼만 읽고, 저장된 `thumbnailUrl`을 그대로 사용한다. 목록 경로에서는 `bodyHtml`, `bodyText`, `attachments`를 select하지 않는다.
 
 동기화 정책:
   - 스케줄: 평일 08:00~19:50, 10분 주기, Asia/Seoul
@@ -591,6 +592,8 @@ Hooks:
   - `summary`는 추후 AI가 생성한 공지 요약을 저장하기 위한 예약 필드다. 현재 공개 API에는 노출하지 않는다.
   - `bodyHtml`은 상세 페이지 `.view-con`에서 수집한 HTML 원문이며, RN 앱이 웹 구조를 최대한 유지해 렌더링할 수 있도록 그대로 저장한다.
   - `bodyText`는 `bodyHtml`에서 태그를 제거하고 줄바꿈/표 셀 구분을 정규화한 내부 텍스트다.
+  - `thumbnailUrl`은 상세 크롤링 성공 시 `bodyHtml`의 첫 번째 `img[src]`를 추출해 저장한다. 이미지가 없으면 `null`로 저장하고, 상세를 refresh하지 않으면 기존 값을 유지한다.
+  - 기존 row의 `thumbnailUrl`은 네트워크 재크롤링 없이 DB `bodyHtml`만 읽는 `NOTICE_THUMBNAILS` backfill plan으로 보정한다.
   - 성결대학교 사이트의 TLS 체인 이슈로 인해, 현재 Spring 구현은 공지 RSS/상세 크롤링 경로에서만 TLS 인증서 검증을 비활성화한다.
   - 개별 공지 저장 실패는 전체 동기화를 중단하지 않고 `failed`로 집계한 뒤 다음 공지 처리를 계속한다.
   - 상세 재크롤링 조건:

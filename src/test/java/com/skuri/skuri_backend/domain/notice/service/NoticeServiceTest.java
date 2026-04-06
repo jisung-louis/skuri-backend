@@ -24,6 +24,7 @@ import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentLikeReposit
 import com.skuri.skuri_backend.domain.notice.repository.NoticeLikeRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeReadStatusRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeSummaryProjection;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -238,15 +239,11 @@ class NoticeServiceTest {
     }
 
     @Test
-    void getNotices_개인화상태를합성한다() {
-        Notice personalized = notice("notice-1", """
-                <p>본문</p>
-                <img src="https://www.sungkyul.ac.kr/upload/notice-1-thumb.jpg" />
-                <img src="https://www.sungkyul.ac.kr/upload/notice-1-second.jpg" />
-                """);
-        Notice othersOnly = notice("notice-2", "<p>이미지 없음</p>");
+    void getNotices_저장된thumbnailUrl과_개인화상태를합성한다() {
+        NoticeSummaryProjection personalized = noticeSummary("notice-1", "https://www.sungkyul.ac.kr/upload/notice-1-thumb.jpg");
+        NoticeSummaryProjection othersOnly = noticeSummary("notice-2", null);
 
-        when(noticeRepository.search(any(), any(), any()))
+        when(noticeRepository.searchSummaries(any(), any(), any()))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(personalized, othersOnly)));
         when(noticeReadStatusRepository.findReadNoticeIds("member-1", List.of("notice-1", "notice-2")))
                 .thenReturn(List.of("notice-1"));
@@ -273,9 +270,9 @@ class NoticeServiceTest {
 
     @Test
     void getNotices_삭제된내댓글만남으면_isCommentedByMe_false() {
-        Notice notice = notice("notice-1");
+        NoticeSummaryProjection notice = noticeSummary("notice-1", null);
 
-        when(noticeRepository.search(any(), any(), any()))
+        when(noticeRepository.searchSummaries(any(), any(), any()))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(notice)));
         when(noticeReadStatusRepository.findReadNoticeIds("member-1", List.of("notice-1")))
                 .thenReturn(List.of());
@@ -445,11 +442,29 @@ class NoticeServiceTest {
                 LocalDateTime.now(),
                 "상세 본문 텍스트",
                 bodyHtml,
+                NoticeThumbnailExtractor.extract(bodyHtml),
                 List.of()
         );
         ReflectionTestUtils.setField(notice, "createdAt", LocalDateTime.now());
         ReflectionTestUtils.setField(notice, "updatedAt", LocalDateTime.now());
         return notice;
+    }
+
+    private NoticeSummaryProjection noticeSummary(String id, String thumbnailUrl) {
+        return new NoticeSummaryProjection(
+                id,
+                "공지 제목",
+                "공지 RSS 미리보기",
+                "학사",
+                "성결대학교",
+                "교무처",
+                LocalDateTime.now(),
+                10,
+                3,
+                2,
+                1,
+                thumbnailUrl
+        );
     }
 
     private CommentFixture comment(

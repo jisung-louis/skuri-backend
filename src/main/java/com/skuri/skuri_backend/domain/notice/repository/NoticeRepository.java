@@ -15,7 +15,20 @@ import java.util.Optional;
 public interface NoticeRepository extends JpaRepository<Notice, String> {
 
     @Query("""
-            select n
+            select new com.skuri.skuri_backend.domain.notice.repository.NoticeSummaryProjection(
+                n.id,
+                n.title,
+                n.rssPreview,
+                n.category,
+                n.department,
+                n.author,
+                n.postedAt,
+                n.viewCount,
+                n.likeCount,
+                n.commentCount,
+                n.bookmarkCount,
+                n.thumbnailUrl
+            )
             from Notice n
             where (:category is null or n.category = :category)
               and (:search is null
@@ -24,7 +37,7 @@ public interface NoticeRepository extends JpaRepository<Notice, String> {
                     or lower(coalesce(n.summary, '')) like lower(concat('%', :search, '%'))
                     or lower(coalesce(n.bodyText, '')) like lower(concat('%', :search, '%')))
             """)
-    Page<Notice> search(
+    Page<NoticeSummaryProjection> searchSummaries(
             @Param("category") String category,
             @Param("search") String search,
             Pageable pageable
