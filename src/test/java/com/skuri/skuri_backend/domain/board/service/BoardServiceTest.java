@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.board.service;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.common.util.AnonymousCommentIdGenerator;
 import com.skuri.skuri_backend.domain.board.dto.request.CreateCommentRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostImageRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostRequest;
@@ -265,7 +266,7 @@ class BoardServiceTest {
 
         when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
         when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
-        when(commentRepository.findFirstByPost_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("post-1", "post-1:member-1"))
+        when(commentRepository.findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("post-1", "member-1"))
                 .thenReturn(Optional.of(existingAnonymous));
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
             Comment saved = invocation.getArgument(0);
@@ -285,6 +286,27 @@ class BoardServiceTest {
         verify(commentRepository).save(captor.capture());
         assertEquals("post-1:member-1", captor.getValue().getAnonId());
         assertEquals(2, captor.getValue().getAnonymousOrder());
+    }
+
+    @Test
+    void createComment_긴scopeId여도_짧은anonId를_생성한다() {
+        String postId = "p".repeat(140);
+        Post post = post(postId, "author-1");
+        Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "사용자", LocalDateTime.now());
+
+        when(postRepository.findActiveByIdForUpdate(postId)).thenReturn(Optional.of(post));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
+        when(commentRepository.findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(postId, "member-1"))
+                .thenReturn(Optional.empty());
+        when(commentRepository.findMaxAnonymousOrderByPostId(postId)).thenReturn(0);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        boardService.createComment("member-1", postId, new CreateCommentRequest("익명 댓글", true, null));
+
+        ArgumentCaptor<Comment> captor = ArgumentCaptor.forClass(Comment.class);
+        verify(commentRepository).save(captor.capture());
+        assertEquals(AnonymousCommentIdGenerator.generate(postId, "member-1"), captor.getValue().getAnonId());
+        assertTrue(captor.getValue().getAnonId().length() <= 35);
     }
 
     @Test
@@ -349,6 +371,76 @@ class BoardServiceTest {
         assertTrue(response.isLiked());
         verify(commentRepository).findByIdForUpdate("comment-1");
         verify(commentRepository, never()).findActiveById("comment-1");
+    }
+
+    @Test
+    void updateComment_실명에서익명으로전환하면_기존순번을재사용한다() {
+        Post post = post("post-1", "author-1");
+        Comment comment = comment("comment-1", post, null, "member-1", false, null);
+        Comment existingAnonymous = comment("comment-2", post, null, "member-1", true, 2);
+
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
+        when(commentRepository.findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("post-1", "member-1"))
+                .thenReturn(Optional.of(existingAnonymous));
+        when(commentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(false);
+
+        CommentResponse response = boardService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateCommentRequest("수정된 댓글", true)
+        );
+
+        assertTrue(comment.isAnonymous());
+        assertEquals(existingAnonymous.getAnonId(), comment.getAnonId());
+        assertEquals(2, comment.getAnonymousOrder());
+        assertTrue(response.isAnonymous());
+        assertEquals(2, response.anonymousOrder());
+    }
+
+    @Test
+    void updateComment_실명에서익명으로전환하면_기존순번이없을때_새순번을부여한다() {
+        Post post = post("post-1", "author-1");
+        Comment comment = comment("comment-1", post, null, "member-1", false, null);
+
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(postRepository.findActiveByIdForUpdate("post-1")).thenReturn(Optional.of(post));
+        when(commentRepository.findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("post-1", "member-1"))
+                .thenReturn(Optional.empty());
+        when(commentRepository.findMaxAnonymousOrderByPostId("post-1")).thenReturn(3);
+        when(commentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(false);
+
+        CommentResponse response = boardService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateCommentRequest("수정된 댓글", true)
+        );
+
+        assertTrue(comment.isAnonymous());
+        assertEquals(4, comment.getAnonymousOrder());
+        assertEquals(AnonymousCommentIdGenerator.generate("post-1", "member-1"), comment.getAnonId());
+        assertEquals(4, response.anonymousOrder());
+    }
+
+    @Test
+    void updateComment_익명에서실명으로전환하면_anon메타데이터를정리한다() {
+        Post post = post("post-1", "author-1");
+        Comment comment = comment("comment-1", post, null, "member-1", true, 2);
+
+        when(commentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(comment));
+        when(commentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(true);
+
+        CommentResponse response = boardService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateCommentRequest("수정된 댓글", false)
+        );
+
+        assertFalse(comment.isAnonymous());
+        assertNull(comment.getAnonId());
+        assertNull(comment.getAnonymousOrder());
+        assertFalse(response.isAnonymous());
+        assertNull(response.anonymousOrder());
     }
 
     @Test
