@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.domain.notice.entity.NoticeAttachment;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
 import com.skuri.skuri_backend.domain.notice.service.NoticeBodyTextExtractor;
 import com.skuri.skuri_backend.domain.notice.service.NoticeHashUtils;
+import com.skuri.skuri_backend.domain.notice.service.NoticeThumbnailExtractor;
 import com.skuri.skuri_backend.infra.migration.FileHashUtils;
 import com.skuri.skuri_backend.infra.migration.FirestoreTimestampParser;
 import com.skuri.skuri_backend.infra.migration.JsonArrayFileReader;
@@ -44,9 +45,9 @@ public class NoticeMigrationJob {
     private static final String INSERT_SQL = """
             insert into notices (
                 id, title, rss_preview, summary, link, posted_at, category, department, author, source,
-                rss_fingerprint, detail_hash, content_hash, detail_checked_at, body_text, body_html, attachments,
+                rss_fingerprint, detail_hash, content_hash, detail_checked_at, body_text, body_html, thumbnail_url, attachments,
                 view_count, like_count, comment_count, bookmark_count, created_at, updated_at
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     private static final String UPDATE_SQL = """
@@ -66,6 +67,7 @@ public class NoticeMigrationJob {
                 detail_checked_at = ?,
                 body_text = ?,
                 body_html = ?,
+                thumbnail_url = ?,
                 attachments = ?,
                 updated_at = ?
             where id = ?
@@ -213,6 +215,7 @@ public class NoticeMigrationJob {
         String author = trimToNull(data.author());
         String source = trimToNull(data.source());
         String bodyHtml = defaultString(data.contentDetail());
+        String thumbnailUrl = NoticeThumbnailExtractor.extract(bodyHtml);
         List<NoticeAttachment> attachments = data.contentAttachments() == null ? List.of() : List.copyOf(data.contentAttachments());
         String bodyText = NoticeBodyTextExtractor.extract(bodyHtml);
         String detailHash = NoticeHashUtils.detailHash(bodyHtml, attachments);
@@ -237,6 +240,7 @@ public class NoticeMigrationJob {
                 importStartedAt,
                 bodyText,
                 bodyHtml,
+                thumbnailUrl,
                 attachments,
                 attachmentsJson(attachments),
                 data.viewCount() == null ? 0 : data.viewCount(),
@@ -316,6 +320,7 @@ public class NoticeMigrationJob {
             LocalDateTime detailCheckedAt,
             String bodyText,
             String bodyHtml,
+            String thumbnailUrl,
             List<NoticeAttachment> attachments,
             String attachmentsJson,
             int viewCount,
@@ -352,13 +357,14 @@ public class NoticeMigrationJob {
             ps.setTimestamp(14, toTimestamp(row.detailCheckedAt()));
             ps.setString(15, row.bodyText());
             ps.setString(16, row.bodyHtml());
-            ps.setString(17, row.attachmentsJson());
-            ps.setInt(18, row.viewCount());
-            ps.setInt(19, row.likeCount());
-            ps.setInt(20, 0);
+            ps.setString(17, row.thumbnailUrl());
+            ps.setString(18, row.attachmentsJson());
+            ps.setInt(19, row.viewCount());
+            ps.setInt(20, row.likeCount());
             ps.setInt(21, 0);
-            ps.setTimestamp(22, toTimestamp(row.createdAt()));
-            ps.setTimestamp(23, toTimestamp(row.updatedAt()));
+            ps.setInt(22, 0);
+            ps.setTimestamp(23, toTimestamp(row.createdAt()));
+            ps.setTimestamp(24, toTimestamp(row.updatedAt()));
         }
 
         @Override
@@ -393,9 +399,10 @@ public class NoticeMigrationJob {
             ps.setTimestamp(13, toTimestamp(row.detailCheckedAt()));
             ps.setString(14, row.bodyText());
             ps.setString(15, row.bodyHtml());
-            ps.setString(16, row.attachmentsJson());
-            ps.setTimestamp(17, toTimestamp(row.updatedAt()));
-            ps.setString(18, row.id());
+            ps.setString(16, row.thumbnailUrl());
+            ps.setString(17, row.attachmentsJson());
+            ps.setTimestamp(18, toTimestamp(row.updatedAt()));
+            ps.setString(19, row.id());
         }
 
         @Override

@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -17,7 +18,13 @@ import java.util.List;
 
 @Getter
 @Entity
-@Table(name = "notices")
+@Table(
+        name = "notices",
+        indexes = {
+                @Index(name = "idx_notices_posted_created", columnList = "posted_at DESC, created_at DESC"),
+                @Index(name = "idx_notices_category_posted_created", columnList = "category, posted_at DESC, created_at DESC")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Notice extends BaseTimeEntity {
 
@@ -70,6 +77,9 @@ public class Notice extends BaseTimeEntity {
     @Column(name = "body_html", columnDefinition = "LONGTEXT")
     private String bodyHtml;
 
+    @Column(name = "thumbnail_url", length = 1000)
+    private String thumbnailUrl;
+
     @Convert(converter = NoticeAttachmentListJsonConverter.class)
     @Column(name = "attachments", columnDefinition = "json")
     private List<NoticeAttachment> attachments = new ArrayList<>();
@@ -102,6 +112,7 @@ public class Notice extends BaseTimeEntity {
             LocalDateTime detailCheckedAt,
             String bodyText,
             String bodyHtml,
+            String thumbnailUrl,
             List<NoticeAttachment> attachments
     ) {
         this.id = id;
@@ -120,6 +131,7 @@ public class Notice extends BaseTimeEntity {
         this.detailCheckedAt = detailCheckedAt;
         this.bodyText = bodyText;
         this.bodyHtml = bodyHtml;
+        this.thumbnailUrl = thumbnailUrl;
         this.attachments = new ArrayList<>(attachments == null ? List.of() : attachments);
         this.viewCount = 0;
         this.likeCount = 0;
@@ -143,6 +155,7 @@ public class Notice extends BaseTimeEntity {
             LocalDateTime detailCheckedAt,
             String bodyText,
             String bodyHtml,
+            String thumbnailUrl,
             List<NoticeAttachment> attachments
     ) {
         return new Notice(
@@ -161,6 +174,7 @@ public class Notice extends BaseTimeEntity {
                 detailCheckedAt,
                 bodyText,
                 bodyHtml,
+                thumbnailUrl,
                 attachments
         );
     }
@@ -180,6 +194,7 @@ public class Notice extends BaseTimeEntity {
             LocalDateTime detailCheckedAt,
             String bodyText,
             String bodyHtml,
+            String thumbnailUrl,
             List<NoticeAttachment> attachments
     ) {
         this.title = title;
@@ -196,6 +211,7 @@ public class Notice extends BaseTimeEntity {
         this.detailCheckedAt = detailCheckedAt;
         this.bodyText = bodyText;
         this.bodyHtml = bodyHtml;
+        this.thumbnailUrl = thumbnailUrl;
         this.attachments = new ArrayList<>(attachments == null ? List.of() : attachments);
     }
 

@@ -32,6 +32,7 @@ import com.skuri.skuri_backend.domain.notice.repository.NoticeCommentLikeReposit
 import com.skuri.skuri_backend.domain.notice.repository.NoticeLikeRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeReadStatusRepository;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
+import com.skuri.skuri_backend.domain.notice.repository.NoticeSummaryProjection;
 import com.skuri.skuri_backend.domain.notification.event.NotificationDomainEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -76,8 +77,8 @@ public class NoticeService {
     ) {
         String resolvedCategory = resolveCategory(category);
         Pageable pageable = resolvePageable(page, size);
-        Page<Notice> noticePage = noticeRepository.search(resolvedCategory, trimToNull(search), pageable);
-        List<String> noticeIds = noticePage.getContent().stream().map(Notice::getId).toList();
+        Page<NoticeSummaryProjection> noticePage = noticeRepository.searchSummaries(resolvedCategory, trimToNull(search), pageable);
+        List<String> noticeIds = noticePage.getContent().stream().map(NoticeSummaryProjection::id).toList();
         boolean hasMemberId = StringUtils.hasText(memberId);
         Set<String> readNoticeIds = !hasMemberId || noticeIds.isEmpty()
                 ? Set.of()
@@ -94,10 +95,10 @@ public class NoticeService {
 
         return PageResponse.from(noticePage.map(notice -> toSummaryResponse(
                 notice,
-                readNoticeIds.contains(notice.getId()),
-                likedNoticeIds.contains(notice.getId()),
-                bookmarkedNoticeIds.contains(notice.getId()),
-                commentedNoticeIds.contains(notice.getId())
+                readNoticeIds.contains(notice.id()),
+                likedNoticeIds.contains(notice.id()),
+                bookmarkedNoticeIds.contains(notice.id()),
+                commentedNoticeIds.contains(notice.id())
         )));
     }
 
@@ -294,29 +295,29 @@ public class NoticeService {
     }
 
     private NoticeSummaryResponse toSummaryResponse(
-            Notice notice,
+            NoticeSummaryProjection notice,
             boolean isRead,
             boolean isLiked,
             boolean isBookmarked,
             boolean isCommentedByMe
     ) {
         return new NoticeSummaryResponse(
-                notice.getId(),
-                notice.getTitle(),
-                notice.getRssPreview(),
-                notice.getCategory(),
-                notice.getDepartment(),
-                notice.getAuthor(),
-                notice.getPostedAt(),
-                notice.getViewCount(),
-                notice.getLikeCount(),
-                notice.getCommentCount(),
-                notice.getBookmarkCount(),
+                notice.id(),
+                notice.title(),
+                notice.rssPreview(),
+                notice.category(),
+                notice.department(),
+                notice.author(),
+                notice.postedAt(),
+                notice.viewCount(),
+                notice.likeCount(),
+                notice.commentCount(),
+                notice.bookmarkCount(),
                 isRead,
                 isLiked,
                 isBookmarked,
                 isCommentedByMe,
-                NoticeThumbnailExtractor.extract(notice.getBodyHtml())
+                notice.thumbnailUrl()
         );
     }
 
