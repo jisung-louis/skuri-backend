@@ -713,6 +713,11 @@ public class BoardService {
                 .orElseThrow(PostNotFoundException::new);
     }
 
+    private Post findNotDeletedPostForUpdateOrThrow(String postId) {
+        return postRepository.findByIdAndDeletedFalseForUpdate(postId)
+                .orElseThrow(PostNotFoundException::new);
+    }
+
     private Comment findCommentForWriteOrThrow(String commentId) {
         Comment comment = commentRepository.findByIdForUpdate(commentId)
                 .orElseThrow(CommentNotFoundException::new);
@@ -774,7 +779,7 @@ public class BoardService {
             return new AnonymousMetadata(null, null);
         }
 
-        findActivePostForUpdateOrThrow(comment.getPost().getId());
+        findNotDeletedPostForUpdateOrThrow(comment.getPost().getId());
         return resolveAnonymousMetadata(comment.getPost().getId(), memberId, true);
     }
 
