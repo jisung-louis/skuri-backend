@@ -2327,7 +2327,7 @@ Authorization:Bearer <firebase_id_token>
 - `bookmarkCount`는 공지 누적 북마크 수이고, `isBookmarked`는 현재 인증 사용자의 북마크 여부다.
 - `isLiked`는 현재 인증 사용자의 공지 좋아요 여부다.
 - `isCommentedByMe`는 현재 사용자가 삭제되지 않은 공지 댓글 또는 대댓글을 1개 이상 작성한 경우에만 `true`다.
-- `thumbnailUrl`은 sync/backfill 시 서버가 `thumbnail_url` 컬럼에 저장한 목록용 첫 이미지 URL이며, 이미지가 없으면 `null`이다.
+- `thumbnailUrl`은 sync/backfill 시 서버가 `TEXT` 타입 `thumbnail_url` 컬럼에 저장한 목록용 첫 이미지 URL이며, 이미지가 없거나 `data:` / `blob:` / 과도하게 긴 `src`는 `null`이다.
 - 목록 조회는 전용 projection으로 필요한 컬럼만 select 하며, 응답 생성 시 `bodyHtml/bodyText/attachments`를 읽거나 파싱하지 않는다.
 
 #### GET /v1/notices/{noticeId}
@@ -2371,6 +2371,7 @@ Authorization:Bearer <firebase_id_token>
 - `bodyHtml`은 상세 페이지에서 크롤링한 HTML 원문이며, 클라이언트가 공지 웹 구조(`h*`, `table`, `br` 등)를 최대한 유지해서 렌더링할 수 있도록 그대로 저장한다.
 - `bodyText`는 `bodyHtml`에서 태그를 제거해 정규화한 내부 저장용 텍스트이며, 검색/AI 요약/RAG 용도로 사용한다. 현재 공개 API에는 노출하지 않는다.
 - `thumbnail_url`은 상세 refresh 성공 시 `bodyHtml`의 첫 번째 `img[src]`를 추출해 저장하며, 기존 row는 DB `bodyHtml`만 읽는 backfill로 보정한다.
+- 저장 규칙은 sync/backfill 공통으로 적용하며, `data:` / `blob:` / 과도하게 긴 `img[src]`는 저장하지 않고 `null`로 정리한다.
 - `summary` 컬럼은 추후 AI 생성 공지 요약을 저장하기 위한 예약 필드이며, 현재 공개 API에는 노출하지 않는다.
 - 상세 조회는 조회수만 증가시키며, 읽음 상태를 저장하지 않는다.
 - 읽음 상태 저장은 `POST /v1/notices/{noticeId}/read`로만 처리한다.
