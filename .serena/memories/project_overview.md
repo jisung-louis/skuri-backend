@@ -85,3 +85,10 @@
 - `description`, `isPrimary`는 자연키가 같은 일정의 변경 가능 필드다.
 - bulk API의 `type`은 하위호환을 위해 `single|multi|SINGLE|MULTI` 입력을 모두 허용하고 서비스에서 대문자 enum으로 정규화한다.
 - 관리자 write audit은 row별 상세 diff 대신 `scopeStartDate`, `scopeEndDate`, `created`, `updated`, `deleted` 요약 snapshot을 남긴다.
+
+
+## Admin Chat Read API 메모
+- `chat`/`taxiparty` 도메인은 관리자 read-only 채팅 조회 API를 제공한다: `GET /v1/admin/chat-rooms`, `GET /v1/admin/chat-rooms/{chatRoomId}`, `GET /v1/admin/chat-rooms/{chatRoomId}/messages`, `GET /v1/admin/parties/{partyId}/messages`.
+- 관리자 공개 채팅방 조회는 `isPublic=true && type!=PARTY`만 대상으로 하며, membership/학과 제한을 우회한다. 응답은 기존 chat DTO를 재사용하되 `joined=false`, `unreadCount=0`, `isMuted=false`, `lastReadAt=null` 고정값을 사용한다.
+- 관리자 파티 채팅 조회는 `party:{partyId}` canonical room 기준으로 기존 메시지 cursor pagination 계약을 그대로 재사용한다.
+- 위 관리자 채팅 read API는 운영 조회 전용이므로 `admin_audit_logs` 적재 대상에 포함하지 않는다.

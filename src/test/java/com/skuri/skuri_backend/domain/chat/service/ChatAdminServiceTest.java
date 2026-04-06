@@ -38,6 +38,9 @@ class ChatAdminServiceTest {
     @Mock
     private ChatMessageRepository chatMessageRepository;
 
+    @Mock
+    private ChatService chatService;
+
     @InjectMocks
     private ChatAdminService chatAdminService;
 

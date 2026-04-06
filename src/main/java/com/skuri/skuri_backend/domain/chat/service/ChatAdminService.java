@@ -4,6 +4,9 @@ import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.dto.request.AdminCreateChatRoomRequest;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomDetailResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomSummaryResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoom;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomMember;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -24,6 +28,27 @@ public class ChatAdminService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatService chatService;
+
+    @Transactional(readOnly = true)
+    public List<ChatRoomSummaryResponse> getPublicChatRooms(ChatRoomType type) {
+        return chatService.getAdminPublicChatRooms(type);
+    }
+
+    @Transactional(readOnly = true)
+    public ChatRoomDetailResponse getPublicChatRoomDetail(String chatRoomId) {
+        return chatService.getAdminPublicChatRoomDetail(chatRoomId);
+    }
+
+    @Transactional(readOnly = true)
+    public ChatMessagePageResponse getPublicChatRoomMessages(
+            String chatRoomId,
+            LocalDateTime cursorCreatedAt,
+            String cursorId,
+            Integer size
+    ) {
+        return chatService.getAdminPublicChatRoomMessages(chatRoomId, cursorCreatedAt, cursorId, size);
+    }
 
     @Transactional
     public AdminCreateChatRoomResponse createPublicChatRoom(String adminId, AdminCreateChatRoomRequest request) {

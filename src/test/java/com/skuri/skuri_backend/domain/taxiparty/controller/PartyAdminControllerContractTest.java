@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.taxiparty.controller;
 import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import com.skuri.skuri_backend.domain.member.entity.Member;
@@ -136,6 +137,69 @@ class PartyAdminControllerContractTest {
                 .andExpect(jsonPath("$.data.pendingJoinRequestCount").value(2))
                 .andExpect(jsonPath("$.data.settlementStatus").value("PENDING"))
                 .andExpect(jsonPath("$.data.chatRoomId").value("party:party-1"));
+    }
+
+    @Test
+    void getAdminPartyMessages_관리자정상요청_200() throws Exception {
+        mockToken("admin-token", true);
+        when(taxiPartyAdminService.getAdminPartyMessages("party-1", null, null, 50))
+                .thenReturn(new ChatMessagePageResponse(
+                        List.of(new ChatMessageResponse(
+                                "message-1",
+                                "party:party-1",
+                                "leader-1",
+                                "파티 리더",
+                                "https://cdn.skuri.app/profiles/leader.png",
+                                ChatMessageType.TEXT,
+                                "정문 앞에서 만나요.",
+                                null,
+                                null,
+                                null,
+                                LocalDateTime.of(2026, 3, 29, 18, 0)
+                        )),
+                        false,
+                        null
+                ));
+
+        mockMvc.perform(
+                        get("/v1/admin/parties/party-1/messages")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("size", "50")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.messages[0].id").value("message-1"))
+                .andExpect(jsonPath("$.data.messages[0].chatRoomId").value("party:party-1"))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
+    void getAdminPartyMessages_파티없음_404() throws Exception {
+        mockToken("admin-token", true);
+        when(taxiPartyAdminService.getAdminPartyMessages("unknown-party", null, null, null))
+                .thenThrow(new BusinessException(ErrorCode.PARTY_NOT_FOUND));
+
+        mockMvc.perform(
+                        get("/v1/admin/parties/unknown-party/messages")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("PARTY_NOT_FOUND"));
+    }
+
+    @Test
+    void getAdminPartyMessages_커서쌍불일치_422() throws Exception {
+        mockToken("admin-token", true);
+        when(taxiPartyAdminService.getAdminPartyMessages("party-1", null, "message-1", null))
+                .thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "cursorCreatedAt와 cursorId는 함께 전달해야 합니다."));
+
+        mockMvc.perform(
+                        get("/v1/admin/parties/party-1/messages")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("cursorId", "message-1")
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("cursorCreatedAt와 cursorId는 함께 전달해야 합니다."));
     }
 
     @Test

@@ -128,9 +128,24 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
+    public List<ChatRoomSummaryResponse> getAdminPublicChatRooms(ChatRoomType type) {
+        List<ChatRoom> rooms = type == null ? chatRoomRepository.findAll() : chatRoomRepository.findByType(type);
+        return rooms.stream()
+                .filter(this::isAdminPublicRoom)
+                .sorted(chatRoomComparator())
+                .map(room -> toSummaryResponse(room, null))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public ChatRoomDetailResponse getChatRoomDetail(String memberId, String chatRoomId) {
         ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
         return toDetailResponse(access.room(), access.member());
+    }
+
+    @Transactional(readOnly = true)
+    public ChatRoomDetailResponse getAdminPublicChatRoomDetail(String chatRoomId) {
+        return toDetailResponse(findAdminPublicRoomOrThrow(chatRoomId), null);
     }
 
     @Transactional(readOnly = true)
@@ -144,35 +159,27 @@ public class ChatService {
         ChatRoomAccess access = findAccessibleRoom(memberId, chatRoomId);
         ChatRoom room = access.room();
         requireChatRoomMember(access.member());
-        validateCursor(cursorCreatedAt, cursorId);
+        return getMessagePage(room, cursorCreatedAt, cursorId, size);
+    }
 
-        int pageSize = size == null ? DEFAULT_MESSAGE_PAGE_SIZE : size;
-        if (pageSize < 1 || pageSize > MAX_MESSAGE_PAGE_SIZE) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "size는 1 이상 100 이하여야 합니다.");
-        }
+    @Transactional(readOnly = true)
+    public ChatMessagePageResponse getAdminPublicChatRoomMessages(
+            String chatRoomId,
+            LocalDateTime cursorCreatedAt,
+            String cursorId,
+            Integer size
+    ) {
+        return getMessagePage(findAdminPublicRoomOrThrow(chatRoomId), cursorCreatedAt, cursorId, size);
+    }
 
-        List<ChatMessage> fetched = chatMessageRepository.findByCursor(
-                chatRoomId,
-                cursorCreatedAt,
-                cursorId,
-                resolveCursorMessageOrder(chatRoomId, cursorId),
-                PageRequest.of(0, pageSize + 1)
-        );
-
-        boolean hasNext = fetched.size() > pageSize;
-        List<ChatMessage> page = hasNext ? fetched.subList(0, pageSize) : fetched;
-        Map<String, String> senderPhotoUrls = resolveSenderPhotoUrls(page);
-        List<ChatMessageResponse> messages = page.stream()
-                .map(message -> toMessageResponse(message, senderPhotoUrls.get(message.getSenderId())))
-                .toList();
-
-        ChatMessageCursorResponse nextCursor = null;
-        if (hasNext && !page.isEmpty()) {
-            ChatMessage last = page.get(page.size() - 1);
-            nextCursor = new ChatMessageCursorResponse(last.getCreatedAt(), last.getId());
-        }
-
-        return new ChatMessagePageResponse(messages, hasNext, nextCursor);
+    @Transactional(readOnly = true)
+    public ChatMessagePageResponse getAdminPartyChatMessages(
+            String chatRoomId,
+            LocalDateTime cursorCreatedAt,
+            String cursorId,
+            Integer size
+    ) {
+        return getMessagePage(findAdminPartyRoomOrThrow(chatRoomId), cursorCreatedAt, cursorId, size);
     }
 
     @Transactional
@@ -549,6 +556,26 @@ public class ChatService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
     }
 
+    private ChatRoom findAdminPublicRoomOrThrow(String chatRoomId) {
+        ChatRoom room = findRoomOrThrow(chatRoomId);
+        if (!isAdminPublicRoom(room)) {
+            throw new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND);
+        }
+        return room;
+    }
+
+    private ChatRoom findAdminPartyRoomOrThrow(String chatRoomId) {
+        ChatRoom room = findRoomOrThrow(chatRoomId);
+        if (room.getType() != ChatRoomType.PARTY) {
+            throw new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND);
+        }
+        return room;
+    }
+
+    private boolean isAdminPublicRoom(ChatRoom room) {
+        return room.isPublic() && room.getType() != ChatRoomType.PARTY;
+    }
+
     private long calculateUnreadCount(ChatRoom room, ChatRoomMember member) {
         if (member == null) {
             return 0L;
@@ -571,6 +598,43 @@ public class ChatService {
             upperBound = room.getLastMessageTimestamp();
         }
         return normalizedRequestedLastReadAt.isAfter(upperBound) ? upperBound : normalizedRequestedLastReadAt;
+    }
+
+    private ChatMessagePageResponse getMessagePage(
+            ChatRoom room,
+            LocalDateTime cursorCreatedAt,
+            String cursorId,
+            Integer size
+    ) {
+        validateCursor(cursorCreatedAt, cursorId);
+
+        int pageSize = size == null ? DEFAULT_MESSAGE_PAGE_SIZE : size;
+        if (pageSize < 1 || pageSize > MAX_MESSAGE_PAGE_SIZE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "size는 1 이상 100 이하여야 합니다.");
+        }
+
+        List<ChatMessage> fetched = chatMessageRepository.findByCursor(
+                room.getId(),
+                cursorCreatedAt,
+                cursorId,
+                resolveCursorMessageOrder(room.getId(), cursorId),
+                PageRequest.of(0, pageSize + 1)
+        );
+
+        boolean hasNext = fetched.size() > pageSize;
+        List<ChatMessage> page = hasNext ? fetched.subList(0, pageSize) : fetched;
+        Map<String, String> senderPhotoUrls = resolveSenderPhotoUrls(page);
+        List<ChatMessageResponse> messages = page.stream()
+                .map(message -> toMessageResponse(message, senderPhotoUrls.get(message.getSenderId())))
+                .toList();
+
+        ChatMessageCursorResponse nextCursor = null;
+        if (hasNext && !page.isEmpty()) {
+            ChatMessage last = page.get(page.size() - 1);
+            nextCursor = new ChatMessageCursorResponse(last.getCreatedAt(), last.getId());
+        }
+
+        return new ChatMessagePageResponse(messages, hasNext, nextCursor);
     }
 
     private Comparator<ChatRoom> chatRoomComparator() {

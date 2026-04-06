@@ -445,6 +445,38 @@ public final class OpenApiTaxiPartyExamples {
             }
             """;
 
+    public static final String SUCCESS_ADMIN_PARTY_MESSAGES_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "messages": [
+                  {
+                    "id": "msg-system-4",
+                    "chatRoomId": "party:party-20260304-001",
+                    "senderId": "member-2",
+                    "senderName": "김철수",
+                    "senderPhotoUrl": null,
+                    "type": "SYSTEM",
+                    "text": "김철수님이 파티에 합류했어요.",
+                    "createdAt": "2026-03-04T19:10:00"
+                  },
+                  {
+                    "id": "msg-text-1",
+                    "chatRoomId": "party:party-20260304-001",
+                    "senderId": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
+                    "senderName": "스쿠리 유저",
+                    "senderPhotoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                    "type": "TEXT",
+                    "text": "정문 앞 택시승강장 집합이에요.",
+                    "createdAt": "2026-03-04T19:12:00"
+                  }
+                ],
+                "hasNext": false,
+                "nextCursor": null
+              }
+            }
+            """;
+
     public static final String SUCCESS_ADMIN_PARTY_JOIN_REQUEST_LIST = """
             {
               "success": true,

@@ -69,3 +69,7 @@
 36. 학사 일정 bulk sync OpenAPI를 건드렸다면 `/v3/api-docs`, `/swagger-ui/index.html`, `/scalar`에서 200/401/403/422 example이 분리 노출되는지, 자연키/범위/type normalize 설명이 계약 문서와 동일한지 확인한다.
 37. 마이그레이션 러너를 건드렸다면 dry-run과 apply의 핵심 분기, report 파일 생성, 기존 row 보존 규칙(예: notice count 보존), 실행 명령 문서화를 함께 확인한다.
 38. cutover migration 러너를 건드렸다면 `member-rejects.json`, `timetable-rejects.json`, `minecraft-rejects.json`, `course-matches.json`, `timetable-skips.json` 생성과 unknown user/live MySQL 미관리 학기 timetable discard 정책, live MySQL `courses` lookup 매칭 규칙을 함께 확인한다.
+
+39. 관리자 Chat read API를 건드렸다면 `GET /v1/admin/chat-rooms`, `GET /v1/admin/chat-rooms/{chatRoomId}`, `GET /v1/admin/chat-rooms/{chatRoomId}/messages`, `GET /v1/admin/parties/{partyId}/messages`의 관리자 성공/비관리자 `403`/존재하지 않는 room|party `404`/cursor validation `422`를 Contract 테스트로 확인한다.
+40. 관리자 공개 채팅방 조회를 바꿨다면 `DEPARTMENT` 포함 전체 public non-party 노출, membership 없는 메시지 조회, DTO 고정값(`joined=false`, `unreadCount=0`, `isMuted=false`, `lastReadAt=null`)과 OpenAPI/문서 일치를 함께 확인한다.
+41. 관리자 Chat read 작업이면 backend 문서뿐 아니라 `/Users/jisung/skuri-admin/docs/backend-api-gap.md`, `/Users/jisung/skuri-admin/docs/implementation-plan.md`, `/Users/jisung/skuri-admin/README.md`, `/Users/jisung/SKTaxi/docs/spring-migration/api-specification.md`, `/Users/jisung/SKTaxi/docs/spring-migration/domain-analysis.md`, `/Users/jisung/SKTaxi/docs/spring-migration/implementation-roadmap.md` 동기화를 확인한다.

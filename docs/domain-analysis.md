@@ -348,6 +348,9 @@ Hooks:
     - `DEPARTMENT`: 본인 학과와 일치하는 방만 노출
     - 회원 `department`는 서버 카탈로그 기준 canonical 값으로 정규화하고 legacy 학과명은 alias 매핑으로 흡수
   - 미참여 공개방도 목록/상세 조회는 가능하지만, 메시지 조회/읽음/mute는 참여자만 가능
+  - 관리자 운영 조회는 별도 admin read API로 제공한다.
+    - `GET /v1/admin/chat-rooms*`: `isPublic=true && type!=PARTY` 공개 채팅방 전체를 membership/학과 제한 없이 조회
+    - 개인 상태 필드(`joined`, `unreadCount`, `isMuted`, `lastReadAt`)는 기존 DTO를 재사용하되 고정값/`null`로 내려간다
   - 공개방 참여/나가기/커스텀방 생성은 REST(`POST /v1/chat-rooms`, `POST /v1/chat-rooms/{id}/join`, `DELETE /v1/chat-rooms/{id}/members/me`)로 처리
   - 공개방 create/join은 가입 완료된 active member만 가능하며, 미가입 UID는 `MEMBER_NOT_FOUND`
   - 커스텀 공개방 생성자는 자동으로 joined 상태가 되며, join 시 초기 unread는 0으로 시작한다
@@ -1596,6 +1599,7 @@ public class MinecraftBridgeEvent extends BaseTimeEntity {
   - 도착 처리 → 정산 snapshot이 포함된 `ARRIVED` 메시지 생성
   - 리더 취소/종료/탈퇴 종료 → `END` 메시지 생성
 - 위 서버 생성 메시지는 모두 `GET /v1/chat-rooms/{chatRoomId}/messages`와 `/topic/chat/{chatRoomId}`의 동일 계약으로 전달된다.
+- 관리자 파티 상세는 `GET /v1/admin/parties/{partyId}/messages`로 party membership 없이 동일 메시지 page 계약을 조회한다.
 - 파티 상태 변경과 서버 생성 채팅 메시지는 같은 트랜잭션 안에서 저장하고, WebSocket 브로드캐스트는 커밋 후 수행한다.
 
 ---
@@ -1657,6 +1661,7 @@ public class MinecraftBridgeEvent extends BaseTimeEntity {
 ---
 
 > **문서 이력**
+> - 2026-04-06: Admin Chat read API 반영 — 관리자 공개 채팅방 목록/상세/메시지 조회와 관리자 파티 채팅 메시지 조회 책임, membership 우회 범위를 Chat/TaxiParty 협력 규칙에 추가
 > - 2026-03-30: Minecraft 도메인 분석 추가 — 별도 도메인 분리 결정, public/internal API, whitelist/서버 상태/bridge outbox 설계를 반영
 > - 2026-02-03: 초안 작성 (도메인 분석 완료)
 > - 2026-03-05: Board 도메인 구현 반영 — 댓글 depth 1 제한, 부모 placeholder soft delete 정책(B), 내 게시글/북마크 조회 책임 추가

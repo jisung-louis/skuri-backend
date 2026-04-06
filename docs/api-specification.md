@@ -5491,6 +5491,109 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 공개 채팅방(UNIVERSITY, DEPARTMENT 등)은 사용자가 직접 생성할 수 없으며, 관리자만 생성/삭제합니다.
 파티 채팅방은 파티 생성 시 서버 내부에서 자동으로 생성됩니다.
 
+관리자 조회 API 정책:
+
+- `GET /v1/admin/chat-rooms*`는 현재 관리자 계정의 join 여부와 무관하게 `isPublic=true && type!=PARTY` 공개 채팅방만 조회합니다.
+- `DEPARTMENT` 타입도 관리자에게는 학과 제한 없이 모두 노출합니다.
+- 기존 사용자 DTO를 재사용하므로 관리자 응답의 개인 상태 필드는 아래 고정값을 사용합니다.
+  - summary/detail: `joined=false`, `unreadCount=0`, `isMuted=false`
+  - detail: `lastReadAt=null`
+- 관리자 조회(`GET`) API는 read-only 운영 API이며 `admin_audit_logs` 적재 대상에 포함하지 않습니다.
+
+#### GET /v1/admin/chat-rooms
+관리자 공개 채팅방 목록 조회
+
+운영 화면 `/chat-rooms`의 전체 공개방 목록/필터용 API다.
+
+**Query Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `type` | string | optional. `UNIVERSITY`, `DEPARTMENT`, `GAME`, `CUSTOM`, `PARTY` |
+
+정책 메모:
+
+- 반환 대상은 항상 `isPublic=true && type!=PARTY`다.
+- `type=PARTY`를 요청해도 빈 목록을 반환한다.
+- `joined` 필터는 관리자 API에서 제공하지 않는다.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "public:university",
+      "type": "UNIVERSITY",
+      "name": "성결대학교 전체 채팅방",
+      "description": "성결대학교 학생 전체 공개 채팅방",
+      "isPublic": true,
+      "memberCount": 153,
+      "joined": false,
+      "unreadCount": 0,
+      "lastMessage": {
+        "type": "TEXT",
+        "text": "안녕하세요!",
+        "senderName": "홍길동",
+        "createdAt": "2026-04-06T18:20:00"
+      },
+      "lastMessageAt": "2026-04-06T18:20:00",
+      "isMuted": false
+    },
+    {
+      "id": "public:department:computer",
+      "type": "DEPARTMENT",
+      "name": "컴퓨터공학과 채팅방",
+      "description": "학과 공지와 잡담을 나누는 공간",
+      "isPublic": true,
+      "memberCount": 41,
+      "joined": false,
+      "unreadCount": 0,
+      "lastMessage": null,
+      "lastMessageAt": null,
+      "isMuted": false
+    }
+  ]
+}
+```
+
+#### GET /v1/admin/chat-rooms/{chatRoomId}
+관리자 공개 채팅방 상세 조회
+
+운영 화면 `/chat-rooms`의 상세 패널/모달 조회용 API다.
+
+정책 메모:
+
+- `isPublic=true && type!=PARTY` 방만 조회할 수 있다.
+- `PARTY` 타입, 비공개 방, 존재하지 않는 방은 모두 `404 CHAT_ROOM_NOT_FOUND`로 숨긴다.
+- 개인 상태 필드는 관리자 의미가 없으므로 `joined=false`, `unreadCount=0`, `isMuted=false`, `lastReadAt=null`을 사용한다.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "public:department:computer",
+    "type": "DEPARTMENT",
+    "name": "컴퓨터공학과 채팅방",
+    "description": "학과 공지와 잡담을 나누는 공간",
+    "isPublic": true,
+    "memberCount": 41,
+    "joined": false,
+    "unreadCount": 0,
+    "lastMessage": {
+      "type": "TEXT",
+      "text": "스터디 인원 구합니다.",
+      "senderName": "김성결",
+      "createdAt": "2026-04-06T17:40:00"
+    },
+    "lastMessageAt": "2026-04-06T17:40:00",
+    "isMuted": false,
+    "lastReadAt": null
+  }
+}
+```
+
 #### POST /v1/admin/chat-rooms
 공개 채팅방 생성
 
@@ -5535,6 +5638,62 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 {
   "success": true,
   "data": null
+}
+```
+
+#### GET /v1/admin/chat-rooms/{chatRoomId}/messages
+관리자 공개 채팅방 메시지 조회
+
+관리자가 공개 채팅방 메시지 이력을 멤버십 없이 조회하는 API다.
+
+정책 메모:
+
+- 대상은 `isPublic=true && type!=PARTY` 공개 채팅방만 허용한다.
+- 사용자용 `GET /v1/chat-rooms/{chatRoomId}/messages`와 달리 join 여부를 요구하지 않는다.
+- `PARTY` 타입, 비공개 방, 존재하지 않는 방은 모두 `404 CHAT_ROOM_NOT_FOUND`다.
+- 응답 shape와 커서 규칙은 사용자용 메시지 조회와 동일하다.
+
+**Query Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `cursorCreatedAt` | datetime | 다음 페이지 시작 기준 createdAt (nullable, `cursorId`와 쌍) |
+| `cursorId` | string | 다음 페이지 시작 기준 messageId (nullable, `cursorCreatedAt`와 쌍) |
+| `size` | int | 페이지 크기 (기본 50, 최대 100) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "chat-message-2",
+        "chatRoomId": "public:department:computer",
+        "senderId": "member-2",
+        "senderName": "김성결",
+        "senderPhotoUrl": null,
+        "type": "TEXT",
+        "text": "스터디 인원 구합니다.",
+        "createdAt": "2026-04-06T17:40:00"
+      },
+      {
+        "id": "chat-message-1",
+        "chatRoomId": "public:department:computer",
+        "senderId": "member-3",
+        "senderName": "박스쿠리",
+        "senderPhotoUrl": "https://cdn.skuri.app/profiles/member-3.png",
+        "type": "TEXT",
+        "text": "오늘 저녁에 모집할게요.",
+        "createdAt": "2026-04-06T17:20:00"
+      }
+    ],
+    "nextCursor": {
+      "cursorCreatedAt": "2026-04-06T17:20:00",
+      "cursorId": "chat-message-1"
+    },
+    "hasNext": true
+  }
 }
 ```
 
@@ -6284,6 +6443,63 @@ isAdmin == false 시: 403 FORBIDDEN (ADMIN_REQUIRED)
 }
 ```
 
+#### GET /v1/admin/parties/{partyId}/messages
+택시 파티 채팅 메시지 조회 (관리자)
+
+운영 화면 `/parties` 상세에서 해당 파티 채팅 이력을 조회하는 API다.
+
+정책 메모:
+
+- `partyId`가 존재해야 하며, 없으면 `404 PARTY_NOT_FOUND`다.
+- 메시지 조회 대상 chat room은 canonical id `party:{partyId}`를 사용한다.
+- 관리자 계정이 파티 멤버가 아니어도 조회할 수 있다.
+- 파티는 존재하지만 연결된 채팅방이 없으면 `404 CHAT_ROOM_NOT_FOUND`다.
+- 응답 shape와 커서 규칙은 `GET /v1/chat-rooms/{chatRoomId}/messages`와 동일하다.
+
+**Query Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `cursorCreatedAt` | datetime | 다음 페이지 시작 기준 createdAt (nullable, `cursorId`와 쌍) |
+| `cursorId` | string | 다음 페이지 시작 기준 messageId (nullable, `cursorCreatedAt`와 쌍) |
+| `size` | int | 페이지 크기 (기본 50, 최대 100) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "party-message-3",
+        "chatRoomId": "party:party-20260304-001",
+        "senderId": "member-2",
+        "senderName": "김철수",
+        "senderPhotoUrl": null,
+        "type": "TEXT",
+        "text": "정문 앞 도착했습니다.",
+        "createdAt": "2026-03-04T20:55:00"
+      },
+      {
+        "id": "party-message-2",
+        "chatRoomId": "party:party-20260304-001",
+        "senderId": "system",
+        "senderName": "시스템",
+        "senderPhotoUrl": null,
+        "type": "SYSTEM",
+        "text": "김철수님이 입장했어요.",
+        "createdAt": "2026-03-04T20:50:00"
+      }
+    ],
+    "nextCursor": {
+      "cursorCreatedAt": "2026-03-04T20:50:00",
+      "cursorId": "party-message-2"
+    },
+    "hasNext": true
+  }
+}
+```
+
 #### PATCH /v1/admin/parties/{partyId}/status
 택시 파티 상태 변경 (관리자)
 
@@ -6917,6 +7133,7 @@ data: {"messageId":"dfd5b4b1-54ea-4fa1-92d9-b61a931d0d56","chatRoomId":"public:g
 > - 2026-02-19: 채팅 메시지 전송 경로 WebSocket으로 통일 (§4.3~4.5), Public API 목록 명확화 (§1.2)
 > - 2026-02-19: Admin API 추가 (§12 — 앱 공지/버전 관리, 학교 공지 동기화, 학식/학사일정/강의 관리)
 > - 2026-03-05: Phase 3 구현 반영 — 채팅 커서 페이지네이션(`cursorCreatedAt`,`cursorId`) 명시, `lastReadAt` 단조 증가/미읽음 경계(`createdAt > lastReadAt`) 확정, STOMP 경로를 `/app/chat/{chatRoomId}`·`/topic/chat/{chatRoomId}`로 동기화
+> - 2026-04-06: Admin Chat read API 반영 — `GET /v1/admin/chat-rooms`, `GET /v1/admin/chat-rooms/{chatRoomId}`, `GET /v1/admin/chat-rooms/{chatRoomId}/messages`, `GET /v1/admin/parties/{partyId}/messages` 계약과 관리자 고정 필드/멤버십 우회 정책을 문서화
 > - 2026-03-05: Chat 계약 동기화 — `lastMessage.createdAt`/`accountData` 필드로 통일, 비공개 채팅방 접근 정책(REST/WS) 및 STOMP 에러 포맷(`/user/queue/errors`) 명시
 > - 2026-03-05: Chat 명세 보완 — 채팅방 요약 `lastMessage.senderName` 예시 추가, STOMP 메시지 `NON_NULL` 직렬화 정책 명시
 > - 2026-03-28: Chat 메시지 계약 확장 — 일반/파티 채팅 REST + STOMP payload에 `senderPhotoUrl` 추가, 기본 source of truth를 `members.photo_url`로 두고 `null` 직렬화 정책을 명시

@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
@@ -43,6 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,6 +105,17 @@ public class TaxiPartyAdminService {
         Map<String, Member> memberMap = getMemberMap(party.getMemberIds());
         long pendingJoinRequestCount = joinRequestRepository.countByParty_IdAndStatus(partyId, JoinRequestStatus.PENDING);
         return toAdminPartyDetailResponse(party, memberMap, pendingJoinRequestCount);
+    }
+
+    @Transactional(readOnly = true)
+    public ChatMessagePageResponse getAdminPartyMessages(
+            String partyId,
+            LocalDateTime cursorCreatedAt,
+            String cursorId,
+            Integer size
+    ) {
+        findPartyDetailOrThrow(partyId);
+        return chatService.getAdminPartyChatMessages("party:" + partyId, cursorCreatedAt, cursorId, size);
     }
 
     @Transactional
