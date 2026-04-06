@@ -203,6 +203,7 @@ com.skuri.skuri_backend
 | `POST` | `/v1/members` | 회원 가입 (ID Token에서 정보 추출, 멱등) |
 | `GET` | `/v1/members/me` | 내 프로필 조회 (lastLogin 갱신) |
 | `PATCH` | `/v1/members/me` | 프로필 부분 수정 (닉네임, 학번, 학과, photoUrl) |
+| `DELETE` | `/v1/members/me/photo` | 프로필 사진 제거 (내부 PROFILE_IMAGE면 storage 원본/썸네일 정리) |
 | `PUT` | `/v1/members/me/bank-account` | 계좌 정보 수정 |
 | `PATCH` | `/v1/members/me/notification-settings` | 알림 설정 부분 수정 |
 | `GET` | `/v1/members/{id}` | 특정 회원 공개 프로필 조회 |
