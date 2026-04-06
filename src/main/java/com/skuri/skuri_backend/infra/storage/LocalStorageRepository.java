@@ -9,6 +9,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Optional;
 
 public class LocalStorageRepository implements StorageRepository {
 
@@ -49,6 +50,23 @@ public class LocalStorageRepository implements StorageRepository {
         }
     }
 
+    @Override
+    public Optional<String> resolveRelativePath(String publicUrl) {
+        if (!StringUtils.hasText(publicUrl)) {
+            return Optional.empty();
+        }
+        String normalized = publicUrl.trim();
+        String prefix = buildPublicUrlPrefix();
+        if (!normalized.startsWith(prefix)) {
+            return Optional.empty();
+        }
+        String relativePath = normalized.substring(prefix.length());
+        if (!StringUtils.hasText(relativePath)) {
+            return Optional.empty();
+        }
+        return Optional.of(relativePath.replace('\\', '/'));
+    }
+
     private Path resolve(String relativePath) {
         Path target = baseDirectory.resolve(relativePath).normalize();
         if (!target.startsWith(baseDirectory)) {
@@ -58,11 +76,19 @@ public class LocalStorageRepository implements StorageRepository {
     }
 
     private String buildPublicUrl(String relativePath) {
+        return determinePublicBaseUrl() + "/" + relativePath.replace('\\', '/');
+    }
+
+    private String buildPublicUrlPrefix() {
+        return determinePublicBaseUrl() + "/";
+    }
+
+    private String determinePublicBaseUrl() {
         String baseUrl = mediaStorageProperties.normalizedPublicBaseUrl();
-        if (!StringUtils.hasText(baseUrl)) {
-            String serverPort = environment.getProperty("server.port", "8080");
-            baseUrl = "http://localhost:" + serverPort + mediaStorageProperties.normalizedUrlPrefix();
+        if (StringUtils.hasText(baseUrl)) {
+            return baseUrl;
         }
-        return baseUrl + "/" + relativePath.replace('\\', '/');
+        String serverPort = environment.getProperty("server.port", "8080");
+        return "http://localhost:" + serverPort + mediaStorageProperties.normalizedUrlPrefix();
     }
 }

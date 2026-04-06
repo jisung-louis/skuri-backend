@@ -6,9 +6,12 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.skuri.skuri_backend.domain.image.storage.StorageRepository;
 
+import java.net.URI;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class FirebaseStorageRepository implements StorageRepository {
@@ -38,6 +41,32 @@ public class FirebaseStorageRepository implements StorageRepository {
         Blob blob = bucket.get(relativePath);
         if (blob != null) {
             blob.delete();
+        }
+    }
+
+    @Override
+    public Optional<String> resolveRelativePath(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return Optional.empty();
+        }
+
+        try {
+            URI uri = URI.create(publicUrl.trim());
+            if (!"firebasestorage.googleapis.com".equalsIgnoreCase(uri.getHost())) {
+                return Optional.empty();
+            }
+            String path = uri.getPath();
+            String prefix = "/v0/b/" + bucket.getName() + "/o/";
+            if (path == null || !path.startsWith(prefix)) {
+                return Optional.empty();
+            }
+            String encodedRelativePath = path.substring(prefix.length());
+            if (encodedRelativePath.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(URLDecoder.decode(encodedRelativePath, StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
         }
     }
 

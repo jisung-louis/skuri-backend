@@ -118,6 +118,10 @@ public class Member extends BaseTimeEntity {
         }
     }
 
+    public void removeProfilePhoto() {
+        this.photoUrl = null;
+    }
+
     public void updateBankAccount(BankAccount bankAccount) {
         this.bankAccount = bankAccount;
     }
