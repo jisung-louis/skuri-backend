@@ -49,7 +49,7 @@ class ImageControllerContractTest {
     @Test
     void postImages_정상업로드_200_응답스키마검증() throws Exception {
         mockValidToken();
-        when(imageUploadService.upload(eq(false), eq(ImageUploadContext.POST_IMAGE), any()))
+        when(imageUploadService.upload(eq("firebase-uid"), eq(false), eq(ImageUploadContext.POST_IMAGE), any()))
                 .thenReturn(new ImageUploadResponse(
                         "https://cdn.skuri.app/uploads/posts/2026/03/10/image.jpg",
                         "https://cdn.skuri.app/uploads/posts/2026/03/10/image_thumb.jpg",
@@ -88,7 +88,7 @@ class ImageControllerContractTest {
     @Test
     void postImages_APP_NOTICE_IMAGE_비관리자_403() throws Exception {
         mockValidToken();
-        when(imageUploadService.upload(eq(false), eq(ImageUploadContext.APP_NOTICE_IMAGE), any()))
+        when(imageUploadService.upload(eq("firebase-uid"), eq(false), eq(ImageUploadContext.APP_NOTICE_IMAGE), any()))
                 .thenThrow(new BusinessException(ErrorCode.ADMIN_REQUIRED));
 
         mockMvc.perform(
@@ -104,7 +104,7 @@ class ImageControllerContractTest {
     @Test
     void postImages_잘못된형식_415() throws Exception {
         mockValidToken();
-        when(imageUploadService.upload(eq(false), eq(ImageUploadContext.POST_IMAGE), any()))
+        when(imageUploadService.upload(eq("firebase-uid"), eq(false), eq(ImageUploadContext.POST_IMAGE), any()))
                 .thenThrow(new BusinessException(ErrorCode.IMAGE_INVALID_FORMAT));
 
         mockMvc.perform(
@@ -120,7 +120,7 @@ class ImageControllerContractTest {
     @Test
     void postImages_해상도초과_422() throws Exception {
         mockValidToken();
-        when(imageUploadService.upload(eq(false), eq(ImageUploadContext.POST_IMAGE), any()))
+        when(imageUploadService.upload(eq("firebase-uid"), eq(false), eq(ImageUploadContext.POST_IMAGE), any()))
                 .thenThrow(new BusinessException(ErrorCode.IMAGE_DIMENSIONS_EXCEEDED));
 
                 mockMvc.perform(

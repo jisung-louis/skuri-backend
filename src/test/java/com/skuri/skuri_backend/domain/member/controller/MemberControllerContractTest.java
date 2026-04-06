@@ -230,6 +230,30 @@ class MemberControllerContractTest {
     }
 
     @Test
+    void patchMembersMe_본인소유가아닌내부프로필URL이면_422() throws Exception {
+        mockValidToken();
+        when(memberService.updateMyProfile(eq("firebase-uid"), any(UpdateMemberProfileRequest.class)))
+                .thenThrow(new com.skuri.skuri_backend.common.exception.BusinessException(
+                        com.skuri.skuri_backend.common.exception.ErrorCode.VALIDATION_ERROR,
+                        "photoUrl은 본인이 업로드한 PROFILE_IMAGE URL만 사용할 수 있습니다."
+                ));
+
+        mockMvc.perform(
+                        patch("/v1/members/me")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "photoUrl": "https://cdn.skuri.app/uploads/profiles/other-member/2026/04/06/photo.jpg"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("photoUrl은 본인이 업로드한 PROFILE_IMAGE URL만 사용할 수 있습니다."));
+    }
+
+    @Test
     void putMembersMeBankAccount_기본성공() throws Exception {
         mockValidToken();
         when(memberService.updateMyBankAccount(eq("firebase-uid"), any()))

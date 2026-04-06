@@ -89,9 +89,9 @@ class FirebaseStorageRepositoryTest {
         FirebaseStorageRepository repository = new FirebaseStorageRepository(bucket);
 
         assertEquals(
-                "profiles/2026/04/06/profile image.jpg",
+                "profiles/firebase-uid/2026/04/06/profile image.jpg",
                 repository.resolveRelativePath(
-                        "https://firebasestorage.googleapis.com/v0/b/sktaxi-acb4c.firebasestorage.app/o/profiles%2F2026%2F04%2F06%2Fprofile%20image.jpg?alt=media&token=test-token"
+                        "https://firebasestorage.googleapis.com/v0/b/sktaxi-acb4c.firebasestorage.app/o/profiles%2Ffirebase-uid%2F2026%2F04%2F06%2Fprofile%20image.jpg?alt=media&token=test-token"
                 ).orElseThrow()
         );
     }
@@ -105,7 +105,7 @@ class FirebaseStorageRepositoryTest {
 
         assertFalse(
                 repository.resolveRelativePath(
-                        "https://firebasestorage.googleapis.com/v0/b/other-bucket/o/profiles%2F2026%2F04%2F06%2Fimage.jpg?alt=media&token=test-token"
+                        "https://firebasestorage.googleapis.com/v0/b/other-bucket/o/profiles%2Ffirebase-uid%2F2026%2F04%2F06%2Fimage.jpg?alt=media&token=test-token"
                 ).isPresent()
         );
     }

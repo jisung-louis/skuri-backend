@@ -47,6 +47,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class MemberServiceTest {
 
+    private static final String PROFILE_IMAGE_OWNERSHIP_MESSAGE =
+            "photoUrl은 본인이 업로드한 PROFILE_IMAGE URL만 사용할 수 있습니다.";
+
     @Mock
     private MemberRepository memberRepository;
 
@@ -203,6 +206,11 @@ class MemberServiceTest {
         assertEquals("컴퓨터공학과", response.department());
         assertEquals("기존실명", response.realname());
         assertEquals("https://example.com/new.jpg", response.photoUrl());
+        verify(profileImageStorageService).validateProfilePhotoReference(
+                "firebase-uid",
+                "https://example.com/old.jpg",
+                "https://example.com/new.jpg"
+        );
         verify(chatService, never()).removeMemberFromDepartmentChatRooms("firebase-uid");
     }
 
@@ -219,19 +227,32 @@ class MemberServiceTest {
 
         assertEquals("새닉네임", response.nickname());
         assertEquals("https://example.com/old.jpg", response.photoUrl());
+        verify(profileImageStorageService).validateProfilePhotoReference(
+                "firebase-uid",
+                "https://example.com/old.jpg",
+                null
+        );
         verify(chatService, never()).removeMemberFromDepartmentChatRooms("firebase-uid");
     }
 
     @Test
     void deleteMyProfilePhoto_기존사진이있으면_DB를null로갱신하고_스토리지정리를위임한다() {
         Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
-        member.updateProfile("기존닉네임", "20201234", "컴퓨터공학과", "https://cdn.skuri.app/uploads/profiles/2026/04/06/photo.jpg");
+        member.updateProfile(
+                "기존닉네임",
+                "20201234",
+                "컴퓨터공학과",
+                "https://cdn.skuri.app/uploads/profiles/firebase-uid/2026/04/06/photo.jpg"
+        );
         when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
 
         memberService.deleteMyProfilePhoto("firebase-uid");
 
         assertNull(member.getPhotoUrl());
-        verify(profileImageStorageService).deleteManagedProfileImage("https://cdn.skuri.app/uploads/profiles/2026/04/06/photo.jpg");
+        verify(profileImageStorageService).deleteOwnedManagedProfileImage(
+                "firebase-uid",
+                "https://cdn.skuri.app/uploads/profiles/firebase-uid/2026/04/06/photo.jpg"
+        );
     }
 
     @Test
@@ -242,7 +263,39 @@ class MemberServiceTest {
         memberService.deleteMyProfilePhoto("firebase-uid");
 
         assertNull(member.getPhotoUrl());
-        verify(profileImageStorageService, never()).deleteManagedProfileImage(any());
+        verify(profileImageStorageService, never()).deleteOwnedManagedProfileImage(any(), any());
+    }
+
+    @Test
+    void updateMyProfile_사진소유권검증에실패하면_예외를전파한다() {
+        Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
+        member.updateProfile("기존닉네임", "20201234", "컴퓨터공학과", "https://example.com/old.jpg");
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
+        doThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, PROFILE_IMAGE_OWNERSHIP_MESSAGE))
+                .when(profileImageStorageService)
+                .validateProfilePhotoReference(
+                        "firebase-uid",
+                        "https://example.com/old.jpg",
+                        "https://cdn.skuri.app/uploads/profiles/other-member/2026/04/06/photo.jpg"
+                );
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberService.updateMyProfile(
+                        "firebase-uid",
+                        new UpdateMemberProfileRequest(
+                                null,
+                                null,
+                                null,
+                                "https://cdn.skuri.app/uploads/profiles/other-member/2026/04/06/photo.jpg"
+                        )
+                )
+        );
+
+        assertEquals(ErrorCode.VALIDATION_ERROR, exception.getErrorCode());
+        assertEquals(PROFILE_IMAGE_OWNERSHIP_MESSAGE, exception.getMessage());
+        assertEquals("https://example.com/old.jpg", member.getPhotoUrl());
+        verify(chatService, never()).removeMemberFromDepartmentChatRooms("firebase-uid");
     }
 
     @Test
