@@ -137,8 +137,11 @@ public class Comment extends BaseTimeEntity {
         return this.parent != null;
     }
 
-    public void updateContent(String content) {
+    public void update(String content, boolean anonymous, String anonId, Integer anonymousOrder) {
         this.content = content;
+        this.anonymous = anonymous;
+        this.anonId = anonId;
+        this.anonymousOrder = anonymousOrder;
     }
 
     public void softDelete() {

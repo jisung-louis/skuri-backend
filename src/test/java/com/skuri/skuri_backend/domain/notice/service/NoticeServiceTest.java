@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.notice.service;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.common.util.AnonymousCommentIdGenerator;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
 import com.skuri.skuri_backend.domain.notice.dto.request.CreateNoticeCommentRequest;
@@ -86,7 +87,7 @@ class NoticeServiceTest {
 
         when(noticeRepository.findByIdForUpdate("notice-1")).thenReturn(Optional.of(notice));
         when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
-        when(noticeCommentRepository.findFirstByNotice_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("notice-1", "notice-1:member-1"))
+        when(noticeCommentRepository.findFirstByNotice_IdAndUserIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("notice-1", "member-1"))
                 .thenReturn(Optional.of(existingAnonymous.comment));
         when(noticeCommentRepository.save(any(NoticeComment.class))).thenAnswer(invocation -> {
             NoticeComment saved = invocation.getArgument(0);
@@ -107,6 +108,27 @@ class NoticeServiceTest {
         assertEquals("notice-1:member-1", captor.getValue().getAnonId());
         assertEquals(2, captor.getValue().getAnonymousOrder());
         assertEquals("notice-comment-new", response.id());
+    }
+
+    @Test
+    void createComment_긴noticeId여도_짧은anonId를_생성한다() {
+        String noticeId = "n".repeat(120);
+        Notice notice = notice(noticeId);
+        Member member = Member.create("member-1", "member-1@sungkyul.ac.kr", "사용자", LocalDateTime.now());
+
+        when(noticeRepository.findByIdForUpdate(noticeId)).thenReturn(Optional.of(notice));
+        when(memberRepository.findActiveById("member-1")).thenReturn(Optional.of(member));
+        when(noticeCommentRepository.findFirstByNotice_IdAndUserIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(noticeId, "member-1"))
+                .thenReturn(Optional.empty());
+        when(noticeCommentRepository.findMaxAnonymousOrderByNoticeId(noticeId)).thenReturn(0);
+        when(noticeCommentRepository.save(any(NoticeComment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        noticeService.createComment("member-1", noticeId, new CreateNoticeCommentRequest("익명 댓글", true, null));
+
+        ArgumentCaptor<NoticeComment> captor = ArgumentCaptor.forClass(NoticeComment.class);
+        verify(noticeCommentRepository).save(captor.capture());
+        assertEquals(AnonymousCommentIdGenerator.generate(noticeId, "member-1"), captor.getValue().getAnonId());
+        assertTrue(captor.getValue().getAnonId().length() <= 35);
     }
 
     @Test
@@ -325,6 +347,75 @@ class NoticeServiceTest {
         assertTrue(response.isLiked());
         verify(noticeCommentRepository).findByIdForUpdate("comment-1");
         verify(noticeCommentRepository, never()).findById("comment-1");
+    }
+
+    @Test
+    void updateComment_실명에서익명으로전환하면_기존순번을재사용한다() {
+        Notice notice = notice("notice-1");
+        CommentFixture fixture = comment("comment-1", notice, null, "member-1", false, null);
+        CommentFixture existingAnonymous = comment("comment-2", notice, null, "member-1", true, 2);
+
+        when(noticeCommentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(fixture.comment));
+        when(noticeRepository.findByIdForUpdate("notice-1")).thenReturn(Optional.of(notice));
+        when(noticeCommentRepository.findFirstByNotice_IdAndUserIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("notice-1", "member-1"))
+                .thenReturn(Optional.of(existingAnonymous.comment));
+        when(noticeCommentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(true);
+
+        NoticeCommentResponse response = noticeService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateNoticeCommentRequest("수정된 댓글", true)
+        );
+
+        assertTrue(fixture.comment.isAnonymous());
+        assertEquals(existingAnonymous.comment.getAnonId(), fixture.comment.getAnonId());
+        assertEquals(2, fixture.comment.getAnonymousOrder());
+        assertTrue(response.isAnonymous());
+        assertEquals(2, response.anonymousOrder());
+    }
+
+    @Test
+    void updateComment_실명에서익명으로전환하면_기존순번이없을때_새순번을부여한다() {
+        Notice notice = notice("notice-1");
+        CommentFixture fixture = comment("comment-1", notice, null, "member-1", false, null);
+
+        when(noticeCommentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(fixture.comment));
+        when(noticeRepository.findByIdForUpdate("notice-1")).thenReturn(Optional.of(notice));
+        when(noticeCommentRepository.findFirstByNotice_IdAndUserIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc("notice-1", "member-1"))
+                .thenReturn(Optional.empty());
+        when(noticeCommentRepository.findMaxAnonymousOrderByNoticeId("notice-1")).thenReturn(3);
+        when(noticeCommentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(false);
+
+        NoticeCommentResponse response = noticeService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateNoticeCommentRequest("수정된 댓글", true)
+        );
+
+        assertTrue(fixture.comment.isAnonymous());
+        assertEquals(4, fixture.comment.getAnonymousOrder());
+        assertEquals(AnonymousCommentIdGenerator.generate("notice-1", "member-1"), fixture.comment.getAnonId());
+        assertEquals(4, response.anonymousOrder());
+    }
+
+    @Test
+    void updateComment_익명에서실명으로전환하면_anon메타데이터를정리한다() {
+        Notice notice = notice("notice-1");
+        CommentFixture fixture = comment("comment-1", notice, null, "member-1", true, 2);
+        when(noticeCommentRepository.findByIdForUpdate("comment-1")).thenReturn(Optional.of(fixture.comment));
+        when(noticeCommentLikeRepository.existsById_UserIdAndId_CommentId("member-1", "comment-1")).thenReturn(true);
+
+        NoticeCommentResponse response = noticeService.updateComment(
+                "member-1",
+                "comment-1",
+                new UpdateNoticeCommentRequest("수정된 댓글", false)
+        );
+
+        assertFalse(fixture.comment.isAnonymous());
+        assertNull(fixture.comment.getAnonId());
+        assertNull(fixture.comment.getAnonymousOrder());
+        assertFalse(response.isAnonymous());
+        assertNull(response.anonymousOrder());
     }
 
     @Test

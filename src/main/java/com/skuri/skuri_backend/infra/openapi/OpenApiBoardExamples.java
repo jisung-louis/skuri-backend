@@ -304,6 +304,30 @@ public final class OpenApiBoardExamples {
             }
             """;
 
+    public static final String SUCCESS_COMMENT_UPDATE = """
+            {
+              "success": true,
+              "data": {
+                "id": "comment_uuid",
+                "parentId": "root_comment_uuid",
+                "depth": 2,
+                "content": "수정된 댓글 내용",
+                "authorId": null,
+                "authorName": "익명1",
+                "authorProfileImage": null,
+                "isAnonymous": true,
+                "anonymousOrder": 1,
+                "isAuthor": true,
+                "isPostAuthor": false,
+                "likeCount": 3,
+                "isLiked": true,
+                "isDeleted": false,
+                "createdAt": "2026-02-03T12:00:00",
+                "updatedAt": "2026-02-03T12:30:00"
+              }
+            }
+            """;
+
     public static final String SUCCESS_COMMENT_LIKE = """
             {
               "success": true,

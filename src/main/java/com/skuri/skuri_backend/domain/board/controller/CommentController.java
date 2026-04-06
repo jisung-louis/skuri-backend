@@ -42,7 +42,7 @@ public class CommentController {
     private final BoardService boardService;
 
     @PatchMapping("/{commentId}")
-    @Operation(summary = "댓글 수정", description = "댓글 작성자만 수정할 수 있습니다.")
+    @Operation(summary = "댓글 수정", description = "댓글 작성자만 수정할 수 있습니다. `isAnonymous`를 보내면 익명 여부도 변경할 수 있고, 생략하면 기존 값을 유지합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -50,7 +50,7 @@ public class CommentController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = OpenApiBoardSchemas.CommentApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_COMMENT_CREATE)
+                            examples = @ExampleObject(name = "default", value = OpenApiBoardExamples.SUCCESS_COMMENT_UPDATE)
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -107,7 +107,8 @@ public class CommentController {
                     examples = @ExampleObject(
                             value = """
                                     {
-                                      "content": "수정된 댓글 내용"
+                                      "content": "수정된 댓글 내용",
+                                      "isAnonymous": true
                                     }
                                     """
                     )

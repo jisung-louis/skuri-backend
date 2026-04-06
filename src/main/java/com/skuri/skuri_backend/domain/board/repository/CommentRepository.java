@@ -60,7 +60,10 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
             """)
     Optional<Comment> findByIdForAdminUpdate(@Param("commentId") String commentId);
 
-    Optional<Comment> findFirstByPost_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(String postId, String anonId);
+    Optional<Comment> findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(
+            String postId,
+            String authorId
+    );
 
     @Query("""
             select coalesce(max(c.anonymousOrder), 0)

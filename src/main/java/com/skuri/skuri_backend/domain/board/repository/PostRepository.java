@@ -133,6 +133,15 @@ public interface PostRepository extends JpaRepository<Post, String> {
             """)
     Optional<Post> findActiveByIdForUpdate(@Param("postId") String postId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select p
+            from Post p
+            where p.id = :postId
+              and p.deleted = false
+            """)
+    Optional<Post> findByIdAndDeletedFalseForUpdate(@Param("postId") String postId);
+
     @EntityGraph(attributePaths = "images")
     @Query("""
             select p

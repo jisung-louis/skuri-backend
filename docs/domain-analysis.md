@@ -457,7 +457,7 @@ Hooks:
     - isPinned, isHidden, isDeleted, images[], createdAt, updatedAt
   - Comment
     - id, postId, content, authorId, authorName, authorProfileImage
-    - isAnonymous, anonId (= "{postId}:{userId}", 글 단위 익명 식별자)
+    - isAnonymous, anonId (`{postId}:{userId}` 기반 SHA-256 짧은 안정 식별자)
     - anonymousOrder (서버 계산, 아래 규칙 참조)
     - parentId (self-reference), likeCount, isHidden, isDeleted
     - depth 제한 없음 (무제한 self-reference)
@@ -468,11 +468,16 @@ Hooks:
     - 댓글 좋아요 중복 방지 및 comment.likeCount 동기화 용도
 
   anonymousOrder 계산 규칙:
-    - 게시글(postId) 단위로 Map<anonId, order> 관리
-    - 댓글 작성 시 anonId가 Map에 없으면 → 새 순번 부여 (현재 Map.size() + 1)
-    - 이미 Map에 있으면 → 기존 순번 재사용
+    - 게시글(postId) 단위로 같은 작성자의 익명 댓글에 동일 번호를 유지
+    - 댓글 작성/익명 전환 시 같은 작성자의 기존 익명 댓글이 있으면 → 기존 순번 재사용
+    - 없으면 → 새 순번 부여 (`max(anonymousOrder) + 1`)
     - 댓글 삭제 후 순번 재계산 없음 (삭제된 댓글도 번호 영구 보존)
     - isAnonymous = false이면 anonymousOrder = null
+  댓글 수정 정책:
+    - `PATCH /v1/comments/{commentId}`는 `content`와 optional `isAnonymous`를 지원
+    - `isAnonymous` 생략 시 기존 값을 유지
+    - `false -> true`: 같은 게시글에서 기존 익명 번호가 있으면 재사용, 없으면 새 번호 부여
+    - `true -> false`: 실명 댓글로 전환하며 `anonId`, `anonymousOrder`를 정리
   - PostInteraction
     - userId, postId, isLiked, isBookmarked
     - 좋아요/북마크 카운트 동기화는 Post aggregate와 같은 트랜잭션에서 처리
@@ -552,8 +557,8 @@ Hooks:
     - viewCount, likeCount, commentCount, bookmarkCount
   - NoticeComment
     - id, noticeId, userId, userDisplayName
-    - content, isAnonymous, anonId (= "{noticeId}:{userId}")
-    - anonymousOrder (서버 계산: Board Comment의 anonymousOrder 계산 규칙과 동일, noticeId 단위 Map 관리)
+    - content, isAnonymous, anonId (`{noticeId}:{userId}` 기반 SHA-256 짧은 안정 식별자)
+    - anonymousOrder (서버 계산: Board Comment의 anonymousOrder 계산 규칙과 동일, noticeId 단위로 같은 작성자 번호 유지)
     - parentId, likeCount, isDeleted
     - depth 제한 없음 (무제한 self-reference)
     - 조회 응답은 Board Comment와 동일하게 flat list + `parentId` + `depth` + `likeCount` + `isLiked`
@@ -610,8 +615,10 @@ Hooks:
   - `NoticeCommentLike`, `NoticeLike`, `NoticeBookmark`, `NoticeReadStatus`는 탈퇴 회원 기준으로 정리
 
 댓글 수정 정책:
-  - `PATCH /v1/notice-comments/{commentId}`는 `content`만 수정 가능
-  - `isAnonymous`, `parentId`, `anonymousOrder`는 생성 시점 값을 유지
+  - `PATCH /v1/notice-comments/{commentId}`는 `content`와 optional `isAnonymous`를 지원
+  - `isAnonymous` 생략 시 기존 값을 유지
+  - `false -> true`: 같은 공지에서 기존 익명 번호가 있으면 재사용, 없으면 새 번호 부여
+  - `true -> false`: 실명 댓글로 전환하며 `anonId`, `anonymousOrder`를 정리
 
 향후 확장 준비:
   - AI 요약은 `summary` 컬럼에 저장하고, `contentHash`가 바뀌면 기존 AI 요약을 무효화한다.

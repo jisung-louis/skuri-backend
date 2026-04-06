@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.common.util.AnonymousCommentIdGenerator;
 import com.skuri.skuri_backend.domain.member.entity.Member;
 import com.skuri.skuri_backend.domain.member.entity.MemberWithdrawalSanitizer;
 import com.skuri.skuri_backend.domain.member.repository.MemberRepository;
@@ -168,7 +169,14 @@ public class NoticeService {
     public NoticeCommentResponse updateComment(String memberId, String commentId, UpdateNoticeCommentRequest request) {
         NoticeComment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        comment.updateContent(request.content().trim());
+        boolean targetAnonymous = request.isAnonymous() != null ? request.isAnonymous() : comment.isAnonymous();
+        AnonymousMetadata anonymousMetadata = resolveUpdatedAnonymousMetadata(comment, memberId, request.isAnonymous());
+        comment.update(
+                request.content().trim(),
+                targetAnonymous,
+                anonymousMetadata.anonId,
+                anonymousMetadata.anonymousOrder
+        );
         return toCommentResponse(comment, memberId, resolveDepth(comment), resolveCommentIsLiked(memberId, comment.getId()));
     }
 
@@ -471,17 +479,35 @@ public class NoticeService {
             return new AnonymousMetadata(null, null);
         }
 
-        String anonId = noticeId + ":" + userId;
-        Integer existingOrder = noticeCommentRepository
-                .findFirstByNotice_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(noticeId, anonId)
-                .map(NoticeComment::getAnonymousOrder)
+        String generatedAnonId = AnonymousCommentIdGenerator.generate(noticeId, userId);
+        NoticeComment existingAnonymousComment = noticeCommentRepository
+                .findFirstByNotice_IdAndUserIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(noticeId, userId)
                 .orElse(null);
-        if (existingOrder != null) {
-            return new AnonymousMetadata(anonId, existingOrder);
+        if (existingAnonymousComment != null) {
+            String anonId = StringUtils.hasText(existingAnonymousComment.getAnonId())
+                    ? existingAnonymousComment.getAnonId()
+                    : generatedAnonId;
+            return new AnonymousMetadata(anonId, existingAnonymousComment.getAnonymousOrder());
         }
 
         int nextOrder = noticeCommentRepository.findMaxAnonymousOrderByNoticeId(noticeId) + 1;
-        return new AnonymousMetadata(anonId, nextOrder);
+        return new AnonymousMetadata(generatedAnonId, nextOrder);
+    }
+
+    private AnonymousMetadata resolveUpdatedAnonymousMetadata(
+            NoticeComment comment,
+            String memberId,
+            Boolean requestedAnonymous
+    ) {
+        if (requestedAnonymous == null || requestedAnonymous == comment.isAnonymous()) {
+            return new AnonymousMetadata(comment.getAnonId(), comment.getAnonymousOrder());
+        }
+        if (!requestedAnonymous) {
+            return new AnonymousMetadata(null, null);
+        }
+
+        findNoticeForUpdateOrThrow(comment.getNotice().getId());
+        return resolveAnonymousMetadata(comment.getNotice().getId(), memberId, true);
     }
 
     private void requireCommentAuthor(NoticeComment comment, String memberId) {

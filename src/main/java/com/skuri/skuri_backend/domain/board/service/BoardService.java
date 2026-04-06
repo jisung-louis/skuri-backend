@@ -4,6 +4,7 @@ import com.skuri.skuri_backend.common.dto.PageResponse;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.common.util.AnonymousCommentIdGenerator;
 import com.skuri.skuri_backend.domain.board.dto.request.CreateCommentRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostImageRequest;
 import com.skuri.skuri_backend.domain.board.dto.request.CreatePostRequest;
@@ -264,7 +265,14 @@ public class BoardService {
     public CommentResponse updateComment(String memberId, String commentId, UpdateCommentRequest request) {
         Comment comment = findCommentForWriteOrThrow(commentId);
         requireCommentAuthor(comment, memberId);
-        comment.updateContent(request.content().trim());
+        boolean targetAnonymous = request.isAnonymous() != null ? request.isAnonymous() : comment.isAnonymous();
+        AnonymousMetadata anonymousMetadata = resolveUpdatedAnonymousMetadata(comment, memberId, request.isAnonymous());
+        comment.update(
+                request.content().trim(),
+                targetAnonymous,
+                anonymousMetadata.anonId,
+                anonymousMetadata.anonymousOrder
+        );
         return toCommentResponse(
                 comment,
                 memberId,
@@ -705,6 +713,11 @@ public class BoardService {
                 .orElseThrow(PostNotFoundException::new);
     }
 
+    private Post findNotDeletedPostForUpdateOrThrow(String postId) {
+        return postRepository.findByIdAndDeletedFalseForUpdate(postId)
+                .orElseThrow(PostNotFoundException::new);
+    }
+
     private Comment findCommentForWriteOrThrow(String commentId) {
         Comment comment = commentRepository.findByIdForUpdate(commentId)
                 .orElseThrow(CommentNotFoundException::new);
@@ -741,18 +754,33 @@ public class BoardService {
             return new AnonymousMetadata(null, null);
         }
 
-        String anonId = postId + ":" + userId;
-        Integer existingOrder = commentRepository
-                .findFirstByPost_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(postId, anonId)
-                .map(Comment::getAnonymousOrder)
+        String generatedAnonId = AnonymousCommentIdGenerator.generate(postId, userId);
+        Comment existingAnonymousComment = commentRepository
+                .findFirstByPost_IdAndAuthorIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(postId, userId)
                 .orElse(null);
 
-        if (existingOrder != null) {
-            return new AnonymousMetadata(anonId, existingOrder);
+        if (existingAnonymousComment != null) {
+            String anonId = existingAnonymousComment.getAnonId();
+            if (anonId == null || anonId.isBlank()) {
+                anonId = generatedAnonId;
+            }
+            return new AnonymousMetadata(anonId, existingAnonymousComment.getAnonymousOrder());
         }
 
         int nextOrder = commentRepository.findMaxAnonymousOrderByPostId(postId) + 1;
-        return new AnonymousMetadata(anonId, nextOrder);
+        return new AnonymousMetadata(generatedAnonId, nextOrder);
+    }
+
+    private AnonymousMetadata resolveUpdatedAnonymousMetadata(Comment comment, String memberId, Boolean requestedAnonymous) {
+        if (requestedAnonymous == null || requestedAnonymous == comment.isAnonymous()) {
+            return new AnonymousMetadata(comment.getAnonId(), comment.getAnonymousOrder());
+        }
+        if (!requestedAnonymous) {
+            return new AnonymousMetadata(null, null);
+        }
+
+        findNotDeletedPostForUpdateOrThrow(comment.getPost().getId());
+        return resolveAnonymousMetadata(comment.getPost().getId(), memberId, true);
     }
 
     private String trimToNull(String value) {

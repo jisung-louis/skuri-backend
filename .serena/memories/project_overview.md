@@ -37,6 +37,11 @@
 - 초기 이용약관/개인정보 처리방침 2건은 `seed_migrations` 기반 1회성 seed migration으로 적재한다. 이후에는 관리자 CRUD로만 수정한다.
 - 문서 본문 구조는 프론트 계약과 맞춘 `banner`, `sections`, `footerLines`를 JSON 컬럼으로 저장한다.
 
+## Anonymous Comment Policy
+- board/notice 댓글의 `anonId`는 `{scopeId}:{userId}` 기반의 짧은 안정 해시(`ac:` prefix, 최대 35자)로 생성한다.
+- 같은 게시글/공지 안에서 같은 사용자가 익명 댓글을 다시 작성하거나 `PATCH`로 `isAnonymous=true`로 전환하면 기존 `anonymousOrder`를 재사용하고, 없으면 `max(anonymousOrder)+1`을 부여한다.
+- `PATCH /v1/comments/{commentId}`, `PATCH /v1/notice-comments/{commentId}`는 optional `isAnonymous`를 지원하며, `true -> false` 전환 시 `anonId`, `anonymousOrder`를 정리한다.
+
 ## 인프라/공통
 - 공통 응답은 `ApiResponse`, 예외는 `GlobalExceptionHandler`, `ErrorCode` 중심으로 처리한다.
 - 로컬 프로필은 `local`, `local-emulator`, 운영은 `prod`, 자동 테스트는 `test`를 사용한다.

@@ -121,8 +121,11 @@ public class NoticeComment extends BaseTimeEntity {
         this.content = DELETED_PLACEHOLDER;
     }
 
-    public void updateContent(String content) {
+    public void update(String content, boolean anonymous, String anonId, Integer anonymousOrder) {
         this.content = content;
+        this.anonymous = anonymous;
+        this.anonId = anonId;
+        this.anonymousOrder = anonymousOrder;
     }
 
     public void increaseLikeCount(int delta) {

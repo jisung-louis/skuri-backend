@@ -64,12 +64,14 @@ class CommentControllerContractTest {
                                 .contentType(APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "content": "수정된 댓글"
+                                          "content": "수정된 댓글",
+                                          "isAnonymous": true
                                         }
                                         """)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value("comment-1"))
+                .andExpect(jsonPath("$.data.isAnonymous").value(true))
                 .andExpect(jsonPath("$.data.likeCount").value(3))
                 .andExpect(jsonPath("$.data.isLiked").value(true));
     }
@@ -86,7 +88,8 @@ class CommentControllerContractTest {
                                 .contentType(APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "content": "수정된 댓글"
+                                          "content": "수정된 댓글",
+                                          "isAnonymous": true
                                         }
                                         """)
                 )
@@ -196,12 +199,12 @@ class CommentControllerContractTest {
                 "comment-1",
                 null,
                 0,
-                "댓글 내용",
-                "firebase-uid",
-                "홍길동",
-                "https://example.com/profile.jpg",
-                false,
+                "수정된 댓글",
                 null,
+                "익명1",
+                null,
+                true,
+                1,
                 true,
                 false,
                 3,

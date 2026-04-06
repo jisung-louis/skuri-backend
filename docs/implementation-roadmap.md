@@ -423,7 +423,7 @@ SSE 운영 제약:
 
 | 로직 | 설명 |
 |------|------|
-| 익명 처리 | `anonId` = `{postId}:{userId}`, `anonymousOrder` 서버 계산 (글 단위 순번) |
+| 익명 처리 | `anonId`는 `{scopeId}:{userId}` 기반 짧은 안정 해시(`ac:` prefix)로 생성하고, `anonymousOrder`는 글 단위 순번으로 재사용/부여 |
 | 좋아요/북마크 | `PostInteraction` 단일 테이블, 등록/취소 방식 |
 | 카운트 관리 | `viewCount`, `likeCount`, `commentCount`, `bookmarkCount` 동기화 |
 | 댓글 좋아요 | `comment_likes` 저장 + `comments.likeCount` 동기화, 목록/생성/수정 응답에 `isLiked` 합성 |
@@ -447,7 +447,7 @@ SSE 운영 제약:
 | `GET` | `/v1/posts/bookmarked` | 북마크한 게시글 목록 |
 | `GET` | `/v1/posts/{postId}/comments` | 댓글 목록 |
 | `POST` | `/v1/posts/{postId}/comments` | 댓글 작성 |
-| `PATCH` | `/v1/comments/{commentId}` | 댓글 부분 수정 |
+| `PATCH` | `/v1/comments/{commentId}` | 댓글 부분 수정 (`content`, optional `isAnonymous`) |
 | `POST` | `/v1/comments/{commentId}/like` | 댓글 좋아요 등록 |
 | `DELETE` | `/v1/comments/{commentId}/like` | 댓글 좋아요 취소 |
 | `DELETE` | `/v1/comments/{commentId}` | 댓글 삭제 |
@@ -493,7 +493,7 @@ SSE 운영 제약:
 | 공지 ID | `Base64(link).replace(/=+$/, '').slice(0, 120)` — 링크 기반 안정 ID |
 | 저장 구조 | `rssPreview`(RSS 미리보기), `bodyHtml`(원문 HTML), `bodyText`(정규화 text), `thumbnailUrl`(`TEXT` 목록용 첫 이미지 URL 캐시), `summary`(향후 AI 요약 예약) |
 | 목록 조회 최적화 | `/v1/notices`는 목록 전용 projection으로 필요한 컬럼만 select하고, `thumbnailUrl` 저장 컬럼을 그대로 사용한다. 목록 경로에서는 `bodyHtml/bodyText/attachments`를 select하지 않는다. |
-| 공지 댓글 수정 정책 | `PATCH /v1/notice-comments/{id}`는 `content`만 수정 가능하고 익명 여부는 유지 |
+| 공지 댓글 수정 정책 | `PATCH /v1/notice-comments/{id}`는 `content`와 optional `isAnonymous`를 지원하며, 익명 전환 시 기존 번호 재사용/신규 부여 정책을 따른다 |
 | 공지 댓글 좋아요 | `notice_comment_likes` 저장 + `notice_comments.likeCount` 동기화, 목록/생성/수정 응답에 `isLiked` 합성 |
 | 공지 북마크 저장 모델 | `NoticeLike`와 분리된 `notice_bookmarks` 테이블, 등록/취소는 idempotent |
 
@@ -510,7 +510,7 @@ SSE 운영 제약:
 | `DELETE` | `/v1/notices/{id}/bookmark` | 북마크 취소 |
 | `GET` | `/v1/notices/{noticeId}/comments` | 공지 댓글 목록 |
 | `POST` | `/v1/notices/{noticeId}/comments` | 공지 댓글 작성 |
-| `PATCH` | `/v1/notice-comments/{id}` | 공지 댓글 본문 수정 |
+| `PATCH` | `/v1/notice-comments/{id}` | 공지 댓글 부분 수정 (`content`, optional `isAnonymous`) |
 | `POST` | `/v1/notice-comments/{id}/like` | 공지 댓글 좋아요 등록 |
 | `DELETE` | `/v1/notice-comments/{id}/like` | 공지 댓글 좋아요 취소 |
 | `DELETE` | `/v1/notice-comments/{id}` | 공지 댓글 삭제 |

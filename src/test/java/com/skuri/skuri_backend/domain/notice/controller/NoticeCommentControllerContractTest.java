@@ -63,13 +63,15 @@ class NoticeCommentControllerContractTest {
                                 .contentType(APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "content": "수정된 댓글"
+                                          "content": "수정된 댓글",
+                                          "isAnonymous": true
                                         }
                                         """)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value("notice-comment-1"))
                 .andExpect(jsonPath("$.data.content").value("수정된 댓글"))
+                .andExpect(jsonPath("$.data.isAnonymous").value(true))
                 .andExpect(jsonPath("$.data.likeCount").value(5))
                 .andExpect(jsonPath("$.data.isLiked").value(true));
     }
@@ -87,7 +89,8 @@ class NoticeCommentControllerContractTest {
                                 .contentType(APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "content": "수정된 댓글"
+                                          "content": "수정된 댓글",
+                                          "isAnonymous": true
                                         }
                                         """)
                 )
@@ -219,10 +222,10 @@ class NoticeCommentControllerContractTest {
                 null,
                 0,
                 "수정된 댓글",
-                "firebase-uid",
-                "홍길동",
-                false,
                 null,
+                "익명1",
+                true,
+                1,
                 true,
                 5,
                 true,
