@@ -300,6 +300,106 @@ public final class OpenApiChatExamples {
             }
             """;
 
+    public static final String SUCCESS_ADMIN_CHAT_ROOM_LIST = """
+            {
+              "success": true,
+              "data": [
+                {
+                  "id": "public:game:minecraft",
+                  "type": "GAME",
+                  "name": "마인크래프트 채팅방",
+                  "description": "스쿠리 서버 채팅방입니다.",
+                  "isPublic": true,
+                  "memberCount": 87,
+                  "joined": false,
+                  "unreadCount": 0,
+                  "lastMessage": {
+                    "type": "TEXT",
+                    "text": "오늘 저녁 9시에 이벤트 서버 열어요.",
+                    "senderName": "스쿠리운영팀",
+                    "createdAt": "2026-03-05T21:30:00"
+                  },
+                  "lastMessageAt": "2026-03-05T21:30:00",
+                  "isMuted": false
+                },
+                {
+                  "id": "room:42c6ad65-c8e1-4c87-b796-3f0f6d0f0f0f",
+                  "type": "CUSTOM",
+                  "name": "시험기간 밤샘 메이트",
+                  "description": "기말고사 기간 같이 공부할 사람들 모여요.",
+                  "isPublic": true,
+                  "memberCount": 24,
+                  "joined": false,
+                  "unreadCount": 0,
+                  "lastMessage": {
+                    "type": "TEXT",
+                    "text": "중앙도서관 4층 자리 남아요.",
+                    "senderName": "김성결",
+                    "createdAt": "2026-03-05T22:10:00"
+                  },
+                  "lastMessageAt": "2026-03-05T22:10:00",
+                  "isMuted": false
+                }
+              ]
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_CHAT_ROOM_DETAIL = """
+            {
+              "success": true,
+              "data": {
+                "id": "public:game:minecraft",
+                "type": "GAME",
+                "name": "마인크래프트 채팅방",
+                "description": "스쿠리 서버 채팅방입니다.",
+                "isPublic": true,
+                "memberCount": 87,
+                "joined": false,
+                "unreadCount": 0,
+                "lastMessage": {
+                  "type": "TEXT",
+                  "text": "오늘 저녁 9시에 이벤트 서버 열어요.",
+                  "senderName": "스쿠리운영팀",
+                  "createdAt": "2026-03-05T21:30:00"
+                },
+                "lastMessageAt": "2026-03-05T21:30:00",
+                "isMuted": false
+              }
+            }
+            """;
+
+    public static final String SUCCESS_ADMIN_CHAT_ROOM_MESSAGES_PAGE = """
+            {
+              "success": true,
+              "data": {
+                "messages": [
+                  {
+                    "id": "mc-message-2",
+                    "chatRoomId": "public:game:minecraft",
+                    "senderId": "mc-admin",
+                    "senderName": "스쿠리운영팀",
+                    "senderPhotoUrl": null,
+                    "type": "SYSTEM",
+                    "text": "오늘 저녁 9시에 이벤트 서버를 엽니다.",
+                    "createdAt": "2026-03-05T21:30:00"
+                  },
+                  {
+                    "id": "mc-message-1",
+                    "chatRoomId": "public:game:minecraft",
+                    "senderId": "mc-player-1",
+                    "senderName": "skuriPlayer",
+                    "senderPhotoUrl": "https://minotar.net/avatar/8667ba71b85a4004af54457a9734eed7/64",
+                    "type": "TEXT",
+                    "text": "안녕하세요!",
+                    "createdAt": "2026-03-05T21:29:00"
+                  }
+                ],
+                "hasNext": false,
+                "nextCursor": null
+              }
+            }
+            """;
+
     public static final String SUCCESS_ADMIN_CHAT_ROOM_CREATE = """
             {
               "success": true,

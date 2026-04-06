@@ -2,6 +2,7 @@ package com.skuri.skuri_backend.domain.taxiparty.controller;
 
 import com.skuri.skuri_backend.common.dto.ApiResponse;
 import com.skuri.skuri_backend.common.dto.PageResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.CreateAdminPartySystemMessageRequest;
 import com.skuri.skuri_backend.domain.taxiparty.dto.request.UpdateAdminPartyStatusRequest;
@@ -18,6 +19,7 @@ import com.skuri.skuri_backend.infra.auth.config.AdminApiAccess;
 import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiChatExamples;
+import com.skuri.skuri_backend.infra.openapi.OpenApiChatSchemas;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiTaxiPartyExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiTaxiPartySchemas;
@@ -45,6 +47,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMemberSupport.requireAuthenticatedMember;
@@ -175,6 +178,81 @@ public class PartyAdminController {
             @PathVariable String partyId
     ) {
         return ResponseEntity.ok(ApiResponse.success(taxiPartyAdminService.getAdminParty(partyId)));
+    }
+
+    @GetMapping("/{partyId}/messages")
+    @Operation(
+            summary = "파티 채팅 메시지 조회(관리자)",
+            description = "관리자는 현재 파티 멤버가 아니어도 `party:{partyId}` 채팅방 메시지를 createdAt DESC 커서 기준으로 조회할 수 있습니다. 파티 존재 여부는 TaxiParty를 기준으로 검증하고, 파티는 있지만 채팅방이 없으면 `CHAT_ROOM_NOT_FOUND` 를 반환합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = OpenApiChatSchemas.ChatMessagePageApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiTaxiPartyExamples.SUCCESS_ADMIN_PARTY_MESSAGES_PAGE)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "관리자 권한 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "admin_required", value = OpenApiCommonExamples.ERROR_ADMIN_REQUIRED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "파티 또는 채팅방 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "party_not_found", value = OpenApiTaxiPartyExamples.ERROR_PARTY_NOT_FOUND),
+                                    @ExampleObject(name = "chat_room_not_found", value = OpenApiChatExamples.ERROR_CHAT_ROOM_NOT_FOUND)
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "422",
+                    description = "커서/페이지네이션 검증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "cursor_pair_required", value = OpenApiChatExamples.ERROR_VALIDATION_CURSOR_PAIR),
+                                    @ExampleObject(name = "bean_validation", value = OpenApiCommonExamples.ERROR_VALIDATION)
+                            }
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<ChatMessagePageResponse>> getAdminPartyMessages(
+            @Parameter(description = "파티 ID", example = "party-20260304-001")
+            @PathVariable String partyId,
+            @Parameter(description = "다음 페이지 시작 기준 createdAt", example = "2026-03-05T21:10:00")
+            @RequestParam(name = "cursorCreatedAt", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime cursorCreatedAt,
+            @Parameter(description = "다음 페이지 시작 기준 메시지 ID", example = "msg-account-1")
+            @RequestParam(name = "cursorId", required = false) String cursorId,
+            @Parameter(description = "페이지 크기(1~100)", example = "50")
+            @RequestParam(name = "size", required = false) Integer size
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                taxiPartyAdminService.getAdminPartyMessages(partyId, cursorCreatedAt, cursorId, size)
+        ));
     }
 
     @DeleteMapping("/{partyId}/members/{memberId}")
