@@ -77,7 +77,7 @@ public class Notice extends BaseTimeEntity {
     @Column(name = "body_html", columnDefinition = "LONGTEXT")
     private String bodyHtml;
 
-    @Column(name = "thumbnail_url", length = 1000)
+    @Column(name = "thumbnail_url", columnDefinition = "TEXT")
     private String thumbnailUrl;
 
     @Convert(converter = NoticeAttachmentListJsonConverter.class)
