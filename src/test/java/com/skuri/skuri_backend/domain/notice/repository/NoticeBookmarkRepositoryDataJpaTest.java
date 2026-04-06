@@ -110,6 +110,7 @@ class NoticeBookmarkRepositoryDataJpaTest {
                 postedAt,
                 "본문 " + id,
                 "<p>본문 " + id + "</p>",
+                null,
                 List.of()
         );
     }

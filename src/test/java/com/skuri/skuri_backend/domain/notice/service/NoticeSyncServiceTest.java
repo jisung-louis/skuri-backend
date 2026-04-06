@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.domain.notice.entity.NoticeCategory;
 import com.skuri.skuri_backend.domain.notice.repository.NoticeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -21,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -131,7 +133,11 @@ class NoticeSyncServiceTest {
         ReflectionTestUtils.setField(existing, "detailCheckedAt", syncedAt.minusDays(2));
 
         when(noticeRepository.findById("notice-1")).thenReturn(Optional.of(existing));
-        when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.of("<p>new</p>", "new", List.of()));
+        when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.of(
+                "<p>new</p><img src=\"https://www.sungkyul.ac.kr/new-thumb.jpg\" />",
+                "new",
+                List.of()
+        ));
         when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         NoticeSyncService.SyncOutcome outcome = noticeSyncService.syncSingleNotice(item, syncedAt, false);
@@ -139,7 +145,29 @@ class NoticeSyncServiceTest {
         assertEquals(NoticeSyncService.SyncOutcome.UPDATED, outcome);
         assertNotEquals("old-content-hash", existing.getContentHash());
         assertEquals("new", existing.getBodyText());
-        assertEquals("<p>new</p>", existing.getBodyHtml());
+        assertEquals("<p>new</p><img src=\"https://www.sungkyul.ac.kr/new-thumb.jpg\" />", existing.getBodyHtml());
+        assertEquals("https://www.sungkyul.ac.kr/new-thumb.jpg", existing.getThumbnailUrl());
+    }
+
+    @Test
+    void syncSingleNotice_신규상세크롤링성공시_thumbnailUrl을_저장한다() {
+        NoticeFeedItem item = noticeFeedItem("notice-1", "rss-1");
+
+        when(noticeRepository.findById("notice-1")).thenReturn(Optional.empty());
+        when(noticeRepository.findFirstByContentHash(any())).thenReturn(Optional.empty());
+        when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.of(
+                "<p>본문</p><img src=\"https://www.sungkyul.ac.kr/upload/notice-thumb.jpg\" />",
+                "본문",
+                List.of()
+        ));
+        when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        NoticeSyncService.SyncOutcome outcome = noticeSyncService.syncSingleNotice(item, LocalDateTime.of(2026, 3, 6, 12, 0), true);
+
+        assertEquals(NoticeSyncService.SyncOutcome.CREATED, outcome);
+        ArgumentCaptor<Notice> captor = ArgumentCaptor.forClass(Notice.class);
+        verify(noticeRepository).save(captor.capture());
+        assertEquals("https://www.sungkyul.ac.kr/upload/notice-thumb.jpg", captor.getValue().getThumbnailUrl());
     }
 
     @Test
@@ -148,6 +176,7 @@ class NoticeSyncServiceTest {
         NoticeFeedItem item = noticeFeedItem("notice-1", "rss-2");
         LocalDateTime originalCheckedAt = existing.getDetailCheckedAt();
         String originalDetailHash = existing.getDetailHash();
+        String originalThumbnailUrl = existing.getThumbnailUrl();
 
         when(noticeRepository.findById("notice-1")).thenReturn(Optional.of(existing));
         when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.failed());
@@ -160,6 +189,28 @@ class NoticeSyncServiceTest {
         assertEquals("<p>old</p>", existing.getBodyHtml());
         assertEquals(originalDetailHash, existing.getDetailHash());
         assertEquals(originalCheckedAt, existing.getDetailCheckedAt());
+        assertEquals(originalThumbnailUrl, existing.getThumbnailUrl());
+    }
+
+    @Test
+    void syncSingleNotice_상세refresh에_이미지가없으면_thumbnailUrl을_null로갱신한다() {
+        Notice existing = storedNotice(
+                "notice-1",
+                "old-content-hash",
+                "rss-1",
+                "detail-old",
+                "<p>old</p><img src=\"https://www.sungkyul.ac.kr/old-thumb.jpg\" />"
+        );
+        NoticeFeedItem item = noticeFeedItem("notice-1", "rss-2");
+
+        when(noticeRepository.findById("notice-1")).thenReturn(Optional.of(existing));
+        when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.of("<p>이미지 없음</p>", "이미지 없음", List.of()));
+        when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        NoticeSyncService.SyncOutcome outcome = noticeSyncService.syncSingleNotice(item, LocalDateTime.of(2026, 3, 6, 12, 0), true);
+
+        assertEquals(NoticeSyncService.SyncOutcome.UPDATED, outcome);
+        assertNull(existing.getThumbnailUrl());
     }
 
     @Test
@@ -250,6 +301,7 @@ class NoticeSyncServiceTest {
                 LocalDateTime.of(2026, 3, 1, 12, 0),
                 "상세 텍스트",
                 html,
+                NoticeThumbnailExtractor.extract(html),
                 List.of()
         );
         ReflectionTestUtils.setField(notice, "createdAt", LocalDateTime.now());
