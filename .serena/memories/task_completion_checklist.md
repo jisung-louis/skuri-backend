@@ -4,6 +4,7 @@
 1. `./gradlew build` 성공
 2. 변경된 기능 관련 Contract/Service/Event/Security 테스트 수행 (이미지 업로드 변경이면 MIME/용량뿐 아니라 해상도/총 픽셀 제한 케이스도 포함)
 3. API 정상/예외 케이스 최소 1개 이상 확인
+3-1. 회원 프로필 사진 계약을 바꿨다면 `DELETE /v1/members/me/photo` 성공/회원없음과 `PATCH /v1/members/me`의 `photoUrl: null` no-op 유지, 내부 `PROFILE_IMAGE`/외부 URL 분기, 원본+썸네일 정리, OpenAPI success allowlist 회귀를 함께 확인
 4. `/v1/images`처럼 업로드/정적 리소스가 추가되면 공개 업로드 경로(GET)와 도메인 재사용 플로우(예: Board 저장)를 함께 확인
 5. `ApiResponse` 에러 포맷 일관성 확인
 6. OpenAPI example과 실제 `errorCode/message` 일치 확인

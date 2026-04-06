@@ -6,6 +6,12 @@
 ./gradlew compileJava compileTestJava
 ```
 
+## Member 프로필 사진 삭제 작업 검증
+```bash
+./gradlew test --tests "com.skuri.skuri_backend.domain.member.service.MemberServiceTest" --tests "com.skuri.skuri_backend.domain.member.controller.MemberControllerContractTest" --tests "com.skuri.skuri_backend.domain.image.service.ProfileImageStorageServiceTest" --tests "com.skuri.skuri_backend.infra.storage.LocalStorageRepositoryTest" --tests "com.skuri.skuri_backend.infra.storage.FirebaseStorageRepositoryTest" --tests "com.skuri.skuri_backend.infra.openapi.OpenApiSuccessSchemaCoverageIntegrationTest"
+./gradlew build
+```
+
 ## Inquiry Attachment 작업 검증
 ```bash
 ./gradlew test --tests "com.skuri.skuri_backend.domain.support.controller.InquiryControllerContractTest" --tests "com.skuri.skuri_backend.domain.support.controller.InquiryAdminControllerContractTest" --tests "com.skuri.skuri_backend.domain.support.service.InquiryServiceTest" --tests "com.skuri.skuri_backend.domain.image.service.ImageUploadServiceTest"
