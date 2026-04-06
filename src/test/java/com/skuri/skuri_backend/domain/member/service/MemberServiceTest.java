@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.member.service;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
+import com.skuri.skuri_backend.domain.image.service.ProfileImageStorageService;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberBankAccountRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberNotificationSettingsRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberProfileRequest;
@@ -54,6 +55,9 @@ class MemberServiceTest {
 
     @Mock
     private ChatService chatService;
+
+    @Mock
+    private ProfileImageStorageService profileImageStorageService;
 
     @InjectMocks
     private MemberService memberService;
@@ -200,6 +204,45 @@ class MemberServiceTest {
         assertEquals("기존실명", response.realname());
         assertEquals("https://example.com/new.jpg", response.photoUrl());
         verify(chatService, never()).removeMemberFromDepartmentChatRooms("firebase-uid");
+    }
+
+    @Test
+    void updateMyProfile_photoUrlNull이면_기존사진을유지한다() {
+        Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
+        member.updateProfile("기존닉네임", "20201234", "컴퓨터공학과", "https://example.com/old.jpg");
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
+
+        MemberMeResponse response = memberService.updateMyProfile(
+                "firebase-uid",
+                new UpdateMemberProfileRequest("새닉네임", null, null, null)
+        );
+
+        assertEquals("새닉네임", response.nickname());
+        assertEquals("https://example.com/old.jpg", response.photoUrl());
+        verify(chatService, never()).removeMemberFromDepartmentChatRooms("firebase-uid");
+    }
+
+    @Test
+    void deleteMyProfilePhoto_기존사진이있으면_DB를null로갱신하고_스토리지정리를위임한다() {
+        Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
+        member.updateProfile("기존닉네임", "20201234", "컴퓨터공학과", "https://cdn.skuri.app/uploads/profiles/2026/04/06/photo.jpg");
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
+
+        memberService.deleteMyProfilePhoto("firebase-uid");
+
+        assertNull(member.getPhotoUrl());
+        verify(profileImageStorageService).deleteManagedProfileImage("https://cdn.skuri.app/uploads/profiles/2026/04/06/photo.jpg");
+    }
+
+    @Test
+    void deleteMyProfilePhoto_photoUrl이이미null이어도_안전하게동작한다() {
+        Member member = Member.create("firebase-uid", "user@sungkyul.ac.kr", "기존실명", LocalDateTime.now());
+        when(memberRepository.findActiveById("firebase-uid")).thenReturn(Optional.of(member));
+
+        memberService.deleteMyProfilePhoto("firebase-uid");
+
+        assertNull(member.getPhotoUrl());
+        verify(profileImageStorageService, never()).deleteManagedProfileImage(any());
     }
 
     @Test

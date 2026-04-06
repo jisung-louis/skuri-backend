@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -324,6 +325,35 @@ class MemberControllerContractTest {
                 .andExpect(jsonPath("$.message", containsString("nickname")));
 
         verifyNoInteractions(memberService);
+    }
+
+    @Test
+    void deleteMembersMePhoto_정상요청_200() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        delete("/v1/members/me/photo")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(memberService).deleteMyProfilePhoto("firebase-uid");
+    }
+
+    @Test
+    void deleteMembersMePhoto_회원없음_404() throws Exception {
+        mockValidToken();
+        doThrow(new MemberNotFoundException())
+                .when(memberService)
+                .deleteMyProfilePhoto("firebase-uid");
+
+        mockMvc.perform(
+                        delete("/v1/members/me/photo")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("MEMBER_NOT_FOUND"));
     }
 
     @Test
