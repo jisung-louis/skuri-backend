@@ -215,7 +215,13 @@ public class MemberController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_VALIDATION)
+                            examples = {
+                                    @ExampleObject(name = "validation", value = OpenApiCommonExamples.ERROR_VALIDATION),
+                                    @ExampleObject(
+                                            name = "photo_url_not_owned",
+                                            value = OpenApiMemberExamples.ERROR_MEMBER_PROFILE_IMAGE_NOT_OWNED
+                                    )
+                            }
                     )
             )
     })
@@ -225,7 +231,7 @@ public class MemberController {
             content = @Content(
                     schema = @Schema(implementation = UpdateMemberProfileRequest.class),
                     examples = @ExampleObject(
-                            value = "{\"nickname\":\"스쿠리유저\",\"studentId\":\"2023112233\",\"department\":\"컴퓨터공학과\",\"photoUrl\":\"https://cdn.skuri.app/profiles/user-1.png\"}"
+                            value = "{\"nickname\":\"스쿠리유저\",\"studentId\":\"2023112233\",\"department\":\"컴퓨터공학과\",\"photoUrl\":\"https://cdn.skuri.app/uploads/profiles/dw9rPtuticbjnaYPkeiF3RGPpqk1/2026/04/06/photo.jpg\"}"
                     )
             )
     )

@@ -55,7 +55,7 @@ public final class OpenApiMemberExamples {
                 "nickname": "스쿠리 유저",
                 "studentId": "2023112233",
                 "department": "컴퓨터공학과",
-                "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                "photoUrl": "https://cdn.skuri.app/uploads/profiles/dw9rPtuticbjnaYPkeiF3RGPpqk1/2026/04/06/photo.jpg",
                 "realname": "홍길동",
                 "isAdmin": false,
                 "bankAccount": {
@@ -95,7 +95,7 @@ public final class OpenApiMemberExamples {
                 "nickname": "스쿠리유저_수정",
                 "studentId": "2023112233",
                 "department": "미디어소프트웨어학과",
-                "photoUrl": "https://cdn.skuri.app/profiles/user-1-new.png",
+                "photoUrl": "https://cdn.skuri.app/uploads/profiles/dw9rPtuticbjnaYPkeiF3RGPpqk1/2026/04/06/photo-new.jpg",
                 "realname": "홍길동",
                 "isAdmin": false,
                 "bankAccount": {
@@ -135,7 +135,7 @@ public final class OpenApiMemberExamples {
                 "nickname": "스쿠리 유저",
                 "studentId": "2023112233",
                 "department": "컴퓨터공학과",
-                "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                "photoUrl": "https://cdn.skuri.app/uploads/profiles/dw9rPtuticbjnaYPkeiF3RGPpqk1/2026/04/06/photo.jpg",
                 "realname": "홍길동",
                 "isAdmin": false,
                 "bankAccount": {
@@ -175,7 +175,7 @@ public final class OpenApiMemberExamples {
                 "nickname": "스쿠리 유저",
                 "studentId": "2023112233",
                 "department": "컴퓨터공학과",
-                "photoUrl": "https://cdn.skuri.app/profiles/user-1.png",
+                "photoUrl": "https://cdn.skuri.app/uploads/profiles/dw9rPtuticbjnaYPkeiF3RGPpqk1/2026/04/06/photo.jpg",
                 "realname": "홍길동",
                 "isAdmin": false,
                 "bankAccount": {
@@ -213,7 +213,7 @@ public final class OpenApiMemberExamples {
                 "id": "dw9rPtuticbjnaYPkeiF3RGPpqk1",
                 "nickname": "스쿠리 유저",
                 "department": "컴퓨터공학과",
-                "photoUrl": "https://cdn.skuri.app/profiles/user-1.png"
+                "photoUrl": "https://cdn.skuri.app/uploads/profiles/dw9rPtuticbjnaYPkeiF3RGPpqk1/2026/04/06/photo.jpg"
               }
             }
             """;
@@ -281,7 +281,7 @@ public final class OpenApiMemberExamples {
                 "realname": "홍길동",
                 "studentId": "2023112233",
                 "department": "컴퓨터공학과",
-                "photoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+                "photoUrl": "https://cdn.skuri.app/uploads/profiles/member-2/2026/04/06/photo.jpg",
                 "isAdmin": false,
                 "status": "ACTIVE",
                 "joinedAt": "2025-03-01T09:00:00",
@@ -395,7 +395,7 @@ public final class OpenApiMemberExamples {
                 "realname": "홍길동",
                 "studentId": "2023112233",
                 "department": "컴퓨터공학과",
-                "photoUrl": "https://cdn.skuri.app/profiles/user-2.png",
+                "photoUrl": "https://cdn.skuri.app/uploads/profiles/member-2/2026/04/06/photo.jpg",
                 "isAdmin": true,
                 "status": "ACTIVE",
                 "joinedAt": "2025-03-01T09:00:00",
@@ -435,6 +435,8 @@ public final class OpenApiMemberExamples {
             "{\"success\":false,\"message\":\"현재 상태에서는 회원 탈퇴를 진행할 수 없습니다.\",\"errorCode\":\"MEMBER_WITHDRAWAL_NOT_ALLOWED\",\"timestamp\":\"2026-03-09T12:00:00\"}";
     public static final String ERROR_WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED =
             "{\"success\":false,\"message\":\"탈퇴한 계정은 같은 인증 계정으로 재가입할 수 없습니다.\",\"errorCode\":\"WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED\",\"timestamp\":\"2026-03-09T12:00:00\"}";
+    public static final String ERROR_MEMBER_PROFILE_IMAGE_NOT_OWNED =
+            "{\"success\":false,\"message\":\"photoUrl은 본인이 업로드한 PROFILE_IMAGE URL만 사용할 수 있습니다.\",\"errorCode\":\"VALIDATION_ERROR\",\"timestamp\":\"2026-04-06T12:00:00\"}";
     public static final String ERROR_SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED =
             "{\"success\":false,\"message\":\"자기 자신의 관리자 권한은 변경할 수 없습니다.\",\"errorCode\":\"SELF_ADMIN_ROLE_CHANGE_NOT_ALLOWED\",\"timestamp\":\"2026-03-29T12:00:00\"}";
     public static final String ERROR_MEMBER_ADMIN_ROLE_CHANGE_NOT_ALLOWED =

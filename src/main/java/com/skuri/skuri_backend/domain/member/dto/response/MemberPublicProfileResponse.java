@@ -10,7 +10,11 @@ public record MemberPublicProfileResponse(
         String nickname,
         @Schema(description = "학과", example = "컴퓨터공학과", nullable = true)
         String department,
-        @Schema(description = "앱 내 프로필 이미지 URL", example = "https://cdn.skuri.app/profiles/user-1.png", nullable = true)
+        @Schema(
+                description = "앱 내 프로필 이미지 URL",
+                example = "https://cdn.skuri.app/uploads/profiles/dw9rPtuticbjnaYPkeiF3RGPpqk1/2026/04/06/photo.jpg",
+                nullable = true
+        )
         String photoUrl
 ) {
 }
