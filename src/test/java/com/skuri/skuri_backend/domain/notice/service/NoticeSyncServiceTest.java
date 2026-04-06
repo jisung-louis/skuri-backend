@@ -214,6 +214,36 @@ class NoticeSyncServiceTest {
     }
 
     @Test
+    void syncSingleNotice_상세refresh의_dataUrl과_blobUrl은_thumbnailUrl로저장하지않는다() {
+        for (String invalidSrc : List.of(
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA",
+                "blob:https://www.sungkyul.ac.kr/550e8400-e29b-41d4-a716-446655440000"
+        )) {
+            Notice existing = storedNotice(
+                    "notice-" + invalidSrc.hashCode(),
+                    "old-content-hash",
+                    "rss-1",
+                    "detail-old",
+                    "<p>old</p><img src=\"https://www.sungkyul.ac.kr/old-thumb.jpg\" />"
+            );
+            NoticeFeedItem item = noticeFeedItem(existing.getId(), "rss-2");
+
+            when(noticeRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+            when(noticeDetailCrawler.crawl(item.link())).thenReturn(NoticeCrawledDetail.of(
+                    "<p>본문</p><img src=\"" + invalidSrc + "\" />",
+                    "본문",
+                    List.of()
+            ));
+            when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            NoticeSyncService.SyncOutcome outcome = noticeSyncService.syncSingleNotice(item, LocalDateTime.of(2026, 3, 6, 12, 0), true);
+
+            assertEquals(NoticeSyncService.SyncOutcome.UPDATED, outcome);
+            assertNull(existing.getThumbnailUrl());
+        }
+    }
+
+    @Test
     void syncManually_특정공지저장실패시_다음공지계속진행하고_failed로집계한다() {
         NoticeFeedItem failedItem = new NoticeFeedItem(
                 "notice-failed",
