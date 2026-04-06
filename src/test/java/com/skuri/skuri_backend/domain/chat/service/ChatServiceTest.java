@@ -43,6 +43,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,6 +59,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -123,6 +125,28 @@ class ChatServiceTest {
     }
 
     @Test
+    void getAdminPublicChatRooms_참여여부와무관하게_public_non_party만반환한다() {
+        ChatRoom universityRoom = ChatRoom.create("public:university", "성결대학교 전체 채팅방", ChatRoomType.UNIVERSITY, null, null, null, true, null);
+        ChatRoom departmentRoom = ChatRoom.create("public:department:law", "법학과 채팅방", ChatRoomType.DEPARTMENT, "법학과", null, null, true, null);
+        ChatRoom customRoom = ChatRoom.create("room-1", "시험기간 밤샘 메이트", ChatRoomType.CUSTOM, null, null, null, true, null);
+        ChatRoom privateRoom = ChatRoom.create("room-private", "비공개방", ChatRoomType.CUSTOM, null, null, null, false, null);
+        ChatRoom partyRoom = ChatRoom.createPartyRoom("party-1");
+
+        when(chatRoomRepository.findAll()).thenReturn(List.of(privateRoom, partyRoom, universityRoom, departmentRoom, customRoom));
+
+        List<ChatRoomSummaryResponse> rooms = chatService.getAdminPublicChatRooms(null);
+
+        assertEquals(
+                Set.of("public:university", "public:department:law", "room-1"),
+                Set.copyOf(rooms.stream().map(ChatRoomSummaryResponse::id).toList())
+        );
+        assertTrue(rooms.stream().allMatch(room -> !room.joined()));
+        assertTrue(rooms.stream().allMatch(room -> room.unreadCount() == 0));
+        assertTrue(rooms.stream().allMatch(room -> !room.isMuted()));
+        verifyNoInteractions(chatRoomMemberRepository, memberRepository);
+    }
+
+    @Test
     void getChatRoomDetail_미참여공개방도_조회할수있다() {
         ChatRoom publicRoom = ChatRoom.create("public:university", "성결대학교 전체 채팅방", ChatRoomType.UNIVERSITY, null, "설명", null, true, null);
         ReflectionTestUtils.setField(publicRoom, "lastMessageTimestamp", LocalDateTime.of(2026, 3, 5, 21, 10, 0));
@@ -155,6 +179,46 @@ class ChatServiceTest {
         );
 
         assertEquals(ErrorCode.NOT_CHAT_ROOM_MEMBER, exception.getErrorCode());
+    }
+
+    @Test
+    void getAdminPublicChatRoomMessages_멤버십없이조회가능하다() {
+        ChatRoom publicRoom = ChatRoom.create("public:game:minecraft", "마인크래프트 채팅방", ChatRoomType.GAME, null, null, null, true, null);
+        ChatMessage message = ChatMessage.create("public:game:minecraft", "sender-1", "운영팀", 2L, "관리 공지입니다.", ChatMessageType.SYSTEM, null, null);
+        ReflectionTestUtils.setField(message, "id", "message-1");
+        ReflectionTestUtils.setField(message, "createdAt", LocalDateTime.of(2026, 4, 6, 10, 5, 0));
+
+        when(chatRoomRepository.findById("public:game:minecraft")).thenReturn(Optional.of(publicRoom));
+        when(chatMessageRepository.findByCursor("public:game:minecraft", null, null, null, PageRequest.of(0, 51)))
+                .thenReturn(List.of(message));
+        when(memberRepository.findAllById(List.of("sender-1")))
+                .thenReturn(List.of(activeMember("sender-1", "컴퓨터공학과", null)));
+
+        ChatMessagePageResponse response = chatService.getAdminPublicChatRoomMessages("public:game:minecraft", null, null, 50);
+
+        assertEquals(1, response.messages().size());
+        assertEquals("message-1", response.messages().get(0).id());
+        verifyNoInteractions(chatRoomMemberRepository);
+    }
+
+    @Test
+    void getAdminPartyChatMessages_멤버십없이조회가능하다() {
+        ChatRoom partyRoom = ChatRoom.createPartyRoom("party-1");
+        ChatMessage message = ChatMessage.create("party:party-1", "leader-1", "파티 리더", 3L, "정문 앞에서 만나요.", ChatMessageType.TEXT, null, null);
+        ReflectionTestUtils.setField(message, "id", "message-1");
+        ReflectionTestUtils.setField(message, "createdAt", LocalDateTime.of(2026, 4, 6, 10, 10, 0));
+
+        when(chatRoomRepository.findById("party:party-1")).thenReturn(Optional.of(partyRoom));
+        when(chatMessageRepository.findByCursor("party:party-1", null, null, null, PageRequest.of(0, 51)))
+                .thenReturn(List.of(message));
+        when(memberRepository.findAllById(List.of("leader-1")))
+                .thenReturn(List.of(activeMember("leader-1", "컴퓨터공학과", "https://cdn.skuri.app/uploads/profiles/leader-1.jpg")));
+
+        ChatMessagePageResponse response = chatService.getAdminPartyChatMessages("party:party-1", null, null, 50);
+
+        assertEquals(1, response.messages().size());
+        assertEquals("party:party-1", response.messages().get(0).chatRoomId());
+        verifyNoInteractions(chatRoomMemberRepository);
     }
 
     @Test

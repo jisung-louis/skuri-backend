@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.taxiparty.service;
 import com.skuri.skuri_backend.common.event.AfterCommitApplicationEventPublisher;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
 import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
 import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import com.skuri.skuri_backend.domain.chat.repository.ChatRoomRepository;
@@ -171,6 +172,19 @@ class TaxiPartyAdminServiceTest {
         );
 
         assertEquals(ErrorCode.CHAT_ROOM_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
+    void getAdminPartyMessages_파티가있으면_partyChat조회로위임한다() {
+        Party party = sampleParty("party-1", "leader");
+        ChatMessagePageResponse expected = new ChatMessagePageResponse(List.of(), false, null);
+        when(partyRepository.findDetailById("party-1")).thenReturn(Optional.of(party));
+        when(chatService.getAdminPartyChatMessages("party:party-1", null, null, 50)).thenReturn(expected);
+
+        ChatMessagePageResponse response = taxiPartyAdminService.getAdminPartyMessages("party-1", null, null, 50);
+
+        assertEquals(expected, response);
+        verify(chatService).getAdminPartyChatMessages("party:party-1", null, null, 50);
     }
 
     @Test

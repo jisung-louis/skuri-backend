@@ -3,6 +3,12 @@ package com.skuri.skuri_backend.domain.chat.controller;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.dto.response.AdminCreateChatRoomResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessagePageResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatMessageResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomDetailResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomLastMessageResponse;
+import com.skuri.skuri_backend.domain.chat.dto.response.ChatRoomSummaryResponse;
+import com.skuri.skuri_backend.domain.chat.entity.ChatMessageType;
 import com.skuri.skuri_backend.domain.chat.entity.ChatRoomType;
 import com.skuri.skuri_backend.domain.chat.service.ChatAdminService;
 import com.skuri.skuri_backend.domain.member.entity.Member;
@@ -22,6 +28,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +39,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -56,6 +64,129 @@ class ChatAdminRoomControllerContractTest {
 
     @MockitoBean
     private MemberRepository memberRepository;
+
+    @Test
+    void getPublicChatRooms_관리자요청_200() throws Exception {
+        mockToken("admin-token", "admin-uid", true);
+        when(chatAdminService.getPublicChatRooms(ChatRoomType.GAME))
+                .thenReturn(List.of(new ChatRoomSummaryResponse(
+                        "public:game:minecraft",
+                        ChatRoomType.GAME,
+                        "마인크래프트 채팅방",
+                        "스쿠리 서버 채팅방입니다.",
+                        true,
+                        87,
+                        false,
+                        0,
+                        new ChatRoomLastMessageResponse("TEXT", "오늘 이벤트 있어요.", "운영팀", LocalDateTime.of(2026, 4, 6, 10, 0)),
+                        LocalDateTime.of(2026, 4, 6, 10, 0),
+                        false
+                )));
+
+        mockMvc.perform(
+                        get("/v1/admin/chat-rooms")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("type", "GAME")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].id").value("public:game:minecraft"))
+                .andExpect(jsonPath("$.data[0].joined").value(false))
+                .andExpect(jsonPath("$.data[0].unreadCount").value(0))
+                .andExpect(jsonPath("$.data[0].isMuted").value(false));
+    }
+
+    @Test
+    void getPublicChatRoom_관리자요청_200() throws Exception {
+        mockToken("admin-token", "admin-uid", true);
+        when(chatAdminService.getPublicChatRoomDetail("public:game:minecraft"))
+                .thenReturn(new ChatRoomDetailResponse(
+                        "public:game:minecraft",
+                        ChatRoomType.GAME,
+                        "마인크래프트 채팅방",
+                        "스쿠리 서버 채팅방입니다.",
+                        true,
+                        87,
+                        false,
+                        0,
+                        new ChatRoomLastMessageResponse("TEXT", "오늘 이벤트 있어요.", "운영팀", LocalDateTime.of(2026, 4, 6, 10, 0)),
+                        LocalDateTime.of(2026, 4, 6, 10, 0),
+                        false,
+                        null
+                ));
+
+        mockMvc.perform(
+                        get("/v1/admin/chat-rooms/public:game:minecraft")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("public:game:minecraft"))
+                .andExpect(jsonPath("$.data.joined").value(false))
+                .andExpect(jsonPath("$.data.lastReadAt").doesNotExist());
+    }
+
+    @Test
+    void getPublicChatRoom_채팅방없음_404() throws Exception {
+        mockToken("admin-token", "admin-uid", true);
+        when(chatAdminService.getPublicChatRoomDetail("party:party-1"))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+
+        mockMvc.perform(
+                        get("/v1/admin/chat-rooms/party:party-1")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("CHAT_ROOM_NOT_FOUND"));
+    }
+
+    @Test
+    void getPublicChatRoomMessages_관리자요청_200() throws Exception {
+        mockToken("admin-token", "admin-uid", true);
+        when(chatAdminService.getPublicChatRoomMessages("public:game:minecraft", null, null, 50))
+                .thenReturn(new ChatMessagePageResponse(
+                        List.of(new ChatMessageResponse(
+                                "message-1",
+                                "public:game:minecraft",
+                                "system",
+                                "운영팀",
+                                null,
+                                ChatMessageType.SYSTEM,
+                                "관리 공지입니다.",
+                                null,
+                                null,
+                                null,
+                                LocalDateTime.of(2026, 4, 6, 10, 5)
+                        )),
+                        false,
+                        null
+                ));
+
+        mockMvc.perform(
+                        get("/v1/admin/chat-rooms/public:game:minecraft/messages")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("size", "50")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.messages[0].id").value("message-1"))
+                .andExpect(jsonPath("$.data.messages[0].senderName").value("운영팀"))
+                .andExpect(jsonPath("$.data.messages[0].senderPhotoUrl").isEmpty())
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
+    void getPublicChatRoomMessages_커서쌍불일치_422() throws Exception {
+        mockToken("admin-token", "admin-uid", true);
+        when(chatAdminService.getPublicChatRoomMessages("public:game:minecraft", null, "message-1", null))
+                .thenThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "cursorCreatedAt와 cursorId는 함께 전달해야 합니다."));
+
+        mockMvc.perform(
+                        get("/v1/admin/chat-rooms/public:game:minecraft/messages")
+                                .header(AUTHORIZATION, "Bearer admin-token")
+                                .param("cursorId", "message-1")
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("cursorCreatedAt와 cursorId는 함께 전달해야 합니다."));
+    }
 
     @Test
     void createPublicChatRoom_관리자요청_201() throws Exception {
