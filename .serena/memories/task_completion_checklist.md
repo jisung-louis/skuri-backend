@@ -24,6 +24,8 @@
 14. Support Admin 목록 규약을 바꿨다면 `page/size` validation, `PageResponse`, 고정 정렬 문서 동기화를 함께 확인한다.
 15. Inquiry 첨부 계약을 바꿨다면 `attachments` 생략/null -> 빈 배열 정규화, 최대 3개 제한, MIME 검증, `GET /v1/inquiries/my`와 Admin 문의 응답의 `attachments: []` 고정 규칙, `INQUIRY_IMAGE` context 문서화를 함께 확인한다.
 
+16. board/notice 댓글 익명 정책을 건드렸다면 `false -> true`(기존 번호 재사용/신규 번호 부여), `true -> false`(`anonId`/`anonymousOrder` 정리), `isAnonymous` omission 시 기존 값 유지, OpenAPI request/response example 동기화를 함께 확인한다.
+
 ## 운영/배포 변경 시 추가 검증
 1. `./gradlew build` 성공
 2. `docker compose` 설정 파일 문법/기동 절차 확인

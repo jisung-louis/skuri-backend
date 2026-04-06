@@ -27,6 +27,15 @@
 ./gradlew build
 ```
 
+## Board/Notice 익명 댓글 작업 검증
+```bash
+./gradlew clean compileJava
+./gradlew build -x test
+# 선택 컴파일 방식으로 변경 범위 테스트만 검증
+./gradlew -I /tmp/skuri-selected-tests.gradle test
+./gradlew -I /tmp/skuri-openapi-tests.gradle test
+```
+
 ## 자주 쓰는 테스트
 ```bash
 ./gradlew test

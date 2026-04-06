@@ -1829,7 +1829,7 @@ Authorization:Bearer <firebase_id_token>
 | `GET` | `/v1/posts/bookmarked` | 내 북마크 게시글 목록 |
 | `GET` | `/v1/posts/{postId}/comments` | 댓글 목록 조회 (flat list, 무제한 depth) |
 | `POST` | `/v1/posts/{postId}/comments` | 댓글/대댓글 작성 |
-| `PATCH` | `/v1/comments/{commentId}` | 댓글 수정 (작성자) |
+| `PATCH` | `/v1/comments/{commentId}` | 댓글 수정 (작성자, optional `isAnonymous` 지원) |
 | `DELETE` | `/v1/comments/{commentId}` | 댓글 삭제 (작성자, placeholder soft delete) |
 | `GET` | `/v1/members/me/posts` | 내가 작성한 게시글 목록 |
 | `GET` | `/v1/members/me/bookmarks` | 내가 북마크한 게시글 목록 |
@@ -1978,8 +1978,8 @@ Authorization:Bearer <firebase_id_token>
 
 - 댓글은 `parentId` self-reference 기반으로 무제한 대댓글을 허용한다.
 - 익명 규칙:
-  - `anonId = "{postId}:{userId}"`
-  - 게시글 단위로 기존 `anonId`가 있으면 기존 `anonymousOrder` 재사용
+  - `anonId`는 `{postId}:{userId}` 기반 SHA-256 짧은 안정 식별자(`ac:` prefix 포함 최대 35자)다.
+  - 게시글 단위로 같은 사용자의 기존 익명 댓글이 있으면 기존 `anonymousOrder` 재사용
   - 없으면 `max(anonymousOrder)+1` 부여
   - 삭제 후에도 순번 재계산 없음
 
@@ -2020,6 +2020,47 @@ Authorization:Bearer <firebase_id_token>
 - 좋아요하지 않은 상태에서 `DELETE`해도 현재 상태를 반환한다.
 
 #### PATCH /v1/comments/{commentId}
+
+```json
+{
+  "content": "수정된 댓글 내용",
+  "isAnonymous": true
+}
+```
+
+- `isAnonymous`를 생략하면 기존 값을 유지한다.
+- `false -> true`
+  - 같은 게시글 안에서 해당 사용자에게 이미 부여된 익명 번호가 있으면 재사용한다.
+  - 없으면 `max(anonymousOrder)+1`을 새로 부여한다.
+- `true -> false`
+  - 실명 댓글로 전환하며 `anonId`, `anonymousOrder`를 정리한다.
+- `true -> true`, `false -> false`
+  - 기존 익명 메타데이터를 유지한 채 본문만 수정한다.
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "comment_uuid",
+    "parentId": "root_comment_uuid",
+    "depth": 2,
+    "content": "수정된 댓글 내용",
+    "authorId": null,
+    "authorName": "익명1",
+    "authorProfileImage": null,
+    "isAnonymous": true,
+    "anonymousOrder": 1,
+    "isAuthor": true,
+    "isPostAuthor": false,
+    "likeCount": 3,
+    "isLiked": true,
+    "isDeleted": false,
+    "createdAt": "2026-02-03T12:00:00",
+    "updatedAt": "2026-02-03T12:30:00"
+  }
+}
+```
+
 #### DELETE /v1/comments/{commentId}
 #### POST /v1/comments/{commentId}/like
 #### DELETE /v1/comments/{commentId}/like
@@ -2536,8 +2577,8 @@ Authorization:Bearer <firebase_id_token>
 **댓글 정책:**
 - 댓글은 `parentId` self-reference 기반으로 무제한 대댓글을 허용한다.
 - 익명 규칙:
-  - `anonId = "{noticeId}:{userId}"`
-  - 공지 단위로 기존 `anonId`가 있으면 기존 `anonymousOrder` 재사용
+  - `anonId`는 `{noticeId}:{userId}` 기반 SHA-256 짧은 안정 식별자(`ac:` prefix 포함 최대 35자)다.
+  - 공지 단위로 같은 사용자의 기존 익명 댓글이 있으면 기존 `anonymousOrder` 재사용
   - 없으면 `max(anonymousOrder)+1` 부여
   - 삭제 후에도 순번 재계산 없음
 - 부모 댓글 삭제 시 하드 삭제하지 않고 `isDeleted=true`, `content="삭제된 댓글입니다"` placeholder 처리하며 자식은 유지한다.
@@ -2553,7 +2594,8 @@ Authorization:Bearer <firebase_id_token>
 **Request:**
 ```json
 {
-  "content": "수정된 댓글 내용"
+  "content": "수정된 댓글 내용",
+  "isAnonymous": true
 }
 ```
 
@@ -2566,10 +2608,10 @@ Authorization:Bearer <firebase_id_token>
     "parentId": null,
     "depth": 0,
     "content": "수정된 댓글 내용",
-    "authorId": "user_uuid",
-    "authorName": "홍길동",
-    "isAnonymous": false,
-    "anonymousOrder": null,
+    "authorId": null,
+    "authorName": "익명1",
+    "isAnonymous": true,
+    "anonymousOrder": 1,
     "isAuthor": true,
     "likeCount": 5,
     "isLiked": true,
@@ -2582,7 +2624,14 @@ Authorization:Bearer <firebase_id_token>
 
 **수정 정책:**
 - 댓글 작성자만 본문을 수정할 수 있다.
-- `content`만 수정 가능하며 `parentId`, `isAnonymous`, `anonymousOrder`는 생성 시점 값을 유지한다.
+- `isAnonymous`를 생략하면 기존 값을 유지한다.
+- `false -> true`
+  - 같은 공지 안에서 해당 사용자에게 이미 부여된 익명 번호가 있으면 재사용한다.
+  - 없으면 `max(anonymousOrder)+1`을 새로 부여한다.
+- `true -> false`
+  - 실명 댓글로 전환하며 `anonId`, `anonymousOrder`를 정리한다.
+- `true -> true`, `false -> false`
+  - 기존 익명 메타데이터를 유지한 채 본문만 수정한다.
 - 이미 삭제된 댓글은 `409 COMMENT_ALREADY_DELETED`를 반환한다.
 
 #### DELETE /v1/notice-comments/{commentId}

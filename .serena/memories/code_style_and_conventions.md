@@ -22,6 +22,10 @@
 - 이미지 업로드 context는 도메인별로 분리하고, Campus 배너 이미지는 `CAMPUS_BANNER_IMAGE` 관리자 전용 context + `campus-banners/YYYY/MM/DD` 경로를 사용한다.
 - 일반 Chat 읽음 처리 외부 계약은 ISO 8601 UTC(`Instant`)로 유지하고, 내부 `ChatRoomMember.lastReadAt` 비교/저장은 `Asia/Seoul` 기준 `LocalDateTime`으로 정규화한다. unread의 source of truth는 서버 저장값이다.
 
+## 댓글 익명 정책
+- board/notice 댓글 익명 번호는 scope 내 작성자 기준으로 재사용하고, 내부 `anonId`는 길이 초과를 막기 위해 짧은 안정 해시를 사용한다.
+- 댓글 수정 API에서 익명 여부를 바꿀 때는 `false -> true`만 scope aggregate lock을 추가로 잡아 순번 경쟁을 직렬화하고, `true -> false`는 `anonId`와 `anonymousOrder`를 함께 정리한다.
+
 ## 응답/예외
 - 모든 REST 응답은 `ApiResponse<T>`를 사용한다.
 - OpenAPI 2xx 성공 응답은 Scalar `Show schema`에서 `data`의 concrete type이 보이도록 raw `ApiResponse.class`만 두지 않는다. 필요하면 도메인별 OpenAPI 전용 wrapper schema를 사용한다.
