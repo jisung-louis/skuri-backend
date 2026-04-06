@@ -13,6 +13,7 @@ import static com.skuri.skuri_backend.infra.storage.FirebaseStorageRepository.DO
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -78,5 +79,34 @@ class FirebaseStorageRepositoryTest {
         repository.delete("profiles/2026/03/10/image.jpg");
 
         verify(bucket).get("profiles/2026/03/10/image.jpg");
+    }
+
+    @Test
+    void resolveRelativePath_Firebase다운로드URL에서_상대경로를복원한다() {
+        Bucket bucket = mock(Bucket.class);
+        when(bucket.getName()).thenReturn("sktaxi-acb4c.firebasestorage.app");
+
+        FirebaseStorageRepository repository = new FirebaseStorageRepository(bucket);
+
+        assertEquals(
+                "profiles/firebase-uid/2026/04/06/profile image.jpg",
+                repository.resolveRelativePath(
+                        "https://firebasestorage.googleapis.com/v0/b/sktaxi-acb4c.firebasestorage.app/o/profiles%2Ffirebase-uid%2F2026%2F04%2F06%2Fprofile%20image.jpg?alt=media&token=test-token"
+                ).orElseThrow()
+        );
+    }
+
+    @Test
+    void resolveRelativePath_다른버킷URL이면_빈값을반환한다() {
+        Bucket bucket = mock(Bucket.class);
+        when(bucket.getName()).thenReturn("sktaxi-acb4c.firebasestorage.app");
+
+        FirebaseStorageRepository repository = new FirebaseStorageRepository(bucket);
+
+        assertFalse(
+                repository.resolveRelativePath(
+                        "https://firebasestorage.googleapis.com/v0/b/other-bucket/o/profiles%2Ffirebase-uid%2F2026%2F04%2F06%2Fimage.jpg?alt=media&token=test-token"
+                ).isPresent()
+        );
     }
 }

@@ -215,7 +215,13 @@ public class MemberController {
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class),
-                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_VALIDATION)
+                            examples = {
+                                    @ExampleObject(name = "validation", value = OpenApiCommonExamples.ERROR_VALIDATION),
+                                    @ExampleObject(
+                                            name = "photo_url_not_owned",
+                                            value = OpenApiMemberExamples.ERROR_MEMBER_PROFILE_IMAGE_NOT_OWNED
+                                    )
+                            }
                     )
             )
     })
@@ -225,7 +231,7 @@ public class MemberController {
             content = @Content(
                     schema = @Schema(implementation = UpdateMemberProfileRequest.class),
                     examples = @ExampleObject(
-                            value = "{\"nickname\":\"스쿠리유저\",\"studentId\":\"2023112233\",\"department\":\"컴퓨터공학과\",\"photoUrl\":\"https://cdn.skuri.app/profiles/user-1.png\"}"
+                            value = "{\"nickname\":\"스쿠리유저\",\"studentId\":\"2023112233\",\"department\":\"컴퓨터공학과\",\"photoUrl\":\"https://cdn.skuri.app/uploads/profiles/dw9rPtuticbjnaYPkeiF3RGPpqk1/2026/04/06/photo.jpg\"}"
                     )
             )
     )
@@ -236,6 +242,60 @@ public class MemberController {
     ) {
         MemberMeResponse response = memberService.updateMyProfile(requireAuthenticatedMember(authenticatedMember).uid(), request);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/me/photo")
+    @Operation(
+            summary = "내 프로필 사진 삭제",
+            description = "현재 프로필 사진을 제거합니다. 우리 서비스가 업로드한 PROFILE_IMAGE URL이면 storage의 원본/썸네일도 함께 정리합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "삭제 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.SUCCESS_NULL)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiCommonExamples.ERROR_UNAUTHORIZED)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "이메일 도메인 제한/탈퇴 회원 접근 차단",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "email_domain_restricted", value = OpenApiCommonExamples.ERROR_EMAIL_DOMAIN_RESTRICTED),
+                                    @ExampleObject(name = "member_withdrawn", value = OpenApiMemberExamples.ERROR_MEMBER_WITHDRAWN)
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회원 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(name = "default", value = OpenApiMemberExamples.ERROR_MEMBER_NOT_FOUND)
+                    )
+            )
+    })
+    public ResponseEntity<ApiResponse<Void>> deleteMyProfilePhoto(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember
+    ) {
+        memberService.deleteMyProfilePhoto(requireAuthenticatedMember(authenticatedMember).uid());
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PutMapping("/me/bank-account")

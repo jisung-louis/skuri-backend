@@ -3,6 +3,7 @@ package com.skuri.skuri_backend.domain.member.service;
 import com.skuri.skuri_backend.common.exception.BusinessException;
 import com.skuri.skuri_backend.common.exception.ErrorCode;
 import com.skuri.skuri_backend.domain.chat.service.ChatService;
+import com.skuri.skuri_backend.domain.image.service.ProfileImageStorageService;
 import com.skuri.skuri_backend.domain.member.constant.DepartmentCatalog;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberBankAccountRequest;
 import com.skuri.skuri_backend.domain.member.dto.request.UpdateMemberNotificationSettingsRequest;
@@ -27,6 +28,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -40,6 +43,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final LinkedAccountRepository linkedAccountRepository;
     private final ChatService chatService;
+    private final ProfileImageStorageService profileImageStorageService;
 
     // Intentionally non-transactional: insert 충돌(DataIntegrityViolationException) 이후
     // 복구 조회를 새로운 JPA 세션/트랜잭션에서 수행해 Session 오염을 피한다.
@@ -83,6 +87,7 @@ public class MemberService {
         if (request.department() != null && StringUtils.hasText(request.department()) && normalizedDepartment == null) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "지원하지 않는 department입니다.");
         }
+        profileImageStorageService.validateProfilePhotoReference(memberId, member.getPhotoUrl(), request.photoUrl());
         member.updateProfile(
                 request.nickname(),
                 request.studentId(),
@@ -93,6 +98,14 @@ public class MemberService {
             chatService.removeMemberFromDepartmentChatRooms(memberId);
         }
         return toMemberMeResponse(member);
+    }
+
+    @Transactional
+    public void deleteMyProfilePhoto(String memberId) {
+        Member member = getMemberOrThrow(memberId);
+        String previousPhotoUrl = member.getPhotoUrl();
+        member.removeProfilePhoto();
+        cleanupProfilePhotoAfterCommit(memberId, previousPhotoUrl);
     }
 
     @Transactional
@@ -175,6 +188,24 @@ public class MemberService {
             return "";
         }
         return value.trim();
+    }
+
+    private void cleanupProfilePhotoAfterCommit(String memberId, String photoUrl) {
+        if (!StringUtils.hasText(photoUrl)) {
+            return;
+        }
+
+        Runnable cleanupTask = () -> profileImageStorageService.deleteOwnedManagedProfileImage(memberId, photoUrl);
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cleanupTask.run();
+                }
+            });
+            return;
+        }
+        cleanupTask.run();
     }
 
     private MemberCreateResponse toMemberCreateResponse(Member member) {

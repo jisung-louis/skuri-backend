@@ -7,6 +7,7 @@ import com.skuri.skuri_backend.domain.image.dto.request.ImageUploadContext;
 import com.skuri.skuri_backend.domain.image.dto.request.ImageUploadRequest;
 import com.skuri.skuri_backend.domain.image.dto.response.ImageUploadResponse;
 import com.skuri.skuri_backend.domain.image.service.ImageUploadService;
+import com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMember;
 import com.skuri.skuri_backend.infra.openapi.OpenApiCommonExamples;
 import com.skuri.skuri_backend.infra.openapi.OpenApiConfig;
 import com.skuri.skuri_backend.infra.openapi.OpenApiImageExamples;
@@ -23,12 +24,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import static com.skuri.skuri_backend.infra.auth.firebase.AuthenticatedMemberSupport.requireAuthenticatedMember;
 
 @RestController
 @RequestMapping("/v1/images")
@@ -150,11 +154,17 @@ public class ImageController {
     )
     public ResponseEntity<ApiResponse<ImageUploadResponse>> uploadImage(
             @Parameter(hidden = true) Authentication authentication,
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @RequestPart("file") MultipartFile file,
             @RequestParam("context") String context
     ) {
         ImageUploadContext uploadContext = parseContext(context);
-        ImageUploadResponse response = imageUploadService.upload(isAdmin(authentication), uploadContext, file);
+        ImageUploadResponse response = imageUploadService.upload(
+                requireAuthenticatedMember(authenticatedMember).uid(),
+                isAdmin(authentication),
+                uploadContext,
+                file
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

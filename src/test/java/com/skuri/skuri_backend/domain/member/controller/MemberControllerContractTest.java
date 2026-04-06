@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -229,6 +230,30 @@ class MemberControllerContractTest {
     }
 
     @Test
+    void patchMembersMe_본인소유가아닌내부프로필URL이면_422() throws Exception {
+        mockValidToken();
+        when(memberService.updateMyProfile(eq("firebase-uid"), any(UpdateMemberProfileRequest.class)))
+                .thenThrow(new com.skuri.skuri_backend.common.exception.BusinessException(
+                        com.skuri.skuri_backend.common.exception.ErrorCode.VALIDATION_ERROR,
+                        "photoUrl은 본인이 업로드한 PROFILE_IMAGE URL만 사용할 수 있습니다."
+                ));
+
+        mockMvc.perform(
+                        patch("/v1/members/me")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                                .contentType(APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "photoUrl": "https://cdn.skuri.app/uploads/profiles/other-member/2026/04/06/photo.jpg"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("photoUrl은 본인이 업로드한 PROFILE_IMAGE URL만 사용할 수 있습니다."));
+    }
+
+    @Test
     void putMembersMeBankAccount_기본성공() throws Exception {
         mockValidToken();
         when(memberService.updateMyBankAccount(eq("firebase-uid"), any()))
@@ -324,6 +349,35 @@ class MemberControllerContractTest {
                 .andExpect(jsonPath("$.message", containsString("nickname")));
 
         verifyNoInteractions(memberService);
+    }
+
+    @Test
+    void deleteMembersMePhoto_정상요청_200() throws Exception {
+        mockValidToken();
+
+        mockMvc.perform(
+                        delete("/v1/members/me/photo")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(memberService).deleteMyProfilePhoto("firebase-uid");
+    }
+
+    @Test
+    void deleteMembersMePhoto_회원없음_404() throws Exception {
+        mockValidToken();
+        doThrow(new MemberNotFoundException())
+                .when(memberService)
+                .deleteMyProfilePhoto("firebase-uid");
+
+        mockMvc.perform(
+                        delete("/v1/members/me/photo")
+                                .header(AUTHORIZATION, "Bearer valid-token")
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("MEMBER_NOT_FOUND"));
     }
 
     @Test

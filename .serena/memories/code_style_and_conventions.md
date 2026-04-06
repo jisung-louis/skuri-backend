@@ -7,6 +7,8 @@
 - SSE subscribe 메서드는 long-lived request 수명을 트랜잭션/JPA 세션 수명과 섞지 않는다. 초기 snapshot은 전용 read-only 서비스에서 DTO payload로 계산한 뒤 emitter를 생성/등록/전송한다.
 - 마인크래프트 bridge는 앱용 STOMP와 분리된 전용 internal HTTP + SSE 채널로 유지한다. 플러그인 인증은 `X-Skuri-Minecraft-Secret` 헤더 기반이고, source of truth는 Firebase RTDB가 아니라 Spring/MySQL이다.
 - 상태 변경 후 알림 발행은 `AfterCommitApplicationEventPublisher`로 after-commit semantics를 보장한다.
+- 회원 프로필 사진 삭제는 PATCH의 null 의미를 바꾸지 않고 전용 `DELETE /v1/members/me/photo`에서 처리한다. DB의 `photo_url` null 반영을 우선하고, 내부 `PROFILE_IMAGE` storage 정리는 after-commit/best-effort로 분리한다.
+- 프로필 `photoUrl`은 외부 URL이거나 현재 저장값 그대로인 경우를 제외하면, 반드시 본인이 업로드한 member-scoped `PROFILE_IMAGE` URL이어야 한다. 다른 회원의 내부 URL이나 legacy unscoped 내부 URL을 새 값으로 재사용하지 않는다.
 - 회원 탈퇴는 hard delete 대신 tombstone(`status=WITHDRAWN`, `withdrawnAt`) + 개인정보 스크럽을 기본으로 한다.
 - 탈퇴로 인한 외부 후처리(Firebase 삭제, SSE 연결 종료)는 핵심 트랜잭션 안에서 직접 처리하지 않고 after-commit 리스너로 분리한다.
 - 같은 Firebase UID의 탈퇴 회원은 재활성화하지 않는다. `POST /v1/members`는 활성 회원에만 멱등이고, withdrawn UID에는 `WITHDRAWN_MEMBER_REJOIN_NOT_ALLOWED`를 반환한다.

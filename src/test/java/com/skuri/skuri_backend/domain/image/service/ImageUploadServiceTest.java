@@ -31,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ImageUploadServiceTest {
 
+    private static final String MEMBER_ID = "firebase-uid";
+
     @TempDir
     Path tempDir;
 
@@ -64,7 +66,7 @@ class ImageUploadServiceTest {
         byte[] imageBytes = createImageBytes("jpg", 800, 600, BufferedImage.TYPE_INT_RGB);
         MockMultipartFile file = new MockMultipartFile("file", "sample.jpg", "image/jpeg", imageBytes);
 
-        ImageUploadResponse response = imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file);
+        ImageUploadResponse response = imageUploadService.upload(MEMBER_ID, false, ImageUploadContext.POST_IMAGE, file);
 
         assertEquals(800, response.width());
         assertEquals(600, response.height());
@@ -89,7 +91,7 @@ class ImageUploadServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> imageUploadService.upload(false, ImageUploadContext.APP_NOTICE_IMAGE, file)
+                () -> imageUploadService.upload(MEMBER_ID, false, ImageUploadContext.APP_NOTICE_IMAGE, file)
         );
 
         assertEquals(ErrorCode.ADMIN_REQUIRED, exception.getErrorCode());
@@ -101,7 +103,7 @@ class ImageUploadServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file)
+                () -> imageUploadService.upload(MEMBER_ID, false, ImageUploadContext.POST_IMAGE, file)
         );
 
         assertEquals(ErrorCode.IMAGE_INVALID_FORMAT, exception.getErrorCode());
@@ -113,7 +115,7 @@ class ImageUploadServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file)
+                () -> imageUploadService.upload(MEMBER_ID, false, ImageUploadContext.POST_IMAGE, file)
         );
 
         assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
@@ -131,7 +133,7 @@ class ImageUploadServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file)
+                () -> imageUploadService.upload(MEMBER_ID, false, ImageUploadContext.POST_IMAGE, file)
         );
 
         assertEquals(ErrorCode.IMAGE_TOO_LARGE, exception.getErrorCode());
@@ -141,17 +143,29 @@ class ImageUploadServiceTest {
     @CsvSource({
             "POST_IMAGE,false,/posts/",
             "CHAT_IMAGE,false,/chat/",
-            "PROFILE_IMAGE,false,/profiles/",
+            "PROFILE_IMAGE,false,/profiles/firebase-uid/",
             "APP_NOTICE_IMAGE,true,/app-notices/",
             "INQUIRY_IMAGE,false,/inquiries/"
     })
     void upload_context별_경로prefix를적용한다(ImageUploadContext context, boolean admin, String expectedSegment) throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "sample.png", "image/png", createImageBytes("png", 120, 120, BufferedImage.TYPE_INT_ARGB));
 
-        ImageUploadResponse response = imageUploadService.upload(admin, context, file);
+        ImageUploadResponse response = imageUploadService.upload(MEMBER_ID, admin, context, file);
 
         assertTrue(response.url().contains(expectedSegment));
         assertTrue(response.thumbUrl().contains(expectedSegment));
+    }
+
+    @Test
+    void upload_PROFILE_IMAGE_회원ID가없으면_UNAUTHORIZED() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "sample.png", "image/png", createImageBytes("png", 120, 120, BufferedImage.TYPE_INT_ARGB));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> imageUploadService.upload(null, false, ImageUploadContext.PROFILE_IMAGE, file)
+        );
+
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
     }
 
     @Test
@@ -161,7 +175,7 @@ class ImageUploadServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file)
+                () -> imageUploadService.upload(MEMBER_ID, false, ImageUploadContext.POST_IMAGE, file)
         );
 
         assertEquals(ErrorCode.IMAGE_DIMENSIONS_EXCEEDED, exception.getErrorCode());
@@ -174,7 +188,7 @@ class ImageUploadServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> imageUploadService.upload(false, ImageUploadContext.POST_IMAGE, file)
+                () -> imageUploadService.upload(MEMBER_ID, false, ImageUploadContext.POST_IMAGE, file)
         );
 
         assertEquals(ErrorCode.IMAGE_INVALID_FORMAT, exception.getErrorCode());
@@ -201,7 +215,7 @@ class ImageUploadServiceTest {
                 createImageBytes("jpg", 100, 100, BufferedImage.TYPE_INT_RGB)
         );
 
-        ImageUploadResponse response = service.upload(false, ImageUploadContext.POST_IMAGE, file);
+        ImageUploadResponse response = service.upload(MEMBER_ID, false, ImageUploadContext.POST_IMAGE, file);
 
         assertTrue(response.url().startsWith("http://localhost:9090/media-files/posts/"));
         assertTrue(response.thumbUrl().startsWith("http://localhost:9090/media-files/posts/"));
