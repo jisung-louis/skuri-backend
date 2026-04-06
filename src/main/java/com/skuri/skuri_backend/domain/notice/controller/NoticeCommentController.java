@@ -42,7 +42,7 @@ public class NoticeCommentController {
     private final NoticeService noticeService;
 
     @PatchMapping("/{commentId}")
-    @Operation(summary = "공지 댓글 수정", description = "공지 댓글 작성자만 본문을 수정할 수 있습니다. 익명 여부는 생성 시점 값을 유지하며 수정할 수 없습니다.")
+    @Operation(summary = "공지 댓글 수정", description = "공지 댓글 작성자만 수정할 수 있습니다. `isAnonymous`를 보내면 익명 여부도 변경할 수 있고, 생략하면 기존 값을 유지합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -107,7 +107,8 @@ public class NoticeCommentController {
                     examples = @ExampleObject(
                             value = """
                                     {
-                                      "content": "수정된 공지 댓글 내용"
+                                      "content": "수정된 공지 댓글 내용",
+                                      "isAnonymous": true
                                     }
                                     """
                     )

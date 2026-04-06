@@ -39,7 +39,10 @@ public interface NoticeCommentRepository extends JpaRepository<NoticeComment, St
             """)
     Optional<NoticeComment> findByIdForUpdate(@Param("commentId") String commentId);
 
-    Optional<NoticeComment> findFirstByNotice_IdAndAnonIdAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(String noticeId, String anonId);
+    Optional<NoticeComment> findFirstByNotice_IdAndUserIdAndAnonymousTrueAndAnonymousOrderIsNotNullOrderByCreatedAtAsc(
+            String noticeId,
+            String userId
+    );
 
     @Query("""
             select coalesce(max(c.anonymousOrder), 0)

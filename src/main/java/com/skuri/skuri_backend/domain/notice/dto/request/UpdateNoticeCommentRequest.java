@@ -9,6 +9,11 @@ public record UpdateNoticeCommentRequest(
         @NotBlank(message = "content는 필수입니다.")
         @Size(max = 1000, message = "content는 1000자 이하여야 합니다.")
         @Schema(description = "수정할 댓글 본문", example = "수정된 공지 댓글 내용")
-        String content
+        String content,
+        @Schema(description = "익명 여부. 생략하면 기존 값을 유지합니다.", example = "true", nullable = true)
+        Boolean isAnonymous
 ) {
+    public UpdateNoticeCommentRequest(String content) {
+        this(content, null);
+    }
 }
