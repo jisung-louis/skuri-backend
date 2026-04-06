@@ -37,9 +37,11 @@
 
 ## Migration 러너 검증
 ```bash
-./gradlew compileJava test --tests "*NoticeMigrationJobDataJpaTest" --tests "*NoticeSyncServiceTest"
+./gradlew compileJava test --tests "*NoticeMigrationJobDataJpaTest" --tests "*NoticeThumbnailMigrationJobDataJpaTest" --tests "*NoticeSyncServiceTest"
 ./gradlew test --tests "*CutoverMigrationJobDataJpaTest"
-SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --args='--migration.enabled=true --migration.plan=notices --migration.mode=dry-run --migration.notice-file=/Users/jisung/skuri-backend/data-to-migration/notices-export.json --migration.report-dir=/Users/jisung/skuri-backend/data-to-migration/reports --spring.main.web-application-type=none --spring.task.scheduling.enabled=false'
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --args='--migration.enabled=true --migration.plan=NOTICES --migration.mode=DRY_RUN --migration.notice-file=/Users/jisung/skuri-backend/data-to-migration/notices-export.json --migration.report-dir=/Users/jisung/skuri-backend/data-to-migration/reports --spring.main.web-application-type=none --spring.task.scheduling.enabled=false'
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --args='--migration.enabled=true --migration.plan=NOTICE_THUMBNAILS --migration.mode=DRY_RUN --migration.batch-size=200 --migration.report-dir=/Users/jisung/skuri-backend/data-to-migration/reports --spring.main.web-application-type=none --spring.task.scheduling.enabled=false'
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --args='--migration.enabled=true --migration.plan=NOTICE_THUMBNAILS --migration.mode=APPLY --migration.batch-size=200 --migration.report-dir=/Users/jisung/skuri-backend/data-to-migration/reports --spring.main.web-application-type=none --spring.task.scheduling.enabled=false'
 ```
 
 ## Academic 온라인 강의 검증

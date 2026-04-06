@@ -17,7 +17,7 @@
 - chat: 공개 채팅방/파티 채팅방, SYSTEM/ARRIVED/END 서버 메시지, 공개방 seed, 메시지 payload `senderPhotoUrl`은 `members.photo_url`만 사용
 - minecraft: `public:game:minecraft` 공개 채팅방, plugin 전용 internal bridge(`/internal/minecraft/**` + SSE), 앱/플러그인 간 양방향 채팅, 서버 상태, 온라인 플레이어 스냅샷, 화이트리스트/JE·BE 검증 정책을 Spring이 source of truth로 관리하며, plugin inbound `eventId` idempotency와 outbox replay tie-breaker(`minecraft_bridge_events.id`)를 서버가 보장
 - board: 게시글/댓글/좋아요/북마크, 이미지 썸네일 규칙
-- notice: 학교 공지/댓글/읽음/북마크/앱 공지
+- notice: 학교 공지/댓글/읽음/북마크/앱 공지. `notices.thumbnail_url`에 목록용 첫 이미지 URL을 저장하고, `/v1/notices`는 projection query로 필요한 컬럼만 읽는다. 기존 row는 `NOTICE_THUMBNAILS` migration plan으로 DB `body_html`만 읽어 backfill한다.
 - academic: 강의/시간표/학사 일정, `GET /v1/timetables/my/semesters`, 직접 입력 강의(`UserTimetableManualCourse`), 공식 강의 `Course.isOnline`, 시간표 응답 `courses[] + slots[]` + `isOnline` 계약. 공식 온라인 강의는 직접 입력 온라인 강의와 같은 의미로 `slots[]`/충돌 검사에서 제외하지만 저장 모델은 분리 유지
 - campus: 캠퍼스 배너 공개/관리자 API
 - support: 문의/신고(게시글/댓글/회원/채팅 메시지/일반 채팅방/택시파티)/앱 버전/법적 문서/학식. 학식은 기존 `menus`와 함께 `categories`, `menuEntries`(stable weekly id, title, badges, 실제 `likeCount`/`dislikeCount`, `myReaction`)를 제공하며 가격은 계약에서 제외한다. 보조 태그는 관리자 입력 메타데이터로 저장하고, 관리자 요청의 `likeCount`/`dislikeCount`는 deprecated 입력으로 남기되 저장 시 무시한다. 같은 주 안의 동일 `category + title`은 날짜가 달라도 동일 메타데이터를 강제한다. 카테고리 코드는 메뉴 ID 안정성을 위해 영문/숫자/_/-만 허용한다. `menus` 검증 시 빈 카테고리 생략은 `menuEntries`의 빈 배열과 같은 의미로 본다. 사용자 반응은 `PUT /v1/cafeteria-menu-reactions/{menuId}` 한 개의 upsert API로 등록/전환/취소하며, source of truth는 `cafeteria_menu_reactions` row다. 반응 upsert는 같은 요청 재시도/더블탭에서도 500이 나지 않도록 주차 row lock으로 직렬화한다.
@@ -44,7 +44,7 @@
 - 상태 변경 이후 알림/외부 후처리는 after-commit semantics를 따른다.
 - Admin API는 `@AdminApiAccess`, `ADMIN_REQUIRED`, `admin_audit_logs` 기반 정책을 사용한다.
 - 별도 1회성 데이터 이관은 `infra/migration` 아래의 스프링 배치 러너로 수행한다. 평소 app 서버는 영향 없이 유지하고, `migration.enabled=true`와 `spring.main.web-application-type=none` 설정으로만 실행 후 종료한다.
-- 이관 러너는 `plan=NOTICES`(공지)와 `plan=CUTOVER`(회원/시간표/마인크래프트 컷오버)를 지원한다. 운영에서는 app 컨테이너와 분리된 1회성 실행을 기본으로 하고, 필요하면 `NOTICE_SYNC_SCHEDULER_ENABLED=false`로 공지 스케줄러를 잠시 끈 뒤 dry-run/apply를 순차 실행한다.
+- 이관 러너는 `plan=NOTICES`(Firestore notices import), `plan=NOTICE_THUMBNAILS`(기존 notices `thumbnail_url` backfill), `plan=CUTOVER`(회원/시간표/마인크래프트 컷오버)를 지원한다. 운영에서는 app 컨테이너와 분리된 1회성 실행을 기본으로 하고, 필요하면 `NOTICE_SYNC_SCHEDULER_ENABLED=false`로 공지 스케줄러를 잠시 끈 뒤 dry-run/apply를 순차 실행한다.
 
 ## Admin Member API 메모
 - `member` 도메인은 관리자 백오피스 회원 관리 API를 제공한다: `GET /v1/admin/members`, `GET /v1/admin/members/{memberId}`, `GET /v1/admin/members/{memberId}/activity`, `PATCH /v1/admin/members/{memberId}/admin-role`.
